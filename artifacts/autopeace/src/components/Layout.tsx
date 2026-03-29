@@ -1,23 +1,63 @@
 import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
-import { Menu, X, Activity, BarChart2, DollarSign, FlaskConical, BookOpen, HelpCircle, Shield, ChevronRight, Handshake, Users, Swords } from "lucide-react";
+import {
+  Menu, X, Activity, BarChart2, DollarSign, FlaskConical, BookOpen,
+  HelpCircle, Shield, ChevronRight, Handshake, Users, Swords,
+  Search, GitCompare, Send, Database, Code2, Github,
+} from "lucide-react";
 
-const NAV_ITEMS = [
-  { href: "/", label: "Home", icon: Activity },
-  { href: "/deals", label: "Deal Dashboard", icon: Handshake },
-  { href: "/arena", label: "Proposal Arena", icon: Swords },
-  { href: "/forecasts", label: "Forecasts", icon: BarChart2 },
-  { href: "/costs", label: "Cost Explorer", icon: DollarSign },
-  { href: "/stakeholders", label: "Stakeholders", icon: Users },
-  { href: "/experiments", label: "Experiment Log", icon: FlaskConical },
-  { href: "/changelog", label: "Changelog", icon: BookOpen },
-  { href: "/methodology", label: "Methodology", icon: HelpCircle },
-  { href: "/admin", label: "Admin", icon: Shield },
+type NavGroup = {
+  label: string;
+  items: { href: string; label: string; icon: React.ComponentType<{ className?: string }> }[];
+};
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    label: "Research",
+    items: [
+      { href: "/", label: "Home", icon: Activity },
+      { href: "/deals", label: "Deal Dashboard", icon: Handshake },
+      { href: "/arena", label: "Proposal Arena", icon: Swords },
+      { href: "/forecasts", label: "Forecasts", icon: BarChart2 },
+      { href: "/costs", label: "Cost Explorer", icon: DollarSign },
+    ],
+  },
+  {
+    label: "Explorer",
+    items: [
+      { href: "/stakeholders", label: "Stakeholders", icon: Users },
+      { href: "/stakeholders/compare", label: "Compare Actors", icon: GitCompare },
+      { href: "/evidence", label: "Evidence Explorer", icon: Search },
+      { href: "/experiments", label: "Experiment Log", icon: FlaskConical },
+    ],
+  },
+  {
+    label: "Community",
+    items: [
+      { href: "/submit", label: "Submit Proposal", icon: Send },
+      { href: "/data", label: "Data Portal", icon: Database },
+      { href: "/api-docs", label: "API Docs", icon: Code2 },
+      { href: "/open-source", label: "Open Source", icon: Github },
+    ],
+  },
+  {
+    label: "Info",
+    items: [
+      { href: "/changelog", label: "Changelog", icon: BookOpen },
+      { href: "/methodology", label: "Methodology", icon: HelpCircle },
+      { href: "/admin", label: "Admin", icon: Shield },
+    ],
+  },
 ];
+
+const ALL_NAV_ITEMS = NAV_GROUPS.flatMap(g => g.items);
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const isActive = (href: string) =>
+    location.pathname === href || (href !== "/" && location.pathname.startsWith(href));
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -35,25 +75,35 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <p className="text-xs text-muted-foreground mt-1 ml-10">Iran Conflict Monitor</p>
         </div>
 
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-            const isActive = location.pathname === href || (href !== "/" && location.pathname.startsWith(href));
-            return (
-              <Link
-                key={href}
-                to={href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group
-                  ${isActive
-                    ? "bg-primary/15 text-primary border border-primary/20"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-                  }`}
-              >
-                <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"}`} />
-                <span>{label}</span>
-                {isActive && <ChevronRight className="w-3 h-3 ml-auto text-primary" />}
-              </Link>
-            );
-          })}
+        <nav className="flex-1 p-4 space-y-4 overflow-y-auto" aria-label="Main navigation">
+          {NAV_GROUPS.map(group => (
+            <div key={group.label}>
+              <p className="text-[9px] font-semibold text-muted-foreground/60 uppercase tracking-widest px-3 mb-1">
+                {group.label}
+              </p>
+              <div className="space-y-0.5">
+                {group.items.map(({ href, label, icon: Icon }) => {
+                  const active = isActive(href);
+                  return (
+                    <Link
+                      key={href}
+                      to={href}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 group
+                        ${active
+                          ? "bg-primary/15 text-primary border border-primary/20"
+                          : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                        }`}
+                      aria-current={active ? "page" : undefined}
+                    >
+                      <Icon className={`w-4 h-4 flex-shrink-0 ${active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"}`} />
+                      <span>{label}</span>
+                      {active && <ChevronRight className="w-3 h-3 ml-auto text-primary" aria-hidden="true" />}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         <div className="p-4 border-t border-border/50">
@@ -75,7 +125,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <button
           onClick={() => setMobileOpen(v => !v)}
           className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
-          aria-label="Toggle menu"
+          aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"}
+          aria-expanded={mobileOpen}
         >
           {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
@@ -83,24 +134,32 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Mobile Nav Drawer */}
       {mobileOpen && (
-        <div className="lg:hidden fixed inset-0 z-40">
+        <div className="lg:hidden fixed inset-0 z-40" role="dialog" aria-modal="true" aria-label="Navigation menu">
           <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
-          <nav className="absolute top-14 left-0 right-0 bg-card border-b border-border/50 p-3 space-y-1">
-            {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-              const isActive = location.pathname === href || (href !== "/" && location.pathname.startsWith(href));
-              return (
-                <Link
-                  key={href}
-                  to={href}
-                  onClick={() => setMobileOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
-                    ${isActive ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"}`}
-                >
-                  <Icon className="w-4 h-4 flex-shrink-0" />
-                  {label}
-                </Link>
-              );
-            })}
+          <nav className="absolute top-14 left-0 right-0 bg-card border-b border-border/50 p-3 space-y-3 max-h-[80vh] overflow-y-auto">
+            {NAV_GROUPS.map(group => (
+              <div key={group.label}>
+                <p className="text-[9px] font-semibold text-muted-foreground/60 uppercase tracking-widest px-3 mb-1">{group.label}</p>
+                <div className="space-y-0.5">
+                  {group.items.map(({ href, label, icon: Icon }) => {
+                    const active = isActive(href);
+                    return (
+                      <Link
+                        key={href}
+                        to={href}
+                        onClick={() => setMobileOpen(false)}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+                          ${active ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"}`}
+                        aria-current={active ? "page" : undefined}
+                      >
+                        <Icon className="w-4 h-4 flex-shrink-0" />
+                        {label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </nav>
         </div>
       )}
@@ -116,11 +175,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <footer className="lg:ml-0 border-t border-border/30 px-6 py-4 text-xs text-muted-foreground flex flex-wrap gap-4 items-center justify-between bg-card/30">
           <span>AutoPeace — AI-powered conflict research · For educational and research use only</span>
           <div className="flex gap-4">
-            <a href="/methodology" className="hover:text-primary transition-colors">Methodology</a>
-            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">GitHub</a>
+            <Link to="/methodology" className="hover:text-primary transition-colors">Methodology</Link>
+            <Link to="/data" className="hover:text-primary transition-colors">Data</Link>
+            <Link to="/open-source" className="hover:text-primary transition-colors">Open Source</Link>
+            <a href="https://github.com/AutoPeace" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">GitHub</a>
           </div>
         </footer>
       </main>
     </div>
   );
 }
+
+export { ALL_NAV_ITEMS };

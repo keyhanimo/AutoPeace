@@ -101,16 +101,46 @@ Scheduler: hourly cron check, runs at UTC 6am daily by default.
 | Route | Page |
 |---|---|
 | `/` | Home — hero, peace gauge, stakeholder grid, DealHeroSection |
-| `/forecasts` | Forecast Dashboard — bar chart, model metadata, rationale |
+| `/forecasts` | Forecast Dashboard — bar chart, what-if scenarios, community forecast panel |
 | `/deals` | Deal Dashboard — solution tree, Pareto frontier, deal cards |
-| `/proposals` | Proposal Arena — US vs Iran vs AI deal comparison |
+| `/arena` | Proposal Arena — US vs Iran vs AI deal comparison |
 | `/stakeholders` | Stakeholder Gallery — expandable stakeholder profile cards |
+| `/stakeholders/compare` | Stakeholder Comparison — multi-select comparison tool (up to 4) |
+| `/evidence` | Evidence Explorer — searchable, filterable corpus browser (54+ items) |
 | `/costs` | Cost Explorer — economic/human cost data by actor |
 | `/experiments` | Evolution Log — mutation table with result badges |
+| `/submit` | Submit Proposal — public form for community proposal submissions |
+| `/data` | Data Portal — JSON/CSV downloads for all 6 research datasets + RSS |
+| `/api-docs` | API Documentation — 20 endpoints with examples, filterable by tag |
+| `/open-source` | Open Source — contributing guide, tech stack, licence |
 | `/changelog` | Platform Changelog — timeline of cycle headlines |
 | `/changelog/:id` | Changelog Entry — detail view |
 | `/methodology` | Methodology — Bayesian approach, 8-state MECE taxonomy |
 | `/admin` | Admin Panel — password-gated (X-Admin-Key); model/provider config, proposal management, deal engine trigger |
+
+## Phase 3 — Interactive Explorer & Community
+
+**New DB tables**: `community_forecasts`, `proposal_submissions`
+
+**New API routes**:
+- `POST /api/community-forecasts` — submit probability forecast (sessionId + timeHorizon + estimates)
+- `GET /api/community-forecasts/aggregate` — avg community forecast by time horizon
+- `POST /api/proposals/submit` — public proposal submission (goes to pending queue)
+- `GET /admin/proposals/queue` — admin review queue with status filter
+- `PATCH /admin/proposals/queue/{id}` — approve/reject (creates `proposals` entry when approved)
+- `GET /api/changelog.xml` — RSS 2.0 feed of changelog entries
+- `GET /api/downloads/index` — download manifest JSON
+- `GET /api/downloads/forecasts.json|csv`, `deals.json|csv`, `experiments.csv`, `stakeholders.json`, `evidence.json`, `costs.json`
+
+**Rate limiting**: `express-rate-limit` middleware — 120/min public, 5/15min submissions, 30/min downloads
+
+**New pages**: Evidence Explorer, Stakeholder Comparison, Submit Proposal, Data Portal, API Docs, Open Source
+
+**ForecastDashboard additions**: What-If Scenarios panel (4 toggleable scenarios with probability shifts) + Community Forecast panel (AI vs crowd bar chart)
+
+**Nav**: Grouped into Research / Explorer / Community / Info sections
+
+**api-zod fix**: Changed `export * from "./generated/types"` → removed to prevent Zod const / TypeScript type name collision for new POST body schemas
 
 ## Phase 2 — Deal Engine (Task B)
 

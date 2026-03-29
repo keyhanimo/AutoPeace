@@ -9,8 +9,14 @@ import stakeholdersRouter from "./stakeholders";
 import adminRouter from "./admin";
 import dealsRouter from "./deals";
 import proposalsRouter from "./proposals";
+import communityForecastsRouter from "./community-forecasts";
+import proposalSubmissionsRouter from "./proposal-submissions";
+import downloadsRouter from "./downloads";
+import { publicApiLimiter, submitLimiter, downloadLimiter } from "../middlewares/rateLimiter";
 
 const router: IRouter = Router();
+
+router.use(publicApiLimiter);
 
 router.use(healthRouter);
 router.use(forecastsRouter);
@@ -21,6 +27,14 @@ router.use(changelogRouter);
 router.use(stakeholdersRouter);
 router.use(dealsRouter);
 router.use(proposalsRouter);
+router.use(communityForecastsRouter);
+
+router.use("/proposals/submit", submitLimiter);
+router.use(proposalSubmissionsRouter);
+
+router.use("/downloads", downloadLimiter);
+router.use(downloadsRouter);
+
 router.use(adminRouter);
 
 export default router;

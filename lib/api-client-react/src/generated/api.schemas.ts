@@ -927,3 +927,126 @@ export type GetPipelineConfig200 = {
   stages: GetPipelineConfig200StagesItem[];
   constraint: string;
 };
+
+export type SubmitCommunityForecastBodyTimeHorizon =
+  (typeof SubmitCommunityForecastBodyTimeHorizon)[keyof typeof SubmitCommunityForecastBodyTimeHorizon];
+
+export const SubmitCommunityForecastBodyTimeHorizon = {
+  "30d": "30d",
+  "90d": "90d",
+  "180d": "180d",
+  "1y": "1y",
+} as const;
+
+export type SubmitCommunityForecastBodyEstimates = { [key: string]: number };
+
+export type SubmitCommunityForecastBody = {
+  sessionId: string;
+  timeHorizon: SubmitCommunityForecastBodyTimeHorizon;
+  estimates: SubmitCommunityForecastBodyEstimates;
+};
+
+export type SubmitCommunityForecast200 = {
+  id: string;
+  message: string;
+};
+
+export type GetCommunityForecastAggregateParams = {
+  timeHorizon?: GetCommunityForecastAggregateTimeHorizon;
+};
+
+export type GetCommunityForecastAggregateTimeHorizon =
+  (typeof GetCommunityForecastAggregateTimeHorizon)[keyof typeof GetCommunityForecastAggregateTimeHorizon];
+
+export const GetCommunityForecastAggregateTimeHorizon = {
+  "30d": "30d",
+  "90d": "90d",
+  "180d": "180d",
+  "1y": "1y",
+} as const;
+
+export type GetCommunityForecastAggregate200Aggregated = {
+  [key: string]: number;
+};
+
+export type GetCommunityForecastAggregate200 = {
+  timeHorizon: string;
+  count: number;
+  aggregated: GetCommunityForecastAggregate200Aggregated;
+  outcomes: string[];
+};
+
+export type SubmitPublicProposalBodyTerms = { [key: string]: unknown };
+
+export type SubmitPublicProposalBody = {
+  submitterName?: string;
+  sourceUrl: string;
+  sourceName: string;
+  summary: string;
+  terms: SubmitPublicProposalBodyTerms;
+};
+
+export type SubmitPublicProposal200 = {
+  id: string;
+  message: string;
+};
+
+export type GetProposalQueueParams = {
+  status?: GetProposalQueueStatus;
+  limit?: number;
+};
+
+export type GetProposalQueueStatus =
+  (typeof GetProposalQueueStatus)[keyof typeof GetProposalQueueStatus];
+
+export const GetProposalQueueStatus = {
+  pending: "pending",
+  approved: "approved",
+  rejected: "rejected",
+} as const;
+
+export type GetProposalQueue200DataItem = {
+  id: string;
+  submitterName: string;
+  sourceUrl: string;
+  sourceName: string;
+  summary: string;
+  status: string;
+  submittedAt: string;
+};
+
+export type GetProposalQueue200 = {
+  data: GetProposalQueue200DataItem[];
+  total: number;
+};
+
+export type ReviewProposalSubmissionBodyAction =
+  (typeof ReviewProposalSubmissionBodyAction)[keyof typeof ReviewProposalSubmissionBodyAction];
+
+export const ReviewProposalSubmissionBodyAction = {
+  approve: "approve",
+  reject: "reject",
+} as const;
+
+export type ReviewProposalSubmissionBody = {
+  action: ReviewProposalSubmissionBodyAction;
+  adminNotes?: string;
+};
+
+export type ReviewProposalSubmission200 = {
+  message: string;
+  approvedProposalId?: string | null;
+};
+
+export type GetDownloadsIndex200DatasetsItem = {
+  id: string;
+  name: string;
+  url: string;
+  format: string;
+};
+
+export type GetDownloadsIndex200 = {
+  description: string;
+  exportedAt: string;
+  datasets: GetDownloadsIndex200DatasetsItem[];
+};

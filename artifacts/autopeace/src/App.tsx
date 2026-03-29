@@ -15,6 +15,12 @@ import AdminPanel from "@/pages/AdminPanel";
 import DealDashboard from "@/pages/DealDashboard";
 import ProposalArena from "@/pages/ProposalArena";
 import Stakeholders from "@/pages/Stakeholders";
+import EvidenceExplorer from "@/pages/EvidenceExplorer";
+import StakeholderComparison from "@/pages/StakeholderComparison";
+import SubmitProposal from "@/pages/SubmitProposal";
+import DataPortal from "@/pages/DataPortal";
+import ApiDocs from "@/pages/ApiDocs";
+import OpenSource from "@/pages/OpenSource";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -35,9 +41,15 @@ function Router() {
         <Route path="/deals" element={<DealDashboard />} />
         <Route path="/arena" element={<ProposalArena />} />
         <Route path="/stakeholders" element={<Stakeholders />} />
+        <Route path="/stakeholders/compare" element={<StakeholderComparison />} />
         <Route path="/forecasts" element={<ForecastDashboard />} />
         <Route path="/costs" element={<CostsExplorer />} />
         <Route path="/experiments" element={<ExperimentLog />} />
+        <Route path="/evidence" element={<EvidenceExplorer />} />
+        <Route path="/submit" element={<SubmitProposal />} />
+        <Route path="/data" element={<DataPortal />} />
+        <Route path="/api-docs" element={<ApiDocs />} />
+        <Route path="/open-source" element={<OpenSource />} />
         <Route path="/changelog" element={<Changelog />} />
         <Route path="/changelog/:id" element={<ChangelogEntry />} />
         <Route path="/methodology" element={<Methodology />} />

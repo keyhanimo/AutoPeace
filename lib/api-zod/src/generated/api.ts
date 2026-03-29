@@ -1359,3 +1359,112 @@ export const GetPipelineConfigResponse = zod.object({
   ),
   constraint: zod.string(),
 });
+
+/**
+ * @summary Submit a community probability forecast
+ */
+export const SubmitCommunityForecastBody = zod.object({
+  sessionId: zod.string(),
+  timeHorizon: zod.enum(["30d", "90d", "180d", "1y"]),
+  estimates: zod.record(zod.string(), zod.number()),
+});
+
+export const SubmitCommunityForecastResponse = zod.object({
+  id: zod.string(),
+  message: zod.string(),
+});
+
+/**
+ * @summary Get aggregated community forecast for a time horizon
+ */
+export const getCommunityForecastAggregateQueryTimeHorizonDefault = `90d`;
+
+export const GetCommunityForecastAggregateQueryParams = zod.object({
+  timeHorizon: zod
+    .enum(["30d", "90d", "180d", "1y"])
+    .default(getCommunityForecastAggregateQueryTimeHorizonDefault),
+});
+
+export const GetCommunityForecastAggregateResponse = zod.object({
+  timeHorizon: zod.string(),
+  count: zod.number(),
+  aggregated: zod.record(zod.string(), zod.number()),
+  outcomes: zod.array(zod.string()),
+});
+
+/**
+ * @summary Submit a real-world proposal for community review
+ */
+export const SubmitPublicProposalBody = zod.object({
+  submitterName: zod.string().optional(),
+  sourceUrl: zod.string(),
+  sourceName: zod.string(),
+  summary: zod.string(),
+  terms: zod.record(zod.string(), zod.unknown()),
+});
+
+export const SubmitPublicProposalResponse = zod.object({
+  id: zod.string(),
+  message: zod.string(),
+});
+
+/**
+ * @summary Get the admin proposal review queue
+ */
+export const getProposalQueueQueryStatusDefault = `pending`;
+export const getProposalQueueQueryLimitDefault = 20;
+
+export const GetProposalQueueQueryParams = zod.object({
+  status: zod
+    .enum(["pending", "approved", "rejected"])
+    .default(getProposalQueueQueryStatusDefault),
+  limit: zod.coerce.number().default(getProposalQueueQueryLimitDefault),
+});
+
+export const GetProposalQueueResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.string(),
+      submitterName: zod.string(),
+      sourceUrl: zod.string(),
+      sourceName: zod.string(),
+      summary: zod.string(),
+      status: zod.string(),
+      submittedAt: zod.coerce.date(),
+    }),
+  ),
+  total: zod.number(),
+});
+
+/**
+ * @summary Approve or reject a queued proposal submission
+ */
+export const ReviewProposalSubmissionParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const ReviewProposalSubmissionBody = zod.object({
+  action: zod.enum(["approve", "reject"]),
+  adminNotes: zod.string().optional(),
+});
+
+export const ReviewProposalSubmissionResponse = zod.object({
+  message: zod.string(),
+  approvedProposalId: zod.string().nullish(),
+});
+
+/**
+ * @summary List all available data download endpoints
+ */
+export const GetDownloadsIndexResponse = zod.object({
+  description: zod.string(),
+  exportedAt: zod.string(),
+  datasets: zod.array(
+    zod.object({
+      id: zod.string(),
+      name: zod.string(),
+      url: zod.string(),
+      format: zod.string(),
+    }),
+  ),
+});

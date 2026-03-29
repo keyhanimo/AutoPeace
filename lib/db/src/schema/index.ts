@@ -10,3 +10,5 @@ export * from "./evidence-sources";
 export * from "./deals";
 export * from "./proposals";
 export * from "./solution-tree";
+export * from "./community-forecasts";
+export * from "./proposal-submissions";

@@ -31,14 +31,19 @@ import type {
   EvidenceSourceUpdate,
   ExperimentStats,
   Forecast,
+  GetCommunityForecastAggregate200,
+  GetCommunityForecastAggregateParams,
   GetDealHistory200,
   GetDealHistoryParams,
   GetDealRobustness200,
   GetDealRobustnessParams,
   GetDealStakeholderEvals200,
+  GetDownloadsIndex200,
   GetLatestForecasts200,
   GetParetoDeals200,
   GetPipelineConfig200,
+  GetProposalQueue200,
+  GetProposalQueueParams,
   GetSolutionTree200,
   HealthStatus,
   ListChangelog200,
@@ -61,7 +66,13 @@ import type {
   ListStakeholdersParams,
   Proposal,
   ProposalArena,
+  ReviewProposalSubmission200,
+  ReviewProposalSubmissionBody,
   Stakeholder,
+  SubmitCommunityForecast200,
+  SubmitCommunityForecastBody,
+  SubmitPublicProposal200,
+  SubmitPublicProposalBody,
   TriggerDealRun200,
   TriggerRun200,
 } from "./api.schemas";
@@ -3120,6 +3131,555 @@ export function useGetPipelineConfig<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetPipelineConfigQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Submit a community probability forecast
+ */
+export const getSubmitCommunityForecastUrl = () => {
+  return `/api/community-forecasts`;
+};
+
+export const submitCommunityForecast = async (
+  submitCommunityForecastBody: SubmitCommunityForecastBody,
+  options?: RequestInit,
+): Promise<SubmitCommunityForecast200> => {
+  return customFetch<SubmitCommunityForecast200>(
+    getSubmitCommunityForecastUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(submitCommunityForecastBody),
+    },
+  );
+};
+
+export const getSubmitCommunityForecastMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof submitCommunityForecast>>,
+    TError,
+    { data: BodyType<SubmitCommunityForecastBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof submitCommunityForecast>>,
+  TError,
+  { data: BodyType<SubmitCommunityForecastBody> },
+  TContext
+> => {
+  const mutationKey = ["submitCommunityForecast"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof submitCommunityForecast>>,
+    { data: BodyType<SubmitCommunityForecastBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return submitCommunityForecast(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SubmitCommunityForecastMutationResult = NonNullable<
+  Awaited<ReturnType<typeof submitCommunityForecast>>
+>;
+export type SubmitCommunityForecastMutationBody =
+  BodyType<SubmitCommunityForecastBody>;
+export type SubmitCommunityForecastMutationError = ErrorType<void>;
+
+/**
+ * @summary Submit a community probability forecast
+ */
+export const useSubmitCommunityForecast = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof submitCommunityForecast>>,
+    TError,
+    { data: BodyType<SubmitCommunityForecastBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof submitCommunityForecast>>,
+  TError,
+  { data: BodyType<SubmitCommunityForecastBody> },
+  TContext
+> => {
+  return useMutation(getSubmitCommunityForecastMutationOptions(options));
+};
+
+/**
+ * @summary Get aggregated community forecast for a time horizon
+ */
+export const getGetCommunityForecastAggregateUrl = (
+  params?: GetCommunityForecastAggregateParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/community-forecasts/aggregate?${stringifiedParams}`
+    : `/api/community-forecasts/aggregate`;
+};
+
+export const getCommunityForecastAggregate = async (
+  params?: GetCommunityForecastAggregateParams,
+  options?: RequestInit,
+): Promise<GetCommunityForecastAggregate200> => {
+  return customFetch<GetCommunityForecastAggregate200>(
+    getGetCommunityForecastAggregateUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetCommunityForecastAggregateQueryKey = (
+  params?: GetCommunityForecastAggregateParams,
+) => {
+  return [
+    `/api/community-forecasts/aggregate`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetCommunityForecastAggregateQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCommunityForecastAggregate>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetCommunityForecastAggregateParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCommunityForecastAggregate>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetCommunityForecastAggregateQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getCommunityForecastAggregate>>
+  > = ({ signal }) =>
+    getCommunityForecastAggregate(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCommunityForecastAggregate>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCommunityForecastAggregateQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCommunityForecastAggregate>>
+>;
+export type GetCommunityForecastAggregateQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get aggregated community forecast for a time horizon
+ */
+
+export function useGetCommunityForecastAggregate<
+  TData = Awaited<ReturnType<typeof getCommunityForecastAggregate>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetCommunityForecastAggregateParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCommunityForecastAggregate>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCommunityForecastAggregateQueryOptions(
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Submit a real-world proposal for community review
+ */
+export const getSubmitPublicProposalUrl = () => {
+  return `/api/proposals/submit`;
+};
+
+export const submitPublicProposal = async (
+  submitPublicProposalBody: SubmitPublicProposalBody,
+  options?: RequestInit,
+): Promise<SubmitPublicProposal200> => {
+  return customFetch<SubmitPublicProposal200>(getSubmitPublicProposalUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(submitPublicProposalBody),
+  });
+};
+
+export const getSubmitPublicProposalMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof submitPublicProposal>>,
+    TError,
+    { data: BodyType<SubmitPublicProposalBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof submitPublicProposal>>,
+  TError,
+  { data: BodyType<SubmitPublicProposalBody> },
+  TContext
+> => {
+  const mutationKey = ["submitPublicProposal"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof submitPublicProposal>>,
+    { data: BodyType<SubmitPublicProposalBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return submitPublicProposal(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SubmitPublicProposalMutationResult = NonNullable<
+  Awaited<ReturnType<typeof submitPublicProposal>>
+>;
+export type SubmitPublicProposalMutationBody =
+  BodyType<SubmitPublicProposalBody>;
+export type SubmitPublicProposalMutationError = ErrorType<void>;
+
+/**
+ * @summary Submit a real-world proposal for community review
+ */
+export const useSubmitPublicProposal = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof submitPublicProposal>>,
+    TError,
+    { data: BodyType<SubmitPublicProposalBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof submitPublicProposal>>,
+  TError,
+  { data: BodyType<SubmitPublicProposalBody> },
+  TContext
+> => {
+  return useMutation(getSubmitPublicProposalMutationOptions(options));
+};
+
+/**
+ * @summary Get the admin proposal review queue
+ */
+export const getGetProposalQueueUrl = (params?: GetProposalQueueParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/admin/proposals/queue?${stringifiedParams}`
+    : `/api/admin/proposals/queue`;
+};
+
+export const getProposalQueue = async (
+  params?: GetProposalQueueParams,
+  options?: RequestInit,
+): Promise<GetProposalQueue200> => {
+  return customFetch<GetProposalQueue200>(getGetProposalQueueUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetProposalQueueQueryKey = (
+  params?: GetProposalQueueParams,
+) => {
+  return [`/api/admin/proposals/queue`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetProposalQueueQueryOptions = <
+  TData = Awaited<ReturnType<typeof getProposalQueue>>,
+  TError = ErrorType<void>,
+>(
+  params?: GetProposalQueueParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getProposalQueue>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetProposalQueueQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getProposalQueue>>
+  > = ({ signal }) => getProposalQueue(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getProposalQueue>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetProposalQueueQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getProposalQueue>>
+>;
+export type GetProposalQueueQueryError = ErrorType<void>;
+
+/**
+ * @summary Get the admin proposal review queue
+ */
+
+export function useGetProposalQueue<
+  TData = Awaited<ReturnType<typeof getProposalQueue>>,
+  TError = ErrorType<void>,
+>(
+  params?: GetProposalQueueParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getProposalQueue>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetProposalQueueQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Approve or reject a queued proposal submission
+ */
+export const getReviewProposalSubmissionUrl = (id: string) => {
+  return `/api/admin/proposals/queue/${id}`;
+};
+
+export const reviewProposalSubmission = async (
+  id: string,
+  reviewProposalSubmissionBody: ReviewProposalSubmissionBody,
+  options?: RequestInit,
+): Promise<ReviewProposalSubmission200> => {
+  return customFetch<ReviewProposalSubmission200>(
+    getReviewProposalSubmissionUrl(id),
+    {
+      ...options,
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(reviewProposalSubmissionBody),
+    },
+  );
+};
+
+export const getReviewProposalSubmissionMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reviewProposalSubmission>>,
+    TError,
+    { id: string; data: BodyType<ReviewProposalSubmissionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof reviewProposalSubmission>>,
+  TError,
+  { id: string; data: BodyType<ReviewProposalSubmissionBody> },
+  TContext
+> => {
+  const mutationKey = ["reviewProposalSubmission"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof reviewProposalSubmission>>,
+    { id: string; data: BodyType<ReviewProposalSubmissionBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return reviewProposalSubmission(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ReviewProposalSubmissionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof reviewProposalSubmission>>
+>;
+export type ReviewProposalSubmissionMutationBody =
+  BodyType<ReviewProposalSubmissionBody>;
+export type ReviewProposalSubmissionMutationError = ErrorType<void>;
+
+/**
+ * @summary Approve or reject a queued proposal submission
+ */
+export const useReviewProposalSubmission = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reviewProposalSubmission>>,
+    TError,
+    { id: string; data: BodyType<ReviewProposalSubmissionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof reviewProposalSubmission>>,
+  TError,
+  { id: string; data: BodyType<ReviewProposalSubmissionBody> },
+  TContext
+> => {
+  return useMutation(getReviewProposalSubmissionMutationOptions(options));
+};
+
+/**
+ * @summary List all available data download endpoints
+ */
+export const getGetDownloadsIndexUrl = () => {
+  return `/api/downloads/index`;
+};
+
+export const getDownloadsIndex = async (
+  options?: RequestInit,
+): Promise<GetDownloadsIndex200> => {
+  return customFetch<GetDownloadsIndex200>(getGetDownloadsIndexUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetDownloadsIndexQueryKey = () => {
+  return [`/api/downloads/index`] as const;
+};
+
+export const getGetDownloadsIndexQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDownloadsIndex>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDownloadsIndex>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDownloadsIndexQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getDownloadsIndex>>
+  > = ({ signal }) => getDownloadsIndex({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDownloadsIndex>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDownloadsIndexQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDownloadsIndex>>
+>;
+export type GetDownloadsIndexQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all available data download endpoints
+ */
+
+export function useGetDownloadsIndex<
+  TData = Awaited<ReturnType<typeof getDownloadsIndex>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDownloadsIndex>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDownloadsIndexQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
