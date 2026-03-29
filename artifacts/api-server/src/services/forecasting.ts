@@ -15,6 +15,7 @@ async function getAnthropicClient(): Promise<{ anthropic: AnthropicClient; batch
   return { anthropic: _anthropic!, batchProcess: _batchProcess! };
 }
 import { normalizeProbabilities, parseLLMJson, type ForecastProbabilities } from "./scoring";
+export type { ForecastProbabilities };
 import { db } from "@workspace/db";
 import { evidenceItemsTable, forecastsTable } from "@workspace/db/schema";
 import { desc, eq, and, ne } from "drizzle-orm";
@@ -177,6 +178,95 @@ Respond ONLY with a JSON code block containing:
   );
 
   return results.filter(Boolean);
+}
+
+export type ScenarioInput = {
+  id: string;
+  name: string;
+  description: string;
+  triggerCondition: string;
+};
+
+export async function generateScenarioForecast(
+  scenario: ScenarioInput,
+  baseProbabilities: ForecastProbabilities,
+): Promise<{ probabilities: ForecastProbabilities; rationale: string }> {
+  const recentEvidence = await db.select({
+    title: evidenceItemsTable.title,
+    source: evidenceItemsTable.source,
+    publishedAt: evidenceItemsTable.publishedAt,
+    evidenceType: evidenceItemsTable.evidenceType,
+    text: evidenceItemsTable.text,
+  })
+    .from(evidenceItemsTable)
+    .orderBy(desc(evidenceItemsTable.publishedAt))
+    .limit(20);
+
+  const evidenceSummary = recentEvidence
+    .map(e => `[${e.source}] ${e.title} (${e.evidenceType}): ${e.text.slice(0, 200)}`)
+    .join("\n\n");
+
+  const baseSummary = Object.entries(baseProbabilities)
+    .map(([k, v]) => `${k}: ${(v * 100).toFixed(1)}%`)
+    .join(", ");
+
+  const systemPrompt = `You are a Bayesian conflict forecasting model specializing in the Iran-US-Israel conflict complex.
+You re-assess outcome probabilities under specific hypothetical scenarios using systematic evidence review.
+Always respond with valid JSON in a code block.`;
+
+  const { anthropic } = await getAnthropicClient();
+  const model = process.env["ANTHROPIC_MODEL"] || "claude-sonnet-4-5";
+
+  const msg = await anthropic.messages.create({
+    model,
+    max_tokens: 1024,
+    system: systemPrompt,
+    messages: [
+      {
+        role: "user",
+        content: `SCENARIO: "${scenario.name}"
+Description: ${scenario.description}
+Trigger condition: ${scenario.triggerCondition}
+
+BASE FORECAST (current 90d probabilities without this scenario):
+${baseSummary}
+
+RECENT EVIDENCE CONTEXT:
+${evidenceSummary || "No recent evidence available."}
+
+TASK: Given that the above scenario has occurred or is occurring, reassess the 90-day conflict outcome probabilities.
+Adjust from the base forecast to reflect the causal effects of this scenario on each outcome.
+
+OUTCOMES (must sum to 1.0):
+${OUTCOMES.map(o => `- ${o}`).join("\n")}
+
+Respond ONLY with a JSON code block:
+{
+  "probabilities": {
+    "continued_conflict": <float>,
+    "informal_deescalation": <float>,
+    "limited_ceasefire": <float>,
+    "humanitarian_mini_deal": <float>,
+    "sanctions_partial_deal": <float>,
+    "regional_framework": <float>,
+    "broad_settlement": <float>,
+    "major_escalation": <float>
+  },
+  "rationale": "<2-3 sentence explanation of how this scenario shifts the probabilities>"
+}`
+      }
+    ],
+  });
+
+  const text = msg.content[0]?.type === "text" ? msg.content[0].text : "";
+  const parsed = parseLLMJson(text);
+  const rawProbs = parsed["probabilities"] as Record<string, number>;
+  const probabilities = normalizeProbabilities(rawProbs);
+
+  return {
+    probabilities,
+    rationale: (parsed["rationale"] as string) ?? "",
+  };
 }
 
 export async function getRecentForecastsForBacktest(

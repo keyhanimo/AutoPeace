@@ -1,6 +1,13 @@
 import { db } from "@workspace/db";
-import { whatIfScenariosTable, forecastsTable, proposalsTable } from "@workspace/db/schema";
+import { whatIfScenariosTable, forecastsTable, proposalsTable, adminConfigTable } from "@workspace/db/schema";
 import { desc, eq } from "drizzle-orm";
+import { generateScenarioForecast, type ScenarioInput, type ForecastProbabilities } from "./forecasting";
+import {
+  evaluateStakeholders,
+  judgeAndScore,
+  type ModelConfig,
+  type DealTerms,
+} from "./deal-engine";
 
 const OUTCOMES = [
   "continued_conflict",
@@ -13,13 +20,7 @@ const OUTCOMES = [
   "broad_settlement",
 ];
 
-type ScenarioDef = {
-  id: string;
-  name: string;
-  description: string;
-  triggerCondition: string;
-  multipliers: Record<string, number>;
-};
+type ScenarioDef = ScenarioInput;
 
 const SCENARIO_DEFS: ScenarioDef[] = [
   {
@@ -27,64 +28,24 @@ const SCENARIO_DEFS: ScenarioDef[] = [
     name: "Sanctions Lifted",
     description: "Western sanctions on Iran fully removed as part of a phased deal",
     triggerCondition: "Full JCPOA-plus agreement with verified enrichment rollback",
-    multipliers: {
-      continued_conflict: 0.4,
-      major_escalation: 0.3,
-      informal_deescalation: 1.5,
-      limited_ceasefire: 1.6,
-      humanitarian_mini_deal: 1.3,
-      sanctions_partial_deal: 2.8,
-      regional_framework: 2.0,
-      broad_settlement: 3.5,
-    },
   },
   {
     id: "military-strikes",
     name: "Military Strikes",
     description: "Israeli or US military strikes on Iranian nuclear facilities",
     triggerCondition: "Iran crosses 90% enrichment threshold or credible weapon assembly detected",
-    multipliers: {
-      continued_conflict: 2.2,
-      major_escalation: 4.0,
-      informal_deescalation: 0.3,
-      limited_ceasefire: 0.4,
-      humanitarian_mini_deal: 0.5,
-      sanctions_partial_deal: 0.2,
-      regional_framework: 0.1,
-      broad_settlement: 0.05,
-    },
   },
   {
     id: "hormuz-closure",
     name: "Strait of Hormuz Closure",
     description: "Iran closes the Strait of Hormuz disrupting global energy supply",
     triggerCondition: "US or Israeli military action or crushing sanction escalation",
-    multipliers: {
-      continued_conflict: 2.5,
-      major_escalation: 3.8,
-      informal_deescalation: 0.2,
-      limited_ceasefire: 0.3,
-      humanitarian_mini_deal: 0.4,
-      sanctions_partial_deal: 0.1,
-      regional_framework: 0.15,
-      broad_settlement: 0.05,
-    },
   },
   {
     id: "us-withdrawal",
     name: "US Withdraws from Region",
     description: "United States significantly reduces military presence in the Middle East",
     triggerCondition: "Domestic political shift, budget crisis, or grand strategy reorientation",
-    multipliers: {
-      continued_conflict: 1.4,
-      major_escalation: 0.7,
-      informal_deescalation: 1.8,
-      limited_ceasefire: 1.3,
-      humanitarian_mini_deal: 1.5,
-      sanctions_partial_deal: 1.1,
-      regional_framework: 1.8,
-      broad_settlement: 1.2,
-    },
   },
 ];
 
@@ -99,92 +60,57 @@ function extractProbs(forecast: Record<string, unknown>): Record<string, number>
   return probs;
 }
 
-function normalizeToSum(probs: Record<string, number>): Record<string, number> {
-  const total = Object.values(probs).reduce((a, b) => a + b, 0);
-  if (total <= 0) return probs;
-  const normalized: Record<string, number> = {};
-  for (const key of OUTCOMES) {
-    normalized[key] = (probs[key] ?? 0) / total;
-  }
-  return normalized;
+async function getDefaultModelConfig(): Promise<ModelConfig> {
+  const cfg = await db.select().from(adminConfigTable);
+  const map = Object.fromEntries(cfg.map(r => [r.key, r.value]));
+  const openaiModel = map["openaiModel"] ?? "gpt-4o";
+  return {
+    anthropicModel: map["anthropicModel"] ?? "claude-sonnet-4-5",
+    openaiModel,
+    geminiModel: map["geminiModel"] ?? "gemini-2.5-pro",
+    generationProvider: (map["generationProvider"] ?? "anthropic") as "anthropic" | "openai" | "gemini",
+    generationModel: map["generationModel"] ?? "claude-sonnet-4-5",
+    evaluationProvider: (map["evaluationProvider"] ?? "openai") as "anthropic" | "openai" | "gemini",
+    evaluationModel: map["evaluationModel"] ?? openaiModel,
+    adversarialProvider: (map["adversarialProvider"] ?? "anthropic") as "anthropic" | "openai" | "gemini",
+    adversarialModel: map["adversarialModel"] ?? "claude-sonnet-4-5",
+  };
 }
 
-function applyScenario(base: Record<string, number>, multipliers: Record<string, number>): {
-  absolute: Record<string, number>;
-  deltas: Record<string, number>;
-} {
-  const raw: Record<string, number> = {};
-  for (const key of OUTCOMES) {
-    raw[key] = (base[key] ?? 0) * (multipliers[key] ?? 1.0);
-  }
-  const absolute = normalizeToSum(raw);
-  const deltas: Record<string, number> = {};
-  for (const key of OUTCOMES) {
-    deltas[key] = (absolute[key] ?? 0) - (base[key] ?? 0);
-  }
-  return { absolute, deltas };
-}
+async function computeProposalImpactsViaScoring(
+  proposals: Array<{ id: string; name: string; terms: unknown; scores: unknown }>,
+  scenarioDef: ScenarioDef,
+  modelConfig: ModelConfig,
+  maxProposals = 5,
+): Promise<Array<{ proposalId: string; proposalName: string; viabilityDelta: number; projectedComposite: number; favorabilityNote: string }>> {
+  const scored = proposals
+    .filter(p => p.scores !== null && p.scores !== undefined)
+    .slice(0, maxProposals);
 
-const SCENARIO_PROPOSAL_MODIFIERS: Record<string, Record<string, number>> = {
-  "sanctions-lifted": {
-    feasibility: 0.15, coherence: 0.05, evidenceGrounding: 0.10,
-    domesticSellability: 0.12, regionalStability: 0.20, implementability: 0.15,
-    durability: 0.18,
-  },
-  "military-strikes": {
-    feasibility: -0.30, coherence: -0.10, evidenceGrounding: -0.05,
-    domesticSellability: -0.25, regionalStability: -0.35, implementability: -0.30,
-    durability: -0.40,
-  },
-  "hormuz-closure": {
-    feasibility: -0.25, coherence: -0.08, evidenceGrounding: -0.05,
-    domesticSellability: -0.20, regionalStability: -0.30, implementability: -0.25,
-    durability: -0.35,
-  },
-  "us-withdrawal": {
-    feasibility: 0.05, coherence: 0.02, evidenceGrounding: 0.00,
-    domesticSellability: 0.08, regionalStability: -0.05, implementability: 0.03,
-    durability: -0.10,
-  },
-};
-
-const SCORE_KEYS = ["feasibility", "coherence", "evidenceGrounding", "domesticSellability",
-  "regionalStability", "implementability", "durability"] as const;
-
-type ScoreKeys = typeof SCORE_KEYS[number];
-
-type ScoreRecord = Record<ScoreKeys, number> & { composite?: number };
-
-function computeProposalImpacts(
-  proposals: Array<{ id: string; name: string; scores: Record<string, number> | null | undefined }>,
-  scenarioId: string,
-): Array<{ proposalId: string; proposalName: string; viabilityDelta: number; projectedComposite: number; favorabilityNote: string }> {
-  const mods = SCENARIO_PROPOSAL_MODIFIERS[scenarioId] ?? {};
-  return proposals.map(p => {
-    const scores = p.scores as ScoreRecord | null | undefined;
-    if (!scores) {
-      return { proposalId: p.id, proposalName: p.name, viabilityDelta: 0, projectedComposite: 0, favorabilityNote: "No scores available" };
+  const results = await Promise.all(scored.map(async (p) => {
+    const baseScores = p.scores as Record<string, number> | null | undefined;
+    const baseComposite = baseScores?.composite ?? 0;
+    try {
+      const terms = p.terms as DealTerms;
+      const enrichedTerms: DealTerms = {
+        ...terms,
+        nuclearProtocol: `[SCENARIO: ${scenarioDef.name} — ${scenarioDef.description}]\n\n${terms.nuclearProtocol}`,
+      };
+      const { evaluations: stakeholderEvaluations } = await evaluateStakeholders(enrichedTerms, modelConfig);
+      const { scores } = await judgeAndScore(enrichedTerms, stakeholderEvaluations, [], {}, modelConfig);
+      const projectedComposite = Math.round((scores.composite ?? baseComposite) * 100) / 100;
+      const viabilityDelta = Math.round((projectedComposite - baseComposite) * 100) / 100;
+      const favorabilityNote = viabilityDelta > 0.05
+        ? "More viable under this scenario"
+        : viabilityDelta < -0.05
+          ? "Less viable under this scenario"
+          : "Minimal change in viability";
+      return { proposalId: p.id, proposalName: p.name, viabilityDelta, projectedComposite, favorabilityNote };
+    } catch {
+      return { proposalId: p.id, proposalName: p.name, viabilityDelta: 0, projectedComposite: baseComposite, favorabilityNote: "Evaluation unavailable" };
     }
-    const baseComposite = scores.composite ?? (
-      SCORE_KEYS.reduce((sum, k) => sum + (scores[k] ?? 0), 0) / SCORE_KEYS.length
-    );
-    let projectedSum = 0;
-    let count = 0;
-    for (const k of SCORE_KEYS) {
-      const base = scores[k] ?? 0;
-      const mod = mods[k] ?? 0;
-      projectedSum += Math.max(0, Math.min(1, base + mod));
-      count++;
-    }
-    const projectedComposite = count > 0 ? Math.round((projectedSum / count) * 100) / 100 : 0;
-    const viabilityDelta = Math.round((projectedComposite - baseComposite) * 100) / 100;
-    const favorabilityNote = viabilityDelta > 0.05
-      ? "More viable under this scenario"
-      : viabilityDelta < -0.05
-        ? "Less viable under this scenario"
-        : "Minimal change in viability";
-    return { proposalId: p.id, proposalName: p.name, viabilityDelta, projectedComposite, favorabilityNote };
-  });
+  }));
+  return results;
 }
 
 export async function computeAndStoreWhatIfScenarios(cycleId?: string): Promise<void> {
@@ -207,15 +133,36 @@ export async function computeAndStoreWhatIfScenarios(cycleId?: string): Promise<
   const proposals = await db.select({
     id: proposalsTable.id,
     name: proposalsTable.name,
+    terms: proposalsTable.terms,
     scores: proposalsTable.scores,
   }).from(proposalsTable);
 
+  const modelConfig = await getDefaultModelConfig();
+
   for (const def of SCENARIO_DEFS) {
-    const { absolute, deltas } = applyScenario(base, def.multipliers);
-    const proposalImpacts = computeProposalImpacts(
-      proposals as Array<{ id: string; name: string; scores: Record<string, number> | null | undefined }>,
-      def.id,
+    let absolute: Record<string, number> = base;
+    let rationale = "";
+
+    try {
+      const result = await generateScenarioForecast(def, base as ForecastProbabilities);
+      absolute = result.probabilities;
+      rationale = result.rationale;
+    } catch {
+      absolute = base;
+    }
+
+    const deltas: Record<string, number> = {};
+    for (const key of OUTCOMES) {
+      deltas[key] = (absolute[key] ?? 0) - (base[key] ?? 0);
+    }
+
+    const proposalImpacts = await computeProposalImpactsViaScoring(
+      proposals as Array<{ id: string; name: string; terms: unknown; scores: unknown }>,
+      def,
+      modelConfig,
+      5,
     );
+
     await db.insert(whatIfScenariosTable).values({
       id: def.id,
       name: def.name,
@@ -236,5 +183,7 @@ export async function computeAndStoreWhatIfScenarios(cycleId?: string): Promise<
         updatedAt: new Date(),
       },
     });
+
+    void rationale;
   }
 }

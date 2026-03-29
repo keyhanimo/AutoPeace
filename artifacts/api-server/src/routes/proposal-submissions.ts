@@ -4,7 +4,13 @@ import { proposalSubmissionsTable, proposalsTable, adminConfigTable } from "@wor
 import { eq, desc } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { adminAuth } from "../lib/admin-auth";
-import { evaluateStakeholders, type ModelConfig, type DealTerms } from "../services/deal-engine";
+import {
+  evaluateStakeholders,
+  judgeAndScore,
+  computeWhatWouldItTake,
+  type ModelConfig,
+  type DealTerms,
+} from "../services/deal-engine";
 
 async function getDefaultModelConfig(): Promise<ModelConfig> {
   const cfg = await db.select().from(adminConfigTable);
@@ -125,11 +131,54 @@ router.patch("/admin/proposals/queue/:id", adminAuth, async (req, res) => {
 
       const pid = approvedProposalId;
       const terms = submission.terms as unknown as DealTerms;
-      getDefaultModelConfig().then(modelConfig =>
-        evaluateStakeholders(terms, modelConfig).then(({ evaluations }) =>
-          db.update(proposalsTable).set({ stakeholderEvaluations: evaluations }).where(eq(proposalsTable.id, pid))
-        )
-      ).catch(() => undefined);
+
+      (async () => {
+        try {
+          const modelConfig = await getDefaultModelConfig();
+          const { evaluations: stakeholderEvaluations } = await evaluateStakeholders(terms, modelConfig);
+
+          const [{ scores }, whatWouldItTakeList] = await Promise.all([
+            judgeAndScore(terms, stakeholderEvaluations, [], {}, modelConfig),
+            computeWhatWouldItTake(terms, stakeholderEvaluations, modelConfig),
+          ]);
+
+          const proposalScores = {
+            feasibility: scores.feasibility,
+            coherence: scores.coherence,
+            evidenceGrounding: scores.evidenceGrounding,
+            domesticSellability: scores.domesticSellability,
+            regionalStability: scores.regionalStability,
+            implementability: scores.implementability,
+            durability: scores.durability,
+            composite: scores.composite,
+          };
+
+          const stakeholderEvals = Object.fromEntries(
+            Object.entries(stakeholderEvaluations).map(([k, v]) => [k, {
+              verdict: v.verdict,
+              rationale: v.rationale,
+              redLineViolations: v.redLineViolations,
+              conditions: v.conditions,
+            }])
+          );
+
+          const whatWouldItTakeArray = whatWouldItTakeList.map(item => ({
+            dimension: item.stakeholder,
+            currentGap: "Stakeholder rejects or conditionally accepts current terms",
+            requiredChange: item.requirement,
+            feasibility: item.feasibility,
+          }));
+
+          await db.update(proposalsTable)
+            .set({
+              scores: proposalScores,
+              stakeholderEvaluations: stakeholderEvals,
+              whatWouldItTake: whatWouldItTakeArray,
+            })
+            .where(eq(proposalsTable.id, pid));
+        } catch {
+        }
+      })();
     }
 
     await db.update(proposalSubmissionsTable)
