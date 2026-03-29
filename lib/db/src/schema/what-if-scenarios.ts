@@ -10,6 +10,13 @@ export const whatIfScenariosTable = pgTable("what_if_scenarios", {
   basedOnCycleId: text("based_on_cycle_id"),
   probabilityDeltas: jsonb("probability_deltas").notNull().$type<Record<string, number>>(),
   absoluteProbabilities: jsonb("absolute_probabilities").notNull().$type<Record<string, number>>(),
+  proposalImpacts: jsonb("proposal_impacts").$type<Array<{
+    proposalId: string;
+    proposalName: string;
+    viabilityDelta: number;
+    projectedComposite: number;
+    favorabilityNote: string;
+  }>>(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 

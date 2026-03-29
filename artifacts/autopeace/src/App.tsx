@@ -17,6 +17,7 @@ import ProposalArena from "@/pages/ProposalArena";
 import Stakeholders from "@/pages/Stakeholders";
 import EvidenceExplorer from "@/pages/EvidenceExplorer";
 import StakeholderComparison from "@/pages/StakeholderComparison";
+import StakeholderLens from "@/pages/StakeholderLens";
 import SubmitProposal from "@/pages/SubmitProposal";
 import DataPortal from "@/pages/DataPortal";
 import ApiDocs from "@/pages/ApiDocs";
@@ -42,6 +43,7 @@ function Router() {
         <Route path="/arena" element={<ProposalArena />} />
         <Route path="/stakeholders" element={<Stakeholders />} />
         <Route path="/stakeholders/compare" element={<StakeholderComparison />} />
+        <Route path="/stakeholders/lens" element={<StakeholderLens />} />
         <Route path="/forecasts" element={<ForecastDashboard />} />
         <Route path="/costs" element={<CostsExplorer />} />
         <Route path="/experiments" element={<ExperimentLog />} />

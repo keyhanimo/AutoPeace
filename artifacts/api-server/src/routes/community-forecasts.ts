@@ -35,8 +35,26 @@ router.post("/community-forecasts", async (req, res) => {
       return;
     }
 
-    const values = Object.values(estimates);
-    const total = values.reduce((a, b) => a + b, 0);
+    const missingKeys = OUTCOMES.filter(k => !(k in estimates));
+    if (missingKeys.length > 0) {
+      res.status(400).json({ error: `Missing required outcome keys: ${missingKeys.join(", ")}` });
+      return;
+    }
+
+    const extraKeys = Object.keys(estimates).filter(k => !OUTCOMES.includes(k));
+    if (extraKeys.length > 0) {
+      res.status(400).json({ error: `Unknown outcome keys: ${extraKeys.join(", ")}` });
+      return;
+    }
+
+    for (const [key, val] of Object.entries(estimates)) {
+      if (typeof val !== "number" || val < 0 || val > 100) {
+        res.status(400).json({ error: `Estimate for "${key}" must be a number between 0 and 100` });
+        return;
+      }
+    }
+
+    const total = OUTCOMES.reduce((a, k) => a + (estimates[k] ?? 0), 0);
     if (Math.abs(total - 100) > 1) {
       res.status(400).json({ error: `Estimates must sum to 100% (got ${total.toFixed(1)}%)` });
       return;

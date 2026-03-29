@@ -1,5 +1,5 @@
 import { db } from "@workspace/db";
-import { whatIfScenariosTable, forecastsTable } from "@workspace/db/schema";
+import { whatIfScenariosTable, forecastsTable, proposalsTable } from "@workspace/db/schema";
 import { desc } from "drizzle-orm";
 
 const OUTCOMES = [
@@ -123,6 +123,68 @@ function applyScenario(base: Record<string, number>, multipliers: Record<string,
   return { absolute, deltas };
 }
 
+const SCENARIO_PROPOSAL_MODIFIERS: Record<string, Record<string, number>> = {
+  "sanctions-lifted": {
+    feasibility: 0.15, coherence: 0.05, evidenceGrounding: 0.10,
+    domesticSellability: 0.12, regionalStability: 0.20, implementability: 0.15,
+    durability: 0.18,
+  },
+  "military-strikes": {
+    feasibility: -0.30, coherence: -0.10, evidenceGrounding: -0.05,
+    domesticSellability: -0.25, regionalStability: -0.35, implementability: -0.30,
+    durability: -0.40,
+  },
+  "hormuz-closure": {
+    feasibility: -0.25, coherence: -0.08, evidenceGrounding: -0.05,
+    domesticSellability: -0.20, regionalStability: -0.30, implementability: -0.25,
+    durability: -0.35,
+  },
+  "us-withdrawal": {
+    feasibility: 0.05, coherence: 0.02, evidenceGrounding: 0.00,
+    domesticSellability: 0.08, regionalStability: -0.05, implementability: 0.03,
+    durability: -0.10,
+  },
+};
+
+const SCORE_KEYS = ["feasibility", "coherence", "evidenceGrounding", "domesticSellability",
+  "regionalStability", "implementability", "durability"] as const;
+
+type ScoreKeys = typeof SCORE_KEYS[number];
+
+type ScoreRecord = Record<ScoreKeys, number> & { composite?: number };
+
+function computeProposalImpacts(
+  proposals: Array<{ id: string; name: string; scores: Record<string, number> | null | undefined }>,
+  scenarioId: string,
+): Array<{ proposalId: string; proposalName: string; viabilityDelta: number; projectedComposite: number; favorabilityNote: string }> {
+  const mods = SCENARIO_PROPOSAL_MODIFIERS[scenarioId] ?? {};
+  return proposals.map(p => {
+    const scores = p.scores as ScoreRecord | null | undefined;
+    if (!scores) {
+      return { proposalId: p.id, proposalName: p.name, viabilityDelta: 0, projectedComposite: 0, favorabilityNote: "No scores available" };
+    }
+    const baseComposite = scores.composite ?? (
+      SCORE_KEYS.reduce((sum, k) => sum + (scores[k] ?? 0), 0) / SCORE_KEYS.length
+    );
+    let projectedSum = 0;
+    let count = 0;
+    for (const k of SCORE_KEYS) {
+      const base = scores[k] ?? 0;
+      const mod = mods[k] ?? 0;
+      projectedSum += Math.max(0, Math.min(1, base + mod));
+      count++;
+    }
+    const projectedComposite = count > 0 ? Math.round((projectedSum / count) * 100) / 100 : 0;
+    const viabilityDelta = Math.round((projectedComposite - baseComposite) * 100) / 100;
+    const favorabilityNote = viabilityDelta > 0.05
+      ? "More viable under this scenario"
+      : viabilityDelta < -0.05
+        ? "Less viable under this scenario"
+        : "Minimal change in viability";
+    return { proposalId: p.id, proposalName: p.name, viabilityDelta, projectedComposite, favorabilityNote };
+  });
+}
+
 export async function computeAndStoreWhatIfScenarios(cycleId?: string): Promise<void> {
   const latestForecasts = await db.select()
     .from(forecastsTable)
@@ -134,8 +196,18 @@ export async function computeAndStoreWhatIfScenarios(cycleId?: string): Promise<
   const usedCycleId = cycleId ?? latest.cycleId ?? undefined;
   const base = extractProbs(latest as unknown as Record<string, unknown>);
 
+  const proposals = await db.select({
+    id: proposalsTable.id,
+    name: proposalsTable.name,
+    scores: proposalsTable.scores,
+  }).from(proposalsTable);
+
   for (const def of SCENARIO_DEFS) {
     const { absolute, deltas } = applyScenario(base, def.multipliers);
+    const proposalImpacts = computeProposalImpacts(
+      proposals as Array<{ id: string; name: string; scores: Record<string, number> | null | undefined }>,
+      def.id,
+    );
     await db.insert(whatIfScenariosTable).values({
       id: def.id,
       name: def.name,
@@ -144,6 +216,7 @@ export async function computeAndStoreWhatIfScenarios(cycleId?: string): Promise<
       basedOnCycleId: usedCycleId,
       probabilityDeltas: deltas,
       absoluteProbabilities: absolute,
+      proposalImpacts,
       updatedAt: new Date(),
     }).onConflictDoUpdate({
       target: whatIfScenariosTable.id,
@@ -151,6 +224,7 @@ export async function computeAndStoreWhatIfScenarios(cycleId?: string): Promise<
         basedOnCycleId: usedCycleId,
         probabilityDeltas: deltas,
         absoluteProbabilities: absolute,
+        proposalImpacts,
         updatedAt: new Date(),
       },
     });

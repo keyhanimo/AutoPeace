@@ -3,7 +3,7 @@ import { useState } from "react";
 import {
   Menu, X, Activity, BarChart2, DollarSign, FlaskConical, BookOpen,
   HelpCircle, Shield, ChevronRight, Handshake, Users, Swords,
-  Search, GitCompare, Send, Database, Code2, Github,
+  Search, GitCompare, Send, Database, Code2, Github, Eye,
 } from "lucide-react";
 
 type NavGroup = {
@@ -27,6 +27,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/stakeholders", label: "Stakeholders", icon: Users },
       { href: "/stakeholders/compare", label: "Compare Actors", icon: GitCompare },
+      { href: "/stakeholders/lens", label: "Stakeholder Lens", icon: Eye },
       { href: "/evidence", label: "Evidence Explorer", icon: Search },
       { href: "/experiments", label: "Experiment Log", icon: FlaskConical },
     ],

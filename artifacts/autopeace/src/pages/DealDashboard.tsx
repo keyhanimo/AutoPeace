@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { useGetCurrentDeal, useGetParetoDeals, useListDeals, useGetSolutionTree, type Deal, type DealScores } from "@workspace/api-client-react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, PageHeader, Badge } from "@/components/ui";
 import {
   RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer, Tooltip,
@@ -7,6 +8,9 @@ import {
 } from "recharts";
 import { AlertCircle, Shield, Zap, Globe, Heart, TrendingUp, CheckCircle2, XCircle, AlertTriangle, GitBranch } from "lucide-react";
 import { motion } from "framer-motion";
+function getBaseUrl() {
+  return window.location.origin + import.meta.env.BASE_URL.replace(/\/$/, "");
+}
 
 const SCORE_DIMENSIONS: { key: keyof DealScores; label: string; color: string; icon: React.ReactNode }[] = [
   { key: "feasibility", label: "Feasibility", color: "#10b981", icon: <CheckCircle2 className="w-4 h-4" /> },
@@ -143,6 +147,119 @@ function SolutionTreeView({ nodes }: { nodes: Array<{ id: string; architecture: 
   );
 }
 
+type WhatIfImpact = {
+  proposalId: string;
+  proposalName: string;
+  viabilityDelta: number;
+  projectedComposite: number;
+  favorabilityNote: string;
+};
+
+type WhatIfScenario = {
+  id: string;
+  name: string;
+  description: string;
+  triggerCondition: string;
+  proposalImpacts?: WhatIfImpact[];
+};
+
+function DealWhatIfPanel({ currentDealName }: { currentDealName?: string }) {
+  const { data, isLoading } = useQuery<WhatIfScenario[]>({
+    queryKey: ["scenarios"],
+    queryFn: async () => {
+      const res = await fetch(`${getBaseUrl()}/api/scenarios`);
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    staleTime: 60_000,
+  });
+
+  const [selected, setSelected] = useState<string>("");
+  const scenarios = data ?? [];
+  const scenario = scenarios.find(s => s.id === selected) ?? scenarios[0] ?? null;
+
+  if (isLoading) {
+    return (
+      <Card className="p-5">
+        <div className="h-4 bg-muted rounded animate-pulse w-48 mb-3" />
+        <div className="space-y-2">
+          {[1, 2, 3].map(i => <div key={i} className="h-3 bg-muted rounded animate-pulse" />)}
+        </div>
+      </Card>
+    );
+  }
+
+  if (!scenario) return null;
+
+  const impacts = scenario.proposalImpacts ?? [];
+
+  return (
+    <Card className="p-5 space-y-4">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <h3 className="font-semibold text-sm flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-500" />
+            Scenario: Deal Viability Impact
+          </h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            How each hypothetical scenario shifts deal and proposal viability scores
+          </p>
+        </div>
+      </div>
+
+      <div className="flex gap-2 flex-wrap">
+        {scenarios.map(s => (
+          <button
+            key={s.id}
+            onClick={() => setSelected(s.id)}
+            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors border ${
+              (scenario.id === s.id)
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-muted text-muted-foreground border-border hover:bg-muted/80"
+            }`}
+          >
+            {s.name}
+          </button>
+        ))}
+      </div>
+
+      <div className="bg-muted/30 rounded-lg p-3 text-xs space-y-1">
+        <p className="font-medium">{scenario.description}</p>
+        <p className="text-muted-foreground"><span className="font-semibold">Trigger:</span> {scenario.triggerCondition}</p>
+      </div>
+
+      {impacts.length > 0 ? (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Proposal Viability Under Scenario</p>
+          {impacts
+            .sort((a, b) => b.viabilityDelta - a.viabilityDelta)
+            .map(impact => (
+              <div
+                key={impact.proposalId}
+                className={`flex items-center justify-between p-2 rounded border text-xs ${
+                  impact.proposalId === currentDealName ? "border-primary/50 bg-primary/5" : "border-border/40"
+                }`}
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate">{impact.proposalName}</p>
+                  <p className="text-muted-foreground">{impact.favorabilityNote}</p>
+                </div>
+                <div className="text-right shrink-0 ml-3">
+                  <p className={`font-bold ${impact.viabilityDelta > 0 ? "text-green-500" : impact.viabilityDelta < 0 ? "text-red-500" : "text-muted-foreground"}`}>
+                    {impact.viabilityDelta > 0 ? "+" : ""}{(impact.viabilityDelta * 100).toFixed(0)}pp
+                  </p>
+                  <p className="text-muted-foreground">{(impact.projectedComposite * 100).toFixed(0)}/100</p>
+                </div>
+              </div>
+            ))}
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground">No proposals have been scored yet — run deal cycles to populate viability data.</p>
+      )}
+    </Card>
+  );
+}
+
 export default function DealDashboard() {
   const { data: currentDeal, isLoading: currentLoading, isError: currentError } = useGetCurrentDeal();
   const { data: paretoRes } = useGetParetoDeals();
@@ -221,7 +338,7 @@ export default function DealDashboard() {
     <div className="space-y-8 animate-fade-in pb-12">
       <PageHeader
         title="Deal Dashboard"
-        description="AI-generated peace deal — Task B multi-agent pipeline."
+        description="AI-generated peace deal — Task B multi-agent pipeline. See how geopolitical scenarios shift deal and proposal viability."
       >
         <Badge variant="outline" className="border-primary/40 text-primary capitalize">
           {currentDeal.architecture} architecture
@@ -638,6 +755,8 @@ export default function DealDashboard() {
           </div>
         </Card>
       )}
+
+      <DealWhatIfPanel currentDealName={currentDeal.id} />
     </div>
   );
 }
