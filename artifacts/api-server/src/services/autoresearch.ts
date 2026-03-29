@@ -13,6 +13,7 @@ import { logger } from "../lib/logger";
 import { computeAndStoreWhatIfScenarios } from "./what-if-scenarios";
 import { generateForecasts, getRecentForecastsForBacktest, type GeneratedForecast } from "./forecasting";
 import { ingestAllSources } from "./evidence-ingestion";
+import { extractProposalsFromEvidence } from "./proposal-extractor";
 import {
   parseLLMJson,
   computeBrierScore,
@@ -96,6 +97,13 @@ async function runCycleAsync(cycleId: string): Promise<void> {
 
     const ingestedCount = await ingestAllSources();
     logger.info({ cycleId, ingestedCount }, "Evidence ingestion complete");
+
+    try {
+      const extractedProposals = await extractProposalsFromEvidence(cycleId);
+      logger.info({ cycleId, extractedProposals }, "Proposal extraction from evidence complete");
+    } catch (extractErr) {
+      logger.warn({ err: extractErr, cycleId }, "Proposal extraction failed (non-critical)");
+    }
 
     const evidencePackVersion = new Date().toISOString().slice(0, 10);
     const baseForecast = await generateForecasts(cycleId, evidencePackVersion);

@@ -142,6 +142,18 @@ Scheduler: hourly cron check, runs at UTC 6am daily by default.
 
 **api-zod fix**: Changed `export * from "./generated/types"` → removed to prevent Zod const / TypeScript type name collision for new POST body schemas
 
+## Proposal Extractor Agent
+
+Auto-scans ingested diplomatic evidence items for real-world peace proposals using Anthropic Claude. Runs after evidence ingestion in each autoresearch cycle (non-blocking — failures don't stop the cycle).
+
+**Pipeline**: Batch unprocessed diplomatic evidence → LLM extraction → validate + deduplicate → insert proposal → run full AI evaluation (stakeholder evaluations + 3-model judge panel + what-would-it-take).
+
+**Key files**: `artifacts/api-server/src/services/proposal-extractor.ts`
+
+**Deduplication**: Stable ID hash (name+source), exact name match, fuzzy word overlap (≥3 shared words >3 chars). In-memory dedupe sets updated after each insert. Uses `onConflictDoNothing().returning()` to detect actual inserts vs no-ops.
+
+**Evidence lifecycle**: Evidence items marked `isProcessed=true` only AFTER extraction pipeline completes (not before), preventing permanent data loss on LLM failures.
+
 ## Phase 2 — Deal Engine (Task B)
 
 8-stage multi-agent pipeline (`deal-engine.ts`):
