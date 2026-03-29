@@ -98,5 +98,5 @@ Respond ONLY with a JSON code block containing:
     { concurrency: 2, retries: 2 }
   );
 
-  return results.map(r => r.result!).filter(Boolean);
+  return results.filter(Boolean);
 }
