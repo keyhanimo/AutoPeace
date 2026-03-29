@@ -165,9 +165,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Main Content */}
       <main className="flex-1 lg:ml-60 min-h-screen flex flex-col">
-        <div className="bg-amber-900/20 border-b border-amber-700/30 px-4 py-2 text-center text-xs text-amber-300/80">
-          <span className="font-semibold">Disclaimer:</span> AutoPeace forecasts are AI-generated probabilistic estimates for research purposes only. They do not constitute geopolitical advice or predictions. Accuracy is not guaranteed.
-        </div>
         <div className="flex-1 px-4 py-6 lg:px-8 lg:py-8 pt-6 lg:pt-6 max-w-6xl mx-auto w-full">
           {children}
         </div>

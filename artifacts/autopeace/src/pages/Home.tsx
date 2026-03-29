@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Crosshair, Cpu, TrendingDown, Gauge, DollarSign, Handshake, Swords } from "lucide-react";
 import { useGetExperimentStats, useGetLatestForecasts, useListCosts, useGetCurrentDeal, type Forecast, type DealScores } from "@workspace/api-client-react";
 import { Card, Button, Badge } from "@/components/ui";
-import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 
 const OUTCOME_COLORS: Record<string, string> = {
   continued_conflict: '#ef4444',
@@ -245,11 +244,6 @@ function CostOfWarSection() {
   const costs = costsRes?.data ?? [];
 
   const sorted = [...costs].sort((a, b) => (b.economic.totalUsd ?? 0) - (a.economic.totalUsd ?? 0));
-  const sparkData = sorted.slice(0, 8).map(c => ({
-    name: c.stakeholderId.slice(0, 8),
-    value: (c.economic.totalUsd ?? 0) / 1e9,
-  }));
-
   const totalUsd = costs.reduce((sum, c) => sum + (c.economic.totalUsd ?? 0), 0);
   const topCost = sorted[0];
 
@@ -282,27 +276,7 @@ function CostOfWarSection() {
         </div>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6 items-center">
-        <div className="h-24">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={sparkData} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
-              <defs>
-                <linearGradient id="costGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="name" hide />
-              <Tooltip
-                contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '2px', fontSize: '10px' }}
-                formatter={(v: number) => [`$${v.toFixed(1)}B`, 'Econ. Cost']}
-              />
-              <Area type="monotone" dataKey="value" stroke="#ef4444" strokeWidth={2} fill="url(#costGradient)" dot={false} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className="space-y-2">
+      <div className="space-y-2">
           {sorted.slice(0, 4).map(c => {
             const val = c.economic.totalUsd ?? 0;
             const pct = totalUsd > 0 ? (val / totalUsd) * 100 : 0;
@@ -322,7 +296,6 @@ function CostOfWarSection() {
             );
           })}
         </div>
-      </div>
 
       {topCost && (
         <p className="text-[10px] text-muted-foreground mt-4 italic border-t border-border/50 pt-3">
@@ -495,7 +468,7 @@ export default function Home() {
               Forecasting <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-orange-400">Peace & Conflict</span> in Real-Time.
             </h1>
             <p className="text-lg text-muted-foreground max-w-xl">
-              AutoPeace uses continuous multi-agent LLM loops to analyze thousands of data points, forecasting outcomes for the Iran conflict with calibrated probabilistic precision.
+              AutoPeace uses continuous multi-agent LLM loops to analyze thousands of data points, forecasting outcomes for the Iran conflict with calibrated probabilistic precision. Its autoresearch mechanism mutates and scores its own prompt instructions each cycle — retaining only what improves accuracy.
             </p>
             <LiveTicker />
             <div className="flex flex-wrap gap-4 pt-2">
