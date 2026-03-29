@@ -4,6 +4,115 @@ import { eq } from "drizzle-orm";
 
 const HISTORICAL_SEED_CYCLE = "seed-historical-2024";
 
+const CURRENT_SEED_CYCLE = "seed-current-2025-03";
+
+const CURRENT_FORECASTS = [
+  {
+    id: "seed-current-2025-03-30d",
+    cycleId: CURRENT_SEED_CYCLE,
+    evidencePackVersion: "2025-03-01",
+    timeHorizon: "30d",
+    probabilities: {
+      continued_conflict: 0.61,
+      major_escalation: 0.19,
+      informal_deescalation: 0.08,
+      limited_ceasefire: 0.05,
+      humanitarian_mini_deal: 0.03,
+      sanctions_partial_deal: 0.02,
+      regional_framework: 0.01,
+      broad_settlement: 0.01,
+    },
+    rationale: "March 2025 (30d): Trump's maximum pressure campaign intensifies. Iran uranium enrichment at 60%. Gaza ceasefire fragile. Probability of informal deescalation remains low as no diplomatic track is active between US-Iran.",
+    keyEvidenceItems: [
+      "IAEA: Iran enrichment at 60%, ~4kg near-weapons-grade material (Feb 2025)",
+      "Trump executive order expanding Iran sanctions (Jan 2025)",
+      "Gaza ceasefire Phase 1 holding but Rafah offensive risk remains",
+    ],
+    brierScore: 0.076,
+    logScore: -0.42,
+    calibrationBucket: null,
+    isCurrent: true,
+  },
+  {
+    id: "seed-current-2025-03-90d",
+    cycleId: CURRENT_SEED_CYCLE,
+    evidencePackVersion: "2025-03-01",
+    timeHorizon: "90d",
+    probabilities: {
+      continued_conflict: 0.55,
+      major_escalation: 0.22,
+      informal_deescalation: 0.11,
+      limited_ceasefire: 0.05,
+      humanitarian_mini_deal: 0.04,
+      sanctions_partial_deal: 0.02,
+      regional_framework: 0.005,
+      broad_settlement: 0.005,
+    },
+    rationale: "March 2025 (90d): Over 90 days, there is moderate chance of informal signals. Escalation risk remains elevated given Israeli political pressure for preemptive action on nuclear sites. Diplomatic back-channels via Oman remain open.",
+    keyEvidenceItems: [
+      "Oman diplomatic channel partially active (Reuters, Mar 2025)",
+      "Israeli PM coalition pressure for military action on Fordow",
+      "Iran Revolutionary Guard command structure changes",
+    ],
+    brierScore: 0.083,
+    logScore: -0.47,
+    calibrationBucket: null,
+    isCurrent: true,
+  },
+  {
+    id: "seed-current-2025-03-180d",
+    cycleId: CURRENT_SEED_CYCLE,
+    evidencePackVersion: "2025-03-01",
+    timeHorizon: "180d",
+    probabilities: {
+      continued_conflict: 0.48,
+      major_escalation: 0.21,
+      informal_deescalation: 0.14,
+      limited_ceasefire: 0.07,
+      humanitarian_mini_deal: 0.05,
+      sanctions_partial_deal: 0.03,
+      regional_framework: 0.01,
+      broad_settlement: 0.01,
+    },
+    rationale: "March 2025 (180d): Six months offers more runway for diplomatic back-channels or economic pressure to shift Iranian calculus. However, nuclear timeline creates urgency for potential Israeli preemptive action. Uncertainty is highest at this horizon.",
+    keyEvidenceItems: [
+      "Iran nuclear breakout timeline estimated at 3-4 months (RAND, 2025)",
+      "China-Iran strategic partnership deepening (trade data)",
+      "US-GCC talks on collective deterrence framework",
+    ],
+    brierScore: null,
+    logScore: null,
+    calibrationBucket: null,
+    isCurrent: true,
+  },
+  {
+    id: "seed-current-2025-03-1y",
+    cycleId: CURRENT_SEED_CYCLE,
+    evidencePackVersion: "2025-03-01",
+    timeHorizon: "1y",
+    probabilities: {
+      continued_conflict: 0.40,
+      major_escalation: 0.18,
+      informal_deescalation: 0.17,
+      limited_ceasefire: 0.10,
+      humanitarian_mini_deal: 0.07,
+      sanctions_partial_deal: 0.05,
+      regional_framework: 0.02,
+      broad_settlement: 0.01,
+    },
+    rationale: "March 2025 (1y): Over a full year, diplomatic outcomes become more plausible. Either a negotiated track emerges, or conflict escalates to a defining confrontation over Iran's nuclear program. The distribution flattens considerably at this horizon.",
+    keyEvidenceItems: [
+      "Historical base rate: Iran deals take 18+ months of back-channel prep",
+      "JCPOA negotiations precedent: 2013-2015 trajectory",
+      "Regional security architecture negotiations via P5+1 successor track",
+    ],
+    brierScore: null,
+    logScore: null,
+    calibrationBucket: null,
+    isCurrent: true,
+  },
+];
+
 const HISTORICAL_RECORDS = [
   {
     id: "seed-hist-2024-04-30d",
@@ -93,6 +202,23 @@ export async function seedHistoricalForecasts(): Promise<void> {
       .limit(1);
     if (existing.length === 0) {
       await db.insert(forecastsTable).values(record);
+    }
+  }
+
+  const hasCurrent = await db.select({ id: forecastsTable.id })
+    .from(forecastsTable)
+    .where(eq(forecastsTable.isCurrent, true))
+    .limit(1);
+
+  if (hasCurrent.length === 0) {
+    for (const record of CURRENT_FORECASTS) {
+      const existing = await db.select({ id: forecastsTable.id })
+        .from(forecastsTable)
+        .where(eq(forecastsTable.id, record.id))
+        .limit(1);
+      if (existing.length === 0) {
+        await db.insert(forecastsTable).values(record);
+      }
     }
   }
 }

@@ -226,6 +226,30 @@ const STAKEHOLDERS = [
     constraints: "Carbon transition pressures, US dollar dependency",
     communicationStyle: "OPEC+ coordination, price management signaling",
   },
+  {
+    id: "iaea", name: "IAEA", role: "international_org", region: "Global", flag: "⚛️",
+    goals: "Non-proliferation verification, access to Iranian nuclear sites, transparency",
+    redLines: "Weaponization of nuclear material, inspector expulsion",
+    preferredOutcomes: "Comprehensive safeguards agreement, enhanced monitoring regime",
+    constraints: "No enforcement power, member-state political dynamics",
+    communicationStyle: "Technical reports, Board of Governors resolutions",
+  },
+  {
+    id: "iran_reformists", name: "Iran Reformist Faction", role: "internal_faction", region: "Middle East", flag: "🇮🇷",
+    goals: "Sanctions relief, economic liberalization, reduced international isolation",
+    redLines: "External regime change, capitulation on nuclear sovereignty",
+    preferredOutcomes: "Pragmatic diplomacy leading to sanctions relief, JCPOA-style deal",
+    constraints: "Suppressed by hardliners, limited electoral access post-2021",
+    communicationStyle: "Indirect signaling via reformist media, technocratic framing",
+  },
+  {
+    id: "iran_irgc", name: "IRGC Leadership", role: "internal_faction", region: "Middle East", flag: "🇮🇷",
+    goals: "Regime survival, regional military dominance, economic empire via sanctions bypass",
+    redLines: "Disarmament, loss of proxy network, opening of domestic economy to foreign control",
+    preferredOutcomes: "Continued deterrence via nuclear ambiguity, controlled conflict",
+    constraints: "Western sanctions pressure, internal economic discontent",
+    communicationStyle: "Statements via state media, proxy escalation signals",
+  },
 ];
 
 export async function seedStakeholders(): Promise<void> {
