@@ -528,3 +528,533 @@ export const GetAdminCostsSummaryResponse = zod.object({
     }),
   ),
 });
+
+/**
+ * @summary Trigger an immediate deal autoresearch cycle (Task B)
+ */
+export const TriggerDealRunResponse = zod.object({
+  cycleId: zod.string(),
+  message: zod.string(),
+});
+
+/**
+ * @summary List all AI-generated deals
+ */
+export const listDealsQueryLimitDefault = 20;
+export const listDealsQueryOffsetDefault = 0;
+
+export const ListDealsQueryParams = zod.object({
+  limit: zod.coerce.number().default(listDealsQueryLimitDefault),
+  offset: zod.coerce.number().default(listDealsQueryOffsetDefault),
+  architecture: zod.coerce.string().optional(),
+});
+
+export const ListDealsResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.string(),
+      cycleId: zod.string(),
+      parentId: zod.string().nullish(),
+      architecture: zod.enum([
+        "balanced",
+        "nuclear-first",
+        "hormuz-first",
+        "humanitarian-first",
+      ]),
+      terms: zod.object({
+        nuclearProtocol: zod.string().optional(),
+        sanctionsRelief: zod.string().optional(),
+        hormuzArrangements: zod.string().optional(),
+        humanitarianProvisions: zod.string().optional(),
+        verificationMechanism: zod.string().optional(),
+        timelineYears: zod.number().optional(),
+        sequencing: zod.string().optional(),
+        additionalClauses: zod.array(zod.string()).optional(),
+      }),
+      scores: zod
+        .object({
+          feasibility: zod.number().optional(),
+          coherence: zod.number().optional(),
+          evidenceGrounding: zod.number().optional(),
+          domesticSellability: zod.number().optional(),
+          regionalStability: zod.number().optional(),
+          implementability: zod.number().optional(),
+          durability: zod.number().optional(),
+          composite: zod.number().optional(),
+        })
+        .nullish(),
+      stakeholderEvaluations: zod
+        .record(
+          zod.string(),
+          zod.object({
+            verdict: zod.enum(["accept", "conditional", "reject"]),
+            rationale: zod.string(),
+            redLineViolations: zod.array(zod.string()).optional(),
+            conditions: zod.array(zod.string()).optional(),
+          }),
+        )
+        .nullish(),
+      domesticEvaluations: zod
+        .record(zod.string(), zod.record(zod.string(), zod.unknown()))
+        .nullish(),
+      redTeamResults: zod
+        .array(zod.record(zod.string(), zod.unknown()))
+        .nullish(),
+      diagnosis: zod.string().nullish(),
+      isPareto: zod.boolean(),
+      isCurrent: zod.boolean(),
+      generatedBy: zod.string(),
+      tokensConsumed: zod.number(),
+      costUsd: zod.number(),
+      createdAt: zod.coerce.date(),
+    }),
+  ),
+  total: zod.number(),
+});
+
+/**
+ * @summary Get the current best AI-generated deal
+ */
+export const GetCurrentDealResponse = zod.object({
+  id: zod.string(),
+  cycleId: zod.string(),
+  parentId: zod.string().nullish(),
+  architecture: zod.enum([
+    "balanced",
+    "nuclear-first",
+    "hormuz-first",
+    "humanitarian-first",
+  ]),
+  terms: zod.object({
+    nuclearProtocol: zod.string().optional(),
+    sanctionsRelief: zod.string().optional(),
+    hormuzArrangements: zod.string().optional(),
+    humanitarianProvisions: zod.string().optional(),
+    verificationMechanism: zod.string().optional(),
+    timelineYears: zod.number().optional(),
+    sequencing: zod.string().optional(),
+    additionalClauses: zod.array(zod.string()).optional(),
+  }),
+  scores: zod
+    .object({
+      feasibility: zod.number().optional(),
+      coherence: zod.number().optional(),
+      evidenceGrounding: zod.number().optional(),
+      domesticSellability: zod.number().optional(),
+      regionalStability: zod.number().optional(),
+      implementability: zod.number().optional(),
+      durability: zod.number().optional(),
+      composite: zod.number().optional(),
+    })
+    .nullish(),
+  stakeholderEvaluations: zod
+    .record(
+      zod.string(),
+      zod.object({
+        verdict: zod.enum(["accept", "conditional", "reject"]),
+        rationale: zod.string(),
+        redLineViolations: zod.array(zod.string()).optional(),
+        conditions: zod.array(zod.string()).optional(),
+      }),
+    )
+    .nullish(),
+  domesticEvaluations: zod
+    .record(zod.string(), zod.record(zod.string(), zod.unknown()))
+    .nullish(),
+  redTeamResults: zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
+  diagnosis: zod.string().nullish(),
+  isPareto: zod.boolean(),
+  isCurrent: zod.boolean(),
+  generatedBy: zod.string(),
+  tokensConsumed: zod.number(),
+  costUsd: zod.number(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Get Pareto frontier of deals (non-dominated set)
+ */
+export const GetParetoDealsResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.string(),
+      cycleId: zod.string(),
+      parentId: zod.string().nullish(),
+      architecture: zod.enum([
+        "balanced",
+        "nuclear-first",
+        "hormuz-first",
+        "humanitarian-first",
+      ]),
+      terms: zod.object({
+        nuclearProtocol: zod.string().optional(),
+        sanctionsRelief: zod.string().optional(),
+        hormuzArrangements: zod.string().optional(),
+        humanitarianProvisions: zod.string().optional(),
+        verificationMechanism: zod.string().optional(),
+        timelineYears: zod.number().optional(),
+        sequencing: zod.string().optional(),
+        additionalClauses: zod.array(zod.string()).optional(),
+      }),
+      scores: zod
+        .object({
+          feasibility: zod.number().optional(),
+          coherence: zod.number().optional(),
+          evidenceGrounding: zod.number().optional(),
+          domesticSellability: zod.number().optional(),
+          regionalStability: zod.number().optional(),
+          implementability: zod.number().optional(),
+          durability: zod.number().optional(),
+          composite: zod.number().optional(),
+        })
+        .nullish(),
+      stakeholderEvaluations: zod
+        .record(
+          zod.string(),
+          zod.object({
+            verdict: zod.enum(["accept", "conditional", "reject"]),
+            rationale: zod.string(),
+            redLineViolations: zod.array(zod.string()).optional(),
+            conditions: zod.array(zod.string()).optional(),
+          }),
+        )
+        .nullish(),
+      domesticEvaluations: zod
+        .record(zod.string(), zod.record(zod.string(), zod.unknown()))
+        .nullish(),
+      redTeamResults: zod
+        .array(zod.record(zod.string(), zod.unknown()))
+        .nullish(),
+      diagnosis: zod.string().nullish(),
+      isPareto: zod.boolean(),
+      isCurrent: zod.boolean(),
+      generatedBy: zod.string(),
+      tokensConsumed: zod.number(),
+      costUsd: zod.number(),
+      createdAt: zod.coerce.date(),
+    }),
+  ),
+});
+
+/**
+ * @summary Get the full solution tree of explored deals
+ */
+export const GetSolutionTreeResponse = zod.object({
+  nodes: zod.array(
+    zod.object({
+      id: zod.string(),
+      dealId: zod.string(),
+      parentNodeId: zod.string().nullish(),
+      cycleId: zod.string(),
+      branchLabel: zod.string(),
+      architecture: zod.string(),
+      depth: zod.number(),
+      isStalled: zod.boolean(),
+      stalledReason: zod.string().nullish(),
+      isBestInBranch: zod.boolean(),
+      compositeScore: zod.string().nullish(),
+      createdAt: zod.coerce.date(),
+    }),
+  ),
+});
+
+/**
+ * @summary Get a single deal by ID
+ */
+export const GetDealParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetDealResponse = zod.object({
+  id: zod.string(),
+  cycleId: zod.string(),
+  parentId: zod.string().nullish(),
+  architecture: zod.enum([
+    "balanced",
+    "nuclear-first",
+    "hormuz-first",
+    "humanitarian-first",
+  ]),
+  terms: zod.object({
+    nuclearProtocol: zod.string().optional(),
+    sanctionsRelief: zod.string().optional(),
+    hormuzArrangements: zod.string().optional(),
+    humanitarianProvisions: zod.string().optional(),
+    verificationMechanism: zod.string().optional(),
+    timelineYears: zod.number().optional(),
+    sequencing: zod.string().optional(),
+    additionalClauses: zod.array(zod.string()).optional(),
+  }),
+  scores: zod
+    .object({
+      feasibility: zod.number().optional(),
+      coherence: zod.number().optional(),
+      evidenceGrounding: zod.number().optional(),
+      domesticSellability: zod.number().optional(),
+      regionalStability: zod.number().optional(),
+      implementability: zod.number().optional(),
+      durability: zod.number().optional(),
+      composite: zod.number().optional(),
+    })
+    .nullish(),
+  stakeholderEvaluations: zod
+    .record(
+      zod.string(),
+      zod.object({
+        verdict: zod.enum(["accept", "conditional", "reject"]),
+        rationale: zod.string(),
+        redLineViolations: zod.array(zod.string()).optional(),
+        conditions: zod.array(zod.string()).optional(),
+      }),
+    )
+    .nullish(),
+  domesticEvaluations: zod
+    .record(zod.string(), zod.record(zod.string(), zod.unknown()))
+    .nullish(),
+  redTeamResults: zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
+  diagnosis: zod.string().nullish(),
+  isPareto: zod.boolean(),
+  isCurrent: zod.boolean(),
+  generatedBy: zod.string(),
+  tokensConsumed: zod.number(),
+  costUsd: zod.number(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary List real-world proposals (US plan, Iran counterproposal, etc.)
+ */
+export const ListProposalsResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.string(),
+      name: zod.string(),
+      source: zod.string(),
+      submittedBy: zod.string(),
+      terms: zod.object({
+        nuclearProtocol: zod.string().optional(),
+        sanctionsRelief: zod.string().optional(),
+        hormuzArrangements: zod.string().optional(),
+        humanitarianProvisions: zod.string().optional(),
+        verificationMechanism: zod.string().optional(),
+        timelineYears: zod.number().optional(),
+        sequencing: zod.string().optional(),
+        additionalClauses: zod.array(zod.string()).optional(),
+      }),
+      scores: zod
+        .object({
+          feasibility: zod.number().optional(),
+          coherence: zod.number().optional(),
+          evidenceGrounding: zod.number().optional(),
+          domesticSellability: zod.number().optional(),
+          regionalStability: zod.number().optional(),
+          implementability: zod.number().optional(),
+          durability: zod.number().optional(),
+          composite: zod.number().optional(),
+        })
+        .nullish(),
+      stakeholderEvaluations: zod
+        .record(
+          zod.string(),
+          zod.object({
+            verdict: zod.enum(["accept", "conditional", "reject"]),
+            rationale: zod.string(),
+            redLineViolations: zod.array(zod.string()).optional(),
+            conditions: zod.array(zod.string()).optional(),
+          }),
+        )
+        .nullish(),
+      knownResponses: zod.record(zod.string(), zod.string()).nullish(),
+      whatWouldItTake: zod
+        .array(zod.record(zod.string(), zod.unknown()))
+        .nullish(),
+      summary: zod.string(),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+  ),
+});
+
+/**
+ * @summary Create a new real-world proposal (admin only)
+ */
+export const CreateProposalBody = zod.object({
+  name: zod.string(),
+  source: zod.string(),
+  summary: zod.string().optional(),
+  terms: zod.object({
+    nuclearProtocol: zod.string().optional(),
+    sanctionsRelief: zod.string().optional(),
+    hormuzArrangements: zod.string().optional(),
+    humanitarianProvisions: zod.string().optional(),
+    verificationMechanism: zod.string().optional(),
+    timelineYears: zod.number().optional(),
+    sequencing: zod.string().optional(),
+    additionalClauses: zod.array(zod.string()).optional(),
+  }),
+});
+
+/**
+ * @summary Get all proposals with current AI deal for arena comparison
+ */
+export const GetProposalArenaResponse = zod.object({
+  proposals: zod.array(
+    zod.object({
+      id: zod.string(),
+      name: zod.string(),
+      source: zod.string(),
+      submittedBy: zod.string(),
+      terms: zod.object({
+        nuclearProtocol: zod.string().optional(),
+        sanctionsRelief: zod.string().optional(),
+        hormuzArrangements: zod.string().optional(),
+        humanitarianProvisions: zod.string().optional(),
+        verificationMechanism: zod.string().optional(),
+        timelineYears: zod.number().optional(),
+        sequencing: zod.string().optional(),
+        additionalClauses: zod.array(zod.string()).optional(),
+      }),
+      scores: zod
+        .object({
+          feasibility: zod.number().optional(),
+          coherence: zod.number().optional(),
+          evidenceGrounding: zod.number().optional(),
+          domesticSellability: zod.number().optional(),
+          regionalStability: zod.number().optional(),
+          implementability: zod.number().optional(),
+          durability: zod.number().optional(),
+          composite: zod.number().optional(),
+        })
+        .nullish(),
+      stakeholderEvaluations: zod
+        .record(
+          zod.string(),
+          zod.object({
+            verdict: zod.enum(["accept", "conditional", "reject"]),
+            rationale: zod.string(),
+            redLineViolations: zod.array(zod.string()).optional(),
+            conditions: zod.array(zod.string()).optional(),
+          }),
+        )
+        .nullish(),
+      knownResponses: zod.record(zod.string(), zod.string()).nullish(),
+      whatWouldItTake: zod
+        .array(zod.record(zod.string(), zod.unknown()))
+        .nullish(),
+      summary: zod.string(),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+  ),
+  currentAiDeal: zod
+    .object({
+      id: zod.string(),
+      cycleId: zod.string(),
+      parentId: zod.string().nullish(),
+      architecture: zod.enum([
+        "balanced",
+        "nuclear-first",
+        "hormuz-first",
+        "humanitarian-first",
+      ]),
+      terms: zod.object({
+        nuclearProtocol: zod.string().optional(),
+        sanctionsRelief: zod.string().optional(),
+        hormuzArrangements: zod.string().optional(),
+        humanitarianProvisions: zod.string().optional(),
+        verificationMechanism: zod.string().optional(),
+        timelineYears: zod.number().optional(),
+        sequencing: zod.string().optional(),
+        additionalClauses: zod.array(zod.string()).optional(),
+      }),
+      scores: zod
+        .object({
+          feasibility: zod.number().optional(),
+          coherence: zod.number().optional(),
+          evidenceGrounding: zod.number().optional(),
+          domesticSellability: zod.number().optional(),
+          regionalStability: zod.number().optional(),
+          implementability: zod.number().optional(),
+          durability: zod.number().optional(),
+          composite: zod.number().optional(),
+        })
+        .nullish(),
+      stakeholderEvaluations: zod
+        .record(
+          zod.string(),
+          zod.object({
+            verdict: zod.enum(["accept", "conditional", "reject"]),
+            rationale: zod.string(),
+            redLineViolations: zod.array(zod.string()).optional(),
+            conditions: zod.array(zod.string()).optional(),
+          }),
+        )
+        .nullish(),
+      domesticEvaluations: zod
+        .record(zod.string(), zod.record(zod.string(), zod.unknown()))
+        .nullish(),
+      redTeamResults: zod
+        .array(zod.record(zod.string(), zod.unknown()))
+        .nullish(),
+      diagnosis: zod.string().nullish(),
+      isPareto: zod.boolean(),
+      isCurrent: zod.boolean(),
+      generatedBy: zod.string(),
+      tokensConsumed: zod.number(),
+      costUsd: zod.number(),
+      createdAt: zod.coerce.date(),
+    })
+    .nullish(),
+});
+
+/**
+ * @summary Get a single proposal by ID
+ */
+export const GetProposalParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetProposalResponse = zod.object({
+  id: zod.string(),
+  name: zod.string(),
+  source: zod.string(),
+  submittedBy: zod.string(),
+  terms: zod.object({
+    nuclearProtocol: zod.string().optional(),
+    sanctionsRelief: zod.string().optional(),
+    hormuzArrangements: zod.string().optional(),
+    humanitarianProvisions: zod.string().optional(),
+    verificationMechanism: zod.string().optional(),
+    timelineYears: zod.number().optional(),
+    sequencing: zod.string().optional(),
+    additionalClauses: zod.array(zod.string()).optional(),
+  }),
+  scores: zod
+    .object({
+      feasibility: zod.number().optional(),
+      coherence: zod.number().optional(),
+      evidenceGrounding: zod.number().optional(),
+      domesticSellability: zod.number().optional(),
+      regionalStability: zod.number().optional(),
+      implementability: zod.number().optional(),
+      durability: zod.number().optional(),
+      composite: zod.number().optional(),
+    })
+    .nullish(),
+  stakeholderEvaluations: zod
+    .record(
+      zod.string(),
+      zod.object({
+        verdict: zod.enum(["accept", "conditional", "reject"]),
+        rationale: zod.string(),
+        redLineViolations: zod.array(zod.string()).optional(),
+        conditions: zod.array(zod.string()).optional(),
+      }),
+    )
+    .nullish(),
+  knownResponses: zod.record(zod.string(), zod.string()).nullish(),
+  whatWouldItTake: zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
+  summary: zod.string(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});

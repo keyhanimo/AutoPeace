@@ -22,16 +22,22 @@ import type {
   ChangelogEntry,
   CostOfWar,
   CostSummary,
+  CreateProposalRequest,
+  Deal,
   EvidenceSource,
   EvidenceSourceUpdate,
   ExperimentStats,
   Forecast,
   GetLatestForecasts200,
+  GetParetoDeals200,
+  GetSolutionTree200,
   HealthStatus,
   ListChangelog200,
   ListChangelogParams,
   ListCosts200,
   ListCostsParams,
+  ListDeals200,
+  ListDealsParams,
   ListEvidence200,
   ListEvidenceParams,
   ListEvidenceSources200,
@@ -39,9 +45,13 @@ import type {
   ListExperimentsParams,
   ListForecasts200,
   ListForecastsParams,
+  ListProposals200,
   ListStakeholders200,
   ListStakeholdersParams,
+  Proposal,
+  ProposalArena,
   Stakeholder,
+  TriggerDealRun200,
   TriggerRun200,
 } from "./api.schemas";
 
@@ -1670,6 +1680,804 @@ export function useGetAdminCostsSummary<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetAdminCostsSummaryQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Trigger an immediate deal autoresearch cycle (Task B)
+ */
+export const getTriggerDealRunUrl = () => {
+  return `/api/admin/deal-run`;
+};
+
+export const triggerDealRun = async (
+  options?: RequestInit,
+): Promise<TriggerDealRun200> => {
+  return customFetch<TriggerDealRun200>(getTriggerDealRunUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getTriggerDealRunMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof triggerDealRun>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof triggerDealRun>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["triggerDealRun"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof triggerDealRun>>,
+    void
+  > = () => {
+    return triggerDealRun(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type TriggerDealRunMutationResult = NonNullable<
+  Awaited<ReturnType<typeof triggerDealRun>>
+>;
+
+export type TriggerDealRunMutationError = ErrorType<void>;
+
+/**
+ * @summary Trigger an immediate deal autoresearch cycle (Task B)
+ */
+export const useTriggerDealRun = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof triggerDealRun>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof triggerDealRun>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getTriggerDealRunMutationOptions(options));
+};
+
+/**
+ * @summary List all AI-generated deals
+ */
+export const getListDealsUrl = (params?: ListDealsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/deals?${stringifiedParams}`
+    : `/api/deals`;
+};
+
+export const listDeals = async (
+  params?: ListDealsParams,
+  options?: RequestInit,
+): Promise<ListDeals200> => {
+  return customFetch<ListDeals200>(getListDealsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListDealsQueryKey = (params?: ListDealsParams) => {
+  return [`/api/deals`, ...(params ? [params] : [])] as const;
+};
+
+export const getListDealsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listDeals>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListDealsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listDeals>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListDealsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listDeals>>> = ({
+    signal,
+  }) => listDeals(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listDeals>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListDealsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listDeals>>
+>;
+export type ListDealsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all AI-generated deals
+ */
+
+export function useListDeals<
+  TData = Awaited<ReturnType<typeof listDeals>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListDealsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listDeals>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListDealsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get the current best AI-generated deal
+ */
+export const getGetCurrentDealUrl = () => {
+  return `/api/deals/current`;
+};
+
+export const getCurrentDeal = async (options?: RequestInit): Promise<Deal> => {
+  return customFetch<Deal>(getGetCurrentDealUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetCurrentDealQueryKey = () => {
+  return [`/api/deals/current`] as const;
+};
+
+export const getGetCurrentDealQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCurrentDeal>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getCurrentDeal>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetCurrentDealQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getCurrentDeal>>> = ({
+    signal,
+  }) => getCurrentDeal({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCurrentDeal>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCurrentDealQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCurrentDeal>>
+>;
+export type GetCurrentDealQueryError = ErrorType<void>;
+
+/**
+ * @summary Get the current best AI-generated deal
+ */
+
+export function useGetCurrentDeal<
+  TData = Awaited<ReturnType<typeof getCurrentDeal>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getCurrentDeal>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCurrentDealQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get Pareto frontier of deals (non-dominated set)
+ */
+export const getGetParetoDealsUrl = () => {
+  return `/api/deals/pareto`;
+};
+
+export const getParetoDeals = async (
+  options?: RequestInit,
+): Promise<GetParetoDeals200> => {
+  return customFetch<GetParetoDeals200>(getGetParetoDealsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetParetoDealsQueryKey = () => {
+  return [`/api/deals/pareto`] as const;
+};
+
+export const getGetParetoDealsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getParetoDeals>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getParetoDeals>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetParetoDealsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getParetoDeals>>> = ({
+    signal,
+  }) => getParetoDeals({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getParetoDeals>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetParetoDealsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getParetoDeals>>
+>;
+export type GetParetoDealsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get Pareto frontier of deals (non-dominated set)
+ */
+
+export function useGetParetoDeals<
+  TData = Awaited<ReturnType<typeof getParetoDeals>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getParetoDeals>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetParetoDealsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get the full solution tree of explored deals
+ */
+export const getGetSolutionTreeUrl = () => {
+  return `/api/deals/tree`;
+};
+
+export const getSolutionTree = async (
+  options?: RequestInit,
+): Promise<GetSolutionTree200> => {
+  return customFetch<GetSolutionTree200>(getGetSolutionTreeUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetSolutionTreeQueryKey = () => {
+  return [`/api/deals/tree`] as const;
+};
+
+export const getGetSolutionTreeQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSolutionTree>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSolutionTree>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetSolutionTreeQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getSolutionTree>>> = ({
+    signal,
+  }) => getSolutionTree({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSolutionTree>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSolutionTreeQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSolutionTree>>
+>;
+export type GetSolutionTreeQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get the full solution tree of explored deals
+ */
+
+export function useGetSolutionTree<
+  TData = Awaited<ReturnType<typeof getSolutionTree>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSolutionTree>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSolutionTreeQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get a single deal by ID
+ */
+export const getGetDealUrl = (id: string) => {
+  return `/api/deals/${id}`;
+};
+
+export const getDeal = async (
+  id: string,
+  options?: RequestInit,
+): Promise<Deal> => {
+  return customFetch<Deal>(getGetDealUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetDealQueryKey = (id: string) => {
+  return [`/api/deals/${id}`] as const;
+};
+
+export const getGetDealQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDeal>>,
+  TError = ErrorType<void>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof getDeal>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDealQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getDeal>>> = ({
+    signal,
+  }) => getDeal(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getDeal>>, TError, TData> & {
+    queryKey: QueryKey;
+  };
+};
+
+export type GetDealQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDeal>>
+>;
+export type GetDealQueryError = ErrorType<void>;
+
+/**
+ * @summary Get a single deal by ID
+ */
+
+export function useGetDeal<
+  TData = Awaited<ReturnType<typeof getDeal>>,
+  TError = ErrorType<void>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof getDeal>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDealQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List real-world proposals (US plan, Iran counterproposal, etc.)
+ */
+export const getListProposalsUrl = () => {
+  return `/api/proposals`;
+};
+
+export const listProposals = async (
+  options?: RequestInit,
+): Promise<ListProposals200> => {
+  return customFetch<ListProposals200>(getListProposalsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListProposalsQueryKey = () => {
+  return [`/api/proposals`] as const;
+};
+
+export const getListProposalsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listProposals>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listProposals>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListProposalsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listProposals>>> = ({
+    signal,
+  }) => listProposals({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listProposals>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListProposalsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listProposals>>
+>;
+export type ListProposalsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List real-world proposals (US plan, Iran counterproposal, etc.)
+ */
+
+export function useListProposals<
+  TData = Awaited<ReturnType<typeof listProposals>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listProposals>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListProposalsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a new real-world proposal (admin only)
+ */
+export const getCreateProposalUrl = () => {
+  return `/api/proposals`;
+};
+
+export const createProposal = async (
+  createProposalRequest: CreateProposalRequest,
+  options?: RequestInit,
+): Promise<Proposal> => {
+  return customFetch<Proposal>(getCreateProposalUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createProposalRequest),
+  });
+};
+
+export const getCreateProposalMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createProposal>>,
+    TError,
+    { data: BodyType<CreateProposalRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createProposal>>,
+  TError,
+  { data: BodyType<CreateProposalRequest> },
+  TContext
+> => {
+  const mutationKey = ["createProposal"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createProposal>>,
+    { data: BodyType<CreateProposalRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createProposal(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateProposalMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createProposal>>
+>;
+export type CreateProposalMutationBody = BodyType<CreateProposalRequest>;
+export type CreateProposalMutationError = ErrorType<void>;
+
+/**
+ * @summary Create a new real-world proposal (admin only)
+ */
+export const useCreateProposal = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createProposal>>,
+    TError,
+    { data: BodyType<CreateProposalRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createProposal>>,
+  TError,
+  { data: BodyType<CreateProposalRequest> },
+  TContext
+> => {
+  return useMutation(getCreateProposalMutationOptions(options));
+};
+
+/**
+ * @summary Get all proposals with current AI deal for arena comparison
+ */
+export const getGetProposalArenaUrl = () => {
+  return `/api/proposals/arena`;
+};
+
+export const getProposalArena = async (
+  options?: RequestInit,
+): Promise<ProposalArena> => {
+  return customFetch<ProposalArena>(getGetProposalArenaUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetProposalArenaQueryKey = () => {
+  return [`/api/proposals/arena`] as const;
+};
+
+export const getGetProposalArenaQueryOptions = <
+  TData = Awaited<ReturnType<typeof getProposalArena>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getProposalArena>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetProposalArenaQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getProposalArena>>
+  > = ({ signal }) => getProposalArena({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getProposalArena>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetProposalArenaQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getProposalArena>>
+>;
+export type GetProposalArenaQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get all proposals with current AI deal for arena comparison
+ */
+
+export function useGetProposalArena<
+  TData = Awaited<ReturnType<typeof getProposalArena>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getProposalArena>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetProposalArenaQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get a single proposal by ID
+ */
+export const getGetProposalUrl = (id: string) => {
+  return `/api/proposals/${id}`;
+};
+
+export const getProposal = async (
+  id: string,
+  options?: RequestInit,
+): Promise<Proposal> => {
+  return customFetch<Proposal>(getGetProposalUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetProposalQueryKey = (id: string) => {
+  return [`/api/proposals/${id}`] as const;
+};
+
+export const getGetProposalQueryOptions = <
+  TData = Awaited<ReturnType<typeof getProposal>>,
+  TError = ErrorType<void>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getProposal>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetProposalQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getProposal>>> = ({
+    signal,
+  }) => getProposal(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getProposal>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetProposalQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getProposal>>
+>;
+export type GetProposalQueryError = ErrorType<void>;
+
+/**
+ * @summary Get a single proposal by ID
+ */
+
+export function useGetProposal<
+  TData = Awaited<ReturnType<typeof getProposal>>,
+  TError = ErrorType<void>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getProposal>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetProposalQueryOptions(id, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

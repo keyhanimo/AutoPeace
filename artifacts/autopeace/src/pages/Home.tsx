@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Activity, Zap, BarChart, Database, DollarSign } from "lucide-react";
-import { useGetExperimentStats, useGetLatestForecasts, useListCosts, type Forecast } from "@workspace/api-client-react";
+import { ArrowRight, Activity, Zap, BarChart, Database, DollarSign, Handshake, Swords } from "lucide-react";
+import { useGetExperimentStats, useGetLatestForecasts, useListCosts, useGetCurrentDeal, type Forecast, type DealScores } from "@workspace/api-client-react";
 import { Card, Button, Badge } from "@/components/ui";
 import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 
@@ -279,6 +279,69 @@ function CostOfWarSection() {
   );
 }
 
+function DealHeroSection() {
+  const { data: deal } = useGetCurrentDeal();
+  if (!deal) return null;
+  const scores = deal.scores as DealScores | null;
+  const composite = scores?.composite ?? 0;
+  const feasibility = scores?.feasibility ?? 0;
+  const domestic = scores?.domesticSellability ?? 0;
+  const durability = scores?.durability ?? 0;
+
+  return (
+    <section>
+      <Card className="p-6 border-amber-700/30 bg-gradient-to-br from-card to-amber-950/10 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+        <div className="flex flex-col sm:flex-row sm:items-start gap-5">
+          <div className="w-12 h-12 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0">
+            <Handshake className="w-6 h-6 text-amber-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <h2 className="text-lg font-bold">Latest AI-Designed Peace Deal</h2>
+              <Badge variant="outline" className="border-amber-700/40 text-amber-400 text-[10px] capitalize">
+                {deal.architecture} architecture
+              </Badge>
+              {deal.isPareto && (
+                <Badge variant="outline" className="border-emerald-700/40 text-emerald-400 text-[10px]">
+                  Pareto frontier
+                </Badge>
+              )}
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+              {[
+                { label: "Composite", value: composite, color: "text-amber-400" },
+                { label: "Feasibility", value: feasibility, color: "text-emerald-400" },
+                { label: "Domestic", value: domestic, color: "text-purple-400" },
+                { label: "Durability", value: durability, color: "text-pink-400" },
+              ].map(({ label, value, color }) => (
+                <div key={label} className="bg-secondary/30 rounded-lg p-2.5 text-center">
+                  <div className={`text-xl font-display font-bold ${color}`}>
+                    {(value * 100).toFixed(0)}%
+                  </div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">{label}</div>
+                </div>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Link to="/deals">
+                <Button size="sm" className="gap-2 bg-amber-600 hover:bg-amber-700 text-white border-0">
+                  <Handshake className="w-3.5 h-3.5" /> View Deal Dashboard
+                </Button>
+              </Link>
+              <Link to="/arena">
+                <Button size="sm" variant="outline" className="gap-2">
+                  <Swords className="w-3.5 h-3.5" /> Proposal Arena
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </Card>
+    </section>
+  );
+}
+
 export default function Home() {
   const { data: stats, isLoading: statsLoading } = useGetExperimentStats();
   const { data: latestRes, isLoading: forecastLoading } = useGetLatestForecasts();
@@ -395,6 +458,8 @@ export default function Home() {
           <p className="text-xs text-muted-foreground mt-2">Total LLM context analyzed</p>
         </Card>
       </section>
+
+      <DealHeroSection />
 
       <section>
         <CostOfWarSection />

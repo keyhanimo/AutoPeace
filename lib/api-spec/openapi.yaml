@@ -24,6 +24,10 @@ tags:
     description: Stakeholder profiles
   - name: admin
     description: Admin controls (password protected)
+  - name: deals
+    description: AI-generated peace deal proposals (Task B)
+  - name: proposals
+    description: Real-world proposals (US plan, Iran counterproposal)
 paths:
   /healthz:
     get:
@@ -497,6 +501,215 @@ paths:
                 $ref: "#/components/schemas/CostSummary"
         "401":
           description: Unauthorized
+
+  /admin/deal-run:
+    post:
+      operationId: triggerDealRun
+      tags: [admin]
+      summary: Trigger an immediate deal autoresearch cycle (Task B)
+      security:
+        - adminKey: []
+      responses:
+        "200":
+          description: Deal cycle started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cycleId:
+                    type: string
+                  message:
+                    type: string
+                required: [cycleId, message]
+        "401":
+          description: Unauthorized
+        "409":
+          description: Already running
+
+  /deals:
+    get:
+      operationId: listDeals
+      tags: [deals]
+      summary: List all AI-generated deals
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: architecture
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of deals
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Deal"
+                  total:
+                    type: integer
+                required: [data, total]
+
+  /deals/current:
+    get:
+      operationId: getCurrentDeal
+      tags: [deals]
+      summary: Get the current best AI-generated deal
+      responses:
+        "200":
+          description: Current best deal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Deal"
+        "404":
+          description: No deal found yet
+
+  /deals/pareto:
+    get:
+      operationId: getParetoDeals
+      tags: [deals]
+      summary: Get Pareto frontier of deals (non-dominated set)
+      responses:
+        "200":
+          description: Pareto frontier deals
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Deal"
+                required: [data]
+
+  /deals/tree:
+    get:
+      operationId: getSolutionTree
+      tags: [deals]
+      summary: Get the full solution tree of explored deals
+      responses:
+        "200":
+          description: Solution tree nodes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  nodes:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SolutionTreeNode"
+                required: [nodes]
+
+  /deals/{id}:
+    get:
+      operationId: getDeal
+      tags: [deals]
+      summary: Get a single deal by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deal detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Deal"
+        "404":
+          description: Not found
+
+  /proposals:
+    get:
+      operationId: listProposals
+      tags: [proposals]
+      summary: List real-world proposals (US plan, Iran counterproposal, etc.)
+      responses:
+        "200":
+          description: List of proposals
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Proposal"
+                required: [data]
+    post:
+      operationId: createProposal
+      tags: [proposals]
+      summary: Create a new real-world proposal (admin only)
+      security:
+        - adminKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProposalRequest"
+      responses:
+        "201":
+          description: Created proposal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Proposal"
+        "401":
+          description: Unauthorized
+
+  /proposals/arena:
+    get:
+      operationId: getProposalArena
+      tags: [proposals]
+      summary: Get all proposals with current AI deal for arena comparison
+      responses:
+        "200":
+          description: Proposal arena data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProposalArena"
+
+  /proposals/{id}:
+    get:
+      operationId: getProposal
+      tags: [proposals]
+      summary: Get a single proposal by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Proposal detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Proposal"
+        "404":
+          description: Not found
 
 components:
   securitySchemes:
@@ -1011,3 +1224,249 @@ components:
         - totalTokens
         - byProvider
         - byCycle
+
+    DealTerms:
+      type: object
+      properties:
+        nuclearProtocol:
+          type: string
+        sanctionsRelief:
+          type: string
+        hormuzArrangements:
+          type: string
+        humanitarianProvisions:
+          type: string
+        verificationMechanism:
+          type: string
+        timelineYears:
+          type: number
+        sequencing:
+          type: string
+        additionalClauses:
+          type: array
+          items:
+            type: string
+
+    DealScores:
+      type: object
+      properties:
+        feasibility:
+          type: number
+        coherence:
+          type: number
+        evidenceGrounding:
+          type: number
+        domesticSellability:
+          type: number
+        regionalStability:
+          type: number
+        implementability:
+          type: number
+        durability:
+          type: number
+        composite:
+          type: number
+
+    StakeholderVerdict:
+      type: object
+      properties:
+        verdict:
+          type: string
+          enum: [accept, conditional, reject]
+        rationale:
+          type: string
+        redLineViolations:
+          type: array
+          items:
+            type: string
+        conditions:
+          type: array
+          items:
+            type: string
+      required:
+        - verdict
+        - rationale
+
+    Deal:
+      type: object
+      properties:
+        id:
+          type: string
+        cycleId:
+          type: string
+        parentId:
+          type: string
+          nullable: true
+        architecture:
+          type: string
+          enum: [balanced, nuclear-first, hormuz-first, humanitarian-first]
+        terms:
+          $ref: "#/components/schemas/DealTerms"
+        scores:
+          $ref: "#/components/schemas/DealScores"
+          nullable: true
+        stakeholderEvaluations:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/StakeholderVerdict"
+          nullable: true
+        domesticEvaluations:
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties: true
+          nullable: true
+        redTeamResults:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+          nullable: true
+        diagnosis:
+          type: string
+          nullable: true
+        isPareto:
+          type: boolean
+        isCurrent:
+          type: boolean
+        generatedBy:
+          type: string
+        tokensConsumed:
+          type: integer
+        costUsd:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - cycleId
+        - architecture
+        - terms
+        - isPareto
+        - isCurrent
+        - generatedBy
+        - tokensConsumed
+        - costUsd
+        - createdAt
+
+    SolutionTreeNode:
+      type: object
+      properties:
+        id:
+          type: string
+        dealId:
+          type: string
+        parentNodeId:
+          type: string
+          nullable: true
+        cycleId:
+          type: string
+        branchLabel:
+          type: string
+        architecture:
+          type: string
+        depth:
+          type: integer
+        isStalled:
+          type: boolean
+        stalledReason:
+          type: string
+          nullable: true
+        isBestInBranch:
+          type: boolean
+        compositeScore:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - dealId
+        - cycleId
+        - branchLabel
+        - architecture
+        - depth
+        - isStalled
+        - isBestInBranch
+        - createdAt
+
+    Proposal:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        source:
+          type: string
+        submittedBy:
+          type: string
+        terms:
+          $ref: "#/components/schemas/DealTerms"
+        scores:
+          $ref: "#/components/schemas/DealScores"
+          nullable: true
+        stakeholderEvaluations:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/StakeholderVerdict"
+          nullable: true
+        knownResponses:
+          type: object
+          additionalProperties:
+            type: string
+          nullable: true
+        whatWouldItTake:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+          nullable: true
+        summary:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - source
+        - submittedBy
+        - terms
+        - summary
+        - createdAt
+        - updatedAt
+
+    ProposalArena:
+      type: object
+      properties:
+        proposals:
+          type: array
+          items:
+            $ref: "#/components/schemas/Proposal"
+        currentAiDeal:
+          $ref: "#/components/schemas/Deal"
+          nullable: true
+      required:
+        - proposals
+
+    CreateProposalRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        source:
+          type: string
+        summary:
+          type: string
+        terms:
+          $ref: "#/components/schemas/DealTerms"
+      required:
+        - name
+        - source
+        - terms

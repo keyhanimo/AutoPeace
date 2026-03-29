@@ -259,6 +259,133 @@ export interface CostSummary {
   byCycle: CostSummaryByCycleItem[];
 }
 
+export interface DealTerms {
+  nuclearProtocol?: string;
+  sanctionsRelief?: string;
+  hormuzArrangements?: string;
+  humanitarianProvisions?: string;
+  verificationMechanism?: string;
+  timelineYears?: number;
+  sequencing?: string;
+  additionalClauses?: string[];
+}
+
+export interface DealScores {
+  feasibility?: number;
+  coherence?: number;
+  evidenceGrounding?: number;
+  domesticSellability?: number;
+  regionalStability?: number;
+  implementability?: number;
+  durability?: number;
+  composite?: number;
+}
+
+export type StakeholderVerdictVerdict =
+  (typeof StakeholderVerdictVerdict)[keyof typeof StakeholderVerdictVerdict];
+
+export const StakeholderVerdictVerdict = {
+  accept: "accept",
+  conditional: "conditional",
+  reject: "reject",
+} as const;
+
+export interface StakeholderVerdict {
+  verdict: StakeholderVerdictVerdict;
+  rationale: string;
+  redLineViolations?: string[];
+  conditions?: string[];
+}
+
+export type DealArchitecture =
+  (typeof DealArchitecture)[keyof typeof DealArchitecture];
+
+export const DealArchitecture = {
+  balanced: "balanced",
+  "nuclear-first": "nuclear-first",
+  "hormuz-first": "hormuz-first",
+  "humanitarian-first": "humanitarian-first",
+} as const;
+
+export type DealStakeholderEvaluations = {
+  [key: string]: StakeholderVerdict;
+} | null;
+
+export type DealDomesticEvaluations = {
+  [key: string]: { [key: string]: unknown };
+} | null;
+
+export type DealRedTeamResultsItem = { [key: string]: unknown };
+
+export interface Deal {
+  id: string;
+  cycleId: string;
+  parentId?: string | null;
+  architecture: DealArchitecture;
+  terms: DealTerms;
+  scores?: DealScores | null;
+  stakeholderEvaluations?: DealStakeholderEvaluations;
+  domesticEvaluations?: DealDomesticEvaluations;
+  redTeamResults?: DealRedTeamResultsItem[] | null;
+  diagnosis?: string | null;
+  isPareto: boolean;
+  isCurrent: boolean;
+  generatedBy: string;
+  tokensConsumed: number;
+  costUsd: number;
+  createdAt: string;
+}
+
+export interface SolutionTreeNode {
+  id: string;
+  dealId: string;
+  parentNodeId?: string | null;
+  cycleId: string;
+  branchLabel: string;
+  architecture: string;
+  depth: number;
+  isStalled: boolean;
+  stalledReason?: string | null;
+  isBestInBranch: boolean;
+  compositeScore?: string | null;
+  createdAt: string;
+}
+
+export type ProposalStakeholderEvaluations = {
+  [key: string]: StakeholderVerdict;
+} | null;
+
+export type ProposalKnownResponses = { [key: string]: string } | null;
+
+export type ProposalWhatWouldItTakeItem = { [key: string]: unknown };
+
+export interface Proposal {
+  id: string;
+  name: string;
+  source: string;
+  submittedBy: string;
+  terms: DealTerms;
+  scores?: DealScores | null;
+  stakeholderEvaluations?: ProposalStakeholderEvaluations;
+  knownResponses?: ProposalKnownResponses;
+  whatWouldItTake?: ProposalWhatWouldItTakeItem[] | null;
+  summary: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProposalArena {
+  proposals: Proposal[];
+  currentAiDeal?: Deal | null;
+}
+
+export interface CreateProposalRequest {
+  name: string;
+  source: string;
+  summary?: string;
+  terms: DealTerms;
+}
+
 export type ListForecastsParams = {
   timeHorizon?: ListForecastsTimeHorizon;
   cycleId?: string;
@@ -353,4 +480,32 @@ export type TriggerRun200 = {
 
 export type ListEvidenceSources200 = {
   data: EvidenceSource[];
+};
+
+export type TriggerDealRun200 = {
+  cycleId: string;
+  message: string;
+};
+
+export type ListDealsParams = {
+  limit?: number;
+  offset?: number;
+  architecture?: string;
+};
+
+export type ListDeals200 = {
+  data: Deal[];
+  total: number;
+};
+
+export type GetParetoDeals200 = {
+  data: Deal[];
+};
+
+export type GetSolutionTree200 = {
+  nodes: SolutionTreeNode[];
+};
+
+export type ListProposals200 = {
+  data: Proposal[];
 };

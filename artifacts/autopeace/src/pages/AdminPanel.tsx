@@ -3,15 +3,18 @@ import {
   useGetAdminConfig, 
   useUpdateAdminConfig, 
   useTriggerRun,
+  useTriggerDealRun,
   useListEvidenceSources,
   useGetAdminCostsSummary,
+  useGetCurrentDeal,
   type AdminConfigResponse,
   type AdminConfigUpdate,
+  type DealScores,
 } from "@workspace/api-client-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAdminKey } from "@/hooks/use-admin";
 import { PageHeader, Card, Button, Input, Badge } from "@/components/ui";
-import { Lock, Play, Save, LogOut, Loader2, DollarSign, ToggleLeft, ToggleRight } from "lucide-react";
+import { Lock, Play, Save, LogOut, Loader2, DollarSign, ToggleLeft, ToggleRight, Handshake, GitBranch } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatUsd } from "@/lib/utils";
 
@@ -32,6 +35,8 @@ export default function AdminPanel() {
 
   const updateConfig = useUpdateAdminConfig({ request: { headers: authHeaders } });
   const runTrigger = useTriggerRun({ request: { headers: authHeaders } });
+  const dealRunTrigger = useTriggerDealRun({ request: { headers: authHeaders } });
+  const { data: currentDeal } = useGetCurrentDeal();
 
   const queryClient = useQueryClient();
   const toggleSource = useMutation({
@@ -93,6 +98,15 @@ export default function AdminPanel() {
     }
   };
 
+  const handleDealRun = async () => {
+    try {
+      await dealRunTrigger.mutateAsync();
+      toast({ title: "Deal Cycle Started", description: "Task B deal engine running in background." });
+    } catch (e) {
+      toast({ title: "Deal Run Failed", description: "Could not start deal cycle or already running.", variant: "destructive" });
+    }
+  };
+
   const isUnauthorized = !!adminKey && isConfigError;
 
   if (!adminKey || isUnauthorized) {
@@ -136,10 +150,14 @@ export default function AdminPanel() {
         title="Command Center" 
         description="Manage LLM models, budget caps, and pipeline state."
       >
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button variant="destructive" onClick={handleRun} disabled={runTrigger.isPending} className="gap-2">
             {runTrigger.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-            Force Run Cycle
+            Force Forecast Run
+          </Button>
+          <Button onClick={handleDealRun} disabled={dealRunTrigger.isPending} className="gap-2 bg-amber-600 hover:bg-amber-700 text-white border-0">
+            {dealRunTrigger.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Handshake className="w-4 h-4" />}
+            Run Deal Cycle
           </Button>
           <Button variant="outline" onClick={clearKey} title="Log out"><LogOut className="w-4 h-4" /></Button>
         </div>
@@ -243,6 +261,71 @@ export default function AdminPanel() {
         </div>
 
         <div className="space-y-8">
+          <Card className="p-6 border-amber-700/30 bg-amber-950/10">
+            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+              <Handshake className="w-5 h-5 text-amber-400" /> Deal Engine (Task B)
+            </h3>
+            {currentDeal ? (
+              <div className="space-y-4">
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Current Best Deal</p>
+                  <p className="font-semibold capitalize">{currentDeal.architecture} architecture</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{new Date(currentDeal.createdAt).toLocaleString()}</p>
+                </div>
+                {currentDeal.scores && (() => {
+                  const s = currentDeal.scores as DealScores;
+                  return (
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border/50 pb-1">Score Summary</p>
+                      {([
+                        ["Composite", s.composite],
+                        ["Feasibility", s.feasibility],
+                        ["Domestic", s.domesticSellability],
+                        ["Durability", s.durability],
+                      ] as [string, number][]).map(([label, val]) => (
+                        <div key={label} className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground w-24 shrink-0">{label}</span>
+                          <div className="flex-1 bg-secondary/50 rounded-full h-1.5 overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${val >= 0.65 ? "bg-emerald-500" : val >= 0.45 ? "bg-amber-500" : "bg-red-500"}`}
+                              style={{ width: `${(val ?? 0) * 100}%` }}
+                            />
+                          </div>
+                          <span className={`text-xs font-mono font-bold w-10 text-right ${val >= 0.65 ? "text-emerald-400" : val >= 0.45 ? "text-amber-400" : "text-red-400"}`}>
+                            {((val ?? 0) * 100).toFixed(0)}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-[10px] border-emerald-700/40 text-emerald-400">
+                    {currentDeal.isPareto ? "On Pareto Frontier" : "Not on Pareto"}
+                  </Badge>
+                </div>
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground">
+                <p className="mb-3">No deal generated yet.</p>
+                <p className="text-xs">Click "Run Deal Cycle" to start the multi-agent deal design pipeline.</p>
+              </div>
+            )}
+            <div className="mt-4">
+              <Button
+                onClick={handleDealRun}
+                disabled={dealRunTrigger.isPending}
+                className="w-full gap-2 bg-amber-600 hover:bg-amber-700 text-white border-0"
+              >
+                {dealRunTrigger.isPending ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Running...</>
+                ) : (
+                  <><GitBranch className="w-4 h-4" /> Run Deal Cycle</>
+                )}
+              </Button>
+            </div>
+          </Card>
+
           <Card className="p-6 bg-gradient-to-br from-card to-card border-primary/20">
             <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
               <DollarSign className="w-5 h-5 text-primary" /> Cost Summary

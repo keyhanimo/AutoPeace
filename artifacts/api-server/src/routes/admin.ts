@@ -4,6 +4,7 @@ import { adminConfigTable, evidenceSourcesTable, experimentsTable, cyclesTable }
 import { eq, sum } from "drizzle-orm";
 import { adminAuth } from "../lib/admin-auth";
 import { runCycleNow, isRunning } from "../services/autoresearch";
+import { runDealCycleNow, isDealCycleRunning } from "../services/deal-autoresearch";
 import { UpdateAdminConfigBody, UpdateEvidenceSourceBody } from "@workspace/api-zod";
 
 const router = Router();
@@ -81,6 +82,19 @@ router.post("/admin/run", async (_req, res) => {
   try {
     const cycleId = await runCycleNow();
     res.json({ cycleId, message: "Autoresearch cycle started" });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+router.post("/admin/deal-run", async (_req, res) => {
+  if (isDealCycleRunning()) {
+    res.status(409).json({ error: "A deal cycle is already running", message: "Already running" });
+    return;
+  }
+  try {
+    const cycleId = await runDealCycleNow();
+    res.json({ cycleId, message: "Deal autoresearch cycle started" });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }

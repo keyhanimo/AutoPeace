@@ -7,3 +7,6 @@ export * from "./cost-of-war";
 export * from "./changelog";
 export * from "./admin-config";
 export * from "./evidence-sources";
+export * from "./deals";
+export * from "./proposals";
+export * from "./solution-tree";

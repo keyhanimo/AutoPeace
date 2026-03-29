@@ -12,6 +12,9 @@ import Changelog from "@/pages/Changelog";
 import ChangelogEntry from "@/pages/ChangelogEntry";
 import Methodology from "@/pages/Methodology";
 import AdminPanel from "@/pages/AdminPanel";
+import DealDashboard from "@/pages/DealDashboard";
+import ProposalArena from "@/pages/ProposalArena";
+import Stakeholders from "@/pages/Stakeholders";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -29,6 +32,9 @@ function Router() {
     <Layout>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/deals" element={<DealDashboard />} />
+        <Route path="/arena" element={<ProposalArena />} />
+        <Route path="/stakeholders" element={<Stakeholders />} />
         <Route path="/forecasts" element={<ForecastDashboard />} />
         <Route path="/costs" element={<CostsExplorer />} />
         <Route path="/experiments" element={<ExperimentLog />} />

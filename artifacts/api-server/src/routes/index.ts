@@ -7,6 +7,8 @@ import evidenceRouter from "./evidence";
 import changelogRouter from "./changelog";
 import stakeholdersRouter from "./stakeholders";
 import adminRouter from "./admin";
+import dealsRouter from "./deals";
+import proposalsRouter from "./proposals";
 
 const router: IRouter = Router();
 
@@ -18,5 +20,7 @@ router.use(evidenceRouter);
 router.use(changelogRouter);
 router.use(stakeholdersRouter);
 router.use(adminRouter);
+router.use(dealsRouter);
+router.use(proposalsRouter);
 
 export default router;

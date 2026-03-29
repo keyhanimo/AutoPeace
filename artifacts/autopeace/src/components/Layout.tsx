@@ -1,11 +1,14 @@
 import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
-import { Menu, X, Activity, BarChart2, DollarSign, FlaskConical, BookOpen, HelpCircle, Shield, ChevronRight } from "lucide-react";
+import { Menu, X, Activity, BarChart2, DollarSign, FlaskConical, BookOpen, HelpCircle, Shield, ChevronRight, Handshake, Users, Swords } from "lucide-react";
 
 const NAV_ITEMS = [
   { href: "/", label: "Home", icon: Activity },
+  { href: "/deals", label: "Deal Dashboard", icon: Handshake },
+  { href: "/arena", label: "Proposal Arena", icon: Swords },
   { href: "/forecasts", label: "Forecasts", icon: BarChart2 },
   { href: "/costs", label: "Cost Explorer", icon: DollarSign },
+  { href: "/stakeholders", label: "Stakeholders", icon: Users },
   { href: "/experiments", label: "Experiment Log", icon: FlaskConical },
   { href: "/changelog", label: "Changelog", icon: BookOpen },
   { href: "/methodology", label: "Methodology", icon: HelpCircle },
