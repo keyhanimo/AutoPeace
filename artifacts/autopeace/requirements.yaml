@@ -1,0 +1,15 @@
+packages:
+  "recharts": "Required for probability distribution charts and cost visualization"
+  "framer-motion": "For premium page transitions, smooth micro-interactions, and animated charts"
+  "date-fns": "For formatting timestamps and changelog dates"
+  "clsx": "Utility for conditionally joining class names"
+  "tailwind-merge": "Utility for merging tailwind classes without conflicts"
+
+images:
+  - path: "artifacts/autopeace/public/images/hero-bg.png"
+    description: "Abstract, dark, high-tech glowing world map dotted with data nodes and connection lines. Deep navy background with cyan and gold luminous accents, geopolitical intelligence dashboard style."
+    aspect_ratio: "16:9"
+
+notes:
+  - "Assuming React Query hooks from @workspace/api-client-react handle full endpoint paths internally based on workspace setup."
+  - "Admin endpoints require X-Admin-Key header, managed via localStorage."

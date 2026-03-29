@@ -3,20 +3,33 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: AutoPeace API — AI-powered conflict forecasting and peace research
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: forecasts
+    description: Outcome forecasts (Task A)
+  - name: experiments
+    description: Autoresearch experiment log
+  - name: costs
+    description: Cost-of-war data per stakeholder
+  - name: evidence
+    description: Evidence corpus
+  - name: changelog
+    description: Per-cycle changelog feed
+  - name: stakeholders
+    description: Stakeholder profiles
+  - name: admin
+    description: Admin controls (password protected)
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,7 +37,474 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /forecasts:
+    get:
+      operationId: listForecasts
+      tags: [forecasts]
+      summary: List forecasts
+      parameters:
+        - name: timeHorizon
+          in: query
+          schema:
+            type: string
+            enum: [30d, 90d, 180d, 1y]
+        - name: cycleId
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: List of forecasts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Forecast"
+                  total:
+                    type: integer
+                required: [data, total]
+
+  /forecasts/latest:
+    get:
+      operationId: getLatestForecasts
+      tags: [forecasts]
+      summary: Get latest forecast for each time horizon
+      responses:
+        "200":
+          description: Latest forecasts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Forecast"
+                required: [data]
+
+  /forecasts/{id}:
+    get:
+      operationId: getForecast
+      tags: [forecasts]
+      summary: Get a single forecast
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Forecast detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Forecast"
+        "404":
+          description: Not found
+
+  /experiments:
+    get:
+      operationId: listExperiments
+      tags: [experiments]
+      summary: List experiments
+      parameters:
+        - name: task
+          in: query
+          schema:
+            type: string
+            enum: [A, B, both]
+        - name: retained
+          in: query
+          schema:
+            type: boolean
+        - name: cycleId
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: List of experiments
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Experiment"
+                  total:
+                    type: integer
+                required: [data, total]
+
+  /experiments/stats:
+    get:
+      operationId: getExperimentStats
+      tags: [experiments]
+      summary: Aggregate experiment statistics
+      responses:
+        "200":
+          description: Experiment stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExperimentStats"
+
+  /costs:
+    get:
+      operationId: listCosts
+      tags: [costs]
+      summary: List cost-of-war records
+      parameters:
+        - name: stakeholderId
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of cost records
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/CostOfWar"
+                required: [data]
+
+  /costs/{stakeholderId}:
+    get:
+      operationId: getCostsByStakeholder
+      tags: [costs]
+      summary: Get latest cost-of-war for a stakeholder
+      parameters:
+        - name: stakeholderId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Cost detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CostOfWar"
+        "404":
+          description: Not found
+
+  /evidence:
+    get:
+      operationId: listEvidence
+      tags: [evidence]
+      summary: List evidence items
+      parameters:
+        - name: source
+          in: query
+          schema:
+            type: string
+        - name: evidenceType
+          in: query
+          schema:
+            type: string
+        - name: stakeholderId
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: List of evidence items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/EvidenceItem"
+                  total:
+                    type: integer
+                required: [data, total]
+
+  /changelog:
+    get:
+      operationId: listChangelog
+      tags: [changelog]
+      summary: List changelog entries
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Changelog entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ChangelogEntry"
+                  total:
+                    type: integer
+                required: [data, total]
+
+  /changelog/{id}:
+    get:
+      operationId: getChangelogEntry
+      tags: [changelog]
+      summary: Get a single changelog entry
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Changelog entry detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChangelogEntry"
+        "404":
+          description: Not found
+
+  /stakeholders:
+    get:
+      operationId: listStakeholders
+      tags: [stakeholders]
+      summary: List all stakeholders
+      parameters:
+        - name: role
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of stakeholders
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Stakeholder"
+                required: [data]
+
+  /stakeholders/{id}:
+    get:
+      operationId: getStakeholder
+      tags: [stakeholders]
+      summary: Get a single stakeholder
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Stakeholder detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Stakeholder"
+        "404":
+          description: Not found
+
+  /admin/config:
+    get:
+      operationId: getAdminConfig
+      tags: [admin]
+      summary: Get admin configuration
+      security:
+        - adminKey: []
+      responses:
+        "200":
+          description: Admin configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminConfigResponse"
+        "401":
+          description: Unauthorized
+    post:
+      operationId: updateAdminConfig
+      tags: [admin]
+      summary: Update admin configuration
+      security:
+        - adminKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminConfigUpdate"
+      responses:
+        "200":
+          description: Updated configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminConfigResponse"
+        "401":
+          description: Unauthorized
+
+  /admin/run:
+    post:
+      operationId: triggerRun
+      tags: [admin]
+      summary: Trigger an immediate autoresearch cycle
+      security:
+        - adminKey: []
+      responses:
+        "200":
+          description: Run triggered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cycleId:
+                    type: string
+                  message:
+                    type: string
+                required: [cycleId, message]
+        "401":
+          description: Unauthorized
+        "409":
+          description: Already running
+
+  /admin/sources:
+    get:
+      operationId: listEvidenceSources
+      tags: [admin]
+      summary: List evidence sources
+      security:
+        - adminKey: []
+      responses:
+        "200":
+          description: Evidence sources
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/EvidenceSource"
+                required: [data]
+        "401":
+          description: Unauthorized
+
+  /admin/sources/{id}:
+    patch:
+      operationId: updateEvidenceSource
+      tags: [admin]
+      summary: Update an evidence source
+      security:
+        - adminKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EvidenceSourceUpdate"
+      responses:
+        "200":
+          description: Updated source
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EvidenceSource"
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not found
+
+  /admin/costs-summary:
+    get:
+      operationId: getAdminCostsSummary
+      tags: [admin]
+      summary: Get LLM provider cost summary
+      security:
+        - adminKey: []
+      responses:
+        "200":
+          description: Cost summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CostSummary"
+        "401":
+          description: Unauthorized
+
 components:
+  securitySchemes:
+    adminKey:
+      type: apiKey
+      in: header
+      name: X-Admin-Key
+
   schemas:
     HealthStatus:
       type: object
@@ -34,3 +514,500 @@ components:
       required:
         - status
 
+    ForecastProbabilities:
+      type: object
+      properties:
+        continued_conflict:
+          type: number
+        informal_deescalation:
+          type: number
+        limited_ceasefire:
+          type: number
+        humanitarian_mini_deal:
+          type: number
+        sanctions_partial_deal:
+          type: number
+        regional_framework:
+          type: number
+        broad_settlement:
+          type: number
+        major_escalation:
+          type: number
+      required:
+        - continued_conflict
+        - informal_deescalation
+        - limited_ceasefire
+        - humanitarian_mini_deal
+        - sanctions_partial_deal
+        - regional_framework
+        - broad_settlement
+        - major_escalation
+
+    Forecast:
+      type: object
+      properties:
+        id:
+          type: string
+        cycleId:
+          type: string
+        experimentId:
+          type: string
+          nullable: true
+        evidencePackVersion:
+          type: string
+        timeHorizon:
+          type: string
+          enum: [30d, 90d, 180d, 1y]
+        probabilities:
+          $ref: "#/components/schemas/ForecastProbabilities"
+        rationale:
+          type: string
+        keyEvidenceItems:
+          type: array
+          items:
+            type: string
+        brierScore:
+          type: number
+          nullable: true
+        logScore:
+          type: number
+          nullable: true
+        calibrationBucket:
+          type: string
+          nullable: true
+        isCurrent:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - cycleId
+        - evidencePackVersion
+        - timeHorizon
+        - probabilities
+        - rationale
+        - keyEvidenceItems
+        - isCurrent
+        - createdAt
+
+    Experiment:
+      type: object
+      properties:
+        id:
+          type: string
+        cycleId:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        task:
+          type: string
+          enum: [A, B, both]
+        changeDescription:
+          type: string
+        changeDiff:
+          type: string
+        scoresBefore:
+          type: object
+          nullable: true
+          additionalProperties: true
+        scoresAfter:
+          type: object
+          nullable: true
+          additionalProperties: true
+        diagnosis:
+          type: string
+          nullable: true
+        retained:
+          type: boolean
+        tokensConsumed:
+          type: integer
+        wallClockSeconds:
+          type: integer
+          nullable: true
+        costUsd:
+          type: number
+      required:
+        - id
+        - cycleId
+        - timestamp
+        - task
+        - changeDescription
+        - changeDiff
+        - retained
+        - tokensConsumed
+        - costUsd
+
+    ExperimentStats:
+      type: object
+      properties:
+        total:
+          type: integer
+        retained:
+          type: integer
+        retentionRate:
+          type: number
+        totalCostUsd:
+          type: number
+        totalTokensConsumed:
+          type: integer
+        latestBrierScore:
+          type: number
+          nullable: true
+        cyclesRun:
+          type: integer
+      required:
+        - total
+        - retained
+        - retentionRate
+        - totalCostUsd
+        - totalTokensConsumed
+        - cyclesRun
+
+    EconomicCosts:
+      type: object
+      properties:
+        oilPriceImpactUsd:
+          type: number
+        gdpImpactPct:
+          type: number
+        sanctionsCostUsd:
+          type: number
+        militaryExpenditureUsd:
+          type: number
+        tradeDisruptionUsd:
+          type: number
+        totalUsd:
+          type: number
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/CostSource"
+      required:
+        - totalUsd
+        - sources
+
+    HumanitarianCosts:
+      type: object
+      properties:
+        casualtiesEstimate:
+          type: integer
+        displacedPersons:
+          type: integer
+        infrastructureDamageUsd:
+          type: number
+        foodInsecurityAffected:
+          type: integer
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/CostSource"
+      required:
+        - sources
+
+    StrategicCosts:
+      type: object
+      properties:
+        proliferationRiskLevel:
+          type: string
+          enum: [low, medium, high, critical]
+        escalationProbability30d:
+          type: number
+        allianceStabilityIndex:
+          type: number
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/CostSource"
+      required:
+        - sources
+
+    CostSource:
+      type: object
+      properties:
+        metric:
+          type: string
+        sourceName:
+          type: string
+        sourceUrl:
+          type: string
+        date:
+          type: string
+        uncertaintyRange:
+          type: string
+      required:
+        - metric
+        - sourceName
+        - sourceUrl
+        - date
+
+    CostOfWar:
+      type: object
+      properties:
+        id:
+          type: string
+        stakeholderId:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        economic:
+          $ref: "#/components/schemas/EconomicCosts"
+        humanitarian:
+          $ref: "#/components/schemas/HumanitarianCosts"
+        strategic:
+          $ref: "#/components/schemas/StrategicCosts"
+        dataVersion:
+          type: string
+      required:
+        - id
+        - stakeholderId
+        - timestamp
+        - economic
+        - humanitarian
+        - strategic
+        - dataVersion
+
+    EvidenceItem:
+      type: object
+      properties:
+        id:
+          type: string
+        source:
+          type: string
+        sourceUrl:
+          type: string
+        publishedAt:
+          type: string
+          format: date-time
+        title:
+          type: string
+        text:
+          type: string
+        evidenceType:
+          type: string
+        stakeholderRelevance:
+          type: array
+          items:
+            type: string
+        isProcessed:
+          type: boolean
+        ingestedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - source
+        - sourceUrl
+        - publishedAt
+        - title
+        - text
+        - evidenceType
+        - stakeholderRelevance
+        - isProcessed
+        - ingestedAt
+
+    ChangelogEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        cycleId:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        headline:
+          type: string
+        forecastDelta:
+          type: object
+          nullable: true
+          additionalProperties: true
+        scoreDelta:
+          type: object
+          nullable: true
+          additionalProperties: true
+        keyEvidence:
+          type: array
+          nullable: true
+          items:
+            type: object
+            additionalProperties: true
+        experimentsTried:
+          type: integer
+        experimentsRetained:
+          type: integer
+        notes:
+          type: string
+          nullable: true
+      required:
+        - id
+        - cycleId
+        - timestamp
+        - headline
+        - experimentsTried
+        - experimentsRetained
+
+    Stakeholder:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+        region:
+          type: string
+        flag:
+          type: string
+        goals:
+          type: string
+        redLines:
+          type: string
+        preferredOutcomes:
+          type: string
+        constraints:
+          type: string
+        communicationStyle:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - role
+        - region
+        - flag
+        - goals
+        - redLines
+        - preferredOutcomes
+        - constraints
+        - communicationStyle
+        - createdAt
+        - updatedAt
+
+    AdminConfigResponse:
+      type: object
+      properties:
+        cadence:
+          type: string
+          enum: [hourly, daily, weekly, manual]
+        budgetCapUsd:
+          type: number
+        isPaused:
+          type: boolean
+        anthropicModel:
+          type: string
+        openaiModel:
+          type: string
+        geminiModel:
+          type: string
+      required:
+        - cadence
+        - budgetCapUsd
+        - isPaused
+        - anthropicModel
+        - openaiModel
+        - geminiModel
+
+    AdminConfigUpdate:
+      type: object
+      properties:
+        cadence:
+          type: string
+          enum: [hourly, daily, weekly, manual]
+        budgetCapUsd:
+          type: number
+        isPaused:
+          type: boolean
+        anthropicModel:
+          type: string
+        openaiModel:
+          type: string
+        geminiModel:
+          type: string
+
+    EvidenceSource:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+        url:
+          type: string
+        isEnabled:
+          type: boolean
+        lastFetchedAt:
+          type: string
+          format: date-time
+          nullable: true
+        fetchFrequencyMinutes:
+          type: integer
+      required:
+        - id
+        - name
+        - type
+        - url
+        - isEnabled
+        - fetchFrequencyMinutes
+
+    EvidenceSourceUpdate:
+      type: object
+      properties:
+        isEnabled:
+          type: boolean
+        fetchFrequencyMinutes:
+          type: integer
+
+    CostSummary:
+      type: object
+      properties:
+        totalCostUsd:
+          type: number
+        totalTokens:
+          type: integer
+        byProvider:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              costUsd:
+                type: number
+              tokens:
+                type: integer
+            required:
+              - costUsd
+              - tokens
+        byCycle:
+          type: array
+          items:
+            type: object
+            properties:
+              cycleId:
+                type: string
+              startedAt:
+                type: string
+                format: date-time
+              costUsd:
+                type: number
+              tokens:
+                type: integer
+            required:
+              - cycleId
+              - startedAt
+              - costUsd
+              - tokens
+      required:
+        - totalCostUsd
+        - totalTokens
+        - byProvider
+        - byCycle
