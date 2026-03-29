@@ -1,23 +1,12 @@
 import React, { useState, useMemo } from "react";
 import { useGetLatestForecasts, useListForecasts, type Forecast } from "@workspace/api-client-react";
-import { Card, PageHeader, Badge } from "@/components/ui";
+import { Card, PageHeader } from "@/components/ui";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  Radar,
-  LineChart,
-  Line,
-  Legend,
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
+  RadarChart, PolarGrid, PolarAngleAxis, Radar,
+  LineChart, Line, Legend, ReferenceLine, ScatterChart, Scatter, CartesianGrid,
 } from "recharts";
-import { AlertCircle, Clock, CheckCircle2, FileText, Target, TrendingUp } from "lucide-react";
+import { AlertCircle, Clock, CheckCircle2, FileText, Target, TrendingUp, BarChart2 } from "lucide-react";
 
 const TIME_HORIZONS = ['30d', '90d', '180d', '1y'] as const;
 
@@ -32,28 +21,120 @@ const CATEGORIES = [
   { key: 'broad_settlement', label: 'Broad Settlement', shortLabel: 'Settlement', color: '#0284c7' },
 ];
 
-const PEACE_KEYS = new Set([
-  'humanitarian_mini_deal', 'sanctions_partial_deal', 'regional_framework', 'broad_settlement',
-]);
+const PEACE_KEYS = ['humanitarian_mini_deal', 'sanctions_partial_deal', 'regional_framework', 'broad_settlement'];
+
+const PREDICTION_MARKETS = [
+  { name: "Polymarket", peaceProb: 0.08, conflictProb: 0.72, lastUpdated: "2024-12-01" },
+  { name: "Metaculus", peaceProb: 0.12, conflictProb: 0.65, lastUpdated: "2024-12-01" },
+  { name: "Kalshi", peaceProb: 0.06, conflictProb: 0.78, lastUpdated: "2024-12-01" },
+];
 
 function getProbs(f: Forecast): Record<string, number> {
   return f.probabilities as unknown as Record<string, number>;
 }
 
 function computePeaceProb(probs: Record<string, number>): number {
-  return PEACE_KEYS.has('humanitarian_mini_deal')
-    ? (probs['humanitarian_mini_deal'] ?? 0) +
-        (probs['sanctions_partial_deal'] ?? 0) +
-        (probs['regional_framework'] ?? 0) +
-        (probs['broad_settlement'] ?? 0)
-    : 0;
+  return PEACE_KEYS.reduce((acc, k) => acc + (probs[k] ?? 0), 0);
+}
+
+function CalibrationScorecard({ forecasts }: { forecasts: Forecast[] }) {
+  const brierScores = forecasts.filter(f => f.brierScore != null).map(f => f.brierScore!);
+  const avgBrier = brierScores.length > 0 ? brierScores.reduce((a, b) => a + b, 0) / brierScores.length : null;
+  const lastBrier = brierScores[brierScores.length - 1] ?? null;
+  const trend = brierScores.length >= 2 ? (brierScores[brierScores.length - 1] ?? 0) - (brierScores[0] ?? 0) : null;
+
+  const data = brierScores.slice(-10).map((b, i) => ({ cycle: `C${i + 1}`, brier: parseFloat(b.toFixed(4)) }));
+
+  return (
+    <Card className="p-6">
+      <h3 className="text-lg font-bold mb-2 flex items-center gap-2">
+        <Target className="w-4 h-4 text-primary" />
+        Calibration Scorecard
+      </h3>
+      <div className="grid grid-cols-3 gap-3 mb-4">
+        <div className="text-center">
+          <div className="text-xl font-bold font-mono text-blue-400">{lastBrier?.toFixed(3) ?? "—"}</div>
+          <div className="text-[10px] text-muted-foreground">Latest Brier</div>
+        </div>
+        <div className="text-center">
+          <div className="text-xl font-bold font-mono text-purple-400">{avgBrier?.toFixed(3) ?? "—"}</div>
+          <div className="text-[10px] text-muted-foreground">Avg Brier</div>
+        </div>
+        <div className="text-center">
+          <div className={`text-xl font-bold font-mono ${trend != null ? (trend < 0 ? "text-emerald-400" : "text-red-400") : "text-muted-foreground"}`}>
+            {trend != null ? (trend < 0 ? "↓ " : "↑ ") + Math.abs(trend).toFixed(3) : "—"}
+          </div>
+          <div className="text-[10px] text-muted-foreground">Trend</div>
+        </div>
+      </div>
+      {data.length >= 2 ? (
+        <div className="h-24">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={data}>
+              <XAxis dataKey="cycle" hide />
+              <YAxis domain={['auto', 'auto']} hide />
+              <Tooltip
+                contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '6px', fontSize: '11px', color: '#f8fafc' }}
+                formatter={(v: number) => [v.toFixed(4), 'Brier']}
+              />
+              <Line type="monotone" dataKey="brier" stroke="#0284c7" strokeWidth={2} dot={false} />
+              <ReferenceLine y={0.25} stroke="#475569" strokeDasharray="3 3" />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground text-center">Run more cycles for calibration trend</p>
+      )}
+    </Card>
+  );
+}
+
+function PredictionMarketComparison({ activeForecast }: { activeForecast: Forecast }) {
+  const probs = getProbs(activeForecast);
+  const autoPeacePeace = computePeaceProb(probs) * 100;
+  const autoPeaceConflict = (probs['continued_conflict'] ?? 0) * 100;
+
+  const data = [
+    { name: "AutoPeace", peace: parseFloat(autoPeacePeace.toFixed(1)), conflict: parseFloat(autoPeaceConflict.toFixed(1)) },
+    ...PREDICTION_MARKETS.map(m => ({
+      name: m.name,
+      peace: parseFloat((m.peaceProb * 100).toFixed(1)),
+      conflict: parseFloat((m.conflictProb * 100).toFixed(1)),
+    })),
+  ];
+
+  return (
+    <Card className="p-6">
+      <h3 className="text-lg font-bold mb-1 flex items-center gap-2">
+        <BarChart2 className="w-4 h-4 text-primary" />
+        Prediction Market Comparison
+      </h3>
+      <p className="text-xs text-muted-foreground mb-4">AutoPeace vs. external markets (stub — Dec 2024 snapshot)</p>
+      <div className="h-36">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ top: 0, right: 10, left: -20, bottom: 0 }}>
+            <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#94a3b8' }} />
+            <YAxis tickFormatter={(v: number) => `${v}%`} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+            <Tooltip
+              contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', color: '#f8fafc', fontSize: '11px' }}
+              formatter={(v: number) => [`${v.toFixed(1)}%`]}
+            />
+            <Bar dataKey="peace" fill="#10b981" name="Peace" radius={[2, 2, 0, 0]} />
+            <Bar dataKey="conflict" fill="#ef4444" name="Conflict" radius={[2, 2, 0, 0]} />
+            <Legend wrapperStyle={{ fontSize: '10px' }} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </Card>
+  );
 }
 
 export default function ForecastDashboard() {
   const { data: latestRes, isLoading, isError } = useGetLatestForecasts();
-  const { data: historyRes } = useListForecasts({ limit: 40 });
+  const { data: historyRes } = useListForecasts({ limit: 100 });
   const [horizon, setHorizon] = useState<typeof TIME_HORIZONS[number]>('30d');
   const [activeTab, setActiveTab] = useState<'probabilities' | 'radar' | 'history'>('probabilities');
+  const [historyWindow, setHistoryWindow] = useState(10);
 
   const activeForecast = useMemo(() => {
     if (!latestRes?.data) return null;
@@ -83,22 +164,25 @@ export default function ForecastDashboard() {
     });
   }, [latestRes]);
 
-  const historyData = useMemo(() => {
+  const allHistoryForHorizon = useMemo(() => {
     if (!historyRes?.data) return [];
-    const byHorizon = historyRes.data
+    return historyRes.data
       .filter(f => f.timeHorizon === horizon)
-      .slice(0, 10)
       .reverse();
-    return byHorizon.map((f, i) => {
+  }, [historyRes, horizon]);
+
+  const historyData = useMemo(() => {
+    return allHistoryForHorizon.slice(-historyWindow).map((f, i) => {
       const p = getProbs(f);
       return {
         cycle: `C${i + 1}`,
+        date: f.createdAt ? new Date(f.createdAt).toLocaleDateString() : '',
         peace: parseFloat((computePeaceProb(p) * 100).toFixed(1)),
         conflict: parseFloat(((p['continued_conflict'] ?? 0) * 100).toFixed(1)),
         escalation: parseFloat(((p['major_escalation'] ?? 0) * 100).toFixed(1)),
       };
     });
-  }, [historyRes, horizon]);
+  }, [allHistoryForHorizon, historyWindow]);
 
   const peaceProb = useMemo(() => {
     if (!activeForecast) return 0;
@@ -112,6 +196,8 @@ export default function ForecastDashboard() {
     const entropy = -Object.values(p).filter(v => v > 0).reduce((acc, v) => acc + v * Math.log2(v), 0);
     return { maxProb: maxProb * 100, entropy: entropy.toFixed(2) };
   }, [activeForecast]);
+
+  const allForecasts = historyRes?.data ?? [];
 
   if (isLoading) {
     return (
@@ -256,16 +342,30 @@ export default function ForecastDashboard() {
 
               {activeTab === 'history' && (
                 <>
-                  <h3 className="text-xl font-display font-bold mb-6 flex items-center gap-2">
-                    <Clock className="w-5 h-5 text-primary" />
-                    Historical Trend — {horizon.toUpperCase()}
-                  </h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xl font-display font-bold flex items-center gap-2">
+                      <Clock className="w-5 h-5 text-primary" />
+                      Historical Trend — {horizon.toUpperCase()}
+                    </h3>
+                    <div className="flex items-center gap-3">
+                      <label className="text-xs text-muted-foreground">Show last:</label>
+                      <input
+                        type="range"
+                        min={3}
+                        max={Math.max(3, allHistoryForHorizon.length)}
+                        value={historyWindow}
+                        onChange={e => setHistoryWindow(Number(e.target.value))}
+                        className="w-24 accent-primary"
+                      />
+                      <span className="text-xs font-mono text-muted-foreground w-6">{historyWindow}</span>
+                    </div>
+                  </div>
                   {historyData.length < 2 ? (
                     <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
                       Run more research cycles to see historical trends.
                     </div>
                   ) : (
-                    <div className="flex-1 min-h-[380px]">
+                    <div className="flex-1 min-h-[340px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={historyData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                           <XAxis dataKey="cycle" stroke="#475569" />
@@ -273,6 +373,10 @@ export default function ForecastDashboard() {
                           <Tooltip
                             contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', color: '#f8fafc' }}
                             formatter={(value: number) => [`${value.toFixed(1)}%`]}
+                            labelFormatter={(label, payload) => {
+                              const item = payload?.[0]?.payload as { cycle: string; date: string } | undefined;
+                              return item ? `${item.cycle} (${item.date})` : label;
+                            }}
                           />
                           <Legend />
                           <Line type="monotone" dataKey="peace" stroke="#10b981" name="Peace" strokeWidth={2} dot={false} />
@@ -345,6 +449,11 @@ export default function ForecastDashboard() {
                 </div>
               </Card>
             </div>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-6">
+            <CalibrationScorecard forecasts={allForecasts} />
+            <PredictionMarketComparison activeForecast={activeForecast} />
           </div>
         </>
       )}

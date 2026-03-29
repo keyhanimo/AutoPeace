@@ -7,7 +7,7 @@ import {
   changelogEntriesTable,
   adminConfigTable,
 } from "@workspace/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { generateForecasts, getRecentForecastsForBacktest, type GeneratedForecast } from "./forecasting";
 import { ingestAllSources } from "./evidence-ingestion";
@@ -63,6 +63,16 @@ async function runCycleAsync(cycleId: string): Promise<void> {
     if (isPaused === "true") {
       logger.info({ cycleId }, "Cycle paused by admin config");
       await db.update(cyclesTable).set({ status: "completed", completedAt: new Date() }).where(eq(cyclesTable.id, cycleId));
+      runningCycleId = null;
+      return;
+    }
+
+    const budgetCapUsd = parseFloat(await getConfigValue("budgetCapUsd", "5.0"));
+    const [cycleAgg] = await db.select({ totalCostUsd: sql<number>`coalesce(sum(${cyclesTable.costUsd}),0)` }).from(cyclesTable);
+    const spentSoFar = Number(cycleAgg?.totalCostUsd ?? 0);
+    if (spentSoFar >= budgetCapUsd) {
+      logger.warn({ cycleId, spentSoFar, budgetCapUsd }, "Budget cap reached — cycle skipped");
+      await db.update(cyclesTable).set({ status: "completed", completedAt: new Date(), errorMessage: `Budget cap $${budgetCapUsd} reached` }).where(eq(cyclesTable.id, cycleId));
       runningCycleId = null;
       return;
     }
@@ -249,8 +259,9 @@ async function runHillClimbing(
       const probsStr = JSON.stringify(champion.probabilities, null, 2);
       const promptText = mutation.prompt(probsStr, champion.rationale);
 
+      const geminiModel = await getConfigValue("geminiModel", "gemini-2.5-flash");
       const geminiResult = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: geminiModel,
         contents: promptText,
       });
       const mutantText = geminiResult.text ?? "";
@@ -269,8 +280,9 @@ async function runHillClimbing(
 
       const mutantScore = computeCompositeScore(mutantProbs, backtestRecords);
 
+      const openaiModel = await getConfigValue("openaiModel", "gpt-4o");
       const evalResponse = await openai.chat.completions.create({
-        model: process.env["OPENAI_MODEL"] || "gpt-4o",
+        model: openaiModel,
         messages: [
           {
             role: "system",
