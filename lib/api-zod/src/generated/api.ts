@@ -1466,6 +1466,82 @@ export const ReviewProposalSubmissionResponse = zod.object({
 });
 
 /**
+ * Returns the latest batch of what-if scenario snapshots generated during the most recent research cycle. If no snapshots have been computed yet, returns an empty array with status "not_ready". Does NOT trigger any LLM computation.
+
+ * @summary List pre-computed what-if scenario snapshots
+ */
+export const ListWhatIfScenariosResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.string(),
+      name: zod.string(),
+      description: zod.string(),
+      triggerCondition: zod.string(),
+      basedOnCycleId: zod.string().nullish(),
+      probabilityDeltas: zod
+        .record(zod.string(), zod.number())
+        .describe(
+          "Per-outcome probability shifts vs baseline (signed fractions)",
+        ),
+      absoluteProbabilities: zod
+        .record(zod.string(), zod.number())
+        .describe("Absolute probabilities under this scenario (0-1 fractions)"),
+      proposalImpacts: zod
+        .array(
+          zod.object({
+            proposalId: zod.string().optional(),
+            proposalName: zod.string().optional(),
+            viabilityDelta: zod.number().optional(),
+            projectedComposite: zod.number().optional(),
+            favorabilityNote: zod.string().optional(),
+          }),
+        )
+        .nullish(),
+      updatedAt: zod.coerce.date(),
+    }),
+  ),
+  status: zod
+    .enum(["not_ready"])
+    .optional()
+    .describe(
+      "Present only when data is empty and snapshots are not yet available",
+    ),
+  message: zod.string().optional(),
+});
+
+/**
+ * Runs the full what-if scenario pipeline (LLM probability generation + stakeholder evaluation + judge scoring for top proposals) and stores results. This is the only endpoint that triggers live LLM calls for scenario computation.
+
+ * @summary Trigger LLM-based what-if scenario computation (admin only)
+ */
+export const AdminComputeScenariosResponse = zod.object({
+  message: zod.string(),
+  count: zod.number(),
+  data: zod.array(zod.object({}).passthrough()),
+});
+
+/**
+ * @summary Edit proposal submission summary/terms before approval (admin only)
+ */
+export const EditProposalSubmissionTermsParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const EditProposalSubmissionTermsBody = zod.object({
+  summary: zod.string().optional().describe("Updated proposal summary text"),
+  terms: zod
+    .object({})
+    .passthrough()
+    .optional()
+    .describe("Updated deal terms object"),
+});
+
+export const EditProposalSubmissionTermsResponse = zod.object({
+  message: zod.string(),
+  id: zod.string(),
+});
+
+/**
  * @summary List all available data download endpoints
  */
 export const GetDownloadsIndexResponse = zod.object({
@@ -1479,4 +1555,102 @@ export const GetDownloadsIndexResponse = zod.object({
       format: zod.string(),
     }),
   ),
+});
+
+/**
+ * @summary Download all forecast records as JSON
+ */
+export const DownloadForecastsJsonResponse = zod.object({
+  data: zod.array(zod.object({}).passthrough()),
+});
+
+/**
+ * @summary Download all deal records as JSON
+ */
+export const DownloadDealsJsonResponse = zod.object({
+  data: zod.array(zod.object({}).passthrough()),
+});
+
+/**
+ * @summary Download Pareto-optimal deals as JSON
+ */
+export const DownloadDealsParetoJsonResponse = zod.object({
+  data: zod.array(zod.object({}).passthrough()),
+});
+
+/**
+ * @summary Download all stakeholder records as JSON
+ */
+export const DownloadStakeholdersJsonResponse = zod.object({
+  data: zod.array(zod.object({}).passthrough()),
+});
+
+/**
+ * @summary Download all evidence items as JSON
+ */
+export const DownloadEvidenceJsonResponse = zod.object({
+  data: zod.array(zod.object({}).passthrough()),
+});
+
+/**
+ * @summary Download all cost-of-war records as JSON
+ */
+export const DownloadCostsJsonResponse = zod.object({
+  data: zod.array(zod.object({}).passthrough()),
+});
+
+/**
+ * @summary Download all deal cycle experiment records as JSON
+ */
+export const DownloadExperimentsJsonResponse = zod.object({
+  data: zod.array(zod.object({}).passthrough()),
+});
+
+/**
+ * Public endpoint. Stores the email address for future digest delivery. Idempotent: submitting an already-subscribed address returns a confirmation without creating a duplicate. Re-subscribing an unsubscribed address re-activates it.
+
+ * @summary Subscribe to email research update digests
+ */
+export const SubscribeEmailBody = zod.object({
+  email: zod.string().email().describe("Email address to subscribe"),
+  name: zod.string().optional().describe("Subscriber display name (optional)"),
+  source: zod
+    .string()
+    .optional()
+    .describe('Signup source identifier (e.g. \"open-source-page\")'),
+});
+
+export const SubscribeEmailResponse = zod.object({
+  id: zod.string().optional(),
+  message: zod.string(),
+});
+
+/**
+ * @summary Unsubscribe from email research update digests
+ */
+export const UnsubscribeEmailBody = zod.object({
+  email: zod.string().email(),
+});
+
+export const UnsubscribeEmailResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary List all email subscribers (admin only)
+ */
+export const AdminListSubscribersResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.string(),
+      email: zod.string().email(),
+      name: zod.string().nullish(),
+      subscribedAt: zod.coerce.date(),
+      confirmed: zod.boolean(),
+      unsubscribedAt: zod.coerce.date().nullish(),
+      source: zod.string(),
+    }),
+  ),
+  activeCount: zod.number(),
+  total: zod.number(),
 });

@@ -2,10 +2,9 @@ import React, { useState, useMemo } from "react";
 import {
   useGetLatestForecasts, useListForecasts, useListEvidence,
   useGetCommunityForecastAggregate, useSubmitCommunityForecast,
-  useListStakeholders,
-  type Forecast,
+  useListStakeholders, useListWhatIfScenarios,
+  type Forecast, type WhatIfScenario,
 } from "@workspace/api-client-react";
-import { useQuery } from "@tanstack/react-query";
 import { Card, PageHeader, Badge } from "@/components/ui";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
@@ -35,32 +34,10 @@ const PREDICTION_MARKETS = [
   { name: "Kalshi", peaceProb: 0.06, conflictProb: 0.78, lastUpdated: "2024-12-01" },
 ];
 
-type ApiScenario = {
-  id: string;
-  name: string;
-  description: string;
-  triggerCondition: string;
-  basedOnCycleId: string | null;
-  probabilityDeltas: Record<string, number>;
-  absoluteProbabilities: Record<string, number>;
-  updatedAt: string;
-};
-
-function useWhatIfScenarios() {
-  const base = typeof window !== "undefined"
-    ? window.location.origin + import.meta.env.BASE_URL.replace(/\/$/, "")
-    : "";
-  return useQuery<{ data: ApiScenario[] }>({
-    queryKey: ["what-if-scenarios"],
-    queryFn: () => fetch(`${base}/api/scenarios`).then(r => r.json() as Promise<{ data: ApiScenario[] }>),
-    staleTime: 5 * 60 * 1000,
-  });
-}
-
 function WhatIfPanel({ allForecasts }: { allForecasts: Forecast[] }) {
   const [activeId, setActiveId] = useState<string | null>(null);
-  const { data: scenariosData, isLoading: scenariosLoading } = useWhatIfScenarios();
-  const scenarios = scenariosData?.data ?? [];
+  const { data: scenariosData, isLoading: scenariosLoading } = useListWhatIfScenarios();
+  const scenarios: WhatIfScenario[] = (scenariosData?.data ?? []) as WhatIfScenario[];
 
   const baseline90d = allForecasts.find(f => f.timeHorizon === "90d") ?? allForecasts[0];
   const baseProbs = baseline90d ? getProbs(baseline90d) : {};

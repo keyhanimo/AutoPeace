@@ -1225,13 +1225,7 @@ paths:
                   data:
                     type: array
                     items:
-                      type: object
-                      properties:
-                        id: { type: string }
-                        scenario: { type: string }
-                        description: { type: string }
-                        probabilities: { type: object }
-                        createdAt: { type: string }
+                      $ref: "#/components/schemas/WhatIfScenario"
                   status:
                     type: string
                     enum: [not_ready]
@@ -1523,6 +1517,115 @@ paths:
             text/csv:
               schema: { type: string }
 
+  /changelog.xml:
+    get:
+      operationId: getChangelogRss
+      tags: [changelog]
+      summary: RSS feed of research cycle changelog entries
+      description: >
+        Returns an RSS 2.0 XML feed containing recent changelog entries, one item per
+        completed research cycle. Subscribe in any RSS reader to track forecast shifts,
+        deal score changes, and evidence updates over time.
+      responses:
+        "200":
+          description: RSS 2.0 XML feed
+          content:
+            application/rss+xml:
+              schema: { type: string }
+
+  /subscribe:
+    post:
+      operationId: subscribeEmail
+      tags: [subscribe]
+      summary: Subscribe to email research update digests
+      description: >
+        Public endpoint. Stores the email address for future digest delivery.
+        Idempotent: submitting an already-subscribed address returns a confirmation
+        without creating a duplicate. Re-subscribing an unsubscribed address re-activates it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: Email address to subscribe
+                name:
+                  type: string
+                  description: Subscriber display name (optional)
+                source:
+                  type: string
+                  description: Signup source identifier (e.g. "open-source-page")
+      responses:
+        "200":
+          description: Subscription confirmed or already exists
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+                  message: { type: string }
+                required: [message]
+        "400":
+          description: Invalid email address
+    delete:
+      operationId: unsubscribeEmail
+      tags: [subscribe]
+      summary: Unsubscribe from email research update digests
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        "200":
+          description: Unsubscribed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                required: [message]
+        "400":
+          description: Email is required
+
+  /admin/subscribers:
+    get:
+      operationId: adminListSubscribers
+      tags: [subscribe, admin]
+      summary: List all email subscribers (admin only)
+      security:
+        - adminKey: []
+      responses:
+        "200":
+          description: List of email subscribers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/EmailSubscription"
+                  activeCount: { type: integer }
+                  total: { type: integer }
+                required: [data, activeCount, total]
+        "401":
+          description: Unauthorized
+
 components:
   securitySchemes:
     adminKey:
@@ -1538,6 +1641,50 @@ components:
           type: string
       required:
         - status
+
+    WhatIfScenario:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        description: { type: string }
+        triggerCondition: { type: string }
+        basedOnCycleId:
+          type: string
+          nullable: true
+        probabilityDeltas:
+          type: object
+          additionalProperties: { type: number }
+          description: Per-outcome probability shifts vs baseline (signed fractions)
+        absoluteProbabilities:
+          type: object
+          additionalProperties: { type: number }
+          description: Absolute probabilities under this scenario (0-1 fractions)
+        proposalImpacts:
+          type: array
+          nullable: true
+          items:
+            type: object
+            properties:
+              proposalId: { type: string }
+              proposalName: { type: string }
+              viabilityDelta: { type: number }
+              projectedComposite: { type: number }
+              favorabilityNote: { type: string }
+        updatedAt: { type: string, format: date-time }
+      required: [id, name, description, triggerCondition, probabilityDeltas, absoluteProbabilities, updatedAt]
+
+    EmailSubscription:
+      type: object
+      properties:
+        id: { type: string }
+        email: { type: string, format: email }
+        name: { type: string, nullable: true }
+        subscribedAt: { type: string, format: date-time }
+        confirmed: { type: boolean }
+        unsubscribedAt: { type: string, format: date-time, nullable: true }
+        source: { type: string }
+      required: [id, email, subscribedAt, confirmed, source]
 
     ForecastProbabilities:
       type: object

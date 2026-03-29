@@ -17,8 +17,10 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AdminComputeScenarios200,
   AdminConfigResponse,
   AdminConfigUpdate,
+  AdminListSubscribers200,
   ChangelogEntry,
   CompareDeals200,
   CompareDealsParams,
@@ -26,6 +28,15 @@ import type {
   CostSummary,
   CreateProposalRequest,
   Deal,
+  DownloadCostsJson200,
+  DownloadDealsJson200,
+  DownloadDealsParetoJson200,
+  DownloadEvidenceJson200,
+  DownloadExperimentsJson200,
+  DownloadForecastsJson200,
+  DownloadStakeholdersJson200,
+  EditProposalSubmissionTerms200,
+  EditProposalSubmissionTermsBody,
   EvaluateProposal200,
   EvidenceSource,
   EvidenceSourceUpdate,
@@ -64,6 +75,7 @@ import type {
   ListProposals200,
   ListStakeholders200,
   ListStakeholdersParams,
+  ListWhatIfScenarios200,
   Proposal,
   ProposalArena,
   ReviewProposalSubmission200,
@@ -73,8 +85,12 @@ import type {
   SubmitCommunityForecastBody,
   SubmitPublicProposal200,
   SubmitPublicProposalBody,
+  SubscribeEmail200,
+  SubscribeEmailBody,
   TriggerDealRun200,
   TriggerRun200,
+  UnsubscribeEmail200,
+  UnsubscribeEmailBody,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -3614,6 +3630,257 @@ export const useReviewProposalSubmission = <
 };
 
 /**
+ * Returns the latest batch of what-if scenario snapshots generated during the most recent research cycle. If no snapshots have been computed yet, returns an empty array with status "not_ready". Does NOT trigger any LLM computation.
+
+ * @summary List pre-computed what-if scenario snapshots
+ */
+export const getListWhatIfScenariosUrl = () => {
+  return `/api/scenarios`;
+};
+
+export const listWhatIfScenarios = async (
+  options?: RequestInit,
+): Promise<ListWhatIfScenarios200> => {
+  return customFetch<ListWhatIfScenarios200>(getListWhatIfScenariosUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListWhatIfScenariosQueryKey = () => {
+  return [`/api/scenarios`] as const;
+};
+
+export const getListWhatIfScenariosQueryOptions = <
+  TData = Awaited<ReturnType<typeof listWhatIfScenarios>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listWhatIfScenarios>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListWhatIfScenariosQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listWhatIfScenarios>>
+  > = ({ signal }) => listWhatIfScenarios({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listWhatIfScenarios>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListWhatIfScenariosQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listWhatIfScenarios>>
+>;
+export type ListWhatIfScenariosQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List pre-computed what-if scenario snapshots
+ */
+
+export function useListWhatIfScenarios<
+  TData = Awaited<ReturnType<typeof listWhatIfScenarios>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listWhatIfScenarios>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListWhatIfScenariosQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Runs the full what-if scenario pipeline (LLM probability generation + stakeholder evaluation + judge scoring for top proposals) and stores results. This is the only endpoint that triggers live LLM calls for scenario computation.
+
+ * @summary Trigger LLM-based what-if scenario computation (admin only)
+ */
+export const getAdminComputeScenariosUrl = () => {
+  return `/api/admin/scenarios/compute`;
+};
+
+export const adminComputeScenarios = async (
+  options?: RequestInit,
+): Promise<AdminComputeScenarios200> => {
+  return customFetch<AdminComputeScenarios200>(getAdminComputeScenariosUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getAdminComputeScenariosMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminComputeScenarios>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminComputeScenarios>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["adminComputeScenarios"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminComputeScenarios>>,
+    void
+  > = () => {
+    return adminComputeScenarios(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminComputeScenariosMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminComputeScenarios>>
+>;
+
+export type AdminComputeScenariosMutationError = ErrorType<void>;
+
+/**
+ * @summary Trigger LLM-based what-if scenario computation (admin only)
+ */
+export const useAdminComputeScenarios = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminComputeScenarios>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminComputeScenarios>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getAdminComputeScenariosMutationOptions(options));
+};
+
+/**
+ * @summary Edit proposal submission summary/terms before approval (admin only)
+ */
+export const getEditProposalSubmissionTermsUrl = (id: string) => {
+  return `/api/admin/proposals/queue/${id}/terms`;
+};
+
+export const editProposalSubmissionTerms = async (
+  id: string,
+  editProposalSubmissionTermsBody: EditProposalSubmissionTermsBody,
+  options?: RequestInit,
+): Promise<EditProposalSubmissionTerms200> => {
+  return customFetch<EditProposalSubmissionTerms200>(
+    getEditProposalSubmissionTermsUrl(id),
+    {
+      ...options,
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(editProposalSubmissionTermsBody),
+    },
+  );
+};
+
+export const getEditProposalSubmissionTermsMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof editProposalSubmissionTerms>>,
+    TError,
+    { id: string; data: BodyType<EditProposalSubmissionTermsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof editProposalSubmissionTerms>>,
+  TError,
+  { id: string; data: BodyType<EditProposalSubmissionTermsBody> },
+  TContext
+> => {
+  const mutationKey = ["editProposalSubmissionTerms"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof editProposalSubmissionTerms>>,
+    { id: string; data: BodyType<EditProposalSubmissionTermsBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return editProposalSubmissionTerms(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type EditProposalSubmissionTermsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof editProposalSubmissionTerms>>
+>;
+export type EditProposalSubmissionTermsMutationBody =
+  BodyType<EditProposalSubmissionTermsBody>;
+export type EditProposalSubmissionTermsMutationError = ErrorType<void>;
+
+/**
+ * @summary Edit proposal submission summary/terms before approval (admin only)
+ */
+export const useEditProposalSubmissionTerms = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof editProposalSubmissionTerms>>,
+    TError,
+    { id: string; data: BodyType<EditProposalSubmissionTermsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof editProposalSubmissionTerms>>,
+  TError,
+  { id: string; data: BodyType<EditProposalSubmissionTermsBody> },
+  TContext
+> => {
+  return useMutation(getEditProposalSubmissionTermsMutationOptions(options));
+};
+
+/**
  * @summary List all available data download endpoints
  */
 export const getGetDownloadsIndexUrl = () => {
@@ -3680,6 +3947,1321 @@ export function useGetDownloadsIndex<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetDownloadsIndexQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Download all forecast records as JSON
+ */
+export const getDownloadForecastsJsonUrl = () => {
+  return `/api/downloads/forecasts.json`;
+};
+
+export const downloadForecastsJson = async (
+  options?: RequestInit,
+): Promise<DownloadForecastsJson200> => {
+  return customFetch<DownloadForecastsJson200>(getDownloadForecastsJsonUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getDownloadForecastsJsonQueryKey = () => {
+  return [`/api/downloads/forecasts.json`] as const;
+};
+
+export const getDownloadForecastsJsonQueryOptions = <
+  TData = Awaited<ReturnType<typeof downloadForecastsJson>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadForecastsJson>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getDownloadForecastsJsonQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof downloadForecastsJson>>
+  > = ({ signal }) => downloadForecastsJson({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof downloadForecastsJson>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type DownloadForecastsJsonQueryResult = NonNullable<
+  Awaited<ReturnType<typeof downloadForecastsJson>>
+>;
+export type DownloadForecastsJsonQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Download all forecast records as JSON
+ */
+
+export function useDownloadForecastsJson<
+  TData = Awaited<ReturnType<typeof downloadForecastsJson>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadForecastsJson>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getDownloadForecastsJsonQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Download all forecast records as CSV
+ */
+export const getDownloadForecastsCsvUrl = () => {
+  return `/api/downloads/forecasts.csv`;
+};
+
+export const downloadForecastsCsv = async (
+  options?: RequestInit,
+): Promise<string> => {
+  return customFetch<string>(getDownloadForecastsCsvUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getDownloadForecastsCsvQueryKey = () => {
+  return [`/api/downloads/forecasts.csv`] as const;
+};
+
+export const getDownloadForecastsCsvQueryOptions = <
+  TData = Awaited<ReturnType<typeof downloadForecastsCsv>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadForecastsCsv>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getDownloadForecastsCsvQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof downloadForecastsCsv>>
+  > = ({ signal }) => downloadForecastsCsv({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof downloadForecastsCsv>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type DownloadForecastsCsvQueryResult = NonNullable<
+  Awaited<ReturnType<typeof downloadForecastsCsv>>
+>;
+export type DownloadForecastsCsvQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Download all forecast records as CSV
+ */
+
+export function useDownloadForecastsCsv<
+  TData = Awaited<ReturnType<typeof downloadForecastsCsv>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadForecastsCsv>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getDownloadForecastsCsvQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Download all deal records as JSON
+ */
+export const getDownloadDealsJsonUrl = () => {
+  return `/api/downloads/deals.json`;
+};
+
+export const downloadDealsJson = async (
+  options?: RequestInit,
+): Promise<DownloadDealsJson200> => {
+  return customFetch<DownloadDealsJson200>(getDownloadDealsJsonUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getDownloadDealsJsonQueryKey = () => {
+  return [`/api/downloads/deals.json`] as const;
+};
+
+export const getDownloadDealsJsonQueryOptions = <
+  TData = Awaited<ReturnType<typeof downloadDealsJson>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadDealsJson>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getDownloadDealsJsonQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof downloadDealsJson>>
+  > = ({ signal }) => downloadDealsJson({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof downloadDealsJson>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type DownloadDealsJsonQueryResult = NonNullable<
+  Awaited<ReturnType<typeof downloadDealsJson>>
+>;
+export type DownloadDealsJsonQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Download all deal records as JSON
+ */
+
+export function useDownloadDealsJson<
+  TData = Awaited<ReturnType<typeof downloadDealsJson>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadDealsJson>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getDownloadDealsJsonQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Download all deal records as CSV
+ */
+export const getDownloadDealsCsvUrl = () => {
+  return `/api/downloads/deals.csv`;
+};
+
+export const downloadDealsCsv = async (
+  options?: RequestInit,
+): Promise<string> => {
+  return customFetch<string>(getDownloadDealsCsvUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getDownloadDealsCsvQueryKey = () => {
+  return [`/api/downloads/deals.csv`] as const;
+};
+
+export const getDownloadDealsCsvQueryOptions = <
+  TData = Awaited<ReturnType<typeof downloadDealsCsv>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadDealsCsv>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getDownloadDealsCsvQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof downloadDealsCsv>>
+  > = ({ signal }) => downloadDealsCsv({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof downloadDealsCsv>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type DownloadDealsCsvQueryResult = NonNullable<
+  Awaited<ReturnType<typeof downloadDealsCsv>>
+>;
+export type DownloadDealsCsvQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Download all deal records as CSV
+ */
+
+export function useDownloadDealsCsv<
+  TData = Awaited<ReturnType<typeof downloadDealsCsv>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadDealsCsv>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getDownloadDealsCsvQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Download Pareto-optimal deals as JSON
+ */
+export const getDownloadDealsParetoJsonUrl = () => {
+  return `/api/downloads/deals-pareto.json`;
+};
+
+export const downloadDealsParetoJson = async (
+  options?: RequestInit,
+): Promise<DownloadDealsParetoJson200> => {
+  return customFetch<DownloadDealsParetoJson200>(
+    getDownloadDealsParetoJsonUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getDownloadDealsParetoJsonQueryKey = () => {
+  return [`/api/downloads/deals-pareto.json`] as const;
+};
+
+export const getDownloadDealsParetoJsonQueryOptions = <
+  TData = Awaited<ReturnType<typeof downloadDealsParetoJson>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadDealsParetoJson>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getDownloadDealsParetoJsonQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof downloadDealsParetoJson>>
+  > = ({ signal }) => downloadDealsParetoJson({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof downloadDealsParetoJson>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type DownloadDealsParetoJsonQueryResult = NonNullable<
+  Awaited<ReturnType<typeof downloadDealsParetoJson>>
+>;
+export type DownloadDealsParetoJsonQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Download Pareto-optimal deals as JSON
+ */
+
+export function useDownloadDealsParetoJson<
+  TData = Awaited<ReturnType<typeof downloadDealsParetoJson>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadDealsParetoJson>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getDownloadDealsParetoJsonQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Download all stakeholder records as JSON
+ */
+export const getDownloadStakeholdersJsonUrl = () => {
+  return `/api/downloads/stakeholders.json`;
+};
+
+export const downloadStakeholdersJson = async (
+  options?: RequestInit,
+): Promise<DownloadStakeholdersJson200> => {
+  return customFetch<DownloadStakeholdersJson200>(
+    getDownloadStakeholdersJsonUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getDownloadStakeholdersJsonQueryKey = () => {
+  return [`/api/downloads/stakeholders.json`] as const;
+};
+
+export const getDownloadStakeholdersJsonQueryOptions = <
+  TData = Awaited<ReturnType<typeof downloadStakeholdersJson>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadStakeholdersJson>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getDownloadStakeholdersJsonQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof downloadStakeholdersJson>>
+  > = ({ signal }) => downloadStakeholdersJson({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof downloadStakeholdersJson>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type DownloadStakeholdersJsonQueryResult = NonNullable<
+  Awaited<ReturnType<typeof downloadStakeholdersJson>>
+>;
+export type DownloadStakeholdersJsonQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Download all stakeholder records as JSON
+ */
+
+export function useDownloadStakeholdersJson<
+  TData = Awaited<ReturnType<typeof downloadStakeholdersJson>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadStakeholdersJson>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getDownloadStakeholdersJsonQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Download all stakeholder records as CSV
+ */
+export const getDownloadStakeholdersCsvUrl = () => {
+  return `/api/downloads/stakeholders.csv`;
+};
+
+export const downloadStakeholdersCsv = async (
+  options?: RequestInit,
+): Promise<string> => {
+  return customFetch<string>(getDownloadStakeholdersCsvUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getDownloadStakeholdersCsvQueryKey = () => {
+  return [`/api/downloads/stakeholders.csv`] as const;
+};
+
+export const getDownloadStakeholdersCsvQueryOptions = <
+  TData = Awaited<ReturnType<typeof downloadStakeholdersCsv>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadStakeholdersCsv>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getDownloadStakeholdersCsvQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof downloadStakeholdersCsv>>
+  > = ({ signal }) => downloadStakeholdersCsv({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof downloadStakeholdersCsv>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type DownloadStakeholdersCsvQueryResult = NonNullable<
+  Awaited<ReturnType<typeof downloadStakeholdersCsv>>
+>;
+export type DownloadStakeholdersCsvQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Download all stakeholder records as CSV
+ */
+
+export function useDownloadStakeholdersCsv<
+  TData = Awaited<ReturnType<typeof downloadStakeholdersCsv>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadStakeholdersCsv>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getDownloadStakeholdersCsvQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Download all evidence items as JSON
+ */
+export const getDownloadEvidenceJsonUrl = () => {
+  return `/api/downloads/evidence.json`;
+};
+
+export const downloadEvidenceJson = async (
+  options?: RequestInit,
+): Promise<DownloadEvidenceJson200> => {
+  return customFetch<DownloadEvidenceJson200>(getDownloadEvidenceJsonUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getDownloadEvidenceJsonQueryKey = () => {
+  return [`/api/downloads/evidence.json`] as const;
+};
+
+export const getDownloadEvidenceJsonQueryOptions = <
+  TData = Awaited<ReturnType<typeof downloadEvidenceJson>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadEvidenceJson>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getDownloadEvidenceJsonQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof downloadEvidenceJson>>
+  > = ({ signal }) => downloadEvidenceJson({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof downloadEvidenceJson>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type DownloadEvidenceJsonQueryResult = NonNullable<
+  Awaited<ReturnType<typeof downloadEvidenceJson>>
+>;
+export type DownloadEvidenceJsonQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Download all evidence items as JSON
+ */
+
+export function useDownloadEvidenceJson<
+  TData = Awaited<ReturnType<typeof downloadEvidenceJson>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadEvidenceJson>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getDownloadEvidenceJsonQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Download all evidence items as CSV
+ */
+export const getDownloadEvidenceCsvUrl = () => {
+  return `/api/downloads/evidence.csv`;
+};
+
+export const downloadEvidenceCsv = async (
+  options?: RequestInit,
+): Promise<string> => {
+  return customFetch<string>(getDownloadEvidenceCsvUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getDownloadEvidenceCsvQueryKey = () => {
+  return [`/api/downloads/evidence.csv`] as const;
+};
+
+export const getDownloadEvidenceCsvQueryOptions = <
+  TData = Awaited<ReturnType<typeof downloadEvidenceCsv>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadEvidenceCsv>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getDownloadEvidenceCsvQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof downloadEvidenceCsv>>
+  > = ({ signal }) => downloadEvidenceCsv({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof downloadEvidenceCsv>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type DownloadEvidenceCsvQueryResult = NonNullable<
+  Awaited<ReturnType<typeof downloadEvidenceCsv>>
+>;
+export type DownloadEvidenceCsvQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Download all evidence items as CSV
+ */
+
+export function useDownloadEvidenceCsv<
+  TData = Awaited<ReturnType<typeof downloadEvidenceCsv>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadEvidenceCsv>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getDownloadEvidenceCsvQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Download all cost-of-war records as JSON
+ */
+export const getDownloadCostsJsonUrl = () => {
+  return `/api/downloads/costs.json`;
+};
+
+export const downloadCostsJson = async (
+  options?: RequestInit,
+): Promise<DownloadCostsJson200> => {
+  return customFetch<DownloadCostsJson200>(getDownloadCostsJsonUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getDownloadCostsJsonQueryKey = () => {
+  return [`/api/downloads/costs.json`] as const;
+};
+
+export const getDownloadCostsJsonQueryOptions = <
+  TData = Awaited<ReturnType<typeof downloadCostsJson>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadCostsJson>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getDownloadCostsJsonQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof downloadCostsJson>>
+  > = ({ signal }) => downloadCostsJson({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof downloadCostsJson>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type DownloadCostsJsonQueryResult = NonNullable<
+  Awaited<ReturnType<typeof downloadCostsJson>>
+>;
+export type DownloadCostsJsonQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Download all cost-of-war records as JSON
+ */
+
+export function useDownloadCostsJson<
+  TData = Awaited<ReturnType<typeof downloadCostsJson>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadCostsJson>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getDownloadCostsJsonQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Download all cost-of-war records as CSV
+ */
+export const getDownloadCostsCsvUrl = () => {
+  return `/api/downloads/costs.csv`;
+};
+
+export const downloadCostsCsv = async (
+  options?: RequestInit,
+): Promise<string> => {
+  return customFetch<string>(getDownloadCostsCsvUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getDownloadCostsCsvQueryKey = () => {
+  return [`/api/downloads/costs.csv`] as const;
+};
+
+export const getDownloadCostsCsvQueryOptions = <
+  TData = Awaited<ReturnType<typeof downloadCostsCsv>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadCostsCsv>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getDownloadCostsCsvQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof downloadCostsCsv>>
+  > = ({ signal }) => downloadCostsCsv({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof downloadCostsCsv>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type DownloadCostsCsvQueryResult = NonNullable<
+  Awaited<ReturnType<typeof downloadCostsCsv>>
+>;
+export type DownloadCostsCsvQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Download all cost-of-war records as CSV
+ */
+
+export function useDownloadCostsCsv<
+  TData = Awaited<ReturnType<typeof downloadCostsCsv>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadCostsCsv>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getDownloadCostsCsvQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Download all deal cycle experiment records as JSON
+ */
+export const getDownloadExperimentsJsonUrl = () => {
+  return `/api/downloads/experiments.json`;
+};
+
+export const downloadExperimentsJson = async (
+  options?: RequestInit,
+): Promise<DownloadExperimentsJson200> => {
+  return customFetch<DownloadExperimentsJson200>(
+    getDownloadExperimentsJsonUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getDownloadExperimentsJsonQueryKey = () => {
+  return [`/api/downloads/experiments.json`] as const;
+};
+
+export const getDownloadExperimentsJsonQueryOptions = <
+  TData = Awaited<ReturnType<typeof downloadExperimentsJson>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadExperimentsJson>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getDownloadExperimentsJsonQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof downloadExperimentsJson>>
+  > = ({ signal }) => downloadExperimentsJson({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof downloadExperimentsJson>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type DownloadExperimentsJsonQueryResult = NonNullable<
+  Awaited<ReturnType<typeof downloadExperimentsJson>>
+>;
+export type DownloadExperimentsJsonQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Download all deal cycle experiment records as JSON
+ */
+
+export function useDownloadExperimentsJson<
+  TData = Awaited<ReturnType<typeof downloadExperimentsJson>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadExperimentsJson>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getDownloadExperimentsJsonQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Download all deal cycle experiment records as CSV
+ */
+export const getDownloadExperimentsCsvUrl = () => {
+  return `/api/downloads/experiments.csv`;
+};
+
+export const downloadExperimentsCsv = async (
+  options?: RequestInit,
+): Promise<string> => {
+  return customFetch<string>(getDownloadExperimentsCsvUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getDownloadExperimentsCsvQueryKey = () => {
+  return [`/api/downloads/experiments.csv`] as const;
+};
+
+export const getDownloadExperimentsCsvQueryOptions = <
+  TData = Awaited<ReturnType<typeof downloadExperimentsCsv>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadExperimentsCsv>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getDownloadExperimentsCsvQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof downloadExperimentsCsv>>
+  > = ({ signal }) => downloadExperimentsCsv({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof downloadExperimentsCsv>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type DownloadExperimentsCsvQueryResult = NonNullable<
+  Awaited<ReturnType<typeof downloadExperimentsCsv>>
+>;
+export type DownloadExperimentsCsvQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Download all deal cycle experiment records as CSV
+ */
+
+export function useDownloadExperimentsCsv<
+  TData = Awaited<ReturnType<typeof downloadExperimentsCsv>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadExperimentsCsv>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getDownloadExperimentsCsvQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Returns an RSS 2.0 XML feed containing recent changelog entries, one item per completed research cycle. Subscribe in any RSS reader to track forecast shifts, deal score changes, and evidence updates over time.
+
+ * @summary RSS feed of research cycle changelog entries
+ */
+export const getGetChangelogRssUrl = () => {
+  return `/api/changelog.xml`;
+};
+
+export const getChangelogRss = async (
+  options?: RequestInit,
+): Promise<string> => {
+  return customFetch<string>(getGetChangelogRssUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetChangelogRssQueryKey = () => {
+  return [`/api/changelog.xml`] as const;
+};
+
+export const getGetChangelogRssQueryOptions = <
+  TData = Awaited<ReturnType<typeof getChangelogRss>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getChangelogRss>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetChangelogRssQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getChangelogRss>>> = ({
+    signal,
+  }) => getChangelogRss({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getChangelogRss>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetChangelogRssQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getChangelogRss>>
+>;
+export type GetChangelogRssQueryError = ErrorType<unknown>;
+
+/**
+ * @summary RSS feed of research cycle changelog entries
+ */
+
+export function useGetChangelogRss<
+  TData = Awaited<ReturnType<typeof getChangelogRss>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getChangelogRss>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetChangelogRssQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Public endpoint. Stores the email address for future digest delivery. Idempotent: submitting an already-subscribed address returns a confirmation without creating a duplicate. Re-subscribing an unsubscribed address re-activates it.
+
+ * @summary Subscribe to email research update digests
+ */
+export const getSubscribeEmailUrl = () => {
+  return `/api/subscribe`;
+};
+
+export const subscribeEmail = async (
+  subscribeEmailBody: SubscribeEmailBody,
+  options?: RequestInit,
+): Promise<SubscribeEmail200> => {
+  return customFetch<SubscribeEmail200>(getSubscribeEmailUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(subscribeEmailBody),
+  });
+};
+
+export const getSubscribeEmailMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof subscribeEmail>>,
+    TError,
+    { data: BodyType<SubscribeEmailBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof subscribeEmail>>,
+  TError,
+  { data: BodyType<SubscribeEmailBody> },
+  TContext
+> => {
+  const mutationKey = ["subscribeEmail"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof subscribeEmail>>,
+    { data: BodyType<SubscribeEmailBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return subscribeEmail(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SubscribeEmailMutationResult = NonNullable<
+  Awaited<ReturnType<typeof subscribeEmail>>
+>;
+export type SubscribeEmailMutationBody = BodyType<SubscribeEmailBody>;
+export type SubscribeEmailMutationError = ErrorType<void>;
+
+/**
+ * @summary Subscribe to email research update digests
+ */
+export const useSubscribeEmail = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof subscribeEmail>>,
+    TError,
+    { data: BodyType<SubscribeEmailBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof subscribeEmail>>,
+  TError,
+  { data: BodyType<SubscribeEmailBody> },
+  TContext
+> => {
+  return useMutation(getSubscribeEmailMutationOptions(options));
+};
+
+/**
+ * @summary Unsubscribe from email research update digests
+ */
+export const getUnsubscribeEmailUrl = () => {
+  return `/api/subscribe`;
+};
+
+export const unsubscribeEmail = async (
+  unsubscribeEmailBody: UnsubscribeEmailBody,
+  options?: RequestInit,
+): Promise<UnsubscribeEmail200> => {
+  return customFetch<UnsubscribeEmail200>(getUnsubscribeEmailUrl(), {
+    ...options,
+    method: "DELETE",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(unsubscribeEmailBody),
+  });
+};
+
+export const getUnsubscribeEmailMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unsubscribeEmail>>,
+    TError,
+    { data: BodyType<UnsubscribeEmailBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof unsubscribeEmail>>,
+  TError,
+  { data: BodyType<UnsubscribeEmailBody> },
+  TContext
+> => {
+  const mutationKey = ["unsubscribeEmail"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof unsubscribeEmail>>,
+    { data: BodyType<UnsubscribeEmailBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return unsubscribeEmail(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UnsubscribeEmailMutationResult = NonNullable<
+  Awaited<ReturnType<typeof unsubscribeEmail>>
+>;
+export type UnsubscribeEmailMutationBody = BodyType<UnsubscribeEmailBody>;
+export type UnsubscribeEmailMutationError = ErrorType<void>;
+
+/**
+ * @summary Unsubscribe from email research update digests
+ */
+export const useUnsubscribeEmail = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unsubscribeEmail>>,
+    TError,
+    { data: BodyType<UnsubscribeEmailBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof unsubscribeEmail>>,
+  TError,
+  { data: BodyType<UnsubscribeEmailBody> },
+  TContext
+> => {
+  return useMutation(getUnsubscribeEmailMutationOptions(options));
+};
+
+/**
+ * @summary List all email subscribers (admin only)
+ */
+export const getAdminListSubscribersUrl = () => {
+  return `/api/admin/subscribers`;
+};
+
+export const adminListSubscribers = async (
+  options?: RequestInit,
+): Promise<AdminListSubscribers200> => {
+  return customFetch<AdminListSubscribers200>(getAdminListSubscribersUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getAdminListSubscribersQueryKey = () => {
+  return [`/api/admin/subscribers`] as const;
+};
+
+export const getAdminListSubscribersQueryOptions = <
+  TData = Awaited<ReturnType<typeof adminListSubscribers>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof adminListSubscribers>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getAdminListSubscribersQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof adminListSubscribers>>
+  > = ({ signal }) => adminListSubscribers({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof adminListSubscribers>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type AdminListSubscribersQueryResult = NonNullable<
+  Awaited<ReturnType<typeof adminListSubscribers>>
+>;
+export type AdminListSubscribersQueryError = ErrorType<void>;
+
+/**
+ * @summary List all email subscribers (admin only)
+ */
+
+export function useAdminListSubscribers<
+  TData = Awaited<ReturnType<typeof adminListSubscribers>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof adminListSubscribers>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getAdminListSubscribersQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

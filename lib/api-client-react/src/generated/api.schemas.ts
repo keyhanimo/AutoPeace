@@ -9,6 +9,48 @@ export interface HealthStatus {
   status: string;
 }
 
+/**
+ * Per-outcome probability shifts vs baseline (signed fractions)
+ */
+export type WhatIfScenarioProbabilityDeltas = { [key: string]: number };
+
+/**
+ * Absolute probabilities under this scenario (0-1 fractions)
+ */
+export type WhatIfScenarioAbsoluteProbabilities = { [key: string]: number };
+
+export type WhatIfScenarioProposalImpactsItem = {
+  proposalId?: string;
+  proposalName?: string;
+  viabilityDelta?: number;
+  projectedComposite?: number;
+  favorabilityNote?: string;
+};
+
+export interface WhatIfScenario {
+  id: string;
+  name: string;
+  description: string;
+  triggerCondition: string;
+  basedOnCycleId?: string | null;
+  /** Per-outcome probability shifts vs baseline (signed fractions) */
+  probabilityDeltas: WhatIfScenarioProbabilityDeltas;
+  /** Absolute probabilities under this scenario (0-1 fractions) */
+  absoluteProbabilities: WhatIfScenarioAbsoluteProbabilities;
+  proposalImpacts?: WhatIfScenarioProposalImpactsItem[] | null;
+  updatedAt: string;
+}
+
+export interface EmailSubscription {
+  id: string;
+  email: string;
+  name?: string | null;
+  subscribedAt: string;
+  confirmed: boolean;
+  unsubscribedAt?: string | null;
+  source: string;
+}
+
 export interface ForecastProbabilities {
   continued_conflict: number;
   informal_deescalation: number;
@@ -1042,6 +1084,48 @@ export type ReviewProposalSubmission200 = {
   approvedProposalId?: string | null;
 };
 
+/**
+ * Present only when data is empty and snapshots are not yet available
+ */
+export type ListWhatIfScenarios200Status =
+  (typeof ListWhatIfScenarios200Status)[keyof typeof ListWhatIfScenarios200Status];
+
+export const ListWhatIfScenarios200Status = {
+  not_ready: "not_ready",
+} as const;
+
+export type ListWhatIfScenarios200 = {
+  data: WhatIfScenario[];
+  /** Present only when data is empty and snapshots are not yet available */
+  status?: ListWhatIfScenarios200Status;
+  message?: string;
+};
+
+export type AdminComputeScenarios200DataItem = { [key: string]: unknown };
+
+export type AdminComputeScenarios200 = {
+  message: string;
+  count: number;
+  data: AdminComputeScenarios200DataItem[];
+};
+
+/**
+ * Updated deal terms object
+ */
+export type EditProposalSubmissionTermsBodyTerms = { [key: string]: unknown };
+
+export type EditProposalSubmissionTermsBody = {
+  /** Updated proposal summary text */
+  summary?: string;
+  /** Updated deal terms object */
+  terms?: EditProposalSubmissionTermsBodyTerms;
+};
+
+export type EditProposalSubmissionTerms200 = {
+  message: string;
+  id: string;
+};
+
 export type GetDownloadsIndex200DatasetsItem = {
   id: string;
   name: string;
@@ -1053,4 +1137,74 @@ export type GetDownloadsIndex200 = {
   description: string;
   exportedAt: string;
   datasets: GetDownloadsIndex200DatasetsItem[];
+};
+
+export type DownloadForecastsJson200DataItem = { [key: string]: unknown };
+
+export type DownloadForecastsJson200 = {
+  data: DownloadForecastsJson200DataItem[];
+};
+
+export type DownloadDealsJson200DataItem = { [key: string]: unknown };
+
+export type DownloadDealsJson200 = {
+  data: DownloadDealsJson200DataItem[];
+};
+
+export type DownloadDealsParetoJson200DataItem = { [key: string]: unknown };
+
+export type DownloadDealsParetoJson200 = {
+  data: DownloadDealsParetoJson200DataItem[];
+};
+
+export type DownloadStakeholdersJson200DataItem = { [key: string]: unknown };
+
+export type DownloadStakeholdersJson200 = {
+  data: DownloadStakeholdersJson200DataItem[];
+};
+
+export type DownloadEvidenceJson200DataItem = { [key: string]: unknown };
+
+export type DownloadEvidenceJson200 = {
+  data: DownloadEvidenceJson200DataItem[];
+};
+
+export type DownloadCostsJson200DataItem = { [key: string]: unknown };
+
+export type DownloadCostsJson200 = {
+  data: DownloadCostsJson200DataItem[];
+};
+
+export type DownloadExperimentsJson200DataItem = { [key: string]: unknown };
+
+export type DownloadExperimentsJson200 = {
+  data: DownloadExperimentsJson200DataItem[];
+};
+
+export type SubscribeEmailBody = {
+  /** Email address to subscribe */
+  email: string;
+  /** Subscriber display name (optional) */
+  name?: string;
+  /** Signup source identifier (e.g. "open-source-page") */
+  source?: string;
+};
+
+export type SubscribeEmail200 = {
+  id?: string;
+  message: string;
+};
+
+export type UnsubscribeEmailBody = {
+  email: string;
+};
+
+export type UnsubscribeEmail200 = {
+  message: string;
+};
+
+export type AdminListSubscribers200 = {
+  data: EmailSubscription[];
+  activeCount: number;
+  total: number;
 };
