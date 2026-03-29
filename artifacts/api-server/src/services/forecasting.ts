@@ -1,5 +1,19 @@
-import { anthropic } from "@workspace/integrations-anthropic-ai";
-import { batchProcess } from "@workspace/integrations-anthropic-ai/batch";
+import type Anthropic from "@anthropic-ai/sdk";
+type AnthropicClient = Anthropic;
+type BatchProcess = typeof import("@workspace/integrations-anthropic-ai/batch")["batchProcess"];
+let _anthropic: AnthropicClient | null = null;
+let _batchProcess: BatchProcess | null = null;
+async function getAnthropicClient(): Promise<{ anthropic: AnthropicClient; batchProcess: BatchProcess }> {
+  if (!_anthropic || !_batchProcess) {
+    const [anthMod, batchMod] = await Promise.all([
+      import("@workspace/integrations-anthropic-ai"),
+      import("@workspace/integrations-anthropic-ai/batch"),
+    ]);
+    _anthropic = anthMod.anthropic;
+    _batchProcess = batchMod.batchProcess;
+  }
+  return { anthropic: _anthropic!, batchProcess: _batchProcess! };
+}
 import { normalizeProbabilities, parseLLMJson, type ForecastProbabilities } from "./scoring";
 import { db } from "@workspace/db";
 import { evidenceItemsTable, forecastsTable } from "@workspace/db/schema";
@@ -131,6 +145,7 @@ Respond ONLY with a JSON code block containing:
     ]
   }));
 
+  const { anthropic, batchProcess } = await getAnthropicClient();
   const results = await batchProcess(
     tasks,
     async (task) => {

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { useListChangelog, useGetChangelogEntry } from "@workspace/api-client-react";
 import { PageHeader, Card, Badge } from "@/components/ui";
 import { formatDistanceToNow } from "date-fns";
@@ -98,13 +99,13 @@ export default function Changelog() {
                   <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
                     {formatDistanceToNow(new Date(entry.timestamp), { addSuffix: true })}
                   </span>
-                  <a
-                    href={`/changelog/${entry.id}`}
+                  <Link
+                    to={`/changelog/${entry.id}`}
                     className="font-mono text-[10px] text-muted-foreground hover:text-primary transition-colors"
                     title="Permalink to this entry"
                   >
                     #{entry.cycleId.slice(0, 8)}
-                  </a>
+                  </Link>
                 </div>
 
                 <h3 className="text-lg font-bold text-foreground leading-tight mb-3">{entry.headline}</h3>

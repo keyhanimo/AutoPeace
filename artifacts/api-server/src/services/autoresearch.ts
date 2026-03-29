@@ -18,8 +18,23 @@ import {
   normalizeProbabilities,
   type ForecastProbabilities,
 } from "./scoring";
-import { openai } from "@workspace/integrations-openai-ai-server";
-import { ai } from "@workspace/integrations-gemini-ai";
+let _openai: import("openai").OpenAI | null = null;
+async function getOpenAI(): Promise<import("openai").OpenAI> {
+  if (!_openai) {
+    const mod = await import("@workspace/integrations-openai-ai-server");
+    _openai = mod.openai;
+  }
+  return _openai;
+}
+
+let _gemini: import("@google/genai").GoogleGenAI | null = null;
+async function getGemini(): Promise<import("@google/genai").GoogleGenAI> {
+  if (!_gemini) {
+    const mod = await import("@workspace/integrations-gemini-ai");
+    _gemini = mod.ai;
+  }
+  return _gemini;
+}
 
 let runningCycleId: string | null = null;
 
@@ -260,6 +275,7 @@ async function runHillClimbing(
       const promptText = mutation.prompt(probsStr, champion.rationale);
 
       const geminiModel = await getConfigValue("geminiModel", "gemini-2.5-flash");
+      const ai = await getGemini();
       const geminiResult = await ai.models.generateContent({
         model: geminiModel,
         contents: promptText,
@@ -281,6 +297,7 @@ async function runHillClimbing(
       const mutantScore = computeCompositeScore(mutantProbs, backtestRecords);
 
       const openaiModel = await getConfigValue("openaiModel", "gpt-4o");
+      const openai = await getOpenAI();
       const evalResponse = await openai.chat.completions.create({
         model: openaiModel,
         messages: [

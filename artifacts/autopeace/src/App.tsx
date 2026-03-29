@@ -9,6 +9,7 @@ import ForecastDashboard from "@/pages/ForecastDashboard";
 import CostsExplorer from "@/pages/CostsExplorer";
 import ExperimentLog from "@/pages/ExperimentLog";
 import Changelog from "@/pages/Changelog";
+import ChangelogEntry from "@/pages/ChangelogEntry";
 import Methodology from "@/pages/Methodology";
 import AdminPanel from "@/pages/AdminPanel";
 import NotFound from "@/pages/not-found";
@@ -32,6 +33,7 @@ function Router() {
         <Route path="/costs" element={<CostsExplorer />} />
         <Route path="/experiments" element={<ExperimentLog />} />
         <Route path="/changelog" element={<Changelog />} />
+        <Route path="/changelog/:id" element={<ChangelogEntry />} />
         <Route path="/methodology" element={<Methodology />} />
         <Route path="/admin" element={<AdminPanel />} />
         <Route path="*" element={<NotFound />} />
