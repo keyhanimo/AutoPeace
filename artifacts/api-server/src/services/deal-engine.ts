@@ -64,16 +64,32 @@ export type MetaEvaluatorResult = {
 
 export type ProviderName = "anthropic" | "openai" | "gemini";
 
+/**
+ * ModelConfig — three levels of specificity (highest wins):
+ *   1. Per-agent stage override (stage1..stage8 Provider/Model)
+ *   2. Per-role bucket (generationProvider/Model, evaluationProvider/Model, adversarialProvider/Model)
+ *   3. Legacy per-provider model (anthropicModel, openaiModel, geminiModel)
+ */
 export type ModelConfig = {
   anthropicModel: string;
   openaiModel: string;
   geminiModel: string;
+  // Role-level config (applies to all stages with that role unless stage-level override exists)
   generationProvider: ProviderName;
   generationModel: string;
   evaluationProvider: ProviderName;
   evaluationModel: string;
   adversarialProvider: ProviderName;
   adversarialModel: string;
+  // Per-agent stage overrides (highest priority)
+  stage1Provider?: ProviderName; stage1Model?: string;   // Proposal Agent
+  stage2Provider?: ProviderName; stage2Model?: string;   // Stakeholder Evaluator
+  stage3Provider?: ProviderName; stage3Model?: string;   // Domestic Audiences
+  stage4Provider?: ProviderName; stage4Model?: string;   // Red-Team Agent
+  stage5Provider?: ProviderName; stage5Model?: string;   // Negotiator Agent
+  stage6Provider?: ProviderName; stage6Model?: string;   // Judge Agent
+  stage7Provider?: ProviderName; stage7Model?: string;   // Meta-Evaluator
+  stage8Provider?: ProviderName; stage8Model?: string;   // Diagnosis Generator
 };
 
 export function validateModelConfig(config: ModelConfig): void {
@@ -82,6 +98,18 @@ export function validateModelConfig(config: ModelConfig): void {
       `ModelConfig violation: generationProvider (${config.generationProvider}) and evaluationProvider (${config.evaluationProvider}) must use different LLM providers to ensure generation/evaluation independence.`
     );
   }
+}
+
+/** Resolve the effective provider+model for a given stage, with per-agent > per-role fallback. */
+export function resolveStageConfig(
+  stage: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8,
+  role: "generation" | "evaluation" | "adversarial",
+  config: ModelConfig,
+): { provider: ProviderName; model: string } {
+  const p = config[`stage${stage}Provider` as keyof ModelConfig] as ProviderName | undefined;
+  const m = config[`stage${stage}Model` as keyof ModelConfig] as string | undefined;
+  if (p && m) return { provider: p, model: m };
+  return { provider: config[`${role}Provider`], model: config[`${role}Model`] };
 }
 
 export type EvaluatedDeal = {
@@ -210,17 +238,14 @@ async function callAnthropic(
 }
 
 /**
- * callLLM — routes an LLM call to the correct provider based on the per-role ModelConfig.
- * Ensures generation/evaluation/adversarial use their configured providers.
+ * callLLM — routes an LLM call to a specific provider+model pair.
  */
 async function callLLM(
   prompt: string,
   systemPrompt: string,
-  role: "generation" | "evaluation" | "adversarial",
-  config: ModelConfig,
+  provider: ProviderName,
+  model: string,
 ): Promise<{ content: string; tokens: number }> {
-  const provider = config[`${role}Provider`];
-  const model = config[`${role}Model`];
   switch (provider) {
     case "anthropic":
       return callAnthropic(prompt, systemPrompt, model);
@@ -232,6 +257,21 @@ async function callLLM(
       logger.warn({ provider }, "Unknown provider, falling back to anthropic");
       return callAnthropic(prompt, systemPrompt, model);
   }
+}
+
+/**
+ * callLLMForStage — resolves per-agent > per-role > default and dispatches.
+ * stage: 1..8 maps to the 8 pipeline agents; role is the default bucket fallback.
+ */
+async function callLLMForStage(
+  prompt: string,
+  systemPrompt: string,
+  stage: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8,
+  role: "generation" | "evaluation" | "adversarial",
+  config: ModelConfig,
+): Promise<{ content: string; tokens: number }> {
+  const { provider, model } = resolveStageConfig(stage, role, config);
+  return callLLM(prompt, systemPrompt, provider, model);
 }
 
 function parseLLMJson<T>(text: string, fallback: T): T {
@@ -321,7 +361,7 @@ Generate a peace deal JSON with these exact keys:
   "additionalClauses": ["array", "of", "additional", "terms"]
 }`;
 
-  const { content, tokens } = await callLLM(prompt, systemPrompt, "generation", modelConfig);
+  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 1, "generation", modelConfig);
   const terms = parseLLMJson<DealTerms>(content, getDefaultTerms(architecture));
   return { terms, tokens };
 }
@@ -354,7 +394,7 @@ ${CORE_STAKEHOLDERS.map(s => `- ${s.id}: ${s.name}. Profile: ${s.profile}`).join
 
 Return JSON: { "iran": { verdict, rationale, redLineViolations, conditions }, "us": {...}, ... }`;
 
-  const { content, tokens } = await callLLM(prompt, systemPrompt, "evaluation", modelConfig);
+  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 2, "evaluation", modelConfig);
 
   const fallback: Record<string, StakeholderVerdict> = {};
   for (const s of CORE_STAKEHOLDERS) {
@@ -429,7 +469,7 @@ Return JSON:
   "negotiationStrategy": "overall strategy text"
 }`;
 
-  const { content, tokens } = await callLLM(prompt, systemPrompt, "generation", modelConfig);
+  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 5, "generation", modelConfig);
   const result = parseLLMJson<NegotiatorResult>(content, fallback);
   return { result, tokens };
 }
@@ -463,7 +503,7 @@ ${audienceList.map(a => `- ${a.key}: ${a.label}`).join("\n")}
 
 Return JSON where each key maps to { "audience": "label", "verdict": "sellable|difficult|unsellable", "rationale": "brief" }.`;
 
-  const { content, tokens } = await callLLM(prompt, systemPrompt, "evaluation", modelConfig);
+  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 3, "evaluation", modelConfig);
 
   const fallback: Record<string, DomesticVerdict> = {};
   for (const { key, label } of audienceList) {
@@ -496,7 +536,7 @@ Sequencing: ${terms.sequencing}
 
 Return JSON array: [{ "attack": "description", "severity": "low|medium|high|critical", "response": "how proponents respond", "survived": true|false }, ...]`;
 
-  const { content, tokens } = await callLLM(prompt, "You are an adversarial analyst. Output JSON.", "adversarial", modelConfig);
+  const { content, tokens } = await callLLMForStage(prompt, "You are an adversarial analyst. Output JSON.", 4, "adversarial", modelConfig);
 
   const fallback: RedTeamResult[] = [
     { attack: "Iran's IRGC rejects verification intrusions as sovereignty violation", severity: "high", response: "Narrow the inspection scope to declared sites only", survived: true },
@@ -542,7 +582,7 @@ RED-TEAM: ${survivedCount}/${totalRedTeam} attacks survived
 
 Score JSON: { "feasibility": 0.0-1.0, "coherence": 0.0-1.0, "evidenceGrounding": 0.0-1.0, "domesticSellability": 0.0-1.0, "regionalStability": 0.0-1.0, "implementability": 0.0-1.0, "durability": 0.0-1.0 }`;
 
-  const { content, tokens } = await callLLM(prompt, systemPrompt, "evaluation", modelConfig);
+  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 6, "evaluation", modelConfig);
 
   const acceptRate = acceptCount / totalStakeholders;
   const redTeamSurvival = survivedCount / totalRedTeam;
@@ -633,7 +673,7 @@ Assess the reasoning quality and return:
   "confidenceInOutcome": 0.0-1.0
 }`;
 
-  const { content, tokens } = await callLLM(prompt, systemPrompt, "evaluation", modelConfig);
+  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 7, "evaluation", modelConfig);
   const result = parseLLMJson<MetaEvaluatorResult>(content, fallback);
   return { result, tokens };
 }
@@ -671,7 +711,7 @@ Lowest scoring dimension: ${Object.entries(scores).filter(([k]) => k !== "compos
 
 Be specific about which stakeholder objections and which structural weakness are most critical to fix.`;
 
-  const { content, tokens } = await callLLM(prompt, "You are a strategic conflict analyst. Provide a concise diagnosis paragraph. No JSON.", "adversarial", modelConfig);
+  const { content, tokens } = await callLLMForStage(prompt, "You are a strategic conflict analyst. Provide a concise diagnosis paragraph. No JSON.", 8, "adversarial", modelConfig);
   return {
     diagnosis: content.trim().replace(/^```[\s\S]*?```$/m, "").trim() || "Deal faces significant stakeholder resistance. Nuclear verification and domestic political constraints are the primary barriers.",
     tokens,
@@ -707,7 +747,8 @@ ${[...rejecters, ...conditionals].map(([id, e]) => `- ${id}: violations: ${e.red
 Return JSON array: [{ "stakeholder": "id", "requirement": "specific concrete requirement", "feasibility": "low|medium|high" }]
 Limit to 6 items total.`;
 
-  const { content } = await callLLM(prompt, systemPrompt, "evaluation", modelConfig);
+  const { provider, model } = resolveStageConfig(6, "evaluation", modelConfig);
+  const { content } = await callLLM(prompt, systemPrompt, provider, model);
 
   const fallback = rejecters.flatMap(([stakeholderId, evaluation]) =>
     (evaluation.redLineViolations ?? []).slice(0, 2).map(violation => ({

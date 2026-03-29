@@ -11,6 +11,17 @@ const router = Router();
 
 router.use(adminAuth);
 
+const STAGE_META: { stage: number; name: string; role: "generation" | "evaluation" | "adversarial" }[] = [
+  { stage: 1, name: "Proposal Agent",       role: "generation" },
+  { stage: 2, name: "Stakeholder Evaluator", role: "evaluation" },
+  { stage: 3, name: "Domestic Audiences",    role: "evaluation" },
+  { stage: 4, name: "Red-Team Agent",        role: "adversarial" },
+  { stage: 5, name: "Negotiator Agent",      role: "generation" },
+  { stage: 6, name: "Judge Agent",           role: "evaluation" },
+  { stage: 7, name: "Meta-Evaluator",        role: "evaluation" },
+  { stage: 8, name: "Diagnosis Generator",   role: "adversarial" },
+];
+
 const CONFIG_DEFAULTS: Record<string, string> = {
   cadence: "daily",
   budgetCapUsd: "5.0",
@@ -24,6 +35,7 @@ const CONFIG_DEFAULTS: Record<string, string> = {
   evaluationModel: "gpt-4o",
   adversarialProvider: "gemini",
   adversarialModel: "gemini-2.5-flash",
+  // Per-stage overrides are intentionally absent from defaults — empty means "inherit from role"
 };
 
 async function getConfigMap(): Promise<Record<string, string>> {
@@ -36,7 +48,7 @@ async function getConfigMap(): Promise<Record<string, string>> {
 }
 
 function mapToResponse(cfg: Record<string, string>) {
-  return {
+  const base: Record<string, unknown> = {
     cadence: cfg["cadence"] ?? "daily",
     budgetCapUsd: parseFloat(cfg["budgetCapUsd"] ?? "5"),
     isPaused: cfg["isPaused"] === "true",
@@ -50,30 +62,48 @@ function mapToResponse(cfg: Record<string, string>) {
     adversarialProvider: cfg["adversarialProvider"] ?? "gemini",
     adversarialModel: cfg["adversarialModel"] ?? cfg["geminiModel"] ?? "gemini-2.5-flash",
   };
+  // Include per-stage overrides if present
+  for (let s = 1; s <= 8; s++) {
+    const pKey = `stage${s}Provider`;
+    const mKey = `stage${s}Model`;
+    if (cfg[pKey]) base[pKey] = cfg[pKey];
+    if (cfg[mKey]) base[mKey] = cfg[mKey];
+  }
+  return base;
+}
+
+function resolveStageProviderModel(
+  stage: number,
+  role: "generation" | "evaluation" | "adversarial",
+  cfg: Record<string, string>,
+): { provider: string; model: string; overridden: boolean } {
+  const stageProvider = cfg[`stage${stage}Provider`];
+  const stageModel = cfg[`stage${stage}Model`];
+  if (stageProvider && stageModel) {
+    return { provider: stageProvider, model: stageModel, overridden: true };
+  }
+  const roleProviderKey = `${role}Provider` as const;
+  const roleModelKey = `${role}Model` as const;
+  return {
+    provider: cfg[roleProviderKey] ?? "anthropic",
+    model: cfg[roleModelKey] ?? "claude-sonnet-4-5",
+    overridden: false,
+  };
 }
 
 router.get("/admin/pipeline/config", async (_req, res) => {
   try {
     const cfg = await getConfigMap();
+    const stages = STAGE_META.map(({ stage, name, role }) => {
+      const { provider, model, overridden } = resolveStageProviderModel(stage, role, cfg);
+      return { stage, name, role, provider, model, overridden };
+    });
     const genProvider = cfg["generationProvider"] ?? "anthropic";
-    const genModel = cfg["generationModel"] ?? cfg["anthropicModel"] ?? "claude-sonnet-4-5";
     const evalProvider = cfg["evaluationProvider"] ?? "openai";
-    const evalModel = cfg["evaluationModel"] ?? cfg["openaiModel"] ?? "gpt-4o";
-    const advProvider = cfg["adversarialProvider"] ?? "gemini";
-    const advModel = cfg["adversarialModel"] ?? cfg["geminiModel"] ?? "gemini-2.5-flash";
-
     res.json({
-      stages: [
-        { stage: 1, name: "Proposal Agent",        role: "generation",      provider: genProvider,  model: genModel },
-        { stage: 2, name: "Stakeholder Evaluator",  role: "evaluation",      provider: evalProvider, model: evalModel },
-        { stage: 3, name: "Domestic Audiences",     role: "evaluation",      provider: evalProvider, model: evalModel },
-        { stage: 4, name: "Red-Team Agent",         role: "adversarial",     provider: advProvider,  model: advModel },
-        { stage: 5, name: "Negotiator Agent",       role: "generation",      provider: genProvider,  model: genModel },
-        { stage: 6, name: "Judge Agent",            role: "evaluation",      provider: evalProvider, model: evalModel },
-        { stage: 7, name: "Meta-Evaluator",         role: "evaluation",      provider: evalProvider, model: evalModel },
-        { stage: 8, name: "Diagnosis Generator",    role: "adversarial",     provider: advProvider,  model: advModel },
-      ],
-      constraint: `Generation/bridging: ${genProvider}/${genModel}. Evaluation/scoring: ${evalProvider}/${evalModel}. Adversarial/synthesis: ${advProvider}/${advModel}. Generation and evaluation must use different providers.`,
+      stages,
+      constraint: `Generation and evaluation must use different providers. Currently: generation=${genProvider}, evaluation=${evalProvider}.`,
+      generationProviderConflict: genProvider === evalProvider,
     });
   } catch (err) {
     res.status(500).json({ error: String(err) });
@@ -97,6 +127,22 @@ router.post("/admin/config", async (req, res) => {
   }
   try {
     const updates = parsed.data as Record<string, unknown>;
+
+    // Enforce generation/evaluation provider separation at save time
+    const current = await getConfigMap();
+    const merged = { ...current };
+    for (const [k, v] of Object.entries(updates)) {
+      if (v !== undefined && v !== null) merged[k] = String(v);
+    }
+    const effectiveGenProv = merged["generationProvider"] ?? "anthropic";
+    const effectiveEvalProv = merged["evaluationProvider"] ?? "openai";
+    if (effectiveGenProv === effectiveEvalProv) {
+      res.status(400).json({
+        error: `Config rejected: generationProvider and evaluationProvider must be different providers (both set to "${effectiveGenProv}"). This requirement ensures generation/evaluation independence.`,
+      });
+      return;
+    }
+
     for (const [key, value] of Object.entries(updates)) {
       if (value === undefined || value === null) continue;
       const strValue = String(value);

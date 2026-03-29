@@ -1385,6 +1385,46 @@ components:
           enum: [anthropic, openai, gemini]
         adversarialModel:
           type: string
+        stage1Provider:
+          type: string
+          enum: [anthropic, openai, gemini]
+        stage1Model:
+          type: string
+        stage2Provider:
+          type: string
+          enum: [anthropic, openai, gemini]
+        stage2Model:
+          type: string
+        stage3Provider:
+          type: string
+          enum: [anthropic, openai, gemini]
+        stage3Model:
+          type: string
+        stage4Provider:
+          type: string
+          enum: [anthropic, openai, gemini]
+        stage4Model:
+          type: string
+        stage5Provider:
+          type: string
+          enum: [anthropic, openai, gemini]
+        stage5Model:
+          type: string
+        stage6Provider:
+          type: string
+          enum: [anthropic, openai, gemini]
+        stage6Model:
+          type: string
+        stage7Provider:
+          type: string
+          enum: [anthropic, openai, gemini]
+        stage7Model:
+          type: string
+        stage8Provider:
+          type: string
+          enum: [anthropic, openai, gemini]
+        stage8Model:
+          type: string
       required:
         - cadence
         - budgetCapUsd
@@ -1429,6 +1469,46 @@ components:
           type: string
           enum: [anthropic, openai, gemini]
         adversarialModel:
+          type: string
+        stage1Provider:
+          type: string
+          enum: [anthropic, openai, gemini]
+        stage1Model:
+          type: string
+        stage2Provider:
+          type: string
+          enum: [anthropic, openai, gemini]
+        stage2Model:
+          type: string
+        stage3Provider:
+          type: string
+          enum: [anthropic, openai, gemini]
+        stage3Model:
+          type: string
+        stage4Provider:
+          type: string
+          enum: [anthropic, openai, gemini]
+        stage4Model:
+          type: string
+        stage5Provider:
+          type: string
+          enum: [anthropic, openai, gemini]
+        stage5Model:
+          type: string
+        stage6Provider:
+          type: string
+          enum: [anthropic, openai, gemini]
+        stage6Model:
+          type: string
+        stage7Provider:
+          type: string
+          enum: [anthropic, openai, gemini]
+        stage7Model:
+          type: string
+        stage8Provider:
+          type: string
+          enum: [anthropic, openai, gemini]
+        stage8Model:
           type: string
 
     EvidenceSource:

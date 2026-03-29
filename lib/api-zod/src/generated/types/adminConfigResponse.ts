@@ -9,6 +9,14 @@ import type { AdminConfigResponseAdversarialProvider } from "./adminConfigRespon
 import type { AdminConfigResponseCadence } from "./adminConfigResponseCadence";
 import type { AdminConfigResponseEvaluationProvider } from "./adminConfigResponseEvaluationProvider";
 import type { AdminConfigResponseGenerationProvider } from "./adminConfigResponseGenerationProvider";
+import type { AdminConfigResponseStage1Provider } from "./adminConfigResponseStage1Provider";
+import type { AdminConfigResponseStage2Provider } from "./adminConfigResponseStage2Provider";
+import type { AdminConfigResponseStage3Provider } from "./adminConfigResponseStage3Provider";
+import type { AdminConfigResponseStage4Provider } from "./adminConfigResponseStage4Provider";
+import type { AdminConfigResponseStage5Provider } from "./adminConfigResponseStage5Provider";
+import type { AdminConfigResponseStage6Provider } from "./adminConfigResponseStage6Provider";
+import type { AdminConfigResponseStage7Provider } from "./adminConfigResponseStage7Provider";
+import type { AdminConfigResponseStage8Provider } from "./adminConfigResponseStage8Provider";
 
 export interface AdminConfigResponse {
   cadence: AdminConfigResponseCadence;
@@ -23,4 +31,20 @@ export interface AdminConfigResponse {
   evaluationModel: string;
   adversarialProvider: AdminConfigResponseAdversarialProvider;
   adversarialModel: string;
+  stage1Provider?: AdminConfigResponseStage1Provider;
+  stage1Model?: string;
+  stage2Provider?: AdminConfigResponseStage2Provider;
+  stage2Model?: string;
+  stage3Provider?: AdminConfigResponseStage3Provider;
+  stage3Model?: string;
+  stage4Provider?: AdminConfigResponseStage4Provider;
+  stage4Model?: string;
+  stage5Provider?: AdminConfigResponseStage5Provider;
+  stage5Model?: string;
+  stage6Provider?: AdminConfigResponseStage6Provider;
+  stage6Model?: string;
+  stage7Provider?: AdminConfigResponseStage7Provider;
+  stage7Model?: string;
+  stage8Provider?: AdminConfigResponseStage8Provider;
+  stage8Model?: string;
 }

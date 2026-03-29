@@ -222,6 +222,78 @@ export const AdminConfigResponseAdversarialProvider = {
   gemini: "gemini",
 } as const;
 
+export type AdminConfigResponseStage1Provider =
+  (typeof AdminConfigResponseStage1Provider)[keyof typeof AdminConfigResponseStage1Provider];
+
+export const AdminConfigResponseStage1Provider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
+export type AdminConfigResponseStage2Provider =
+  (typeof AdminConfigResponseStage2Provider)[keyof typeof AdminConfigResponseStage2Provider];
+
+export const AdminConfigResponseStage2Provider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
+export type AdminConfigResponseStage3Provider =
+  (typeof AdminConfigResponseStage3Provider)[keyof typeof AdminConfigResponseStage3Provider];
+
+export const AdminConfigResponseStage3Provider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
+export type AdminConfigResponseStage4Provider =
+  (typeof AdminConfigResponseStage4Provider)[keyof typeof AdminConfigResponseStage4Provider];
+
+export const AdminConfigResponseStage4Provider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
+export type AdminConfigResponseStage5Provider =
+  (typeof AdminConfigResponseStage5Provider)[keyof typeof AdminConfigResponseStage5Provider];
+
+export const AdminConfigResponseStage5Provider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
+export type AdminConfigResponseStage6Provider =
+  (typeof AdminConfigResponseStage6Provider)[keyof typeof AdminConfigResponseStage6Provider];
+
+export const AdminConfigResponseStage6Provider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
+export type AdminConfigResponseStage7Provider =
+  (typeof AdminConfigResponseStage7Provider)[keyof typeof AdminConfigResponseStage7Provider];
+
+export const AdminConfigResponseStage7Provider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
+export type AdminConfigResponseStage8Provider =
+  (typeof AdminConfigResponseStage8Provider)[keyof typeof AdminConfigResponseStage8Provider];
+
+export const AdminConfigResponseStage8Provider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
 export interface AdminConfigResponse {
   cadence: AdminConfigResponseCadence;
   budgetCapUsd: number;
@@ -235,6 +307,22 @@ export interface AdminConfigResponse {
   evaluationModel: string;
   adversarialProvider: AdminConfigResponseAdversarialProvider;
   adversarialModel: string;
+  stage1Provider?: AdminConfigResponseStage1Provider;
+  stage1Model?: string;
+  stage2Provider?: AdminConfigResponseStage2Provider;
+  stage2Model?: string;
+  stage3Provider?: AdminConfigResponseStage3Provider;
+  stage3Model?: string;
+  stage4Provider?: AdminConfigResponseStage4Provider;
+  stage4Model?: string;
+  stage5Provider?: AdminConfigResponseStage5Provider;
+  stage5Model?: string;
+  stage6Provider?: AdminConfigResponseStage6Provider;
+  stage6Model?: string;
+  stage7Provider?: AdminConfigResponseStage7Provider;
+  stage7Model?: string;
+  stage8Provider?: AdminConfigResponseStage8Provider;
+  stage8Model?: string;
 }
 
 export type AdminConfigUpdateCadence =
@@ -274,6 +362,78 @@ export const AdminConfigUpdateAdversarialProvider = {
   gemini: "gemini",
 } as const;
 
+export type AdminConfigUpdateStage1Provider =
+  (typeof AdminConfigUpdateStage1Provider)[keyof typeof AdminConfigUpdateStage1Provider];
+
+export const AdminConfigUpdateStage1Provider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
+export type AdminConfigUpdateStage2Provider =
+  (typeof AdminConfigUpdateStage2Provider)[keyof typeof AdminConfigUpdateStage2Provider];
+
+export const AdminConfigUpdateStage2Provider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
+export type AdminConfigUpdateStage3Provider =
+  (typeof AdminConfigUpdateStage3Provider)[keyof typeof AdminConfigUpdateStage3Provider];
+
+export const AdminConfigUpdateStage3Provider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
+export type AdminConfigUpdateStage4Provider =
+  (typeof AdminConfigUpdateStage4Provider)[keyof typeof AdminConfigUpdateStage4Provider];
+
+export const AdminConfigUpdateStage4Provider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
+export type AdminConfigUpdateStage5Provider =
+  (typeof AdminConfigUpdateStage5Provider)[keyof typeof AdminConfigUpdateStage5Provider];
+
+export const AdminConfigUpdateStage5Provider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
+export type AdminConfigUpdateStage6Provider =
+  (typeof AdminConfigUpdateStage6Provider)[keyof typeof AdminConfigUpdateStage6Provider];
+
+export const AdminConfigUpdateStage6Provider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
+export type AdminConfigUpdateStage7Provider =
+  (typeof AdminConfigUpdateStage7Provider)[keyof typeof AdminConfigUpdateStage7Provider];
+
+export const AdminConfigUpdateStage7Provider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
+export type AdminConfigUpdateStage8Provider =
+  (typeof AdminConfigUpdateStage8Provider)[keyof typeof AdminConfigUpdateStage8Provider];
+
+export const AdminConfigUpdateStage8Provider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
 export interface AdminConfigUpdate {
   cadence?: AdminConfigUpdateCadence;
   budgetCapUsd?: number;
@@ -287,6 +447,22 @@ export interface AdminConfigUpdate {
   evaluationModel?: string;
   adversarialProvider?: AdminConfigUpdateAdversarialProvider;
   adversarialModel?: string;
+  stage1Provider?: AdminConfigUpdateStage1Provider;
+  stage1Model?: string;
+  stage2Provider?: AdminConfigUpdateStage2Provider;
+  stage2Model?: string;
+  stage3Provider?: AdminConfigUpdateStage3Provider;
+  stage3Model?: string;
+  stage4Provider?: AdminConfigUpdateStage4Provider;
+  stage4Model?: string;
+  stage5Provider?: AdminConfigUpdateStage5Provider;
+  stage5Model?: string;
+  stage6Provider?: AdminConfigUpdateStage6Provider;
+  stage6Model?: string;
+  stage7Provider?: AdminConfigUpdateStage7Provider;
+  stage7Model?: string;
+  stage8Provider?: AdminConfigUpdateStage8Provider;
+  stage8Model?: string;
 }
 
 export interface EvidenceSource {

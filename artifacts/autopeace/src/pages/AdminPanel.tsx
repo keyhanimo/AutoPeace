@@ -8,6 +8,7 @@ import {
   useGetAdminCostsSummary,
   useGetCurrentDeal,
   useListProposals,
+  useListDeals,
   type AdminConfigResponse,
   type AdminConfigUpdate,
   type DealScores,
@@ -39,6 +40,7 @@ export default function AdminPanel() {
   const dealRunTrigger = useTriggerDealRun({ request: { headers: authHeaders } });
   const { data: currentDeal } = useGetCurrentDeal();
   const { data: proposalsData, refetch: refetchProposals } = useListProposals();
+  const { data: dealsData, refetch: refetchDeals } = useListDeals();
 
   const queryClient = useQueryClient();
   const toggleSource = useMutation({
@@ -140,6 +142,14 @@ export default function AdminPanel() {
 
   React.useEffect(() => {
     if (config) {
+      const cfg = config as AdminConfigResponse & Record<string, string | undefined>;
+      const stageFields: Partial<AdminConfigUpdate> = {};
+      for (let s = 1; s <= 8; s++) {
+        const pk = `stage${s}Provider` as keyof AdminConfigUpdate;
+        const mk = `stage${s}Model` as keyof AdminConfigUpdate;
+        if (cfg[pk]) (stageFields as Record<string, unknown>)[pk] = cfg[pk];
+        if (cfg[mk]) (stageFields as Record<string, unknown>)[mk] = cfg[mk];
+      }
       setFormData({
         cadence: config.cadence,
         budgetCapUsd: config.budgetCapUsd,
@@ -153,6 +163,7 @@ export default function AdminPanel() {
         evaluationModel: config.evaluationModel,
         adversarialProvider: config.adversarialProvider as AdminConfigUpdate["adversarialProvider"],
         adversarialModel: config.adversarialModel,
+        ...stageFields,
       });
     }
   }, [config]);
@@ -352,42 +363,82 @@ export default function AdminPanel() {
               })}
             </div>
             <div className="overflow-x-auto border-t border-border/30 pt-4">
+              <p className="text-xs text-muted-foreground mb-3">
+                Per-agent overrides take priority over role defaults above. Leave blank to inherit from role bucket.
+              </p>
               <table className="w-full text-xs">
                 <thead>
                   <tr className="text-left uppercase tracking-wider text-muted-foreground border-b border-border/50">
-                    <th className="pb-2 pr-4 font-semibold">Stage</th>
-                    <th className="pb-2 pr-4 font-semibold">Agent</th>
-                    <th className="pb-2 font-semibold">Role</th>
+                    <th className="pb-2 pr-2 font-semibold w-6">#</th>
+                    <th className="pb-2 pr-3 font-semibold">Agent</th>
+                    <th className="pb-2 pr-3 font-semibold">Default Role</th>
+                    <th className="pb-2 pr-3 font-semibold">Override Provider</th>
+                    <th className="pb-2 font-semibold">Override Model</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/30">
                   {([
-                    ["1", "Proposal Agent", "generation"],
-                    ["2", "Stakeholder Evaluator", "evaluation"],
-                    ["3", "Domestic Audiences", "evaluation"],
-                    ["4", "Red-Team Agent", "adversarial"],
-                    ["5", "Negotiator Agent", "generation"],
-                    ["6", "Judge Agent", "evaluation"],
-                    ["7", "Meta-Evaluator", "evaluation"],
-                    ["8", "Diagnosis Generator", "adversarial"],
-                  ] as [string, string, string][]).map(([stage, name, role]) => (
-                    <tr key={stage} className="hover:bg-secondary/20 transition-colors">
-                      <td className="py-1.5 pr-4 font-mono text-muted-foreground">{stage}</td>
-                      <td className="py-1.5 pr-4 font-medium">{name}</td>
-                      <td className="py-1.5">
-                        <Badge variant="outline" className={`text-[9px] ${
-                          role === "generation" ? "border-violet-700/40 text-violet-400" :
-                          role === "evaluation" ? "border-blue-700/40 text-blue-400" :
-                          "border-orange-700/40 text-orange-400"
-                        }`}>{role}</Badge>
-                      </td>
-                    </tr>
-                  ))}
+                    [1, "Proposal Agent", "generation"],
+                    [2, "Stakeholder Evaluator", "evaluation"],
+                    [3, "Domestic Audiences", "evaluation"],
+                    [4, "Red-Team Agent", "adversarial"],
+                    [5, "Negotiator Agent", "generation"],
+                    [6, "Judge Agent", "evaluation"],
+                    [7, "Meta-Evaluator", "evaluation"],
+                    [8, "Diagnosis Generator", "adversarial"],
+                  ] as [number, string, string][]).map(([stage, name, role]) => {
+                    const provKey = `stage${stage}Provider` as keyof AdminConfigUpdate;
+                    const modelKey = `stage${stage}Model` as keyof AdminConfigUpdate;
+                    const provVal = (formData[provKey] ?? "") as string;
+                    const modelVal = (formData[modelKey] ?? "") as string;
+                    const hasOverride = !!provVal && !!modelVal;
+                    return (
+                      <tr key={stage} className={`hover:bg-secondary/20 transition-colors ${hasOverride ? "bg-violet-950/10" : ""}`}>
+                        <td className="py-1.5 pr-2 font-mono text-muted-foreground">{stage}</td>
+                        <td className="py-1.5 pr-3 font-medium">
+                          {name}
+                          {hasOverride && <span className="ml-1 text-[9px] text-violet-400 font-semibold">●</span>}
+                        </td>
+                        <td className="py-1.5 pr-3">
+                          <Badge variant="outline" className={`text-[9px] ${
+                            role === "generation" ? "border-violet-700/40 text-violet-400" :
+                            role === "evaluation" ? "border-blue-700/40 text-blue-400" :
+                            "border-orange-700/40 text-orange-400"
+                          }`}>{role}</Badge>
+                        </td>
+                        <td className="py-1.5 pr-3">
+                          <select
+                            className="w-28 h-7 rounded-lg border border-border bg-background/50 px-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                            value={provVal}
+                            onChange={e => setFormData(f => ({ ...f, [provKey]: e.target.value || undefined }))}
+                          >
+                            <option value="">— role default —</option>
+                            <option value="anthropic">Anthropic</option>
+                            <option value="openai">OpenAI</option>
+                            <option value="gemini">Gemini</option>
+                          </select>
+                        </td>
+                        <td className="py-1.5">
+                          <input
+                            className="w-36 h-7 rounded-lg border border-border bg-background/50 px-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                            placeholder="e.g. gpt-4o"
+                            value={modelVal}
+                            onChange={e => setFormData(f => ({ ...f, [modelKey]: e.target.value || undefined }))}
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
-            <p className="text-xs text-muted-foreground mt-3 bg-amber-950/20 border border-amber-700/30 rounded-lg px-3 py-2">
-              ⚠ Generation and evaluation roles must use different providers. Save Configuration to apply.
+            {formData.generationProvider === formData.evaluationProvider && formData.generationProvider && (
+              <p className="text-xs text-red-400 mt-3 bg-red-950/20 border border-red-700/30 rounded-lg px-3 py-2">
+                ✗ Generation and evaluation role providers must differ — save will be rejected by the server.
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground mt-2 bg-amber-950/20 border border-amber-700/30 rounded-lg px-3 py-2">
+              ⚠ Generation and evaluation role providers must use different providers (enforced at save time). Per-agent overrides (● rows) bypass this constraint for individual stages.
             </p>
           </Card>
 
@@ -600,6 +651,51 @@ export default function AdminPanel() {
                   <><GitBranch className="w-4 h-4" /> Run Deal Cycle</>
                 )}
               </Button>
+            </div>
+          </Card>
+
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-4 border-b border-border/50 pb-2">
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                <GitBranch className="w-5 h-5 text-primary" /> Experiment Queue
+              </h3>
+              <Button variant="ghost" size="sm" onClick={() => void refetchDeals()} className="h-7 px-2 text-xs gap-1">
+                <Play className="w-3 h-3" /> Refresh
+              </Button>
+            </div>
+            {dealsData?.data && dealsData.data.length > 0 ? (
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {dealsData.data.slice(0, 20).map((deal) => {
+                  const scores = deal.scores as DealScores | null;
+                  const composite = scores?.composite ?? 0;
+                  return (
+                    <div key={deal.id} className="flex items-center gap-3 text-xs py-1.5 border-b border-border/20 last:border-0">
+                      <div className="w-2 h-2 rounded-full shrink-0" style={{
+                        background: composite >= 0.65 ? "#10b981" : composite >= 0.45 ? "#f59e0b" : "#ef4444"
+                      }} />
+                      <div className="flex-1 min-w-0">
+                        <span className="font-medium capitalize">{deal.architecture}</span>
+                        {deal.isPareto && <span className="ml-1.5 text-[9px] text-emerald-400 font-bold">PARETO</span>}
+                        <span className="ml-2 text-muted-foreground font-mono">{deal.id.slice(0, 8)}…</span>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className={`font-mono font-bold ${composite >= 0.65 ? "text-emerald-400" : composite >= 0.45 ? "text-amber-400" : "text-red-400"}`}>
+                          {(composite * 100).toFixed(0)}%
+                        </span>
+                        <div className="text-[9px] text-muted-foreground">{new Date(deal.createdAt).toLocaleDateString()}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                No deals generated yet. Run a deal cycle to populate the experiment queue.
+              </p>
+            )}
+            <div className="mt-3 pt-3 border-t border-border/30 flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">{dealsData?.data?.length ?? 0} total experiment(s)</span>
+              <span className="text-xs text-muted-foreground">{dealsData?.data?.filter(d => d.isPareto).length ?? 0} on Pareto frontier</span>
             </div>
           </Card>
 

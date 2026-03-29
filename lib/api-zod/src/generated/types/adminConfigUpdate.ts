@@ -9,6 +9,14 @@ import type { AdminConfigUpdateAdversarialProvider } from "./adminConfigUpdateAd
 import type { AdminConfigUpdateCadence } from "./adminConfigUpdateCadence";
 import type { AdminConfigUpdateEvaluationProvider } from "./adminConfigUpdateEvaluationProvider";
 import type { AdminConfigUpdateGenerationProvider } from "./adminConfigUpdateGenerationProvider";
+import type { AdminConfigUpdateStage1Provider } from "./adminConfigUpdateStage1Provider";
+import type { AdminConfigUpdateStage2Provider } from "./adminConfigUpdateStage2Provider";
+import type { AdminConfigUpdateStage3Provider } from "./adminConfigUpdateStage3Provider";
+import type { AdminConfigUpdateStage4Provider } from "./adminConfigUpdateStage4Provider";
+import type { AdminConfigUpdateStage5Provider } from "./adminConfigUpdateStage5Provider";
+import type { AdminConfigUpdateStage6Provider } from "./adminConfigUpdateStage6Provider";
+import type { AdminConfigUpdateStage7Provider } from "./adminConfigUpdateStage7Provider";
+import type { AdminConfigUpdateStage8Provider } from "./adminConfigUpdateStage8Provider";
 
 export interface AdminConfigUpdate {
   cadence?: AdminConfigUpdateCadence;
@@ -23,4 +31,20 @@ export interface AdminConfigUpdate {
   evaluationModel?: string;
   adversarialProvider?: AdminConfigUpdateAdversarialProvider;
   adversarialModel?: string;
+  stage1Provider?: AdminConfigUpdateStage1Provider;
+  stage1Model?: string;
+  stage2Provider?: AdminConfigUpdateStage2Provider;
+  stage2Model?: string;
+  stage3Provider?: AdminConfigUpdateStage3Provider;
+  stage3Model?: string;
+  stage4Provider?: AdminConfigUpdateStage4Provider;
+  stage4Model?: string;
+  stage5Provider?: AdminConfigUpdateStage5Provider;
+  stage5Model?: string;
+  stage6Provider?: AdminConfigUpdateStage6Provider;
+  stage6Model?: string;
+  stage7Provider?: AdminConfigUpdateStage7Provider;
+  stage7Model?: string;
+  stage8Provider?: AdminConfigUpdateStage8Provider;
+  stage8Model?: string;
 }
