@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { useListStakeholders, useGetCurrentDeal, type Stakeholder } from "@workspace/api-client-react";
+import { useListStakeholders, useGetCurrentDeal, useListCosts, type Stakeholder } from "@workspace/api-client-react";
 import { Card, PageHeader, Badge } from "@/components/ui";
-import { CheckCircle2, XCircle, AlertTriangle, Users, Share2 } from "lucide-react";
+import { CheckCircle2, XCircle, AlertTriangle, Users, Share2, DollarSign } from "lucide-react";
 
 const VERDICT_ICONS: Record<string, React.ReactNode> = {
   accept: <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" aria-label="Accept" />,
@@ -51,10 +51,24 @@ export default function StakeholderComparison() {
 
   const { data: stakeholdersData, isLoading: stakeholdersLoading } = useListStakeholders();
   const { data: currentDeal } = useGetCurrentDeal();
+  const { data: costsData } = useListCosts();
 
   const stakeholders = stakeholdersData?.data ?? [];
   const stakeholderEvals = (currentDeal?.stakeholderEvaluations ?? null) as Record<string, StakeholderEval> | null;
   const domesticEvals = (currentDeal?.domesticEvaluations ?? null) as Record<string, DomesticEval> | null;
+  const allCosts = costsData?.data ?? [];
+  const dealScores = (currentDeal?.scores ?? null) as Record<string, number> | null;
+
+  function getCostsForStakeholder(stakeholderId: string) {
+    return allCosts.find(c => c.stakeholderId === stakeholderId) ?? null;
+  }
+
+  function formatCostTotal(cost: unknown): string {
+    if (!cost || typeof cost !== "object") return "—";
+    const obj = cost as Record<string, unknown>;
+    if (obj.total !== undefined) return `$${Number(obj.total).toLocaleString()}B`;
+    return "Available";
+  }
 
   const toggle = (id: string) => {
     setSelected(prev => {
@@ -214,6 +228,54 @@ export default function StakeholderComparison() {
                       ))}
                     </div>
                   )}
+
+                  {(() => {
+                    const costs = getCostsForStakeholder(s.id);
+                    if (!costs) return null;
+                    return (
+                      <div>
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1 flex items-center gap-1">
+                          <DollarSign className="w-2.5 h-2.5" /> Cost of Conflict
+                        </div>
+                        <div className="grid grid-cols-3 gap-1">
+                          {[
+                            { label: "Economic", value: formatCostTotal(costs.economic) },
+                            { label: "Human", value: formatCostTotal(costs.humanitarian) },
+                            { label: "Strategic", value: formatCostTotal(costs.strategic) },
+                          ].map(({ label, value }) => (
+                            <div key={label} className="text-center bg-secondary/30 rounded p-1">
+                              <div className="text-[9px] text-muted-foreground">{label}</div>
+                              <div className="text-[10px] font-mono text-amber-400/80">{value}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {dealScores && (
+                    <div>
+                      <div className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Deal Score Dimensions</div>
+                      <div className="space-y-1">
+                        {[
+                          { key: "feasibility", label: "Feasibility" },
+                          { key: "domesticSellability", label: "Domestic" },
+                          { key: "durability", label: "Durability" },
+                        ].map(({ key, label }) => {
+                          const v = dealScores[key] ?? null;
+                          return (
+                            <div key={key} className="flex items-center gap-2">
+                              <span className="text-[9px] text-muted-foreground w-16 shrink-0">{label}</span>
+                              <div className="flex-1 h-1 rounded bg-secondary/40 overflow-hidden">
+                                <div className="h-full rounded bg-primary/60" style={{ width: `${v != null ? Math.round(v * 100) : 0}%` }} />
+                              </div>
+                              <span className="text-[9px] font-mono w-6 text-right">{v != null ? Math.round(v * 100) : "—"}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </Card>
               );
             })}
@@ -257,12 +319,86 @@ export default function StakeholderComparison() {
                       <td key={s.id} className="text-center py-2 px-2">{s.goals ? "Yes" : "—"}</td>
                     ))}
                   </tr>
-                  <tr>
+                  <tr className="border-b border-border/20">
                     <td className="py-2 pr-4 text-muted-foreground">Red lines</td>
                     {selectedStakeholders.map(s => (
                       <td key={s.id} className="text-center py-2 px-2">{s.redLines ? "Yes" : "—"}</td>
                     ))}
                   </tr>
+                  <tr className="border-b border-border/20">
+                    <td className="py-2 pr-4 text-muted-foreground">Red line violations</td>
+                    {selectedStakeholders.map(s => {
+                      const v = getStakeholderVerdict(s.id, stakeholderEvals);
+                      const count = v?.redLineViolations?.length ?? 0;
+                      return (
+                        <td key={s.id} className={`text-center py-2 px-2 font-mono ${count > 0 ? "text-red-400" : "text-emerald-400"}`}>
+                          {v ? count : "—"}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                  <tr className="border-b border-border/20">
+                    <td className="py-2 pr-4 text-muted-foreground">Conditions to accept</td>
+                    {selectedStakeholders.map(s => {
+                      const v = getStakeholderVerdict(s.id, stakeholderEvals);
+                      const count = v?.conditions?.length ?? 0;
+                      return (
+                        <td key={s.id} className={`text-center py-2 px-2 font-mono ${count === 0 ? "text-emerald-400" : "text-amber-400"}`}>
+                          {v ? count : "—"}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                  <tr className="border-b border-border/20">
+                    <td className="py-2 pr-4 text-muted-foreground">Economic cost of conflict</td>
+                    {selectedStakeholders.map(s => {
+                      const costs = getCostsForStakeholder(s.id);
+                      return (
+                        <td key={s.id} className="text-center py-2 px-2 font-mono text-xs text-amber-400/80">
+                          {costs ? formatCostTotal(costs.economic) : "—"}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                  <tr className="border-b border-border/20">
+                    <td className="py-2 pr-4 text-muted-foreground">Humanitarian cost</td>
+                    {selectedStakeholders.map(s => {
+                      const costs = getCostsForStakeholder(s.id);
+                      return (
+                        <td key={s.id} className="text-center py-2 px-2 font-mono text-xs text-amber-400/80">
+                          {costs ? formatCostTotal(costs.humanitarian) : "—"}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                  {dealScores && (
+                    <>
+                      <tr className="border-b border-border/20">
+                        <td className="py-2 pr-4 text-muted-foreground">Deal feasibility</td>
+                        {selectedStakeholders.map(s => (
+                          <td key={s.id} className="text-center py-2 px-2 font-mono text-xs">
+                            {dealScores.feasibility != null ? `${Math.round(dealScores.feasibility * 100)}%` : "—"}
+                          </td>
+                        ))}
+                      </tr>
+                      <tr className="border-b border-border/20">
+                        <td className="py-2 pr-4 text-muted-foreground">Domestic sellability</td>
+                        {selectedStakeholders.map(s => (
+                          <td key={s.id} className="text-center py-2 px-2 font-mono text-xs">
+                            {dealScores.domesticSellability != null ? `${Math.round(dealScores.domesticSellability * 100)}%` : "—"}
+                          </td>
+                        ))}
+                      </tr>
+                      <tr>
+                        <td className="py-2 pr-4 text-muted-foreground">Composite deal score</td>
+                        {selectedStakeholders.map(s => (
+                          <td key={s.id} className="text-center py-2 px-2 font-mono text-xs font-bold text-primary">
+                            {dealScores.composite != null ? `${Math.round(dealScores.composite * 100)}%` : "—"}
+                          </td>
+                        ))}
+                      </tr>
+                    </>
+                  )}
                 </tbody>
               </table>
             </div>

@@ -122,6 +122,8 @@ export default function AdminPanel() {
   const [queueFilter, setQueueFilter] = useState<"pending" | "approved" | "rejected">("pending");
   const [queueNotes, setQueueNotes] = useState<Record<string, string>>({});
   const [actingOn, setActingOn] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editSummary, setEditSummary] = useState<string>("");
   const { data: queueData, refetch: refetchQueue } = useQuery<{ data: QueueItem[]; total: number }>({
     queryKey: ['/api/admin/proposals/queue', queueFilter, adminKey],
     queryFn: async () => {
@@ -148,6 +150,25 @@ export default function AdminPanel() {
       void refetchQueue();
     } catch (err: unknown) {
       toast({ title: "Error", description: err instanceof Error ? err.message : "Action failed.", variant: "destructive" });
+    } finally {
+      setActingOn(null);
+    }
+  };
+
+  const handleSaveTermsEdit = async (id: string) => {
+    setActingOn(id);
+    try {
+      const res = await fetch(`/api/admin/proposals/queue/${id}/terms`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "X-Admin-Key": adminKey },
+        body: JSON.stringify({ summary: editSummary }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      toast({ title: "Saved", description: "Submission summary updated." });
+      setEditingId(null);
+      void refetchQueue();
+    } catch (err: unknown) {
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Save failed.", variant: "destructive" });
     } finally {
       setActingOn(null);
     }
@@ -575,11 +596,40 @@ export default function AdminPanel() {
                         {item.status}
                       </Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground line-clamp-2">{item.summary}</p>
+                    {editingId === item.id ? (
+                      <div className="space-y-2">
+                        <label className="text-[10px] text-muted-foreground uppercase tracking-widest">Edit Summary</label>
+                        <textarea
+                          rows={3}
+                          value={editSummary}
+                          onChange={e => setEditSummary(e.target.value)}
+                          className="w-full text-xs border border-primary/40 rounded px-2 py-1.5 bg-background focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+                          aria-label="Edit proposal summary"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => void handleSaveTermsEdit(item.id)}
+                            disabled={actingOn === item.id}
+                            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold bg-primary/20 hover:bg-primary/30 text-primary border border-primary/40 transition-all disabled:opacity-50"
+                          >
+                            {actingOn === item.id ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                            Save
+                          </button>
+                          <button
+                            onClick={() => setEditingId(null)}
+                            className="px-3 py-1.5 rounded text-xs text-muted-foreground border border-border/40 hover:border-border transition-all"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground line-clamp-2">{item.summary}</p>
+                    )}
                     {item.adminNotes && (
                       <p className="text-xs text-blue-400/80 italic">Admin notes: {item.adminNotes}</p>
                     )}
-                    {item.status === "pending" && (
+                    {item.status === "pending" && editingId !== item.id && (
                       <div className="space-y-2">
                         <input
                           type="text"
@@ -589,6 +639,13 @@ export default function AdminPanel() {
                           className="w-full text-xs border border-border/40 rounded px-2 py-1 bg-background focus:outline-none focus:ring-1 focus:ring-primary"
                         />
                         <div className="flex gap-2">
+                          <button
+                            onClick={() => { setEditingId(item.id); setEditSummary(item.summary); }}
+                            className="px-3 py-1.5 rounded text-xs font-semibold border border-border/40 text-muted-foreground hover:border-border hover:text-foreground transition-all"
+                            aria-label="Edit proposal terms"
+                          >
+                            Edit Terms
+                          </button>
                           <button
                             onClick={() => void handleQueueAction(item.id, "approve")}
                             disabled={actingOn === item.id}

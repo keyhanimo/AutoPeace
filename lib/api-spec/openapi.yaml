@@ -1205,6 +1205,113 @@ paths:
         "409":
           description: Already reviewed
 
+  /scenarios:
+    get:
+      operationId: listWhatIfScenarios
+      tags: [scenarios]
+      summary: List pre-computed what-if scenario snapshots
+      description: >
+        Returns the latest batch of what-if scenario snapshots generated during the
+        most recent research cycle. If no snapshots have been computed yet, returns
+        an empty array with status "not_ready". Does NOT trigger any LLM computation.
+      responses:
+        "200":
+          description: Scenario snapshots or not-ready indicator
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        scenario: { type: string }
+                        description: { type: string }
+                        probabilities: { type: object }
+                        createdAt: { type: string }
+                  status:
+                    type: string
+                    enum: [not_ready]
+                    description: Present only when data is empty and snapshots are not yet available
+                  message:
+                    type: string
+                required: [data]
+
+  /admin/scenarios/compute:
+    post:
+      operationId: adminComputeScenarios
+      tags: [scenarios, admin]
+      summary: Trigger LLM-based what-if scenario computation (admin only)
+      security:
+        - adminKey: []
+      description: >
+        Runs the full what-if scenario pipeline (LLM probability generation +
+        stakeholder evaluation + judge scoring for top proposals) and stores
+        results. This is the only endpoint that triggers live LLM calls for
+        scenario computation.
+      responses:
+        "200":
+          description: Scenarios computed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  count: { type: integer }
+                  data: { type: array, items: { type: object } }
+                required: [message, count, data]
+        "401":
+          description: Unauthorized
+
+  /admin/proposals/queue/{id}/terms:
+    patch:
+      operationId: editProposalSubmissionTerms
+      tags: [proposals, admin]
+      summary: Edit proposal submission summary/terms before approval (admin only)
+      security:
+        - adminKey: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                summary:
+                  type: string
+                  description: Updated proposal summary text
+                terms:
+                  type: object
+                  description: Updated deal terms object
+      responses:
+        "200":
+          description: Submission terms updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  id: { type: string }
+                required: [message, id]
+        "400":
+          description: No updates provided
+        "401":
+          description: Unauthorized
+        "404":
+          description: Submission not found
+        "409":
+          description: Cannot edit an already-reviewed submission
+
   /downloads/index:
     get:
       operationId: getDownloadsIndex
@@ -1231,6 +1338,190 @@ paths:
                         format: { type: string }
                       required: [id, name, url, format]
                 required: [description, exportedAt, datasets]
+
+  /downloads/forecasts.json:
+    get:
+      operationId: downloadForecastsJson
+      tags: [downloads]
+      summary: Download all forecast records as JSON
+      responses:
+        "200":
+          description: Forecasts JSON export
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { type: object } }
+                required: [data]
+
+  /downloads/forecasts.csv:
+    get:
+      operationId: downloadForecastsCsv
+      tags: [downloads]
+      summary: Download all forecast records as CSV
+      responses:
+        "200":
+          description: Forecasts CSV export
+          content:
+            text/csv:
+              schema: { type: string }
+
+  /downloads/deals.json:
+    get:
+      operationId: downloadDealsJson
+      tags: [downloads]
+      summary: Download all deal records as JSON
+      responses:
+        "200":
+          description: Deals JSON export
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { type: object } }
+                required: [data]
+
+  /downloads/deals.csv:
+    get:
+      operationId: downloadDealsCsv
+      tags: [downloads]
+      summary: Download all deal records as CSV
+      responses:
+        "200":
+          description: Deals CSV export
+          content:
+            text/csv:
+              schema: { type: string }
+
+  /downloads/deals-pareto.json:
+    get:
+      operationId: downloadDealsParetoJson
+      tags: [downloads]
+      summary: Download Pareto-optimal deals as JSON
+      responses:
+        "200":
+          description: Pareto frontier deals JSON export
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { type: object } }
+                required: [data]
+
+  /downloads/stakeholders.json:
+    get:
+      operationId: downloadStakeholdersJson
+      tags: [downloads]
+      summary: Download all stakeholder records as JSON
+      responses:
+        "200":
+          description: Stakeholders JSON export
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { type: object } }
+                required: [data]
+
+  /downloads/stakeholders.csv:
+    get:
+      operationId: downloadStakeholdersCsv
+      tags: [downloads]
+      summary: Download all stakeholder records as CSV
+      responses:
+        "200":
+          description: Stakeholders CSV export
+          content:
+            text/csv:
+              schema: { type: string }
+
+  /downloads/evidence.json:
+    get:
+      operationId: downloadEvidenceJson
+      tags: [downloads]
+      summary: Download all evidence items as JSON
+      responses:
+        "200":
+          description: Evidence JSON export
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { type: object } }
+                required: [data]
+
+  /downloads/evidence.csv:
+    get:
+      operationId: downloadEvidenceCsv
+      tags: [downloads]
+      summary: Download all evidence items as CSV
+      responses:
+        "200":
+          description: Evidence CSV export
+          content:
+            text/csv:
+              schema: { type: string }
+
+  /downloads/costs.json:
+    get:
+      operationId: downloadCostsJson
+      tags: [downloads]
+      summary: Download all cost-of-war records as JSON
+      responses:
+        "200":
+          description: Costs JSON export
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { type: object } }
+                required: [data]
+
+  /downloads/costs.csv:
+    get:
+      operationId: downloadCostsCsv
+      tags: [downloads]
+      summary: Download all cost-of-war records as CSV
+      responses:
+        "200":
+          description: Costs CSV export
+          content:
+            text/csv:
+              schema: { type: string }
+
+  /downloads/experiments.json:
+    get:
+      operationId: downloadExperimentsJson
+      tags: [downloads]
+      summary: Download all deal cycle experiment records as JSON
+      responses:
+        "200":
+          description: Experiments JSON export
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { type: object } }
+                required: [data]
+
+  /downloads/experiments.csv:
+    get:
+      operationId: downloadExperimentsCsv
+      tags: [downloads]
+      summary: Download all deal cycle experiment records as CSV
+      responses:
+        "200":
+          description: Experiments CSV export
+          content:
+            text/csv:
+              schema: { type: string }
 
 components:
   securitySchemes:

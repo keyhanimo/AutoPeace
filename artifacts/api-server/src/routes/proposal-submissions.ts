@@ -89,6 +89,47 @@ router.get("/admin/proposals/queue", adminAuth, async (req, res) => {
   }
 });
 
+router.patch("/admin/proposals/queue/:id/terms", adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params as { id: string };
+    const { summary, terms } = req.body as {
+      summary?: string;
+      terms?: Record<string, unknown>;
+    };
+
+    const [submission] = await db.select()
+      .from(proposalSubmissionsTable)
+      .where(eq(proposalSubmissionsTable.id, id));
+
+    if (!submission) {
+      res.status(404).json({ error: "Submission not found" });
+      return;
+    }
+
+    if (submission.status !== "pending") {
+      res.status(409).json({ error: `Cannot edit a ${submission.status} submission` });
+      return;
+    }
+
+    const updates: Record<string, unknown> = {};
+    if (summary !== undefined) updates["summary"] = summary;
+    if (terms !== undefined) updates["terms"] = terms;
+
+    if (Object.keys(updates).length === 0) {
+      res.status(400).json({ error: "Provide summary and/or terms to update" });
+      return;
+    }
+
+    await db.update(proposalSubmissionsTable)
+      .set(updates)
+      .where(eq(proposalSubmissionsTable.id, id));
+
+    res.json({ message: "Submission terms updated", id });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
 router.patch("/admin/proposals/queue/:id", adminAuth, async (req, res) => {
   try {
     const { id } = req.params as { id: string };

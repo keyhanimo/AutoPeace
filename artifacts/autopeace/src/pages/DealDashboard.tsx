@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { useGetCurrentDeal, useGetParetoDeals, useListDeals, useGetSolutionTree, type Deal, type DealScores } from "@workspace/api-client-react";
+import { useGetCurrentDeal, useGetParetoDeals, useListDeals, useGetSolutionTree, useListStakeholders, type Deal, type DealScores } from "@workspace/api-client-react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, PageHeader, Badge } from "@/components/ui";
 import {
@@ -58,7 +58,7 @@ function ScoreCard({ dimension, score }: { dimension: typeof SCORE_DIMENSIONS[nu
   );
 }
 
-function StakeholderMap({ evaluations }: { evaluations: Record<string, { verdict: string; rationale: string }> }) {
+function StakeholderMap({ evaluations, lensId }: { evaluations: Record<string, { verdict: string; rationale: string }>; lensId?: string }) {
   const [selected, setSelected] = useState<string | null>(null);
 
   const entries = Object.entries(evaluations);
@@ -66,16 +66,27 @@ function StakeholderMap({ evaluations }: { evaluations: Record<string, { verdict
   const conditionals = entries.filter(([, e]) => e.verdict === "conditional").length;
   const rejects = entries.filter(([, e]) => e.verdict === "reject").length;
 
+  const displayedEntries = lensId ? entries.filter(([id]) => id === lensId) : entries;
+
   return (
     <div className="space-y-4">
       <div className="flex gap-4 text-xs">
         <span className="flex items-center gap-1 text-emerald-400"><CheckCircle2 className="w-3 h-3" /> {accepts} Accept</span>
         <span className="flex items-center gap-1 text-amber-400"><AlertTriangle className="w-3 h-3" /> {conditionals} Conditional</span>
         <span className="flex items-center gap-1 text-red-400"><XCircle className="w-3 h-3" /> {rejects} Reject</span>
+        {lensId && (
+          <span className="ml-auto flex items-center gap-1 text-primary text-[10px] font-semibold border border-primary/30 rounded px-2 py-0.5">
+            Lens: {lensId.replace(/-/g, " ")}
+          </span>
+        )}
       </div>
+      {lensId && displayedEntries.length === 0 && (
+        <p className="text-xs text-muted-foreground text-center py-4">No evaluation data for the selected stakeholder lens yet.</p>
+      )}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-        {entries.map(([id, evaluation]) => {
+        {displayedEntries.map(([id, evaluation]) => {
           const isSelected = selected === id;
+          const isLens = lensId === id;
           const color = evaluation.verdict === "accept" ? "border-emerald-500/50 bg-emerald-950/20" :
             evaluation.verdict === "reject" ? "border-red-500/50 bg-red-950/20" :
               "border-amber-500/50 bg-amber-950/20";
@@ -86,7 +97,7 @@ function StakeholderMap({ evaluations }: { evaluations: Record<string, { verdict
             <button
               key={id}
               onClick={() => setSelected(isSelected ? null : id)}
-              className={`p-3 rounded-lg border text-left transition-all ${color} ${isSelected ? "ring-1 ring-primary" : ""}`}
+              className={`p-3 rounded-lg border text-left transition-all ${color} ${isSelected || isLens ? "ring-1 ring-primary" : ""}`}
             >
               <div className="text-xs font-mono font-bold capitalize text-foreground truncate">{id.replace(/-/g, " ")}</div>
               <div className={`text-[10px] ${textColor} font-medium capitalize mt-1`}>{evaluation.verdict}</div>
@@ -94,10 +105,10 @@ function StakeholderMap({ evaluations }: { evaluations: Record<string, { verdict
           );
         })}
       </div>
-      {selected && evaluations[selected] && (
+      {(selected ?? lensId) && evaluations[(selected ?? lensId)!] && (
         <Card className="p-4 border-primary/30">
-          <h4 className="text-sm font-bold capitalize mb-2">{selected.replace(/-/g, " ")}</h4>
-          <p className="text-xs text-muted-foreground">{evaluations[selected]?.rationale}</p>
+          <h4 className="text-sm font-bold capitalize mb-2">{(selected ?? lensId)!.replace(/-/g, " ")}</h4>
+          <p className="text-xs text-muted-foreground">{evaluations[(selected ?? lensId)!]?.rationale}</p>
         </Card>
       )}
     </div>
@@ -265,6 +276,10 @@ export default function DealDashboard() {
   const { data: treeRes } = useGetSolutionTree();
 
   const [activeTab, setActiveTab] = useState<"terms" | "stakeholders" | "domestic" | "redteam" | "pareto" | "tree" | "history" | "comparison" | "robustness">("terms");
+  const [lensStakeholderId, setLensStakeholderId] = useState<string>("");
+
+  const { data: stakeholderListData } = useListStakeholders();
+  const stakeholderList = (stakeholderListData as unknown as { data?: Array<{ id: string; name: string; flag?: string }> })?.data ?? [];
 
   const scores = currentDeal?.scores as DealScores | null ?? null;
   const stakeholderEvals = currentDeal?.stakeholderEvaluations as Record<string, { verdict: string; rationale: string }> | null ?? {};
@@ -441,8 +456,37 @@ export default function DealDashboard() {
 
       {activeTab === "stakeholders" && (
         <Card className="p-6">
-          <h3 className="text-lg font-bold mb-4">Stakeholder Acceptance Map</h3>
-          <StakeholderMap evaluations={stakeholderEvals} />
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <h3 className="text-lg font-bold">Stakeholder Acceptance Map</h3>
+            {stakeholderList.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground font-semibold shrink-0">Stakeholder Lens:</span>
+                <select
+                  value={lensStakeholderId}
+                  onChange={e => setLensStakeholderId(e.target.value)}
+                  className="text-xs border border-border/50 rounded px-2 py-1 bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                  aria-label="Filter acceptance map by stakeholder"
+                >
+                  <option value="">All stakeholders</option>
+                  {stakeholderList.map(s => (
+                    <option key={s.id} value={s.id}>
+                      {s.flag ? `${s.flag} ` : ""}{s.name}
+                    </option>
+                  ))}
+                </select>
+                {lensStakeholderId && (
+                  <button
+                    onClick={() => setLensStakeholderId("")}
+                    className="text-[10px] text-muted-foreground hover:text-foreground border border-border/30 rounded px-1.5 py-0.5"
+                    aria-label="Clear lens filter"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+          <StakeholderMap evaluations={stakeholderEvals} lensId={lensStakeholderId || undefined} />
         </Card>
       )}
 
