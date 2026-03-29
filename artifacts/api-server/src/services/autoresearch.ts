@@ -9,6 +9,7 @@ import {
 } from "@workspace/db/schema";
 import { desc, eq, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
+import { computeAndStoreWhatIfScenarios } from "./what-if-scenarios";
 import { generateForecasts, getRecentForecastsForBacktest, type GeneratedForecast } from "./forecasting";
 import { ingestAllSources } from "./evidence-ingestion";
 import {
@@ -169,6 +170,13 @@ async function runCycleAsync(cycleId: string): Promise<void> {
     }).where(eq(cyclesTable.id, cycleId));
 
     logger.info({ cycleId, experimentsRun, experimentsRetained }, "Autoresearch cycle completed successfully");
+
+    try {
+      await computeAndStoreWhatIfScenarios(cycleId);
+      logger.info({ cycleId }, "What-if scenario variants updated");
+    } catch (scenarioErr) {
+      logger.warn({ err: scenarioErr }, "What-if scenario update failed (non-critical)");
+    }
   } catch (err) {
     logger.error({ err, cycleId }, "Autoresearch cycle error");
     await db.update(cyclesTable).set({

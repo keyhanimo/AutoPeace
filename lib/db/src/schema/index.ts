@@ -12,3 +12,4 @@ export * from "./proposals";
 export * from "./solution-tree";
 export * from "./community-forecasts";
 export * from "./proposal-submissions";
+export * from "./what-if-scenarios";

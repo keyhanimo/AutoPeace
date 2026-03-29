@@ -4,6 +4,7 @@ import {
   useGetCommunityForecastAggregate, useSubmitCommunityForecast,
   type Forecast,
 } from "@workspace/api-client-react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, PageHeader, Badge } from "@/components/ui";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
@@ -33,65 +34,40 @@ const PREDICTION_MARKETS = [
   { name: "Kalshi", peaceProb: 0.06, conflictProb: 0.78, lastUpdated: "2024-12-01" },
 ];
 
-type WhatIfScenario = {
+type ApiScenario = {
   id: string;
-  label: string;
+  name: string;
   description: string;
-  multipliers: Partial<Record<string, number>>;
+  triggerCondition: string;
+  basedOnCycleId: string | null;
+  probabilityDeltas: Record<string, number>;
+  absoluteProbabilities: Record<string, number>;
+  updatedAt: string;
 };
 
-const WHAT_IF_SCENARIOS: WhatIfScenario[] = [
-  {
-    id: "sanctions_lifted",
-    label: "Sanctions Fully Lifted",
-    description: "All US and EU economic sanctions on Iran removed as part of a grand bargain.",
-    multipliers: { broad_settlement: 2.5, regional_framework: 1.8, sanctions_partial_deal: 2.0, continued_conflict: 0.5, major_escalation: 0.4 },
-  },
-  {
-    id: "military_strike",
-    label: "US/Israel Military Strikes",
-    description: "Coordinated air strikes on Iranian nuclear sites trigger full military confrontation.",
-    multipliers: { major_escalation: 3.0, continued_conflict: 1.6, broad_settlement: 0.1, humanitarian_mini_deal: 0.3, informal_deescalation: 0.2 },
-  },
-  {
-    id: "hormuz_closure",
-    label: "Strait of Hormuz Closed",
-    description: "Iran closes the Strait of Hormuz, triggering an international economic crisis.",
-    multipliers: { major_escalation: 2.2, continued_conflict: 1.5, broad_settlement: 0.2, regional_framework: 0.4 },
-  },
-  {
-    id: "us_withdraws",
-    label: "US Withdraws from Region",
-    description: "United States withdraws military assets from Gulf, reducing deterrence pressure on Iran.",
-    multipliers: { informal_deescalation: 2.0, regional_framework: 1.6, major_escalation: 0.7, broad_settlement: 0.8 },
-  },
-];
-
-function applyScenario(probs: Record<string, number>, scenario: WhatIfScenario): Record<string, number> {
-  const raw: Record<string, number> = {};
-  let total = 0;
-  for (const cat of CATEGORIES) {
-    const mult = scenario.multipliers[cat.key] ?? 1.0;
-    raw[cat.key] = Math.max(0, (probs[cat.key] ?? 0) * mult);
-    total += raw[cat.key];
-  }
-  const result: Record<string, number> = {};
-  for (const cat of CATEGORIES) {
-    result[cat.key] = total > 0 ? parseFloat(((raw[cat.key] / total) * 100).toFixed(1)) : 0;
-  }
-  return result;
+function useWhatIfScenarios() {
+  const base = typeof window !== "undefined"
+    ? window.location.origin + import.meta.env.BASE_URL.replace(/\/$/, "")
+    : "";
+  return useQuery<{ data: ApiScenario[] }>({
+    queryKey: ["what-if-scenarios"],
+    queryFn: () => fetch(`${base}/api/scenarios`).then(r => r.json() as Promise<{ data: ApiScenario[] }>),
+    staleTime: 5 * 60 * 1000,
+  });
 }
 
 function WhatIfPanel({ activeForecast }: { activeForecast: Forecast }) {
-  const [activeScenario, setActiveScenario] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const { data: scenariosData, isLoading: scenariosLoading } = useWhatIfScenarios();
+  const scenarios = scenariosData?.data ?? [];
+
   const baseProbs = getProbs(activeForecast);
-  const scenario = WHAT_IF_SCENARIOS.find(s => s.id === activeScenario);
-  const scenarioProbs = scenario ? applyScenario(baseProbs, scenario) : null;
+  const activeScenario = scenarios.find(s => s.id === activeId) ?? null;
 
   const chartData = CATEGORIES.map(cat => ({
     name: cat.shortLabel,
     base: parseFloat((baseProbs[cat.key] ?? 0).toFixed(1)),
-    scenario: scenarioProbs ? scenarioProbs[cat.key] : undefined,
+    scenario: activeScenario ? (activeScenario.absoluteProbabilities[cat.key] ?? 0) : undefined,
     color: cat.color,
   }));
 
@@ -100,30 +76,37 @@ function WhatIfPanel({ activeForecast }: { activeForecast: Forecast }) {
       <h3 className="text-lg font-bold mb-1 flex items-center gap-2">
         <Zap className="w-4 h-4 text-primary" /> What-If Scenarios
       </h3>
-      <p className="text-xs text-muted-foreground mb-4">Toggle a scenario to see how it would shift AI probability estimates (illustrative, not predictive).</p>
-      <div className="grid sm:grid-cols-2 gap-2 mb-5">
-        {WHAT_IF_SCENARIOS.map(s => (
-          <button
-            key={s.id}
-            onClick={() => setActiveScenario(prev => prev === s.id ? null : s.id)}
-            aria-pressed={activeScenario === s.id}
-            className={`text-left p-3 rounded-lg border text-xs transition-all ${
-              activeScenario === s.id
-                ? "border-primary/50 bg-primary/10 text-primary"
-                : "border-border/40 text-muted-foreground hover:border-border hover:text-foreground"
-            }`}
-          >
-            <div className="font-medium mb-0.5">{s.label}</div>
-            <div className="text-[10px] opacity-70 leading-relaxed">{s.description}</div>
-          </button>
-        ))}
-      </div>
-      {scenarioProbs ? (
+      <p className="text-xs text-muted-foreground mb-4">Pre-computed scenario variants updated with each research cycle. Select a scenario to compare its forecast against the current baseline.</p>
+      {scenariosLoading ? (
+        <div className="grid sm:grid-cols-2 gap-2 mb-5">
+          {[0, 1, 2, 3].map(i => <div key={i} className="h-16 animate-pulse bg-secondary/40 rounded-lg" />)}
+        </div>
+      ) : (
+        <div className="grid sm:grid-cols-2 gap-2 mb-5">
+          {scenarios.map(s => (
+            <button
+              key={s.id}
+              onClick={() => setActiveId(prev => prev === s.id ? null : s.id)}
+              aria-pressed={activeId === s.id}
+              className={`text-left p-3 rounded-lg border text-xs transition-all ${
+                activeId === s.id
+                  ? "border-primary/50 bg-primary/10 text-primary"
+                  : "border-border/40 text-muted-foreground hover:border-border hover:text-foreground"
+              }`}
+            >
+              <div className="font-medium mb-0.5">{s.name}</div>
+              <div className="text-[10px] opacity-70 leading-relaxed">{s.description}</div>
+              <div className="text-[9px] opacity-50 mt-1">Trigger: {s.triggerCondition}</div>
+            </button>
+          ))}
+        </div>
+      )}
+      {activeScenario ? (
         <div>
           <div className="flex items-center gap-3 mb-3 text-[10px] text-muted-foreground">
             <span className="flex items-center gap-1"><span className="w-3 h-2 bg-slate-500/60 rounded-sm inline-block" />Baseline</span>
             <span className="flex items-center gap-1"><span className="w-3 h-2 bg-primary/70 rounded-sm inline-block" />Scenario</span>
-            <Badge variant="outline" className="ml-auto border-primary/40 text-primary text-[9px]">{scenario?.label}</Badge>
+            <Badge variant="outline" className="ml-auto border-primary/40 text-primary text-[9px]">{activeScenario.name}</Badge>
           </div>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={chartData} margin={{ top: 0, right: 4, left: 0, bottom: 0 }}>
@@ -137,10 +120,13 @@ function WhatIfPanel({ activeForecast }: { activeForecast: Forecast }) {
               <Bar dataKey="scenario" fill="#6366f1" radius={[2, 2, 0, 0]} name="scenario" />
             </BarChart>
           </ResponsiveContainer>
+          {activeScenario.basedOnCycleId && (
+            <p className="text-[9px] text-muted-foreground mt-2">Based on cycle: {activeScenario.basedOnCycleId.slice(0, 8)}…</p>
+          )}
         </div>
       ) : (
         <div className="h-24 flex items-center justify-center border border-border/20 rounded-lg bg-secondary/20">
-          <p className="text-xs text-muted-foreground">Select a scenario to preview probability shifts</p>
+          <p className="text-xs text-muted-foreground">Select a scenario to compare pre-computed probability shifts</p>
         </div>
       )}
     </Card>

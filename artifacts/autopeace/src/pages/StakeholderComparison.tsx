@@ -31,18 +31,15 @@ function VerdictBadge({ verdict }: { verdict: string | undefined }) {
 
 function getStakeholderVerdict(stakeholderId: string, evals: Record<string, StakeholderEval> | null): StakeholderEval | null {
   if (!evals) return null;
-  const key = Object.keys(evals).find(k =>
-    k.toLowerCase().replace(/-/g, "_") === stakeholderId.toLowerCase().replace(/-/g, "_") ||
-    k.toLowerCase().includes(stakeholderId.toLowerCase().slice(0, 5))
-  );
-  return key ? (evals[key] ?? null) : null;
+  return evals[stakeholderId] ?? null;
 }
 
 function getDomesticVerdicts(stakeholderId: string, domestic: Record<string, DomesticEval> | null): DomesticEval[] {
   if (!domestic) return [];
-  return Object.values(domestic).filter(d =>
-    d.audience?.toLowerCase().includes(stakeholderId.toLowerCase().slice(0, 3))
-  );
+  const prefix = stakeholderId + "_";
+  return Object.entries(domestic)
+    .filter(([key]) => key === stakeholderId || key.startsWith(prefix))
+    .map(([, v]) => v);
 }
 
 export default function StakeholderComparison() {
@@ -58,8 +55,6 @@ export default function StakeholderComparison() {
   const stakeholders = stakeholdersData?.data ?? [];
   const stakeholderEvals = (currentDeal?.stakeholderEvaluations ?? null) as Record<string, StakeholderEval> | null;
   const domesticEvals = (currentDeal?.domesticEvaluations ?? null) as Record<string, DomesticEval> | null;
-  const costs = (currentDeal as Record<string, unknown> | undefined | null);
-  void costs;
 
   const toggle = (id: string) => {
     setSelected(prev => {

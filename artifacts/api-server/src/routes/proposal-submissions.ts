@@ -1,9 +1,27 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { proposalSubmissionsTable, proposalsTable } from "@workspace/db/schema";
+import { proposalSubmissionsTable, proposalsTable, adminConfigTable } from "@workspace/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { adminAuth } from "../lib/admin-auth";
+import { evaluateStakeholders, type ModelConfig, type DealTerms } from "../services/deal-engine";
+
+async function getDefaultModelConfig(): Promise<ModelConfig> {
+  const cfg = await db.select().from(adminConfigTable);
+  const map = Object.fromEntries(cfg.map(r => [r.key, r.value]));
+  const openaiModel = map["openaiModel"] ?? "gpt-4o";
+  return {
+    anthropicModel: map["anthropicModel"] ?? "claude-opus-4-5",
+    openaiModel,
+    geminiModel: map["geminiModel"] ?? "gemini-2.5-pro",
+    generationProvider: (map["generationProvider"] ?? "anthropic") as "anthropic" | "openai" | "gemini",
+    generationModel: map["generationModel"] ?? "claude-opus-4-5",
+    evaluationProvider: (map["evaluationProvider"] ?? "openai") as "anthropic" | "openai" | "gemini",
+    evaluationModel: map["evaluationModel"] ?? openaiModel,
+    adversarialProvider: (map["adversarialProvider"] ?? "anthropic") as "anthropic" | "openai" | "gemini",
+    adversarialModel: map["adversarialModel"] ?? "claude-opus-4-5",
+  };
+}
 
 const router = Router();
 
@@ -104,6 +122,14 @@ router.patch("/admin/proposals/queue/:id", adminAuth, async (req, res) => {
         terms: submission.terms as Record<string, unknown>,
         summary: submission.summary,
       });
+
+      const pid = approvedProposalId;
+      const terms = submission.terms as unknown as DealTerms;
+      getDefaultModelConfig().then(modelConfig =>
+        evaluateStakeholders(terms, modelConfig).then(({ evaluations }) =>
+          db.update(proposalsTable).set({ stakeholderEvaluations: evaluations }).where(eq(proposalsTable.id, pid))
+        )
+      ).catch(() => undefined);
     }
 
     await db.update(proposalSubmissionsTable)
@@ -117,7 +143,7 @@ router.patch("/admin/proposals/queue/:id", adminAuth, async (req, res) => {
 
     res.json({
       message: action === "approve"
-        ? `Approved — added to Proposal Arena as proposal ${approvedProposalId}`
+        ? `Approved — added to Proposal Arena as proposal ${approvedProposalId}. Stakeholder evaluation queued.`
         : "Rejected",
       approvedProposalId: approvedProposalId ?? null,
     });

@@ -12,6 +12,7 @@ import proposalsRouter from "./proposals";
 import communityForecastsRouter from "./community-forecasts";
 import proposalSubmissionsRouter from "./proposal-submissions";
 import downloadsRouter from "./downloads";
+import scenariosRouter from "./scenarios";
 import { publicApiLimiter, submitLimiter, downloadLimiter } from "../middlewares/rateLimiter";
 
 const router: IRouter = Router();
@@ -28,6 +29,7 @@ router.use(stakeholdersRouter);
 router.use(dealsRouter);
 router.use(proposalsRouter);
 router.use(communityForecastsRouter);
+router.use(scenariosRouter);
 
 router.use("/proposals/submit", submitLimiter);
 router.use(proposalSubmissionsRouter);
