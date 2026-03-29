@@ -1,10 +1,10 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useListStakeholders, useGetCostsByStakeholder } from "@workspace/api-client-react";
 import { PageHeader, Card, Badge } from "@/components/ui";
-import { Search, Shield, HeartPulse, DollarSign, TrendingUp } from "lucide-react";
+import { Search, Shield, HeartPulse, DollarSign, TrendingUp, Swords, Handshake } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
+  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine,
 } from "recharts";
 import { formatUsd } from "@/lib/utils";
 
@@ -58,9 +58,27 @@ const WAR_ACCUMULATION_DATA = [
   { month: "Mar 2025", economic: 134, humanitarian: 111, strategic: 46 },
 ];
 
-function LiveAccumulator({ dimension }: { dimension: Dimension }) {
+const DEAL_PROJECTION_DATA = [
+  { month: "Jan 2024", economic: 12,  humanitarian: 8,  strategic: 3  },
+  { month: "Mar 2024", economic: 28,  humanitarian: 19, strategic: 7  },
+  { month: "May 2024", economic: 45,  humanitarian: 31, strategic: 12 },
+  { month: "Jul 2024", economic: 61,  humanitarian: 44, strategic: 18 },
+  { month: "Sep 2024", economic: 82,  humanitarian: 62, strategic: 24 },
+  { month: "Nov 2024", economic: 97,  humanitarian: 78, strategic: 31 },
+  { month: "Jan 2025", economic: 104, humanitarian: 82, strategic: 28 },
+  { month: "Mar 2025", economic: 108, humanitarian: 84, strategic: 25 },
+  { month: "May 2025", economic: 109, humanitarian: 83, strategic: 21 },
+  { month: "Jul 2025", economic: 108, humanitarian: 81, strategic: 18 },
+  { month: "Sep 2025", economic: 106, humanitarian: 78, strategic: 15 },
+  { month: "Nov 2025", economic: 104, humanitarian: 74, strategic: 13 },
+];
+const DEAL_PIVOT_MONTH = "Jan 2025";
+
+function LiveAccumulator({ dimension, isDeal }: { dimension: Dimension; isDeal: boolean }) {
   const config = DIMENSION_CONFIG[dimension];
-  const baseRate = dimension === "economic" ? 134 : dimension === "humanitarian" ? 111 : 46;
+  const warBase = dimension === "economic" ? 134 : dimension === "humanitarian" ? 111 : 46;
+  const dealBase = dimension === "economic" ? 108 : dimension === "humanitarian" ? 84 : 25;
+  const baseRate = isDeal ? dealBase : warBase;
   const [displayed, setDisplayed] = useState(baseRate);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -68,10 +86,10 @@ function LiveAccumulator({ dimension }: { dimension: Dimension }) {
     setDisplayed(baseRate);
     if (dimension !== "economic") return;
     intervalRef.current = setInterval(() => {
-      setDisplayed(v => parseFloat((v + 0.003).toFixed(3)));
+      setDisplayed(v => parseFloat((v + (isDeal ? 0.0005 : 0.003)).toFixed(4)));
     }, 100);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [dimension, baseRate]);
+  }, [dimension, baseRate, isDeal]);
 
   const label = dimension === "economic"
     ? `$${displayed.toFixed(1)}B cumulative`
@@ -80,13 +98,15 @@ function LiveAccumulator({ dimension }: { dimension: Dimension }) {
     : `Risk index: ${displayed.toFixed(0)}/100`;
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3 bg-card border border-border/50 rounded-xl">
-      <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: config.color }} />
+    <div className={`flex items-center gap-3 px-4 py-3 bg-card border rounded-xl ${isDeal ? "border-emerald-700/40" : "border-border/50"}`}>
+      <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: isDeal ? "#10b981" : config.color }} />
       <div>
-        <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">{config.label} Accumulator</div>
-        <div className="text-lg font-bold font-mono" style={{ color: config.color }}>{label}</div>
+        <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">
+          {config.label} {isDeal ? "— Deal Projection" : "Accumulator"}
+        </div>
+        <div className="text-lg font-bold font-mono" style={{ color: isDeal ? "#10b981" : config.color }}>{label}</div>
       </div>
-      <div className="ml-auto text-[9px] text-muted-foreground">Live estimate</div>
+      <div className="ml-auto text-[9px] text-muted-foreground">{isDeal ? "Est. if deal signed Jan 2025" : "Live estimate"}</div>
     </div>
   );
 }
@@ -177,6 +197,7 @@ export default function CostsExplorer() {
   const [search, setSearch] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [dimension, setDimension] = useState<Dimension>("economic");
+  const [showDealProjection, setShowDealProjection] = useState(false);
 
   const stakeholders = stakeholdersRes?.data || [];
   const filtered = stakeholders.filter(s =>
@@ -194,7 +215,8 @@ export default function CostsExplorer() {
     }
   };
 
-  const areaColor = DIMENSION_CONFIG[dimension].color;
+  const chartData = showDealProjection ? DEAL_PROJECTION_DATA : WAR_ACCUMULATION_DATA;
+  const areaColor = showDealProjection ? "#10b981" : DIMENSION_CONFIG[dimension].color;
 
   return (
     <div className="space-y-6 animate-fade-in pb-12">
@@ -214,35 +236,58 @@ export default function CostsExplorer() {
         </div>
       </PageHeader>
 
-      <div className="flex items-center gap-3 flex-wrap">
-        <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Dimension:</span>
-        {(Object.keys(DIMENSION_CONFIG) as Dimension[]).map(d => {
-          const cfg = DIMENSION_CONFIG[d];
-          const Icon = cfg.icon;
-          return (
-            <button
-              key={d}
-              onClick={() => setDimension(d)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all border ${dimension === d ? 'text-white border-transparent' : 'text-muted-foreground border-border bg-card hover:border-primary/50'}`}
-              style={dimension === d ? { backgroundColor: cfg.color, borderColor: cfg.color } : {}}
-            >
-              <Icon className="w-3.5 h-3.5" />
-              {cfg.label}
-            </button>
-          );
-        })}
+      <div className="flex items-center gap-3 flex-wrap justify-between">
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Dimension:</span>
+          {(Object.keys(DIMENSION_CONFIG) as Dimension[]).map(d => {
+            const cfg = DIMENSION_CONFIG[d];
+            const Icon = cfg.icon;
+            return (
+              <button
+                key={d}
+                onClick={() => setDimension(d)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all border ${dimension === d ? 'text-white border-transparent' : 'text-muted-foreground border-border bg-card hover:border-primary/50'}`}
+                style={dimension === d ? { backgroundColor: cfg.color, borderColor: cfg.color } : {}}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                {cfg.label}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex items-center gap-1 p-0.5 bg-card border border-border rounded-xl">
+          <button
+            onClick={() => setShowDealProjection(false)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${!showDealProjection ? 'bg-red-900/60 text-red-300 border border-red-700/40' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            <Swords className="w-3.5 h-3.5" /> War Trajectory
+          </button>
+          <button
+            onClick={() => setShowDealProjection(true)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${showDealProjection ? 'bg-emerald-900/60 text-emerald-300 border border-emerald-700/40' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            <Handshake className="w-3.5 h-3.5" /> Deal Projection
+          </button>
+        </div>
       </div>
 
-      <LiveAccumulator dimension={dimension} />
+      <LiveAccumulator dimension={dimension} isDeal={showDealProjection} />
 
       <Card className="p-6">
-        <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-primary" />
-          Cumulative {DIMENSION_CONFIG[dimension].label} Cost Over Time
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-primary" />
+            Cumulative {DIMENSION_CONFIG[dimension].label} Cost Over Time
+          </h3>
+          {showDealProjection && (
+            <span className="text-[10px] text-emerald-400 font-semibold bg-emerald-950/30 border border-emerald-700/30 px-2 py-1 rounded-full">
+              Peace deal signed Jan 2025
+            </span>
+          )}
+        </div>
         <div className="h-52">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={WAR_ACCUMULATION_DATA} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+            <AreaChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
               <defs>
                 <linearGradient id="costGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor={areaColor} stopOpacity={0.4} />
@@ -255,17 +300,22 @@ export default function CostsExplorer() {
               <Tooltip
                 contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', fontSize: '11px', color: '#f8fafc' }}
                 formatter={(v: number) => {
-                  if (dimension === "economic") return [`$${v}B`, 'Cumulative'];
-                  if (dimension === "humanitarian") return [`${(v * 10000).toLocaleString()} displaced`, 'Cumulative'];
+                  if (dimension === "economic") return [`$${v}B`, showDealProjection ? 'Deal projection' : 'Cumulative'];
+                  if (dimension === "humanitarian") return [`${(v * 10000).toLocaleString()} displaced`, showDealProjection ? 'Deal projection' : 'Cumulative'];
                   return [`Risk index ${v}`, 'Strategic'];
                 }}
               />
               <Area type="monotone" dataKey={dimension} stroke={areaColor} strokeWidth={2} fill="url(#costGrad)" dot={false} />
+              {showDealProjection && (
+                <ReferenceLine x={DEAL_PIVOT_MONTH} stroke="#10b981" strokeDasharray="4 3" strokeWidth={1.5} label={{ value: "Deal signed", fill: "#10b981", fontSize: 9, position: "insideTopRight" }} />
+              )}
             </AreaChart>
           </ResponsiveContainer>
         </div>
         <p className="text-[10px] text-muted-foreground mt-2 text-center">
-          Estimated cumulative {DIMENSION_CONFIG[dimension].label.toLowerCase()} impact — modeled from ACLED/GDELT inputs
+          {showDealProjection
+            ? "Projected costs under a comprehensive peace deal — diverges from war trajectory at deal signing"
+            : `Estimated cumulative ${DIMENSION_CONFIG[dimension].label.toLowerCase()} impact — modeled from ACLED/GDELT inputs`}
         </p>
       </Card>
 

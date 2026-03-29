@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { adminConfigTable, evidenceSourcesTable, experimentsTable, cyclesTable } from "@workspace/db/schema";
-import { eq, sum } from "drizzle-orm";
+import { adminConfigTable, evidenceSourcesTable, experimentsTable, cyclesTable, dealsTable } from "@workspace/db/schema";
+import { eq, sum, desc, sql } from "drizzle-orm";
 import { adminAuth } from "../lib/admin-auth";
 import { runCycleNow, isRunning } from "../services/autoresearch";
 import { runDealCycleNow, isDealCycleRunning } from "../services/deal-autoresearch";
@@ -181,6 +181,60 @@ router.post("/admin/deal-run", async (_req, res) => {
   try {
     const cycleId = await runDealCycleNow();
     res.json({ cycleId, message: "Deal autoresearch cycle started" });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+router.get("/admin/deal-cycles", async (_req, res) => {
+  try {
+    const recentDeals = await db.select({
+      cycleId: dealsTable.cycleId,
+      architecture: dealsTable.architecture,
+      composite: sql<number>`(${dealsTable.scores}->>'composite')::float`,
+      isPareto: dealsTable.isPareto,
+      isCurrent: dealsTable.isCurrent,
+      tokensConsumed: dealsTable.tokensConsumed,
+      costUsd: dealsTable.costUsd,
+      createdAt: dealsTable.createdAt,
+    }).from(dealsTable).orderBy(desc(dealsTable.createdAt)).limit(50);
+
+    const cycleMap = new Map<string, {
+      cycleId: string; status: string; dealsCount: number;
+      bestComposite: number; architectures: string[];
+      tokensConsumed: number; costUsd: number; startedAt: Date;
+    }>();
+
+    for (const deal of recentDeals) {
+      const existing = cycleMap.get(deal.cycleId);
+      const comp = deal.composite ?? 0;
+      if (!existing) {
+        cycleMap.set(deal.cycleId, {
+          cycleId: deal.cycleId,
+          status: "complete",
+          dealsCount: 1,
+          bestComposite: comp,
+          architectures: [deal.architecture],
+          tokensConsumed: deal.tokensConsumed,
+          costUsd: deal.costUsd,
+          startedAt: deal.createdAt,
+        });
+      } else {
+        existing.dealsCount++;
+        existing.bestComposite = Math.max(existing.bestComposite, comp);
+        existing.tokensConsumed += deal.tokensConsumed;
+        existing.costUsd += deal.costUsd;
+        if (!existing.architectures.includes(deal.architecture)) existing.architectures.push(deal.architecture);
+      }
+    }
+
+    const isRunning = isDealCycleRunning();
+    const cycles = Array.from(cycleMap.values()).map((c, idx) => ({
+      ...c,
+      status: idx === 0 && isRunning ? "running" : c.status,
+    }));
+
+    res.json({ data: cycles, currentlyRunning: isRunning });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }

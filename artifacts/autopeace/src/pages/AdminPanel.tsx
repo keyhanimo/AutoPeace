@@ -8,12 +8,11 @@ import {
   useGetAdminCostsSummary,
   useGetCurrentDeal,
   useListProposals,
-  useListDeals,
   type AdminConfigResponse,
   type AdminConfigUpdate,
   type DealScores,
 } from "@workspace/api-client-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAdminKey } from "@/hooks/use-admin";
 import { PageHeader, Card, Button, Input, Badge } from "@/components/ui";
 import { Lock, Play, Save, LogOut, Loader2, DollarSign, ToggleLeft, ToggleRight, Handshake, GitBranch, Cpu, Zap, CheckCircle2, AlertCircle, Plus, X } from "lucide-react";
@@ -40,7 +39,22 @@ export default function AdminPanel() {
   const dealRunTrigger = useTriggerDealRun({ request: { headers: authHeaders } });
   const { data: currentDeal } = useGetCurrentDeal();
   const { data: proposalsData, refetch: refetchProposals } = useListProposals();
-  const { data: dealsData, refetch: refetchDeals } = useListDeals();
+
+  type DealCycle = {
+    cycleId: string; status: string; dealsCount: number;
+    bestComposite: number; architectures: string[];
+    tokensConsumed: number; costUsd: number; startedAt: string;
+  };
+  const { data: dealCyclesData, refetch: refetchDealCycles } = useQuery<{ data: DealCycle[]; currentlyRunning: boolean }>({
+    queryKey: ['/api/admin/deal-cycles', adminKey],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/deal-cycles', { headers: { 'X-Admin-Key': adminKey } });
+      if (!res.ok) throw new Error('Failed to fetch deal cycles');
+      return res.json() as Promise<{ data: DealCycle[]; currentlyRunning: boolean }>;
+    },
+    enabled: !!adminKey,
+    refetchInterval: (query) => (query.state.data?.currentlyRunning ? 5000 : false),
+  });
 
   const queryClient = useQueryClient();
   const toggleSource = useMutation({
@@ -438,7 +452,7 @@ export default function AdminPanel() {
               </p>
             )}
             <p className="text-xs text-muted-foreground mt-2 bg-amber-950/20 border border-amber-700/30 rounded-lg px-3 py-2">
-              ⚠ Generation and evaluation role providers must use different providers (enforced at save time). Per-agent overrides (● rows) bypass this constraint for individual stages.
+              ⚠ Generation and evaluation role providers must use different providers (enforced at save time). Per-agent overrides (● rows) still respect this constraint — a stage override cannot place the same provider in both generation and evaluation roles.
             </p>
           </Card>
 
@@ -659,30 +673,45 @@ export default function AdminPanel() {
               <h3 className="text-lg font-bold flex items-center gap-2">
                 <GitBranch className="w-5 h-5 text-primary" /> Experiment Queue
               </h3>
-              <Button variant="ghost" size="sm" onClick={() => void refetchDeals()} className="h-7 px-2 text-xs gap-1">
-                <Play className="w-3 h-3" /> Refresh
-              </Button>
+              <div className="flex items-center gap-2">
+                {dealCyclesData?.currentlyRunning && (
+                  <span className="flex items-center gap-1.5 text-[10px] text-amber-400 font-semibold bg-amber-950/30 border border-amber-700/30 px-2 py-1 rounded-full">
+                    <Loader2 className="w-2.5 h-2.5 animate-spin" /> Running
+                  </span>
+                )}
+                <Button variant="ghost" size="sm" onClick={() => void refetchDealCycles()} className="h-7 px-2 text-xs gap-1">
+                  <Play className="w-3 h-3" /> Refresh
+                </Button>
+              </div>
             </div>
-            {dealsData?.data && dealsData.data.length > 0 ? (
+            {dealCyclesData?.data && dealCyclesData.data.length > 0 ? (
               <div className="space-y-2 max-h-64 overflow-y-auto">
-                {dealsData.data.slice(0, 20).map((deal) => {
-                  const scores = deal.scores as DealScores | null;
-                  const composite = scores?.composite ?? 0;
+                {dealCyclesData.data.slice(0, 20).map((cycle) => {
+                  const statusColor = cycle.status === "running"
+                    ? "text-amber-400 bg-amber-950/30 border-amber-700/30"
+                    : cycle.status === "error"
+                    ? "text-red-400 bg-red-950/30 border-red-700/30"
+                    : "text-emerald-400 bg-emerald-950/30 border-emerald-700/30";
+                  const composite = cycle.bestComposite ?? 0;
                   return (
-                    <div key={deal.id} className="flex items-center gap-3 text-xs py-1.5 border-b border-border/20 last:border-0">
-                      <div className="w-2 h-2 rounded-full shrink-0" style={{
+                    <div key={cycle.cycleId} className="flex items-center gap-3 text-xs py-2 border-b border-border/20 last:border-0">
+                      <div className="w-2 h-2 rounded-full shrink-0 mt-0.5" style={{
                         background: composite >= 0.65 ? "#10b981" : composite >= 0.45 ? "#f59e0b" : "#ef4444"
                       }} />
                       <div className="flex-1 min-w-0">
-                        <span className="font-medium capitalize">{deal.architecture}</span>
-                        {deal.isPareto && <span className="ml-1.5 text-[9px] text-emerald-400 font-bold">PARETO</span>}
-                        <span className="ml-2 text-muted-foreground font-mono">{deal.id.slice(0, 8)}…</span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-medium capitalize">{cycle.architectures.join(", ")}</span>
+                          <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded border ${statusColor}`}>
+                            {cycle.status}
+                          </span>
+                        </div>
+                        <div className="text-muted-foreground font-mono text-[10px] mt-0.5">{cycle.cycleId.slice(0, 8)}… · {cycle.dealsCount} deal(s)</div>
                       </div>
                       <div className="text-right shrink-0">
                         <span className={`font-mono font-bold ${composite >= 0.65 ? "text-emerald-400" : composite >= 0.45 ? "text-amber-400" : "text-red-400"}`}>
                           {(composite * 100).toFixed(0)}%
                         </span>
-                        <div className="text-[9px] text-muted-foreground">{new Date(deal.createdAt).toLocaleDateString()}</div>
+                        <div className="text-[9px] text-muted-foreground">{new Date(cycle.startedAt).toLocaleDateString()}</div>
                       </div>
                     </div>
                   );
@@ -690,12 +719,12 @@ export default function AdminPanel() {
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">
-                No deals generated yet. Run a deal cycle to populate the experiment queue.
+                No deal cycles yet. Run a deal cycle to populate the experiment queue.
               </p>
             )}
             <div className="mt-3 pt-3 border-t border-border/30 flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">{dealsData?.data?.length ?? 0} total experiment(s)</span>
-              <span className="text-xs text-muted-foreground">{dealsData?.data?.filter(d => d.isPareto).length ?? 0} on Pareto frontier</span>
+              <span className="text-xs text-muted-foreground">{dealCyclesData?.data?.length ?? 0} cycle(s) total</span>
+              <span className="text-xs text-muted-foreground">{dealCyclesData?.data?.reduce((s, c) => s + c.dealsCount, 0) ?? 0} deals generated</span>
             </div>
           </Card>
 

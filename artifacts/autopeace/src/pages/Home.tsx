@@ -279,6 +279,61 @@ function CostOfWarSection() {
   );
 }
 
+const VERDICT_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
+  accept:      { bg: "bg-emerald-950/40 border-emerald-700/40", text: "text-emerald-300", dot: "#10b981" },
+  conditional: { bg: "bg-amber-950/40 border-amber-700/40",    text: "text-amber-300",   dot: "#f59e0b" },
+  reject:      { bg: "bg-red-950/40 border-red-700/40",        text: "text-red-300",     dot: "#ef4444" },
+};
+
+const STAKEHOLDER_LABELS: Record<string, string> = {
+  iran: "Iran", united_states: "US", us: "US", israel: "Israel",
+  saudi_arabia: "KSA", russia: "Russia", china: "China", turkey: "Turkey",
+  eu: "EU", uk: "UK", france: "France", germany: "Germany",
+  hezbollah: "Hizbullah", hamas: "Hamas", houthis: "Houthis",
+  uae: "UAE", iraq: "Iraq", qatar: "Qatar",
+};
+
+function StakeholderAcceptanceGrid({ evaluations }: {
+  evaluations: Record<string, { verdict: string; rationale?: string }>;
+}) {
+  const entries = Object.entries(evaluations).slice(0, 12);
+  if (entries.length === 0) return null;
+
+  const counts = { accept: 0, conditional: 0, reject: 0 };
+  for (const [, ev] of entries) counts[ev.verdict as keyof typeof counts]++;
+
+  return (
+    <div className="mt-4 pt-4 border-t border-border/30">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">Stakeholder Acceptance</span>
+        <div className="flex items-center gap-2 text-[10px]">
+          <span className="text-emerald-400">{counts.accept} accept</span>
+          <span className="text-muted-foreground">·</span>
+          <span className="text-amber-400">{counts.conditional} conditional</span>
+          <span className="text-muted-foreground">·</span>
+          <span className="text-red-400">{counts.reject} reject</span>
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {entries.map(([stakeholderId, ev]) => {
+          const cfg = VERDICT_COLORS[ev.verdict] ?? VERDICT_COLORS.reject;
+          const label = STAKEHOLDER_LABELS[stakeholderId.toLowerCase().replace(/-/g, '_')] ?? stakeholderId;
+          return (
+            <div
+              key={stakeholderId}
+              title={ev.rationale ?? ev.verdict}
+              className={`flex items-center gap-1.5 px-2 py-1 rounded-full border text-[10px] font-semibold ${cfg.bg} ${cfg.text}`}
+            >
+              <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: cfg.dot }} />
+              {label}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function DealHeroSection() {
   const { data: deal } = useGetCurrentDeal();
   if (!deal) return null;
@@ -287,6 +342,7 @@ function DealHeroSection() {
   const feasibility = scores?.feasibility ?? 0;
   const domestic = scores?.domesticSellability ?? 0;
   const durability = scores?.durability ?? 0;
+  const stakeholderEvals = (deal.stakeholderEvaluations ?? {}) as Record<string, { verdict: string; rationale?: string }>;
 
   return (
     <section>
@@ -323,7 +379,10 @@ function DealHeroSection() {
                 </div>
               ))}
             </div>
-            <div className="flex flex-wrap gap-3">
+            {Object.keys(stakeholderEvals).length > 0 && (
+              <StakeholderAcceptanceGrid evaluations={stakeholderEvals} />
+            )}
+            <div className="flex flex-wrap gap-3 mt-4">
               <Link to="/deals">
                 <Button size="sm" className="gap-2 bg-amber-600 hover:bg-amber-700 text-white border-0">
                   <Handshake className="w-3.5 h-3.5" /> View Deal Dashboard

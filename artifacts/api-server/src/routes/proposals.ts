@@ -19,7 +19,7 @@ async function getModelConfig(): Promise<ModelConfig> {
     const anthropicModel = cfg["anthropicModel"] ?? "claude-sonnet-4-5";
     const openaiModel = cfg["openaiModel"] ?? "gpt-4o";
     const geminiModel = cfg["geminiModel"] ?? "gemini-2.5-flash";
-    return {
+    const base: ModelConfig = {
       anthropicModel,
       openaiModel,
       geminiModel,
@@ -30,6 +30,13 @@ async function getModelConfig(): Promise<ModelConfig> {
       adversarialProvider: (cfg["adversarialProvider"] ?? "gemini") as "anthropic" | "openai" | "gemini",
       adversarialModel: cfg["adversarialModel"] ?? geminiModel,
     };
+    for (let s = 1; s <= 8; s++) {
+      const pk = `stage${s}Provider` as keyof ModelConfig;
+      const mk = `stage${s}Model` as keyof ModelConfig;
+      if (cfg[`stage${s}Provider`]) (base as Record<string, unknown>)[pk] = cfg[`stage${s}Provider`];
+      if (cfg[`stage${s}Model`]) (base as Record<string, unknown>)[mk] = cfg[`stage${s}Model`];
+    }
+    return base;
   } catch {
     return {
       anthropicModel: "claude-sonnet-4-5",

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { db } from "@workspace/db";
-import { dealsTable, solutionTreeTable, cyclesTable, adminConfigTable } from "@workspace/db/schema";
+import { dealsTable, solutionTreeTable, adminConfigTable } from "@workspace/db/schema";
 import { desc, eq, isNull } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import {
@@ -27,7 +27,7 @@ async function getModelConfig(): Promise<ModelConfig> {
     const anthropicModel = cfg["anthropicModel"] ?? "claude-sonnet-4-5";
     const openaiModel = cfg["openaiModel"] ?? "gpt-4o";
     const geminiModel = cfg["geminiModel"] ?? "gemini-2.5-flash";
-    return {
+    const base: ModelConfig = {
       anthropicModel,
       openaiModel,
       geminiModel,
@@ -38,6 +38,13 @@ async function getModelConfig(): Promise<ModelConfig> {
       adversarialProvider: (cfg["adversarialProvider"] ?? "gemini") as "anthropic" | "openai" | "gemini",
       adversarialModel: cfg["adversarialModel"] ?? geminiModel,
     };
+    for (let s = 1; s <= 8; s++) {
+      const pk = `stage${s}Provider` as keyof ModelConfig;
+      const mk = `stage${s}Model` as keyof ModelConfig;
+      if (cfg[`stage${s}Provider`]) (base as Record<string, unknown>)[pk] = cfg[`stage${s}Provider`];
+      if (cfg[`stage${s}Model`]) (base as Record<string, unknown>)[mk] = cfg[`stage${s}Model`];
+    }
+    return base;
   } catch {
     return {
       anthropicModel: "claude-sonnet-4-5",
@@ -126,12 +133,11 @@ async function getStallCount(architecture: string, parentNodeId: string | null):
 
 export async function runDealCycleNow(): Promise<string> {
   if (dealCycleRunning) {
-    const [running] = await db.select({ id: cyclesTable.id })
-      .from(cyclesTable)
-      .where(eq(cyclesTable.status, "running"))
-      .orderBy(desc(cyclesTable.startedAt))
+    const [recent] = await db.select({ cycleId: dealsTable.cycleId })
+      .from(dealsTable)
+      .orderBy(desc(dealsTable.createdAt))
       .limit(1);
-    return running?.id ?? randomUUID();
+    return recent?.cycleId ?? randomUUID();
   }
 
   dealCycleRunning = true;
@@ -242,6 +248,8 @@ async function runDealCycleAsync(cycleId: string): Promise<void> {
       architecture: chosenArch,
     }, "Deal cycle complete");
 
+  } catch (err) {
+    throw err;
   } finally {
     dealCycleRunning = false;
   }
