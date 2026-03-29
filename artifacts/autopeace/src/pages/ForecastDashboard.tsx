@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import {
   useGetLatestForecasts, useListForecasts, useListEvidence,
-  useGetCommunityForecastAggregate,
+  useGetCommunityForecastAggregate, useSubmitCommunityForecast,
   type Forecast,
 } from "@workspace/api-client-react";
 import { Card, PageHeader, Badge } from "@/components/ui";
@@ -10,7 +10,7 @@ import {
   RadarChart, PolarGrid, PolarAngleAxis, Radar,
   LineChart, Line, Legend, ReferenceLine, ScatterChart, Scatter, CartesianGrid,
 } from "recharts";
-import { AlertCircle, Clock, CheckCircle2, FileText, Target, TrendingUp, BarChart2, Users, Zap } from "lucide-react";
+import { AlertCircle, Clock, CheckCircle2, FileText, Target, TrendingUp, BarChart2, Users, Zap, Send } from "lucide-react";
 
 const TIME_HORIZONS = ['30d', '90d', '180d', '1y'] as const;
 
@@ -149,19 +149,47 @@ function WhatIfPanel({ activeForecast }: { activeForecast: Forecast }) {
 
 function CommunityForecastPanel({ activeForecast }: { activeForecast: Forecast }) {
   const [horizon, setHorizon] = useState<"30d" | "90d" | "180d" | "1y">("90d");
-  const { data, isLoading } = useGetCommunityForecastAggregate({ timeHorizon: horizon });
+  const [tab, setTab] = useState<"results" | "submit">("results");
+  const [estimates, setEstimates] = useState<Record<string, number>>(() =>
+    Object.fromEntries(CATEGORIES.map(c => [c.key, parseFloat((100 / CATEGORIES.length).toFixed(1))]))
+  );
+  const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
+  const [sessionId] = useState(() => crypto.randomUUID());
+
+  const { data, isLoading, refetch } = useGetCommunityForecastAggregate({ timeHorizon: horizon });
+  const { mutateAsync, isPending } = useSubmitCommunityForecast();
 
   const baseProbs = getProbs(activeForecast);
+
+  const total = Object.values(estimates).reduce((a, b) => a + b, 0);
+  const remainder = parseFloat((100 - total).toFixed(1));
 
   const chartData = useMemo(() => {
     if (!data?.aggregated) return [];
     return CATEGORIES.map(cat => ({
       name: cat.shortLabel,
       ai: parseFloat((baseProbs[cat.key] ?? 0).toFixed(1)),
-      community: parseFloat(((data.aggregated[cat.key] ?? 0) * 100).toFixed(1)),
+      community: parseFloat((data.aggregated[cat.key] ?? 0).toFixed(1)),
       color: cat.color,
     }));
   }, [data, baseProbs]);
+
+  const handleEstimateChange = (key: string, val: number) => {
+    setEstimates(prev => ({ ...prev, [key]: Math.max(0, Math.min(100, val)) }));
+  };
+
+  const handleSubmit = async () => {
+    if (Math.abs(remainder) > 0.5) return;
+    try {
+      await mutateAsync({ data: { sessionId, timeHorizon: horizon, estimates } });
+      setSubmitStatus("success");
+      void refetch();
+      setTimeout(() => { setSubmitStatus("idle"); setTab("results"); }, 2500);
+    } catch {
+      setSubmitStatus("error");
+      setTimeout(() => setSubmitStatus("idle"), 3000);
+    }
+  };
 
   return (
     <Card className="p-6">
@@ -184,34 +212,97 @@ function CommunityForecastPanel({ activeForecast }: { activeForecast: Forecast }
           ))}
         </div>
       </div>
-      <p className="text-xs text-muted-foreground mb-4">
-        {data?.count ? `${data.count} community submission${data.count !== 1 ? "s" : ""}` : "No submissions yet"} · Compare AI vs crowd estimates
-      </p>
-      {isLoading ? (
-        <div className="h-32 animate-pulse bg-secondary/40 rounded-lg" />
-      ) : data && data.count > 0 ? (
-        <div>
-          <div className="flex items-center gap-3 mb-3 text-[10px] text-muted-foreground">
-            <span className="flex items-center gap-1"><span className="w-3 h-2 bg-primary/70 rounded-sm inline-block" />AI Forecast</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-2 bg-emerald-500/70 rounded-sm inline-block" />Community Avg</span>
+
+      <div className="flex gap-3 mb-4 border-b border-border/30">
+        {(["results", "submit"] as const).map(t => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`pb-2 text-xs font-medium capitalize border-b-2 transition-colors -mb-px ${t === tab ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+            aria-selected={t === tab}
+          >
+            {t === "results" ? `Results (${data?.count ?? 0})` : "Submit Your Forecast"}
+          </button>
+        ))}
+      </div>
+
+      {tab === "results" ? (
+        isLoading ? (
+          <div className="h-32 animate-pulse bg-secondary/40 rounded-lg" />
+        ) : data && data.count > 0 ? (
+          <div>
+            <div className="flex items-center gap-3 mb-3 text-[10px] text-muted-foreground">
+              <span className="flex items-center gap-1"><span className="w-3 h-2 bg-primary/70 rounded-sm inline-block" />AI Forecast</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-2 bg-emerald-500/70 rounded-sm inline-block" />Community Avg ({data.count} submissions)</span>
+            </div>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={chartData} margin={{ top: 0, right: 4, left: 0, bottom: 0 }}>
+                <XAxis dataKey="name" tick={{ fontSize: 9, fill: "#94a3b8" }} />
+                <YAxis tickFormatter={v => `${v}%`} tick={{ fontSize: 9, fill: "#94a3b8" }} width={32} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', fontSize: 11 }}
+                  formatter={(v: number, name: string) => [`${v}%`, name === "ai" ? "AI Forecast" : "Community Avg"]}
+                />
+                <Bar dataKey="ai" fill="#6366f1" radius={[2, 2, 0, 0]} name="ai" />
+                <Bar dataKey="community" fill="#10b981" radius={[2, 2, 0, 0]} name="community" />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={chartData} margin={{ top: 0, right: 4, left: 0, bottom: 0 }}>
-              <XAxis dataKey="name" tick={{ fontSize: 9, fill: "#94a3b8" }} />
-              <YAxis tickFormatter={v => `${v}%`} tick={{ fontSize: 9, fill: "#94a3b8" }} width={32} />
-              <Tooltip
-                contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', fontSize: 11 }}
-                formatter={(v: number, name: string) => [`${v}%`, name === "ai" ? "AI Forecast" : "Community Avg"]}
-              />
-              <Bar dataKey="ai" fill="#6366f1" radius={[2, 2, 0, 0]} name="ai" />
-              <Bar dataKey="community" fill="#10b981" radius={[2, 2, 0, 0]} name="community" />
-            </BarChart>
-          </ResponsiveContainer>
+        ) : (
+          <div className="h-24 flex flex-col items-center justify-center border border-border/20 rounded-lg bg-secondary/20 gap-2">
+            <p className="text-xs text-muted-foreground">No community forecasts yet for {horizon}.</p>
+            <button onClick={() => setTab("submit")} className="text-xs text-primary hover:underline">Be the first to submit →</button>
+          </div>
+        )
+      ) : submitStatus === "success" ? (
+        <div className="h-32 flex flex-col items-center justify-center gap-2 text-emerald-400">
+          <CheckCircle2 className="w-8 h-8" />
+          <p className="text-sm font-medium">Forecast submitted! Thank you.</p>
         </div>
       ) : (
-        <div className="h-24 flex flex-col items-center justify-center border border-border/20 rounded-lg bg-secondary/20 gap-2">
-          <p className="text-xs text-muted-foreground">No community forecasts submitted yet for {horizon}.</p>
-          <a href="/submit" className="text-xs text-primary hover:underline">Submit a proposal →</a>
+        <div className="space-y-2">
+          <div className={`flex items-center justify-between mb-2 text-xs ${Math.abs(remainder) <= 0.5 ? "text-emerald-400" : "text-amber-400"}`}>
+            <span>Allocate probability across 8 outcomes</span>
+            <span className="font-mono font-bold">{total.toFixed(1)}% / 100%</span>
+          </div>
+          {CATEGORIES.map(cat => (
+            <div key={cat.key} className="flex items-center gap-2">
+              <span className="text-[9px] w-16 text-muted-foreground shrink-0 truncate">{cat.shortLabel}</span>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={0.5}
+                value={estimates[cat.key] ?? 0}
+                onChange={e => handleEstimateChange(cat.key, parseFloat(e.target.value))}
+                className="flex-1 h-1.5 accent-primary"
+                aria-label={`${cat.label} probability`}
+              />
+              <input
+                type="number"
+                min={0}
+                max={100}
+                step={0.5}
+                value={estimates[cat.key] ?? 0}
+                onChange={e => handleEstimateChange(cat.key, parseFloat(e.target.value) || 0)}
+                className="w-12 text-right text-[10px] bg-secondary/50 border border-border/50 rounded px-1 py-0.5 font-mono focus:outline-none"
+                aria-label={`${cat.label} percentage input`}
+              />
+              <span className="text-[9px] text-muted-foreground w-2">%</span>
+            </div>
+          ))}
+          {submitStatus === "error" && (
+            <p className="text-xs text-red-400 mt-1">Submission failed. Please try again.</p>
+          )}
+          <button
+            onClick={handleSubmit}
+            disabled={isPending || Math.abs(remainder) > 0.5}
+            className="mt-2 w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-primary/20 border border-primary/40 text-primary text-xs font-medium hover:bg-primary/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="Submit community forecast"
+          >
+            {isPending ? <span className="w-3 h-3 rounded-full border-2 border-current border-t-transparent animate-spin" /> : <Send className="w-3 h-3" />}
+            {Math.abs(remainder) > 0.5 ? `Adjust to reach 100% (${remainder > 0 ? "+" : ""}${remainder.toFixed(1)}%)` : "Submit Forecast"}
+          </button>
         </div>
       )}
     </Card>

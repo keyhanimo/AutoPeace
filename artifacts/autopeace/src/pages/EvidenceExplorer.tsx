@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { useListEvidence, type EvidenceItem } from "@workspace/api-client-react";
 import { Card, PageHeader, Badge, Button } from "@/components/ui";
-import { Search, Filter, ExternalLink, ChevronDown, ChevronUp, Newspaper, Shield, DollarSign, Heart, Globe } from "lucide-react";
+import { Search, Filter, ExternalLink, ChevronDown, ChevronUp, Newspaper, Shield, DollarSign, Heart, Globe, Calendar, Users } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const TYPE_ICONS: Record<string, React.ReactNode> = {
@@ -18,12 +18,22 @@ const TYPE_COLORS: Record<string, string> = {
   humanitarian: "border-emerald-700/40 text-emerald-400 bg-emerald-950/20",
 };
 
-function EvidenceCard({ item }: { item: EvidenceItem }) {
+function parseStakeholderRelevance(raw: unknown): string[] {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.filter(x => typeof x === "string");
+  if (typeof raw === "string") {
+    try { const parsed = JSON.parse(raw); return Array.isArray(parsed) ? parsed : []; } catch { return []; }
+  }
+  return [];
+}
+
+function EvidenceCard({ item, isHighInfluence }: { item: EvidenceItem; isHighInfluence?: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const typeColor = TYPE_COLORS[item.evidenceType] ?? "border-border text-muted-foreground";
+  const stakeholders = parseStakeholderRelevance(item.stakeholderRelevance);
 
   return (
-    <Card className="p-4 hover:border-border/70 transition-colors">
+    <Card className={`p-4 hover:border-border/70 transition-colors ${isHighInfluence ? "ring-1 ring-amber-500/30 border-amber-700/30" : ""}`}>
       <div className="flex items-start gap-3">
         <div className="shrink-0 mt-0.5 text-muted-foreground">
           {TYPE_ICONS[item.evidenceType] ?? <Newspaper className="w-3 h-3" />}
@@ -31,6 +41,9 @@ function EvidenceCard({ item }: { item: EvidenceItem }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-start gap-2 flex-wrap mb-1">
             <h3 className="text-sm font-medium leading-tight">{item.title}</h3>
+            {isHighInfluence && (
+              <Badge variant="outline" className="text-[8px] px-1 py-0 border-amber-500/40 text-amber-400">★ High Influence</Badge>
+            )}
           </div>
           <div className="flex flex-wrap gap-2 mb-2">
             <Badge variant="outline" className={`text-[9px] px-1.5 py-0 ${typeColor}`}>
@@ -45,6 +58,14 @@ function EvidenceCard({ item }: { item: EvidenceItem }) {
               </span>
             )}
           </div>
+          {stakeholders.length > 0 && (
+            <div className="flex flex-wrap gap-1 mb-2" aria-label="Relevant stakeholders">
+              <Users className="w-3 h-3 text-muted-foreground self-center shrink-0" />
+              {stakeholders.map(s => (
+                <span key={s} className="text-[9px] px-1.5 py-0.5 rounded bg-secondary/60 text-muted-foreground border border-border/30">{s}</span>
+              ))}
+            </div>
+          )}
           <AnimatePresence>
             {expanded && (
               <motion.div
@@ -90,6 +111,10 @@ export default function EvidenceExplorer() {
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [filterSource, setFilterSource] = useState<string>("all");
+  const [filterStakeholder, setFilterStakeholder] = useState<string>("all");
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
+  const [sortBy, setSortBy] = useState<"date" | "influence">("date");
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 20;
 
@@ -98,16 +123,42 @@ export default function EvidenceExplorer() {
 
   const sources = useMemo(() => {
     const seen = new Set<string>();
+    for (const item of items) { if (item.source) seen.add(item.source); }
+    return Array.from(seen).sort();
+  }, [items]);
+
+  const allStakeholders = useMemo(() => {
+    const seen = new Set<string>();
     for (const item of items) {
-      if (item.source) seen.add(item.source);
+      for (const s of parseStakeholderRelevance(item.stakeholderRelevance)) seen.add(s);
     }
     return Array.from(seen).sort();
   }, [items]);
 
+  const highInfluenceIds = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const item of items) {
+      const count = parseStakeholderRelevance(item.stakeholderRelevance).length;
+      if (item.id) counts.set(item.id, count);
+    }
+    const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+    return new Set(sorted.slice(0, Math.ceil(sorted.length * 0.25)).map(([id]) => id));
+  }, [items]);
+
   const filtered = useMemo(() => {
-    return items.filter(item => {
+    let result = items.filter(item => {
       if (filterType !== "all" && item.evidenceType !== filterType) return false;
       if (filterSource !== "all" && item.source !== filterSource) return false;
+      if (filterStakeholder !== "all") {
+        const relevant = parseStakeholderRelevance(item.stakeholderRelevance);
+        if (!relevant.includes(filterStakeholder)) return false;
+      }
+      if (dateFrom && item.publishedAt) {
+        if (new Date(item.publishedAt) < new Date(dateFrom)) return false;
+      }
+      if (dateTo && item.publishedAt) {
+        if (new Date(item.publishedAt) > new Date(dateTo + "T23:59:59")) return false;
+      }
       if (search) {
         const q = search.toLowerCase();
         if (
@@ -118,7 +169,21 @@ export default function EvidenceExplorer() {
       }
       return true;
     });
-  }, [items, filterType, filterSource, search]);
+    if (sortBy === "influence") {
+      result = [...result].sort((a, b) => {
+        const aLen = parseStakeholderRelevance(a.stakeholderRelevance).length;
+        const bLen = parseStakeholderRelevance(b.stakeholderRelevance).length;
+        return bLen - aLen;
+      });
+    } else {
+      result = [...result].sort((a, b) => {
+        const at = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
+        const bt = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
+        return bt - at;
+      });
+    }
+    return result;
+  }, [items, filterType, filterSource, filterStakeholder, dateFrom, dateTo, search, sortBy]);
 
   const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
@@ -126,6 +191,9 @@ export default function EvidenceExplorer() {
   const handleSearch = (v: string) => { setSearch(v); setPage(0); };
   const handleType = (v: string) => { setFilterType(v); setPage(0); };
   const handleSource = (v: string) => { setFilterSource(v); setPage(0); };
+  const handleStakeholder = (v: string) => { setFilterStakeholder(v); setPage(0); };
+  const handleDateFrom = (v: string) => { setDateFrom(v); setPage(0); };
+  const handleDateTo = (v: string) => { setDateTo(v); setPage(0); };
 
   const typeCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -157,8 +225,8 @@ export default function EvidenceExplorer() {
         </Badge>
       </PageHeader>
 
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
+      <div className="flex flex-col gap-3">
+        <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
           <input
             type="text"
@@ -190,6 +258,52 @@ export default function EvidenceExplorer() {
             <option value="all">All sources</option>
             {sources.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
+          {allStakeholders.length > 0 && (
+            <select
+              value={filterStakeholder}
+              onChange={e => handleStakeholder(e.target.value)}
+              className="px-3 py-2 rounded-xl bg-secondary/50 border border-border/50 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+              aria-label="Filter by stakeholder relevance"
+            >
+              <option value="all">All stakeholders</option>
+              {allStakeholders.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          )}
+          <select
+            value={sortBy}
+            onChange={e => { setSortBy(e.target.value as "date" | "influence"); setPage(0); }}
+            className="px-3 py-2 rounded-xl bg-secondary/50 border border-border/50 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+            aria-label="Sort evidence items"
+          >
+            <option value="date">Sort: Newest</option>
+            <option value="influence">Sort: Most Influential</option>
+          </select>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground">
+          <Calendar className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+          <span>Date range:</span>
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={e => handleDateFrom(e.target.value)}
+            className="px-2 py-1 rounded-lg bg-secondary/50 border border-border/50 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+            aria-label="Filter from date"
+          />
+          <span>to</span>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={e => handleDateTo(e.target.value)}
+            className="px-2 py-1 rounded-lg bg-secondary/50 border border-border/50 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+            aria-label="Filter to date"
+          />
+          {(dateFrom || dateTo) && (
+            <button
+              onClick={() => { handleDateFrom(""); handleDateTo(""); }}
+              className="text-primary hover:underline"
+              aria-label="Clear date range"
+            >Clear</button>
+          )}
         </div>
       </div>
 
@@ -220,7 +334,7 @@ export default function EvidenceExplorer() {
           </div>
           <div className="space-y-3">
             {paginated.map(item => (
-              <EvidenceCard key={item.id} item={item} />
+              <EvidenceCard key={item.id} item={item} isHighInfluence={item.id ? highInfluenceIds.has(item.id) : false} />
             ))}
           </div>
           {totalPages > 1 && (

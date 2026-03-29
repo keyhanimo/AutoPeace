@@ -1,11 +1,15 @@
-import React, { useState } from "react";
+import React, { useState, Suspense, lazy } from "react";
 import { Card, PageHeader, Badge } from "@/components/ui";
 import { Code2, Copy, Check, ExternalLink, ChevronDown, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
+const SwaggerWrapper = lazy(() => import("@/components/SwaggerWrapper"));
+
 const BASE = typeof window !== "undefined"
   ? window.location.origin + import.meta.env.BASE_URL.replace(/\/$/, "")
   : "";
+
+const SPEC_URL = `${BASE}/api/openapi.yaml`;
 
 type Endpoint = {
   method: "GET" | "POST" | "PATCH" | "DELETE";
@@ -220,6 +224,7 @@ function EndpointCard({ ep }: { ep: Endpoint }) {
 }
 
 export default function ApiDocs() {
+  const [view, setView] = useState<"reference" | "interactive">("reference");
   const [activeTag, setActiveTag] = useState("all");
   const filtered = activeTag === "all" ? ENDPOINTS : ENDPOINTS.filter(e => e.tags.includes(activeTag));
 
@@ -230,16 +235,37 @@ export default function ApiDocs() {
         description="All public API endpoints are available via REST. No authentication is required for read-only endpoints."
       >
         <a
-          href={`${BASE}/api/downloads/index`}
+          href={SPEC_URL}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-1.5 text-xs text-primary hover:underline"
-          aria-label="View full OpenAPI spec in new tab"
+          aria-label="View raw OpenAPI YAML spec in new tab"
         >
-          <ExternalLink className="w-3 h-3" /> View raw OpenAPI spec
+          <ExternalLink className="w-3 h-3" /> Raw OpenAPI spec (YAML)
         </a>
       </PageHeader>
 
+      <div className="flex gap-1 p-1 bg-secondary/40 rounded-xl w-fit">
+        {(["reference", "interactive"] as const).map(v => (
+          <button
+            key={v}
+            onClick={() => setView(v)}
+            className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all ${v === view ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+            aria-pressed={v === view}
+          >
+            {v === "reference" ? "Quick Reference" : "Interactive Explorer"}
+          </button>
+        ))}
+      </div>
+
+      {view === "interactive" ? (
+        <div className="rounded-xl overflow-hidden border border-border/40 bg-white" style={{ minHeight: 600 }}>
+          <Suspense fallback={<div className="h-64 flex items-center justify-center text-sm text-gray-400">Loading Swagger UI…</div>}>
+            <SwaggerWrapper url={SPEC_URL} />
+          </Suspense>
+        </div>
+      ) : (
+        <>
       <Card className="p-4 border-blue-700/20 bg-blue-950/10">
         <div className="flex items-start gap-3">
           <Code2 className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" aria-hidden="true" />
@@ -278,6 +304,8 @@ export default function ApiDocs() {
       <div className="space-y-2">
         {filtered.map(ep => <EndpointCard key={`${ep.method}-${ep.path}`} ep={ep} />)}
       </div>
+        </>
+      )}
     </div>
   );
 }

@@ -5,6 +5,8 @@ import {
   stakeholdersTable, evidenceItemsTable, costOfWarTable, changelogEntriesTable,
 } from "@workspace/db/schema";
 import { desc } from "drizzle-orm";
+import fs from "fs";
+import path from "path";
 
 const router = Router();
 
@@ -157,6 +159,18 @@ router.get("/downloads/costs.json", async (req, res) => {
     res.json({ data, exportedAt: new Date().toISOString(), count: data.length });
   } catch (err) {
     res.status(500).json({ error: String(err) });
+  }
+});
+
+router.get("/openapi.yaml", (_req, res) => {
+  try {
+    const specPath = path.join(process.cwd(), "lib", "api-spec", "openapi.yaml");
+    const content = fs.readFileSync(specPath, "utf-8");
+    res.setHeader("Content-Type", "text/yaml; charset=utf-8");
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.send(content);
+  } catch {
+    res.status(404).json({ error: "OpenAPI spec not found" });
   }
 });
 
