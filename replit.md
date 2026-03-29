@@ -63,6 +63,8 @@ artifacts-monorepo/
 
 Run migrations: `pnpm --filter @workspace/db run push`
 
+**Deployment migration**: The `scripts/post-merge.sh` script runs `pnpm --filter db push` automatically after task agent merges. For fresh deployments, run `pnpm --filter @workspace/db run push` before starting the API server. The server performs a readiness check on startup and logs missing tables as warnings.
+
 ## API Routes (`/api/...`)
 
 ### Public

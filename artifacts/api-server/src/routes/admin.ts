@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { adminConfigTable, evidenceSourcesTable, experimentsTable, cyclesTable } from "@workspace/db/schema";
-import { eq, sum, count } from "drizzle-orm";
+import { eq, sum } from "drizzle-orm";
 import { adminAuth } from "../lib/admin-auth";
 import { runCycleNow, isRunning } from "../services/autoresearch";
+import { UpdateAdminConfigBody, UpdateEvidenceSourceBody } from "@workspace/api-zod";
 
 const router = Router();
 
@@ -48,8 +49,13 @@ router.get("/admin/config", async (_req, res) => {
 });
 
 router.post("/admin/config", async (req, res) => {
+  const parsed = UpdateAdminConfigBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request body", issues: parsed.error.issues });
+    return;
+  }
   try {
-    const updates = req.body as Record<string, unknown>;
+    const updates = parsed.data as Record<string, unknown>;
     for (const [key, value] of Object.entries(updates)) {
       if (value === undefined || value === null) continue;
       const strValue = String(value);
@@ -90,9 +96,14 @@ router.get("/admin/sources", async (_req, res) => {
 });
 
 router.patch("/admin/sources/:id", async (req, res) => {
+  const bodyParsed = UpdateEvidenceSourceBody.safeParse(req.body);
+  if (!bodyParsed.success) {
+    res.status(400).json({ error: "Invalid request body", issues: bodyParsed.error.issues });
+    return;
+  }
   try {
     const { id } = req.params;
-    const update = req.body as { isEnabled?: boolean; fetchFrequencyMinutes?: number };
+    const update = bodyParsed.data;
     const [existing] = await db.select().from(evidenceSourcesTable).where(eq(evidenceSourcesTable.id, id!));
     if (!existing) {
       res.status(404).json({ error: "Not found" });
