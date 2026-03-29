@@ -1,6 +1,6 @@
 import { db } from "@workspace/db";
 import { whatIfScenariosTable, forecastsTable, proposalsTable } from "@workspace/db/schema";
-import { desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 
 const OUTCOMES = [
   "continued_conflict",
@@ -104,7 +104,7 @@ function normalizeToSum(probs: Record<string, number>): Record<string, number> {
   if (total <= 0) return probs;
   const normalized: Record<string, number> = {};
   for (const key of OUTCOMES) {
-    normalized[key] = Math.round(((probs[key] ?? 0) / total) * 1000) / 10;
+    normalized[key] = (probs[key] ?? 0) / total;
   }
   return normalized;
 }
@@ -120,7 +120,7 @@ function applyScenario(base: Record<string, number>, multipliers: Record<string,
   const absolute = normalizeToSum(raw);
   const deltas: Record<string, number> = {};
   for (const key of OUTCOMES) {
-    deltas[key] = Math.round(((absolute[key] ?? 0) - (base[key] ?? 0)) * 10) / 10;
+    deltas[key] = (absolute[key] ?? 0) - (base[key] ?? 0);
   }
   return { absolute, deltas };
 }
@@ -188,7 +188,13 @@ function computeProposalImpacts(
 }
 
 export async function computeAndStoreWhatIfScenarios(cycleId?: string): Promise<void> {
-  const latestForecasts = await db.select()
+  const preferred = await db.select()
+    .from(forecastsTable)
+    .where(eq(forecastsTable.timeHorizon, "90d"))
+    .orderBy(desc(forecastsTable.createdAt))
+    .limit(1);
+
+  const latestForecasts = preferred.length > 0 ? preferred : await db.select()
     .from(forecastsTable)
     .orderBy(desc(forecastsTable.createdAt))
     .limit(1);

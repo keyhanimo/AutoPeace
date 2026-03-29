@@ -163,7 +163,7 @@ type WhatIfScenario = {
   proposalImpacts?: WhatIfImpact[];
 };
 
-function DealWhatIfPanel({ currentDealName }: { currentDealName?: string }) {
+function DealWhatIfPanel(_props: { currentDealName?: string }) {
   const { data, isLoading } = useQuery<{ data: WhatIfScenario[] }>({
     queryKey: ["scenarios"],
     queryFn: async () => {
@@ -236,9 +236,7 @@ function DealWhatIfPanel({ currentDealName }: { currentDealName?: string }) {
             .map(impact => (
               <div
                 key={impact.proposalId}
-                className={`flex items-center justify-between p-2 rounded border text-xs ${
-                  impact.proposalId === currentDealName ? "border-primary/50 bg-primary/5" : "border-border/40"
-                }`}
+                className="flex items-center justify-between p-2 rounded border border-border/40 text-xs"
               >
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{impact.proposalName}</p>
