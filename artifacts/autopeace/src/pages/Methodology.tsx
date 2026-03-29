@@ -24,14 +24,14 @@ export default function Methodology() {
             We utilize a rigid taxonomy of 8 mutually exclusive and collectively exhaustive (MECE) states:
           </p>
           <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm not-prose list-none p-0">
-            <li className="bg-card p-3 rounded-lg border border-border"><span className="text-red-500 font-bold">1. Continued Conflict:</span> Status quo friction without major escalation.</li>
-            <li className="bg-card p-3 rounded-lg border border-border"><span className="text-amber-500 font-bold">2. Informal De-escalation:</span> Unspoken throttling of hostilities.</li>
-            <li className="bg-card p-3 rounded-lg border border-border"><span className="text-amber-300 font-bold">3. Limited Ceasefire:</span> Temporary, tactical pause in kinetic action.</li>
-            <li className="bg-card p-3 rounded-lg border border-border"><span className="text-emerald-400 font-bold">4. Humanitarian Mini-Deal:</span> Narrow agreements on hostage or aid access.</li>
-            <li className="bg-card p-3 rounded-lg border border-border"><span className="text-emerald-500 font-bold">5. Sanctions Partial Deal:</span> Economic relief in exchange for specific concessions.</li>
-            <li className="bg-card p-3 rounded-lg border border-border"><span className="text-emerald-600 font-bold">6. Regional Framework:</span> Broad multi-lateral security architecture.</li>
-            <li className="bg-card p-3 rounded-lg border border-border"><span className="text-sky-500 font-bold">7. Broad Settlement:</span> Comprehensive, enduring peace treaty.</li>
-            <li className="bg-card p-3 rounded-lg border border-border"><span className="text-red-800 font-bold">8. Major Escalation:</span> Severe expansion of kinetic theater.</li>
+            <li className="bg-card p-3 border border-border border-l-2 border-l-red-500"><span className="text-red-500 font-bold">1. Continued Conflict:</span> Status quo friction without major escalation.</li>
+            <li className="bg-card p-3 border border-border border-l-2 border-l-amber-500"><span className="text-amber-500 font-bold">2. Informal De-escalation:</span> Unspoken throttling of hostilities.</li>
+            <li className="bg-card p-3 border border-border border-l-2 border-l-amber-300"><span className="text-amber-300 font-bold">3. Limited Ceasefire:</span> Temporary, tactical pause in kinetic action.</li>
+            <li className="bg-card p-3 border border-border border-l-2 border-l-emerald-400"><span className="text-emerald-400 font-bold">4. Humanitarian Mini-Deal:</span> Narrow agreements on hostage or aid access.</li>
+            <li className="bg-card p-3 border border-border border-l-2 border-l-emerald-500"><span className="text-emerald-500 font-bold">5. Sanctions Partial Deal:</span> Economic relief in exchange for specific concessions.</li>
+            <li className="bg-card p-3 border border-border border-l-2 border-l-emerald-600"><span className="text-emerald-600 font-bold">6. Regional Framework:</span> Broad multi-lateral security architecture.</li>
+            <li className="bg-card p-3 border border-border border-l-2 border-l-sky-500"><span className="text-sky-500 font-bold">7. Broad Settlement:</span> Comprehensive, enduring peace treaty.</li>
+            <li className="bg-card p-3 border border-border border-l-2 border-l-red-800"><span className="text-red-800 font-bold">8. Major Escalation:</span> Severe expansion of kinetic theater.</li>
           </ul>
         </Card>
 
@@ -70,13 +70,13 @@ export default function Methodology() {
           {stakeholdersLoading ? (
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
               {Array.from({ length: 20 }).map((_, i) => (
-                <div key={i} className="h-20 bg-card rounded-xl animate-pulse" />
+                <div key={i} className="h-20 bg-card animate-pulse" />
               ))}
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
               {stakeholders.map(s => (
-                <div key={s.id} className="bg-card border border-border rounded-xl p-3 flex flex-col items-center text-center gap-1 hover:border-primary/50 transition-colors">
+                <div key={s.id} className="bg-card border border-border p-3 flex flex-col items-center text-center gap-1 hover:border-primary/50 transition-colors">
                   <span className="text-2xl">{s.flag || '🌍'}</span>
                   <span className="text-xs font-semibold text-foreground truncate w-full">{s.name}</span>
                   <Badge variant="outline" className="text-[9px] px-1 py-0 leading-4 capitalize truncate max-w-full">
@@ -113,7 +113,7 @@ export default function Methodology() {
               href="https://github.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border hover:border-primary/50 hover:bg-secondary/50 transition-colors text-sm text-foreground"
+              className="flex items-center gap-2 px-4 py-2 border border-border hover:border-primary/50 hover:bg-secondary/50 transition-colors text-sm text-foreground"
             >
               <ExternalLink className="w-4 h-4 text-primary" /> View Source on GitHub
             </a>
@@ -121,7 +121,7 @@ export default function Methodology() {
               href="https://acleddata.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border hover:border-primary/50 hover:bg-secondary/50 transition-colors text-sm text-foreground"
+              className="flex items-center gap-2 px-4 py-2 border border-border hover:border-primary/50 hover:bg-secondary/50 transition-colors text-sm text-foreground"
             >
               <ExternalLink className="w-4 h-4 text-primary" /> ACLED Data
             </a>
@@ -129,7 +129,7 @@ export default function Methodology() {
               href="https://gdeltproject.org"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border hover:border-primary/50 hover:bg-secondary/50 transition-colors text-sm text-foreground"
+              className="flex items-center gap-2 px-4 py-2 border border-border hover:border-primary/50 hover:bg-secondary/50 transition-colors text-sm text-foreground"
             >
               <ExternalLink className="w-4 h-4 text-primary" /> GDELT Project
             </a>

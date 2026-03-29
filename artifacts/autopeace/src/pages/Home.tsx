@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Activity, Zap, BarChart, Database, DollarSign, Handshake, Swords } from "lucide-react";
+import { ArrowRight, Crosshair, Cpu, TrendingDown, Gauge, DollarSign, Handshake, Swords } from "lucide-react";
 import { useGetExperimentStats, useGetLatestForecasts, useListCosts, useGetCurrentDeal, type Forecast, type DealScores } from "@workspace/api-client-react";
 import { Card, Button, Badge } from "@/components/ui";
 import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis } from "recharts";
@@ -53,7 +53,7 @@ function ConflictMap({
 }) {
   const hasAcceptance = acceptanceMap && Object.keys(acceptanceMap).length > 0;
   return (
-    <div className="relative w-full rounded-2xl overflow-hidden border border-border/50 bg-card/50 aspect-[2/1]">
+    <div className="relative w-full overflow-hidden border border-border/50 bg-card/50 aspect-[2/1] rounded-sm">
       <svg viewBox="0 0 100 60" className="w-full h-full" style={{ minHeight: 180 }}>
         <defs>
           <radialGradient id="map-bg" cx="50%" cy="50%" r="70%">
@@ -104,7 +104,7 @@ function ConflictMap({
           );
         })}
       </svg>
-      <div className="absolute bottom-2 left-3 text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
+      <div className="absolute bottom-2 left-3 text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">
         {hasAcceptance ? "Deal Acceptance States" : "Conflict Network"}
       </div>
       {hasAcceptance && (
@@ -136,18 +136,18 @@ function DealComparisonStrip({ deal }: { deal: { scores: unknown; stakeholderEva
 
   return (
     <div className="grid grid-cols-3 gap-2 mt-3">
-      <div className="bg-secondary/30 rounded-xl p-3 text-center">
-        <div className="text-[9px] text-muted-foreground uppercase tracking-widest mb-1">AI Deal Score</div>
+      <div className="bg-secondary/30 rounded-sm p-3 text-center border-l-2 border-l-amber-500">
+        <div className="text-[9px] text-muted-foreground uppercase tracking-widest mb-1 font-bold">AI Deal Score</div>
         <div className="text-xl font-display font-bold text-amber-400">{((scores?.composite ?? 0) * 100).toFixed(0)}%</div>
         <div className="text-[9px] text-muted-foreground capitalize mt-0.5">{deal.architecture}</div>
       </div>
-      <div className="bg-secondary/30 rounded-xl p-3 text-center">
-        <div className="text-[9px] text-muted-foreground uppercase tracking-widest mb-1">🇺🇸 US Position</div>
+      <div className="bg-secondary/30 rounded-sm p-3 text-center border-l-2 border-l-blue-500">
+        <div className="text-[9px] text-muted-foreground uppercase tracking-widest mb-1 font-bold">🇺🇸 US Position</div>
         {verdictBadge(usVerdict?.verdict)}
         <div className="text-[9px] text-muted-foreground mt-0.5">Stakeholder eval</div>
       </div>
-      <div className="bg-secondary/30 rounded-xl p-3 text-center">
-        <div className="text-[9px] text-muted-foreground uppercase tracking-widest mb-1">🇮🇷 Iran Position</div>
+      <div className="bg-secondary/30 rounded-sm p-3 text-center border-l-2 border-l-red-500">
+        <div className="text-[9px] text-muted-foreground uppercase tracking-widest mb-1 font-bold">🇮🇷 Iran Position</div>
         {verdictBadge(iranVerdict?.verdict)}
         <div className="text-[9px] text-muted-foreground mt-0.5">Stakeholder eval</div>
       </div>
@@ -181,8 +181,8 @@ function LiveTicker() {
   }, []);
 
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 border border-primary/20 rounded-full text-xs text-primary font-mono w-full">
-      <span className="w-2 h-2 bg-primary rounded-full animate-pulse shrink-0" />
+    <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 border-l-2 border-l-primary text-xs text-primary font-mono w-full">
+      <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse shrink-0" />
       <AnimatePresence mode="wait">
         {visible && (
           <motion.span
@@ -224,9 +224,9 @@ function OutcomeSparkbar({ forecasts }: { forecasts: Forecast[] }) {
       {probs.map(([key, val]) => (
         <div key={key} className="flex items-center gap-2">
           <div className="w-20 shrink-0 text-[10px] text-muted-foreground truncate capitalize">{key.replace(/_/g, ' ')}</div>
-          <div className="flex-1 bg-secondary/50 rounded h-1.5 overflow-hidden">
+          <div className="flex-1 bg-secondary/50 h-1.5 overflow-hidden">
             <motion.div
-              className="h-full rounded"
+              className="h-full"
               style={{ backgroundColor: OUTCOME_COLORS[key] ?? '#94a3b8' }}
               initial={{ width: 0 }}
               animate={{ width: `${(val * 100).toFixed(1)}%` }}
@@ -255,9 +255,9 @@ function CostOfWarSection() {
 
   if (isLoading) {
     return (
-      <Card className="p-6 animate-pulse">
-        <div className="h-4 bg-secondary rounded w-48 mb-4" />
-        <div className="h-24 bg-secondary rounded" />
+      <Card className="p-6 animate-pulse rounded-sm">
+        <div className="h-4 bg-secondary w-48 mb-4" />
+        <div className="h-24 bg-secondary" />
       </Card>
     );
   }
@@ -265,12 +265,10 @@ function CostOfWarSection() {
   if (!costs.length) return null;
 
   return (
-    <Card className="p-6 border-red-900/30 bg-gradient-to-br from-card to-red-950/10">
+    <Card className="p-6 border-red-900/30 bg-gradient-to-br from-card to-red-950/10 rounded-sm">
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <div className="p-2 bg-red-500/10 rounded-lg">
-            <DollarSign className="w-5 h-5 text-red-400" />
-          </div>
+        <div className="flex items-center gap-3">
+          <div className="w-0.5 h-8 bg-red-500 rounded-full" />
           <div>
             <h2 className="text-base font-bold">Cost of War</h2>
             <p className="text-xs text-muted-foreground">Economic burden across all tracked stakeholders</p>
@@ -280,7 +278,7 @@ function CostOfWarSection() {
           <div className="text-2xl font-display font-bold text-red-400">
             ${(totalUsd / 1e9).toFixed(1)}B
           </div>
-          <div className="text-[10px] text-muted-foreground">Total Estimated USD</div>
+          <div className="text-[10px] text-muted-foreground uppercase tracking-widest">Total Est. USD</div>
         </div>
       </div>
 
@@ -296,7 +294,7 @@ function CostOfWarSection() {
               </defs>
               <XAxis dataKey="name" hide />
               <Tooltip
-                contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '6px', fontSize: '10px' }}
+                contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '2px', fontSize: '10px' }}
                 formatter={(v: number) => [`$${v.toFixed(1)}B`, 'Econ. Cost']}
               />
               <Area type="monotone" dataKey="value" stroke="#ef4444" strokeWidth={2} fill="url(#costGradient)" dot={false} />
@@ -311,9 +309,9 @@ function CostOfWarSection() {
             return (
               <div key={c.id} className="flex items-center gap-2 text-xs">
                 <span className="w-28 shrink-0 text-muted-foreground truncate font-mono text-[10px]">{c.stakeholderId.replace(/-/g, ' ')}</span>
-                <div className="flex-1 bg-secondary/50 rounded h-1.5 overflow-hidden">
+                <div className="flex-1 bg-secondary/50 h-1.5 overflow-hidden">
                   <motion.div
-                    className="h-full bg-red-500 rounded"
+                    className="h-full bg-red-500"
                     initial={{ width: 0 }}
                     animate={{ width: `${pct.toFixed(1)}%` }}
                     transition={{ duration: 1, ease: "easeOut" }}
@@ -407,20 +405,21 @@ function DealHeroSection() {
 
   return (
     <section>
-      <Card className="p-6 border-amber-700/30 bg-gradient-to-br from-card to-amber-950/10 relative overflow-hidden">
+      <Card className="p-6 border-amber-700/30 bg-gradient-to-br from-card to-amber-950/10 relative overflow-hidden rounded-sm">
         <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
         <div className="flex flex-col sm:flex-row sm:items-start gap-5">
-          <div className="w-12 h-12 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0">
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="w-0.5 h-8 bg-amber-500 rounded-full" />
             <Handshake className="w-6 h-6 text-amber-400" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2 mb-2">
               <h2 className="text-lg font-bold">Latest AI-Designed Peace Deal</h2>
-              <Badge variant="outline" className="border-amber-700/40 text-amber-400 text-[10px] capitalize">
+              <Badge variant="outline" className="border-amber-700/40 text-amber-400 text-[10px] capitalize border-l-2">
                 {deal.architecture} architecture
               </Badge>
               {deal.isPareto && (
-                <Badge variant="outline" className="border-emerald-700/40 text-emerald-400 text-[10px]">
+                <Badge variant="outline" className="border-emerald-700/40 text-emerald-400 text-[10px] border-l-2">
                   Pareto frontier
                 </Badge>
               )}
@@ -432,11 +431,11 @@ function DealHeroSection() {
                 { label: "Domestic", value: domestic, color: "text-purple-400" },
                 { label: "Durability", value: durability, color: "text-pink-400" },
               ].map(({ label, value, color }) => (
-                <div key={label} className="bg-secondary/30 rounded-lg p-2.5 text-center">
+                <div key={label} className="bg-secondary/30 rounded-sm p-2.5 text-center">
                   <div className={`text-xl font-display font-bold ${color}`}>
                     {(value * 100).toFixed(0)}%
                   </div>
-                  <div className="text-[10px] text-muted-foreground mt-0.5">{label}</div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-widest">{label}</div>
                 </div>
               ))}
             </div>
@@ -445,12 +444,12 @@ function DealHeroSection() {
             )}
             <div className="flex flex-wrap gap-3 mt-4">
               <Link to="/deals">
-                <Button size="sm" className="gap-2 bg-amber-600 hover:bg-amber-700 text-white border-0">
+                <Button size="sm" className="gap-2 bg-amber-600 hover:bg-amber-700 text-white border-0 rounded-sm">
                   <Handshake className="w-3.5 h-3.5" /> View Deal Dashboard
                 </Button>
               </Link>
               <Link to="/arena">
-                <Button size="sm" variant="outline" className="gap-2">
+                <Button size="sm" variant="outline" className="gap-2 rounded-sm">
                   <Swords className="w-3.5 h-3.5" /> Proposal Arena
                 </Button>
               </Link>
@@ -482,14 +481,14 @@ export default function Home() {
 
   return (
     <div className="space-y-10 animate-fade-in pb-12">
-      <section className="relative rounded-3xl overflow-hidden border border-border/50 bg-card">
+      <section className="relative overflow-hidden border border-border/50 bg-card rounded-sm">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute inset-0 bg-gradient-to-br from-card via-card/90 to-card" />
         </div>
 
         <div className="relative z-10 p-8 md:p-12 grid lg:grid-cols-2 gap-10 items-start">
           <div className="space-y-5">
-            <Badge variant="outline" className="bg-background/50 backdrop-blur-md border-primary/30 text-primary">
+            <Badge variant="outline" className="bg-background/50 backdrop-blur-md border-l-primary/80 text-primary border-l-2">
               Live AI Geopolitical Analysis
             </Badge>
             <h1 className="text-4xl md:text-5xl font-bold font-display leading-tight">
@@ -501,12 +500,12 @@ export default function Home() {
             <LiveTicker />
             <div className="flex flex-wrap gap-4 pt-2">
               <Link to="/forecasts">
-                <Button size="lg" className="w-full sm:w-auto gap-2">
+                <Button size="lg" className="w-full sm:w-auto gap-2 rounded-sm">
                   View Latest Forecasts <ArrowRight className="w-5 h-5" />
                 </Button>
               </Link>
               <Link to="/methodology">
-                <Button variant="outline" size="lg" className="w-full sm:w-auto bg-background/50 backdrop-blur-sm">
+                <Button variant="outline" size="lg" className="w-full sm:w-auto bg-background/50 backdrop-blur-sm rounded-sm">
                   Read Methodology
                 </Button>
               </Link>
@@ -519,7 +518,7 @@ export default function Home() {
               <DealComparisonStrip deal={currentDeal as { scores: unknown; stakeholderEvaluations: unknown; architecture: string }} />
             )}
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-card border border-border rounded-xl p-4 flex flex-col items-center">
+              <div className="bg-card border border-border p-4 flex flex-col items-center rounded-sm">
                 <div className="relative w-24 h-24">
                   <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
                     <circle cx="50" cy="50" r="42" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-border" />
@@ -534,18 +533,17 @@ export default function Home() {
                         initial={{ strokeDashoffset: 2 * Math.PI * 42 }}
                         animate={{ strokeDashoffset: (2 * Math.PI * 42) - (peaceProb / 100) * (2 * Math.PI * 42) }}
                         transition={{ duration: 1.5, ease: "easeOut" }}
-                        strokeLinecap="round"
                       />
                     )}
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <div className="text-lg font-bold">{forecastLoading ? "--" : peaceProb.toFixed(0)}<span className="text-xs">%</span></div>
-                    <div className="text-[9px] text-muted-foreground text-center leading-tight">Peace<br/>Outlook</div>
+                    <div className="text-[9px] text-muted-foreground text-center leading-tight uppercase tracking-wider font-bold">Peace<br/>Outlook</div>
                   </div>
                 </div>
-                <span className="text-[10px] text-muted-foreground mt-1">30d Horizon</span>
+                <span className="text-[10px] text-muted-foreground mt-1 uppercase tracking-widest font-bold">30d Horizon</span>
               </div>
-              <div className="bg-card border border-border rounded-xl p-4">
+              <div className="bg-card border border-border p-4 rounded-sm">
                 {forecastLoading ? <div className="animate-pulse text-xs text-muted-foreground">Loading...</div> : <OutcomeSparkbar forecasts={forecasts} />}
               </div>
             </div>
@@ -554,35 +552,39 @@ export default function Home() {
       </section>
 
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-6">
-          <div className="p-3 bg-primary/10 rounded-xl w-fit mb-4">
-            <Activity className="w-6 h-6 text-primary" />
+        <Card className="p-6 rounded-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-0.5 h-6 bg-primary rounded-full" />
+            <Crosshair className="w-5 h-5 text-primary" />
           </div>
-          <p className="text-sm font-medium text-muted-foreground mb-1">Latest Brier Score</p>
+          <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-widest font-bold">Latest Brier Score</p>
           <h3 className="text-3xl font-display font-bold">{statsLoading ? "--" : stats?.latestBrierScore?.toFixed(3) || "N/A"}</h3>
           <p className="text-xs text-muted-foreground mt-2">Lower is better (0 = perfect)</p>
         </Card>
-        <Card className="p-6">
-          <div className="p-3 bg-blue-500/10 rounded-xl w-fit mb-4">
-            <Database className="w-6 h-6 text-blue-500" />
+        <Card className="p-6 rounded-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-0.5 h-6 bg-blue-500 rounded-full" />
+            <Cpu className="w-5 h-5 text-blue-500" />
           </div>
-          <p className="text-sm font-medium text-muted-foreground mb-1">Research Cycles</p>
+          <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-widest font-bold">Research Cycles</p>
           <h3 className="text-3xl font-display font-bold">{statsLoading ? "--" : stats?.cyclesRun}</h3>
           <p className="text-xs text-muted-foreground mt-2">Continuous loops executed</p>
         </Card>
-        <Card className="p-6">
-          <div className="p-3 bg-emerald-500/10 rounded-xl w-fit mb-4">
-            <Zap className="w-6 h-6 text-emerald-500" />
+        <Card className="p-6 rounded-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-0.5 h-6 bg-emerald-500 rounded-full" />
+            <TrendingDown className="w-5 h-5 text-emerald-500" />
           </div>
-          <p className="text-sm font-medium text-muted-foreground mb-1">Experiments Retained</p>
+          <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-widest font-bold">Experiments Retained</p>
           <h3 className="text-3xl font-display font-bold">{statsLoading ? "--" : `${((stats?.retentionRate || 0) * 100).toFixed(0)}%`}</h3>
           <p className="text-xs text-muted-foreground mt-2">{stats?.retained} of {stats?.total} retained</p>
         </Card>
-        <Card className="p-6">
-          <div className="p-3 bg-purple-500/10 rounded-xl w-fit mb-4">
-            <BarChart className="w-6 h-6 text-purple-500" />
+        <Card className="p-6 rounded-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-0.5 h-6 bg-purple-500 rounded-full" />
+            <Gauge className="w-5 h-5 text-purple-500" />
           </div>
-          <p className="text-sm font-medium text-muted-foreground mb-1">Tokens Processed</p>
+          <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-widest font-bold">Tokens Processed</p>
           <h3 className="text-3xl font-display font-bold">{statsLoading ? "--" : new Intl.NumberFormat('en-US', { notation: "compact", compactDisplay: "short" }).format(stats?.totalTokensConsumed || 0)}</h3>
           <p className="text-xs text-muted-foreground mt-2">Total LLM context analyzed</p>
         </Card>
@@ -596,34 +598,34 @@ export default function Home() {
 
       <section>
         <div className="mb-8">
-          <h2 className="text-2xl font-bold font-display">Intelligence Pipeline</h2>
+          <h2 className="text-2xl font-bold font-display uppercase tracking-tight">Intelligence Pipeline</h2>
           <p className="text-muted-foreground mt-1">How AutoPeace turns global noise into calibrated signal.</p>
         </div>
         <div className="grid md:grid-cols-3 gap-6 relative">
-          <div className="hidden md:block absolute top-12 left-[10%] right-[10%] h-0.5 bg-gradient-to-r from-border via-primary/50 to-border" />
-          <Card className="p-8 relative">
-            <div className="w-12 h-12 rounded-full bg-secondary border-2 border-primary flex items-center justify-center mb-6 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
-              <span className="font-bold text-lg">1</span>
+          <div className="hidden md:block absolute top-12 left-[10%] right-[10%] h-px bg-gradient-to-r from-border via-primary/50 to-border" />
+          <Card className="p-8 relative rounded-sm">
+            <div className="w-10 h-10 border border-primary flex items-center justify-center mb-6 bg-primary/5">
+              <span className="font-bold text-lg text-primary font-mono">1</span>
             </div>
-            <h3 className="text-xl font-bold mb-3">Evidence Ingestion</h3>
+            <h3 className="text-xl font-bold mb-3 uppercase tracking-tight">Evidence Ingestion</h3>
             <p className="text-muted-foreground text-sm">
               We continuously scrape ACLED, GDELT, and global news feeds, filtering for relevance to 28 key stakeholders in the Iran conflict theater.
             </p>
           </Card>
-          <Card className="p-8 relative">
-            <div className="w-12 h-12 rounded-full bg-secondary border-2 border-primary flex items-center justify-center mb-6 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
-              <span className="font-bold text-lg">2</span>
+          <Card className="p-8 relative rounded-sm">
+            <div className="w-10 h-10 border border-primary flex items-center justify-center mb-6 bg-primary/5">
+              <span className="font-bold text-lg text-primary font-mono">2</span>
             </div>
-            <h3 className="text-xl font-bold mb-3">Cross-Model Red Teaming</h3>
+            <h3 className="text-xl font-bold mb-3 uppercase tracking-tight">Cross-Model Red Teaming</h3>
             <p className="text-muted-foreground text-sm">
               Anthropic generates initial Bayesian forecasts. Gemini aggressively critiques them. OpenAI evaluates the critique. The forecast updates.
             </p>
           </Card>
-          <Card className="p-8 relative">
-            <div className="w-12 h-12 rounded-full bg-secondary border-2 border-primary flex items-center justify-center mb-6 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
-              <span className="font-bold text-lg">3</span>
+          <Card className="p-8 relative rounded-sm">
+            <div className="w-10 h-10 border border-primary flex items-center justify-center mb-6 bg-primary/5">
+              <span className="font-bold text-lg text-primary font-mono">3</span>
             </div>
-            <h3 className="text-xl font-bold mb-3">Evolution & Scoring</h3>
+            <h3 className="text-xl font-bold mb-3 uppercase tracking-tight">Evolution & Scoring</h3>
             <p className="text-muted-foreground text-sm">
               The agent mutates its own prompt instructions. If a mutated prompt produces better backtested Brier scores, the new prompt is retained forever.
             </p>

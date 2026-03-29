@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useListExperiments, useGetExperimentStats } from "@workspace/api-client-react";
 import { PageHeader, Card, Badge, Button } from "@/components/ui";
 import { formatUsd } from "@/lib/utils";
-import { CheckCircle2, XCircle, Database, Coins, ChevronLeft, ChevronRight, Search, Filter } from "lucide-react";
+import { CheckCircle2, XCircle, Cpu, Coins, ChevronLeft, ChevronRight, Search, Filter } from "lucide-react";
 
 type TaskFilter = "all" | "A" | "B" | "both";
 type RetainedFilter = "all" | "true" | "false";
@@ -46,8 +46,9 @@ export default function ExperimentLog() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <Card className="p-6 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-            <Database className="w-6 h-6 text-primary" />
+          <div className="flex items-center gap-3">
+            <div className="w-0.5 h-8 bg-primary rounded-full" />
+            <Cpu className="w-6 h-6 text-primary" />
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Total Experiments</p>
@@ -55,7 +56,8 @@ export default function ExperimentLog() {
           </div>
         </Card>
         <Card className="p-6 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-success/10 flex items-center justify-center">
+          <div className="flex items-center gap-3">
+            <div className="w-0.5 h-8 bg-success rounded-full" />
             <CheckCircle2 className="w-6 h-6 text-success" />
           </div>
           <div>
@@ -64,7 +66,8 @@ export default function ExperimentLog() {
           </div>
         </Card>
         <Card className="p-6 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center">
+          <div className="flex items-center gap-3">
+            <div className="w-0.5 h-8 bg-amber-500 rounded-full" />
             <Coins className="w-6 h-6 text-amber-500" />
           </div>
           <div>
@@ -82,7 +85,7 @@ export default function ExperimentLog() {
             placeholder="Search descriptions..."
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(0); }}
-            className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full pl-9 pr-4 py-2 bg-background border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
 
@@ -91,7 +94,7 @@ export default function ExperimentLog() {
           <select
             value={taskFilter}
             onChange={e => { setTaskFilter(e.target.value as TaskFilter); setPage(0); }}
-            className="h-9 rounded-lg border border-border bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            className="h-9 border border-border bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           >
             <option value="all">All Tasks</option>
             <option value="A">Task A (Pessimist)</option>
@@ -101,7 +104,7 @@ export default function ExperimentLog() {
           <select
             value={retainedFilter}
             onChange={e => { setRetainedFilter(e.target.value as RetainedFilter); setPage(0); }}
-            className="h-9 rounded-lg border border-border bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            className="h-9 border border-border bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           >
             <option value="all">All Results</option>
             <option value="true">Retained Only</option>

@@ -280,9 +280,9 @@ export default function AdminPanel() {
     return (
       <div className="min-h-[70vh] flex items-center justify-center animate-fade-in">
         <Card className="w-full max-w-md p-8 relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-destructive via-orange-500 to-primary" />
+          <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-destructive via-orange-500 to-primary" />
           <div className="flex flex-col items-center text-center mb-8">
-            <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mb-4 border border-border">
+            <div className="w-16 h-16 bg-secondary flex items-center justify-center mb-4 border border-border">
               <Lock className="w-8 h-8 text-muted-foreground" />
             </div>
             <h1 className="text-2xl font-display font-bold">Admin Access</h1>
@@ -338,7 +338,7 @@ export default function AdminPanel() {
               <div className="space-y-2">
                 <label className="text-sm font-medium text-muted-foreground">Cadence</label>
                 <select 
-                  className="w-full h-10 rounded-xl border border-border bg-background/50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full h-10 border border-border bg-background/50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   value={formData.cadence ?? 'daily'}
                   onChange={e => setFormData({...formData, cadence: e.target.value as AdminConfigResponse['cadence']})}
                 >
@@ -381,7 +381,7 @@ export default function AdminPanel() {
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input 
                     type="checkbox" 
-                    className="w-5 h-5 rounded border-border text-primary focus:ring-primary/50 bg-background"
+                    className="w-5 h-5 border-border text-primary focus:ring-primary/50 bg-background"
                     checked={formData.isPaused ?? false}
                     onChange={e => setFormData({...formData, isPaused: e.target.checked})}
                   />
@@ -752,7 +752,7 @@ export default function AdminPanel() {
             <h3 className="text-lg font-bold mb-4 border-b border-border/50 pb-2">Evidence Sources</h3>
             <div className="space-y-3">
               {sources?.data?.map(src => (
-                <div key={src.id} className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg border border-border/50">
+                <div key={src.id} className="flex items-center justify-between p-3 bg-secondary/30 border border-border/50">
                   <div className="flex-1 min-w-0 mr-4">
                     <div className="font-medium flex items-center gap-2">
                       {src.name}
@@ -763,7 +763,7 @@ export default function AdminPanel() {
                   <button
                     onClick={() => toggleSource.mutate({ id: src.id, isEnabled: !src.isEnabled })}
                     disabled={toggleSource.isPending}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 ${src.isEnabled ? 'bg-primary/20 text-primary hover:bg-primary/30' : 'bg-secondary text-muted-foreground hover:text-foreground hover:bg-secondary/80'}`}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors shrink-0 ${src.isEnabled ? 'bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20' : 'bg-secondary text-muted-foreground hover:text-foreground hover:bg-secondary/80 border border-border/50'}`}
                     title={src.isEnabled ? "Click to disable" : "Click to enable"}
                   >
                     {src.isEnabled
@@ -906,6 +906,7 @@ export default function AdminPanel() {
 
           <Card className="p-6 bg-gradient-to-br from-card to-card border-primary/20">
             <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+              <div className="w-0.5 h-5 bg-primary rounded-full" />
               <DollarSign className="w-5 h-5 text-primary" /> Cost Summary
             </h3>
             {costSummary ? (

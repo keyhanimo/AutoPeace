@@ -65,18 +65,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex flex-col w-60 border-r border-border/50 bg-card/50 backdrop-blur-sm fixed top-0 left-0 h-full z-40">
         <div className="p-6 border-b border-border/50">
-          <Link to="/" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 rounded-lg bg-primary/20 border border-primary/40 flex items-center justify-center">
-              <Activity className="w-4 h-4 text-primary" />
-            </div>
-            <span className="font-display font-bold text-lg text-foreground group-hover:text-primary transition-colors">
+          <Link to="/" className="flex items-center gap-3 group">
+            <div className="w-1 h-6 bg-primary rounded-full" />
+            <span className="font-display font-bold text-lg text-foreground group-hover:text-primary transition-colors tracking-tight">
               AutoPeace
             </span>
           </Link>
-          <p className="text-xs text-muted-foreground mt-1 ml-10">Iran Conflict Monitor</p>
+          <p className="text-[10px] text-muted-foreground mt-1 ml-4 uppercase tracking-widest font-semibold">Iran Conflict Monitor</p>
         </div>
 
-        <nav className="flex-1 p-4 space-y-4 overflow-y-auto" aria-label="Main navigation">
+        <nav className="flex-1 p-3 space-y-4 overflow-y-auto" aria-label="Main navigation">
           {NAV_GROUPS.map(group => (
             <div key={group.label}>
               <p className="text-[9px] font-semibold text-muted-foreground/60 uppercase tracking-widest px-3 mb-1">
@@ -89,16 +87,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     <Link
                       key={href}
                       to={href}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 group
+                      className={`flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all duration-100 group relative
                         ${active
-                          ? "bg-primary/15 text-primary border border-primary/20"
-                          : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                          ? "text-primary bg-primary/5"
+                          : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
                         }`}
                       aria-current={active ? "page" : undefined}
                     >
+                      {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-r" />}
                       <Icon className={`w-4 h-4 flex-shrink-0 ${active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"}`} />
-                      <span>{label}</span>
-                      {active && <ChevronRight className="w-3 h-3 ml-auto text-primary" aria-hidden="true" />}
+                      <span className="tracking-wide">{label}</span>
+                      {active && <ChevronRight className="w-3 h-3 ml-auto text-primary/60" aria-hidden="true" />}
                     </Link>
                   );
                 })}
@@ -108,8 +107,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className="p-4 border-t border-border/50">
-          <div className="rounded-lg bg-secondary/40 border border-border/30 p-3">
-            <p className="text-xs text-muted-foreground">AI-powered forecasting</p>
+          <div className="bg-secondary/30 border border-border/30 p-3">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">Status</p>
             <p className="text-xs font-medium text-foreground mt-0.5">Updated continuously</p>
           </div>
         </div>
@@ -118,14 +117,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* Mobile Header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 h-14 bg-card/80 backdrop-blur-sm border-b border-border/50 flex items-center px-4 z-50">
         <Link to="/" className="flex items-center gap-2 mr-auto">
-          <div className="w-7 h-7 rounded-md bg-primary/20 border border-primary/40 flex items-center justify-center">
-            <Activity className="w-3.5 h-3.5 text-primary" />
-          </div>
-          <span className="font-display font-bold text-base text-foreground">AutoPeace</span>
+          <div className="w-1 h-5 bg-primary rounded-full" />
+          <span className="font-display font-bold text-base text-foreground tracking-tight">AutoPeace</span>
         </Link>
         <button
           onClick={() => setMobileOpen(v => !v)}
-          className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
+          className="p-2 text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
           aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"}
           aria-expanded={mobileOpen}
         >
@@ -149,10 +146,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
                         key={href}
                         to={href}
                         onClick={() => setMobileOpen(false)}
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
-                          ${active ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"}`}
+                        className={`flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-colors relative
+                          ${active ? "text-primary bg-primary/5" : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"}`}
                         aria-current={active ? "page" : undefined}
                       >
+                        {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-r" />}
                         <Icon className="w-4 h-4 flex-shrink-0" />
                         {label}
                       </Link>

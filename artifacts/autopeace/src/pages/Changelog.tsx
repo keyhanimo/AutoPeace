@@ -90,7 +90,7 @@ export default function Changelog() {
           entries.map((entry) => (
             <div key={entry.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
 
-              <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-background bg-card shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 relative z-10 text-primary">
+              <div className="flex items-center justify-center w-10 h-10 border-2 border-primary/40 bg-card shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 relative z-10 text-primary">
                 <GitCommit className="w-5 h-5" />
               </div>
 

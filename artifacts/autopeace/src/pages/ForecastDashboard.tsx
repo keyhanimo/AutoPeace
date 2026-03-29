@@ -504,14 +504,14 @@ export default function ForecastDashboard() {
   if (isLoading) {
     return (
       <div className="animate-pulse space-y-8">
-        <div className="h-20 bg-card rounded-2xl" />
-        <div className="h-96 bg-card rounded-2xl" />
+        <div className="h-20 bg-card" />
+        <div className="h-96 bg-card" />
       </div>
     );
   }
   if (isError) {
     return (
-      <div className="text-destructive p-8 bg-destructive/10 rounded-2xl border border-destructive/20 text-center">
+      <div className="text-destructive p-8 bg-destructive/10 border border-destructive/20 text-center">
         Failed to load forecasts. Backend may not be fully initialized.
       </div>
     );
@@ -523,12 +523,12 @@ export default function ForecastDashboard() {
         title="Forecast Dashboard"
         description="Live probabilistic outcome models generated via cross-model adversarial debate."
       >
-        <div className="flex bg-secondary p-1 rounded-lg">
+        <div className="flex bg-secondary p-1">
           {TIME_HORIZONS.map(h => (
             <button
               key={h}
               onClick={() => setHorizon(h)}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${horizon === h ? 'bg-background shadow-md text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`px-4 py-1.5 text-sm font-medium transition-all ${horizon === h ? 'bg-background shadow-md text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
             >
               {h.toUpperCase()}
             </button>
@@ -773,10 +773,10 @@ export default function ForecastDashboard() {
                             )}
                             {match && (
                               <div className="flex items-center gap-1.5">
-                                <span className="px-1.5 py-0.5 rounded text-[9px] font-mono uppercase bg-secondary text-muted-foreground border border-border/50">
+                                <span className="px-1.5 py-0.5 text-[9px] font-mono uppercase bg-secondary text-muted-foreground border border-border/50">
                                   {match.source}
                                 </span>
-                                <span className="px-1.5 py-0.5 rounded text-[9px] font-mono uppercase bg-primary/10 text-primary border border-primary/20">
+                                <span className="px-1.5 py-0.5 text-[9px] font-mono uppercase bg-primary/10 text-primary border border-primary/20">
                                   {match.type}
                                 </span>
                               </div>

@@ -7,7 +7,7 @@ export const Card = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivEleme
     <div
       ref={ref}
       className={cn(
-        "bg-card/50 backdrop-blur-xl border border-border/50 rounded-2xl shadow-xl shadow-black/20 overflow-hidden",
+        "bg-card/50 backdrop-blur-xl border border-border/50 rounded-sm shadow-xl shadow-black/20 overflow-hidden",
         className
       )}
       {...props}
@@ -19,22 +19,22 @@ Card.displayName = "Card";
 export const Button = forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'default' | 'outline' | 'ghost' | 'destructive', size?: 'sm' | 'md' | 'lg' }>(
   ({ className, variant = 'default', size = 'md', ...props }, ref) => {
     const variants = {
-      default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20",
-      outline: "border border-border bg-transparent hover:bg-secondary text-foreground",
-      ghost: "bg-transparent hover:bg-secondary text-foreground",
-      destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-lg shadow-destructive/20"
+      default: "bg-primary text-primary-foreground border border-primary/80 shadow-[0_0_12px_rgba(245,158,11,0.15)] hover:bg-primary/90 hover:shadow-[0_0_20px_rgba(245,158,11,0.25)] active:bg-primary/80 active:scale-[0.98]",
+      outline: "border border-border/80 bg-transparent text-foreground hover:border-primary/50 hover:text-primary hover:bg-primary/5 active:bg-primary/10 active:scale-[0.98]",
+      ghost: "bg-transparent border border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/60 active:bg-secondary/80 active:scale-[0.98]",
+      destructive: "bg-destructive/90 text-destructive-foreground border border-destructive/60 hover:bg-destructive hover:border-destructive/80 active:bg-destructive/80 active:scale-[0.98]"
     };
     const sizes = {
-      sm: "px-3 py-1.5 text-sm",
-      md: "px-4 py-2",
-      lg: "px-6 py-3 text-lg font-medium"
+      sm: "px-3 py-1.5 text-xs",
+      md: "px-4 py-2 text-sm",
+      lg: "px-6 py-3 text-base font-medium"
     };
 
     return (
       <button
         ref={ref}
         className={cn(
-          "inline-flex items-center justify-center rounded-xl font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:pointer-events-none active:scale-95",
+          "inline-flex items-center justify-center rounded-sm font-semibold uppercase tracking-wide transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-primary/60 focus:ring-offset-1 focus:ring-offset-background disabled:opacity-40 disabled:pointer-events-none",
           variants[variant],
           sizes[size],
           className
@@ -51,7 +51,7 @@ export const Input = forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTML
     <input
       ref={ref}
       className={cn(
-        "flex h-10 w-full rounded-xl border border-border bg-background/50 px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-50 transition-all",
+        "flex h-10 w-full rounded-sm border border-border bg-background/50 px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-50 transition-all",
         className
       )}
       {...props}
@@ -62,15 +62,15 @@ Input.displayName = "Input";
 
 export const Badge = ({ children, className, variant = 'default' }: { children: React.ReactNode, className?: string, variant?: 'default' | 'success' | 'destructive' | 'warning' | 'outline' }) => {
   const variants = {
-    default: "bg-secondary text-secondary-foreground",
-    success: "bg-success/20 text-success border border-success/30",
-    destructive: "bg-destructive/20 text-destructive border border-destructive/30",
-    warning: "bg-warning/20 text-warning border border-warning/30",
-    outline: "border border-border text-muted-foreground"
+    default: "border-l-primary bg-primary/10 text-primary",
+    success: "border-l-success bg-success/10 text-success",
+    destructive: "border-l-destructive bg-destructive/10 text-destructive",
+    warning: "border-l-warning bg-warning/10 text-warning",
+    outline: "border-l-border bg-transparent text-muted-foreground"
   };
   
   return (
-    <span className={cn("px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider", variants[variant], className)}>
+    <span className={cn("border-l-2 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest inline-flex items-center", variants[variant], className)}>
       {children}
     </span>
   );
