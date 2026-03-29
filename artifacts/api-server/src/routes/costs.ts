@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { costOfWarTable } from "@workspace/db/schema";
 import { eq, desc } from "drizzle-orm";
-import { ListCostsResponse } from "@workspace/api-zod";
+import { GetCostsByStakeholderResponse, ListCostsResponse } from "@workspace/api-zod";
 import { sendValidated } from "../lib/validate-response";
 
 const router = Router();
@@ -50,7 +50,7 @@ router.get("/costs/:stakeholderId", async (req, res) => {
       res.status(404).json({ error: "Not found" });
       return;
     }
-    res.json(row);
+    sendValidated(res, GetCostsByStakeholderResponse, row);
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }

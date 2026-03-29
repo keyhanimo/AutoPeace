@@ -2,7 +2,7 @@ import Parser from "rss-parser";
 import { db } from "@workspace/db";
 import { evidenceItemsTable, evidenceSourcesTable } from "@workspace/db/schema";
 import { eq, and } from "drizzle-orm";
-import { randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 import { logger } from "../lib/logger";
 
 const parser = new Parser({ timeout: 10000 });
@@ -28,6 +28,11 @@ function classifyEvidenceType(title: string, text: string): string {
   return "political";
 }
 
+function stableEvidenceId(source: string, sourceUrl: string, publishedAt: Date): string {
+  const key = `${source}::${sourceUrl}::${publishedAt.toISOString().slice(0, 19)}`;
+  return createHash("sha256").update(key).digest("hex").slice(0, 32);
+}
+
 export async function ingestRSSFeeds(): Promise<number> {
   let ingested = 0;
   const sources = await db.select().from(evidenceSourcesTable)
@@ -44,7 +49,7 @@ export async function ingestRSSFeeds(): Promise<number> {
         if (!isIranRelevant(title + " " + content)) continue;
 
         const publishedAt = item.pubDate ? new Date(item.pubDate) : new Date();
-        const id = randomUUID();
+        const id = stableEvidenceId(source.id, link, publishedAt);
         const evidenceType = classifyEvidenceType(title, content);
 
         try {
@@ -61,7 +66,7 @@ export async function ingestRSSFeeds(): Promise<number> {
           }).onConflictDoNothing();
           ingested++;
         } catch (_insertErr) {
-          // Skip duplicates
+          logger.debug({ id }, "Evidence item already exists (dedup)");
         }
       }
 
@@ -76,22 +81,18 @@ export async function ingestRSSFeeds(): Promise<number> {
   return ingested;
 }
 
-export interface GdeltEvent {
-  eventId: string;
-  date: string;
-  actor1: string;
-  actor2: string;
-  eventCode: string;
-  goldsteinScale: number;
-  numMentions: number;
-  sourceUrl: string;
-  title: string;
-}
-
 export async function ingestGdeltEvents(): Promise<number> {
+  const gdeltSource = await db.select().from(evidenceSourcesTable)
+    .where(and(eq(evidenceSourcesTable.id, "gdelt"), eq(evidenceSourcesTable.isEnabled, true)))
+    .limit(1);
+
+  if (gdeltSource.length === 0) {
+    logger.info("GDELT source disabled or not found, skipping");
+    return 0;
+  }
+
   const today = new Date();
   const dateStr = today.toISOString().slice(0, 10).replace(/-/g, "");
-
   const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=Iran+conflict+nuclear&mode=artlist&maxrecords=25&timespan=1d&format=json&startdatetime=${dateStr}000000&enddatetime=${dateStr}235959`;
 
   let ingested = 0;
@@ -111,10 +112,11 @@ export async function ingestGdeltEvents(): Promise<number> {
       if (!title || !isIranRelevant(title)) continue;
 
       const publishedAt = article.seendate ? new Date(article.seendate.replace(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z/, "$1-$2-$3T$4:$5:$6Z")) : new Date();
+      const id = stableEvidenceId("gdelt", link, publishedAt);
 
       try {
         await db.insert(evidenceItemsTable).values({
-          id: randomUUID(),
+          id,
           source: "gdelt",
           sourceUrl: link,
           publishedAt,
@@ -126,9 +128,13 @@ export async function ingestGdeltEvents(): Promise<number> {
         }).onConflictDoNothing();
         ingested++;
       } catch (_err) {
-        // Skip duplicates
+        logger.debug({ id }, "GDELT item already exists (dedup)");
       }
     }
+
+    await db.update(evidenceSourcesTable)
+      .set({ lastFetchedAt: new Date() })
+      .where(eq(evidenceSourcesTable.id, "gdelt"));
 
     logger.info({ ingested }, "GDELT ingestion complete");
   } catch (err) {
@@ -139,6 +145,15 @@ export async function ingestGdeltEvents(): Promise<number> {
 }
 
 export async function ingestAcledEvents(): Promise<number> {
+  const acledSource = await db.select().from(evidenceSourcesTable)
+    .where(and(eq(evidenceSourcesTable.id, "acled"), eq(evidenceSourcesTable.isEnabled, true)))
+    .limit(1);
+
+  if (acledSource.length === 0) {
+    logger.info("ACLED source disabled or not found, skipping");
+    return 0;
+  }
+
   const acledApiKey = process.env["ACLED_API_KEY"];
   const acledEmail = process.env["ACLED_EMAIL"];
 
@@ -164,13 +179,16 @@ export async function ingestAcledEvents(): Promise<number> {
     for (const event of events) {
       const title = `[ACLED] ${event.event_type ?? "Event"}: ${event.actor1 ?? ""} vs ${event.actor2 ?? ""}`;
       const text = event.notes ?? title;
+      const sourceUrl = `https://acleddata.com/event/${event.event_id_cnty ?? ""}`;
+      const publishedAt = event.event_date ? new Date(event.event_date) : new Date();
+      const id = stableEvidenceId("acled", sourceUrl, publishedAt);
 
       try {
         await db.insert(evidenceItemsTable).values({
-          id: randomUUID(),
+          id,
           source: "acled",
-          sourceUrl: `https://acleddata.com`,
-          publishedAt: event.event_date ? new Date(event.event_date) : new Date(),
+          sourceUrl,
+          publishedAt,
           title,
           text: text.slice(0, 2000),
           evidenceType: classifyEvidenceType(title, text),
@@ -179,9 +197,13 @@ export async function ingestAcledEvents(): Promise<number> {
         }).onConflictDoNothing();
         ingested++;
       } catch (_err) {
-        // Skip duplicates
+        logger.debug({ id }, "ACLED item already exists (dedup)");
       }
     }
+
+    await db.update(evidenceSourcesTable)
+      .set({ lastFetchedAt: new Date() })
+      .where(eq(evidenceSourcesTable.id, "acled"));
 
     logger.info({ ingested }, "ACLED ingestion complete");
   } catch (err) {

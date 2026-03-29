@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { changelogEntriesTable } from "@workspace/db/schema";
 import { eq, desc, count } from "drizzle-orm";
-import { ListChangelogResponse } from "@workspace/api-zod";
+import { GetChangelogEntryResponse, ListChangelogResponse } from "@workspace/api-zod";
 import { sendValidated } from "../lib/validate-response";
 
 const router = Router();
@@ -34,7 +34,7 @@ router.get("/changelog/:id", async (req, res) => {
       res.status(404).json({ error: "Not found" });
       return;
     }
-    res.json(entry);
+    sendValidated(res, GetChangelogEntryResponse, entry);
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }

@@ -42,6 +42,22 @@ const SOURCES = [
     isEnabled: true,
     fetchFrequencyMinutes: 120,
   },
+  {
+    id: "gdelt",
+    name: "GDELT Project (Iran Conflict Articles)",
+    type: "gdelt",
+    url: "https://api.gdeltproject.org/api/v2/doc/doc",
+    isEnabled: true,
+    fetchFrequencyMinutes: 60,
+  },
+  {
+    id: "acled",
+    name: "ACLED Armed Conflict Database",
+    type: "acled",
+    url: "https://api.acleddata.com/acled/read/",
+    isEnabled: true,
+    fetchFrequencyMinutes: 1440,
+  },
 ];
 
 export async function seedSources(): Promise<void> {
