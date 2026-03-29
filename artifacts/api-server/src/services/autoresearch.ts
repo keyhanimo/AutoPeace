@@ -9,7 +9,7 @@ import {
 } from "@workspace/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { logger } from "../lib/logger";
-import { generateForecasts, type GeneratedForecast } from "./forecasting";
+import { generateForecasts, getRecentForecastsForBacktest, type GeneratedForecast } from "./forecasting";
 import { ingestAllSources } from "./evidence-ingestion";
 import {
   parseLLMJson,
@@ -87,6 +87,9 @@ async function runCycleAsync(cycleId: string): Promise<void> {
         probabilities: f.probabilities,
         rationale: f.rationale,
         keyEvidenceItems: f.keyEvidenceItems,
+        brierScore: f.brierScore ?? null,
+        logScore: f.logScore ?? null,
+        calibrationBucket: null,
         isCurrent: true,
       });
     }
@@ -183,7 +186,6 @@ const PROMPT_MUTATIONS: Array<{
   },
 ];
 
-const BACKTEST_WINDOWS = ["30d", "90d", "180d"] as const;
 
 async function runHillClimbing(
   cycleId: string,
@@ -194,8 +196,10 @@ async function runHillClimbing(
     return { experimentsRun: 0, experimentsRetained: 0, totalTokens: 0, totalCost: 0, champion: null };
   }
 
+  const backtestRecords = await getRecentForecastsForBacktest(cycleId);
+
   let champion: GeneratedForecast = primary;
-  let championScore = computeCompositeScore(champion.probabilities, BACKTEST_WINDOWS);
+  let championScore = computeCompositeScore(champion.probabilities, backtestRecords);
 
   let experimentsRun = 0;
   let experimentsRetained = 0;
@@ -225,7 +229,7 @@ async function runHillClimbing(
         logger.warn({ mutation: mutation.name, cycleId }, "Could not parse mutant probabilities — using champion");
       }
 
-      const mutantScore = computeCompositeScore(mutantProbs, BACKTEST_WINDOWS);
+      const mutantScore = computeCompositeScore(mutantProbs, backtestRecords);
 
       const evalResponse = await openai.chat.completions.create({
         model: process.env["OPENAI_MODEL"] || "gpt-4o",
@@ -297,14 +301,20 @@ Respond with JSON: {"recommendation": "retain_challenger" | "retain_champion", "
   return { experimentsRun, experimentsRetained, totalTokens, totalCost, champion };
 }
 
+type BacktestRecord = { timeHorizon: string; probs: ForecastProbabilities; resolvedOutcome: string };
+
 function computeCompositeScore(
   probs: ForecastProbabilities,
-  windows: readonly string[]
+  backtestRecords: BacktestRecord[]
 ): { brier: number; log: number; composite: number } {
-  const dominantOutcome = (Object.entries(probs).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "continued_conflict") as keyof ForecastProbabilities;
+  if (backtestRecords.length === 0) {
+    const fallback = computeBrierScore(probs, "continued_conflict");
+    const fallbackLog = computeLogScore(probs, "continued_conflict");
+    return { brier: fallback, log: fallbackLog, composite: fallback - fallbackLog * 0.1 };
+  }
 
-  const brierScores = windows.map(() => computeBrierScore(probs, dominantOutcome));
-  const logScores = windows.map(() => computeLogScore(probs, dominantOutcome));
+  const brierScores = backtestRecords.map(r => computeBrierScore(probs, r.resolvedOutcome));
+  const logScores = backtestRecords.map(r => computeLogScore(probs, r.resolvedOutcome));
 
   const avgBrier = brierScores.reduce((a, b) => a + b, 0) / brierScores.length;
   const avgLog = logScores.reduce((a, b) => a + b, 0) / logScores.length;

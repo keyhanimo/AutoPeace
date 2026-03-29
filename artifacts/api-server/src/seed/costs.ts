@@ -1,6 +1,6 @@
 import { db } from "@workspace/db";
 import { costOfWarTable } from "@workspace/db/schema";
-import { randomUUID } from "node:crypto";
+import { eq } from "drizzle-orm";
 
 const COST_DATA = [
   {
@@ -100,13 +100,20 @@ const COST_DATA = [
 
 export async function seedCosts(): Promise<void> {
   for (const c of COST_DATA) {
-    await db.insert(costOfWarTable).values({
-      id: randomUUID(),
-      stakeholderId: c.stakeholderId,
-      economic: c.economic,
-      humanitarian: c.humanitarian,
-      strategic: c.strategic,
-      dataVersion: "1.0",
-    }).onConflictDoNothing();
+    const stableId = `seed-cost-${c.stakeholderId}`;
+    const existing = await db.select({ id: costOfWarTable.id })
+      .from(costOfWarTable)
+      .where(eq(costOfWarTable.id, stableId))
+      .limit(1);
+    if (existing.length === 0) {
+      await db.insert(costOfWarTable).values({
+        id: stableId,
+        stakeholderId: c.stakeholderId,
+        economic: c.economic,
+        humanitarian: c.humanitarian,
+        strategic: c.strategic,
+        dataVersion: "1.0",
+      });
+    }
   }
 }

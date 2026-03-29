@@ -1,17 +1,82 @@
-import React from "react";
-import { useListChangelog } from "@workspace/api-client-react";
+import React, { useState } from "react";
+import { useListChangelog, useGetChangelogEntry } from "@workspace/api-client-react";
 import { PageHeader, Card, Badge } from "@/components/ui";
 import { formatDistanceToNow } from "date-fns";
-import { GitCommit, TrendingUp, AlertTriangle } from "lucide-react";
+import { GitCommit, TrendingUp, BarChart2, ChevronDown, ChevronUp } from "lucide-react";
+
+const OUTCOME_COLORS: Record<string, string> = {
+  continued_conflict: '#ef4444',
+  major_escalation: '#b91c1c',
+  informal_deescalation: '#f59e0b',
+  limited_ceasefire: '#fcd34d',
+  humanitarian_mini_deal: '#34d399',
+  sanctions_partial_deal: '#10b981',
+  regional_framework: '#059669',
+  broad_settlement: '#0284c7',
+};
+
+function ForecastDeltaBar({ delta }: { delta: Record<string, unknown> }) {
+  const entries = Object.entries(delta)
+    .filter(([, v]) => typeof v === 'number')
+    .map(([k, v]) => ({ key: k, value: (v as number) * 100 }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 5);
+
+  if (entries.length === 0) return null;
+
+  return (
+    <div className="mt-3 space-y-1.5">
+      <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider flex items-center gap-1">
+        <BarChart2 className="w-3 h-3" /> Forecast Distribution
+      </p>
+      {entries.map(({ key, value }) => (
+        <div key={key} className="flex items-center gap-2">
+          <div className="w-28 shrink-0 text-xs text-muted-foreground truncate capitalize">{key.replace(/_/g, ' ')}</div>
+          <div className="flex-1 bg-secondary/50 rounded h-2 overflow-hidden">
+            <div
+              className="h-full rounded transition-all"
+              style={{ width: `${Math.min(100, value)}%`, backgroundColor: OUTCOME_COLORS[key] ?? '#94a3b8' }}
+            />
+          </div>
+          <div className="w-10 text-right text-xs font-mono text-foreground shrink-0">{value.toFixed(0)}%</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ChangelogEntryDetail({ id }: { id: string }) {
+  const { data: entry, isLoading } = useGetChangelogEntry(id);
+  if (isLoading) return <div className="text-xs text-muted-foreground animate-pulse">Loading details...</div>;
+  if (!entry) return null;
+  return (
+    <div className="mt-3 pt-3 border-t border-border/50">
+      {entry.keyEvidence && Array.isArray(entry.keyEvidence) && entry.keyEvidence.length > 0 && (
+        <div className="mb-3">
+          <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">Key Evidence</p>
+          <ul className="space-y-1">
+            {(entry.keyEvidence as Array<{ title: string }>).slice(0, 3).map((ev, i) => (
+              <li key={i} className="text-xs text-muted-foreground flex gap-2">
+                <span className="text-primary shrink-0 font-bold">{i + 1}.</span>
+                <span>{ev.title}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Changelog() {
-  const { data: changelogRes, isLoading } = useListChangelog();
+  const { data: changelogRes, isLoading } = useListChangelog({ limit: 20 });
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const entries = changelogRes?.data || [];
 
   return (
     <div className="space-y-8 animate-fade-in max-w-4xl mx-auto pb-12">
-      <PageHeader 
-        title="Platform Changelog" 
+      <PageHeader
+        title="Platform Changelog"
         description="Chronological updates from the autoresearch loop, summarizing shifts in forecasts and model evolution."
       />
 
@@ -21,43 +86,54 @@ export default function Changelog() {
         ) : entries.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">No changelog entries yet.</div>
         ) : (
-          entries.map((entry, idx) => (
+          entries.map((entry) => (
             <div key={entry.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-              
+
               <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-background bg-card shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 relative z-10 text-primary">
                 <GitCommit className="w-5 h-5" />
               </div>
-              
+
               <Card className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-6 hover:shadow-primary/5 transition-all">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
                     {formatDistanceToNow(new Date(entry.timestamp), { addSuffix: true })}
                   </span>
-                  <Badge variant="outline" className="font-mono text-[10px]">
-                    {entry.cycleId.slice(0, 8)}
-                  </Badge>
+                  <a
+                    href={`/changelog/${entry.id}`}
+                    className="font-mono text-[10px] text-muted-foreground hover:text-primary transition-colors"
+                    title="Permalink to this entry"
+                  >
+                    #{entry.cycleId.slice(0, 8)}
+                  </a>
                 </div>
-                
+
                 <h3 className="text-lg font-bold text-foreground leading-tight mb-3">{entry.headline}</h3>
-                
+
                 {entry.notes && (
-                  <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
+                  <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
                     {entry.notes}
                   </p>
                 )}
 
-                <div className="flex gap-4 pt-4 border-t border-border/50 text-xs text-muted-foreground">
+                {entry.forecastDelta && typeof entry.forecastDelta === 'object' && (
+                  <ForecastDeltaBar delta={entry.forecastDelta as Record<string, unknown>} />
+                )}
+
+                <div className="flex items-center justify-between pt-4 border-t border-border/50 mt-3 text-xs text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <TrendingUp className="w-4 h-4 text-emerald-500" />
-                    <span>{entry.experimentsRetained}/{entry.experimentsTried} Mutated</span>
+                    <span>{entry.experimentsRetained}/{entry.experimentsTried} mutations retained</span>
                   </div>
-                  {entry.scoreDelta && (
-                    <div className="flex items-center gap-1">
-                      <AlertTriangle className="w-4 h-4 text-amber-500" />
-                      <span>Scores Updated</span>
-                    </div>
-                  )}
+                  <button
+                    onClick={() => setExpandedId(expandedId === entry.id ? null : entry.id)}
+                    className="flex items-center gap-1 text-primary hover:text-primary/80 transition-colors"
+                  >
+                    {expandedId === entry.id ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                    {expandedId === entry.id ? 'Hide' : 'Details'}
+                  </button>
                 </div>
+
+                {expandedId === entry.id && <ChangelogEntryDetail id={entry.id} />}
               </Card>
             </div>
           ))

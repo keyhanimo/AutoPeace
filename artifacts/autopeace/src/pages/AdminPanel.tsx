@@ -93,7 +93,7 @@ export default function AdminPanel() {
     }
   };
 
-  const isUnauthorized = isConfigError && !adminKey;
+  const isUnauthorized = !!adminKey && isConfigError;
 
   if (!adminKey || isUnauthorized) {
     return (
@@ -117,8 +117,10 @@ export default function AdminPanel() {
               autoComplete="current-password"
             />
             <Button type="submit" className="w-full">Authenticate</Button>
-            {isConfigError && adminKey && (
-              <p className="text-destructive text-sm text-center font-medium mt-2">Invalid key provided.</p>
+            {isUnauthorized && (
+              <p className="text-destructive text-sm text-center font-medium mt-2">
+                Invalid key. <button type="button" onClick={clearKey} className="underline hover:no-underline">Clear stored key</button>
+              </p>
             )}
           </form>
         </Card>

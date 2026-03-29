@@ -2,8 +2,8 @@ import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { batchProcess } from "@workspace/integrations-anthropic-ai/batch";
 import { normalizeProbabilities, parseLLMJson, type ForecastProbabilities } from "./scoring";
 import { db } from "@workspace/db";
-import { evidenceItemsTable } from "@workspace/db/schema";
-import { desc } from "drizzle-orm";
+import { evidenceItemsTable, forecastsTable } from "@workspace/db/schema";
+import { desc, eq, and, ne } from "drizzle-orm";
 
 const OUTCOMES = [
   "continued_conflict",
@@ -18,12 +18,62 @@ const OUTCOMES = [
 
 const TIME_HORIZONS = ["30d", "90d", "180d", "1y"];
 
+const SEED_CYCLE = "seed-historical-2024";
+
 export type GeneratedForecast = {
   timeHorizon: string;
   probabilities: ForecastProbabilities;
   rationale: string;
   keyEvidenceItems: string[];
+  brierScore?: number;
+  logScore?: number;
 };
+
+function computeBrierScore(probs: ForecastProbabilities, resolvedOutcome: string): number {
+  let sum = 0;
+  for (const outcome of OUTCOMES) {
+    const p = (probs as Record<string, number>)[outcome] ?? 0;
+    const o = outcome === resolvedOutcome ? 1 : 0;
+    sum += (p - o) ** 2;
+  }
+  return sum / OUTCOMES.length;
+}
+
+function computeLogScore(probs: ForecastProbabilities, resolvedOutcome: string): number {
+  const p = Math.max(1e-9, (probs as Record<string, number>)[resolvedOutcome] ?? 1e-9);
+  return Math.log(p);
+}
+
+async function getHistoricalOutcomeForHorizon(horizon: string): Promise<string | null> {
+  const rows = await db.select({
+    calibrationBucket: forecastsTable.calibrationBucket,
+  })
+    .from(forecastsTable)
+    .where(
+      and(
+        eq(forecastsTable.cycleId, SEED_CYCLE),
+        eq(forecastsTable.timeHorizon, horizon),
+      )
+    )
+    .limit(1);
+  const bucket = rows[0]?.calibrationBucket;
+  if (!bucket) return null;
+  return bucket.replace("resolved:", "");
+}
+
+async function getFallbackResolvedOutcome(): Promise<string> {
+  const rows = await db.select({ calibrationBucket: forecastsTable.calibrationBucket })
+    .from(forecastsTable)
+    .where(
+      and(
+        eq(forecastsTable.cycleId, SEED_CYCLE),
+        ne(forecastsTable.calibrationBucket, "")
+      )
+    )
+    .limit(1);
+  const bucket = rows[0]?.calibrationBucket;
+  return bucket ? bucket.replace("resolved:", "") : "continued_conflict";
+}
 
 export async function generateForecasts(cycleId: string, evidencePackVersion: string): Promise<GeneratedForecast[]> {
   const recentEvidence = await db.select({
@@ -93,15 +143,51 @@ Respond ONLY with a JSON code block containing:
       const text = msg.content[0]?.type === "text" ? msg.content[0].text : "";
       const parsed = parseLLMJson(text);
       const rawProbs = parsed["probabilities"] as Record<string, number>;
+      const probs = normalizeProbabilities(rawProbs);
+
+      const resolvedOutcome = (await getHistoricalOutcomeForHorizon(task.key)) ?? (await getFallbackResolvedOutcome());
+      const brierScore = computeBrierScore(probs, resolvedOutcome);
+      const logScore = computeLogScore(probs, resolvedOutcome);
+
       return {
         timeHorizon: task.key,
-        probabilities: normalizeProbabilities(rawProbs),
+        probabilities: probs,
         rationale: (parsed["rationale"] as string) ?? "",
         keyEvidenceItems: ((parsed["keyEvidenceItems"] as string[]) ?? []).slice(0, 5),
+        brierScore,
+        logScore,
       };
     },
     { concurrency: 2, retries: 2 }
   );
 
   return results.filter(Boolean);
+}
+
+export async function getRecentForecastsForBacktest(
+  excludeCycleId: string,
+  limit = 5
+): Promise<Array<{ timeHorizon: string; probs: ForecastProbabilities; resolvedOutcome: string }>> {
+  const rows = await db.select({
+    timeHorizon: forecastsTable.timeHorizon,
+    probabilities: forecastsTable.probabilities,
+    calibrationBucket: forecastsTable.calibrationBucket,
+  })
+    .from(forecastsTable)
+    .where(
+      and(
+        eq(forecastsTable.cycleId, SEED_CYCLE),
+        ne(forecastsTable.timeHorizon, "")
+      )
+    )
+    .orderBy(desc(forecastsTable.createdAt))
+    .limit(limit);
+
+  return rows
+    .filter(r => r.calibrationBucket)
+    .map(r => ({
+      timeHorizon: r.timeHorizon,
+      probs: r.probabilities as ForecastProbabilities,
+      resolvedOutcome: (r.calibrationBucket ?? "").replace("resolved:", "") || "continued_conflict",
+    }));
 }
