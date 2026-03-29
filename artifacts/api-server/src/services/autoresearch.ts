@@ -6,8 +6,9 @@ import {
   experimentsTable,
   changelogEntriesTable,
   adminConfigTable,
+  evidenceItemsTable,
 } from "@workspace/db/schema";
-import { desc, eq, sql } from "drizzle-orm";
+import { desc, eq, sql, isNull } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { computeAndStoreWhatIfScenarios } from "./what-if-scenarios";
 import { generateForecasts, getRecentForecastsForBacktest, type GeneratedForecast } from "./forecasting";
@@ -121,6 +122,20 @@ async function runCycleAsync(cycleId: string): Promise<void> {
     }
 
     logger.info({ cycleId, forecastCount: baseForecast.length }, "Base forecasts generated");
+
+    const primary90dForecast = baseForecast.find(f => f.timeHorizon === "90d");
+    if (primary90dForecast) {
+      const primaryForecastRow = await db.select({ id: forecastsTable.id })
+        .from(forecastsTable)
+        .where(eq(forecastsTable.cycleId, cycleId))
+        .orderBy(desc(forecastsTable.createdAt))
+        .limit(1);
+      const primaryForecastId = primaryForecastRow[0]?.id ?? null;
+      await db.update(evidenceItemsTable)
+        .set({ influencedCycleId: cycleId, influencedForecastId: primaryForecastId })
+        .where(isNull(evidenceItemsTable.influencedCycleId));
+      logger.info({ cycleId, primaryForecastId }, "Evidence items linked to cycle");
+    }
 
     const hillClimbResults = await runHillClimbing(cycleId, baseForecast);
     experimentsRun = hillClimbResults.experimentsRun;

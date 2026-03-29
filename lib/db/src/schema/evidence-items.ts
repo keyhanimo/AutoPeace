@@ -13,6 +13,8 @@ export const evidenceItemsTable = pgTable("evidence_items", {
   stakeholderRelevance: jsonb("stakeholder_relevance").notNull().default([]),
   isProcessed: boolean("is_processed").notNull().default(false),
   ingestedAt: timestamp("ingested_at").notNull().defaultNow(),
+  influencedCycleId: text("influenced_cycle_id"),
+  influencedForecastId: text("influenced_forecast_id"),
 });
 
 export const insertEvidenceItemSchema = createInsertSchema(evidenceItemsTable).omit({ ingestedAt: true });

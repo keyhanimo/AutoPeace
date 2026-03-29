@@ -4,7 +4,7 @@ import {
   forecastsTable, dealsTable, experimentsTable,
   stakeholdersTable, evidenceItemsTable, costOfWarTable, changelogEntriesTable,
 } from "@workspace/db/schema";
-import { desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import fs from "fs";
 import path from "path";
 
@@ -162,6 +162,24 @@ router.get("/downloads/costs.json", async (req, res) => {
   }
 });
 
+router.get("/downloads/deals-pareto.json", async (_req, res) => {
+  try {
+    const data = await db.select().from(dealsTable)
+      .where(eq(dealsTable.isPareto, true))
+      .orderBy(desc(dealsTable.createdAt));
+    res.setHeader("Content-Type", "application/json");
+    res.setHeader("Content-Disposition", "attachment; filename=autopeace-deals-pareto.json");
+    res.json({
+      description: "Pareto frontier — deals that are not dominated on any scoring dimension",
+      exportedAt: new Date().toISOString(),
+      count: data.length,
+      data,
+    });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
 router.get("/openapi.yaml", (_req, res) => {
   try {
     const specPath = path.join(process.cwd(), "..", "..", "lib", "api-spec", "openapi.yaml");
@@ -180,14 +198,15 @@ router.get("/downloads/index", async (_req, res) => {
     description: "AutoPeace data download portal — all datasets available for download",
     exportedAt: new Date().toISOString(),
     datasets: [
-      { id: "forecasts-json", name: "Forecasts (JSON)", url: `${BASE_URL}/forecasts.json`, format: "JSON" },
-      { id: "forecasts-csv", name: "Forecasts (CSV)", url: `${BASE_URL}/forecasts.csv`, format: "CSV" },
-      { id: "deals-json", name: "AI Peace Deals (JSON)", url: `${BASE_URL}/deals.json`, format: "JSON" },
-      { id: "deals-csv", name: "AI Peace Deals (CSV)", url: `${BASE_URL}/deals.csv`, format: "CSV" },
-      { id: "experiments-csv", name: "Experiment Log (CSV)", url: `${BASE_URL}/experiments.csv`, format: "CSV" },
-      { id: "stakeholders-json", name: "Stakeholder Profiles (JSON)", url: `${BASE_URL}/stakeholders.json`, format: "JSON" },
-      { id: "evidence-json", name: "Evidence Corpus (JSON)", url: `${BASE_URL}/evidence.json`, format: "JSON" },
-      { id: "costs-json", name: "Cost-of-War Records (JSON)", url: `${BASE_URL}/costs.json`, format: "JSON" },
+      { id: "forecasts-json", name: "Forecasts (JSON)", url: `${BASE_URL}/forecasts.json`, format: "JSON", description: "All probabilistic outcome forecasts with probability distributions and Brier scores" },
+      { id: "forecasts-csv", name: "Forecasts (CSV)", url: `${BASE_URL}/forecasts.csv`, format: "CSV", description: "Flattened forecasts table for spreadsheet analysis" },
+      { id: "deals-json", name: "AI Peace Deals (JSON)", url: `${BASE_URL}/deals.json`, format: "JSON", description: "All AI-generated deal architectures with composite viability scores" },
+      { id: "deals-csv", name: "AI Peace Deals (CSV)", url: `${BASE_URL}/deals.csv`, format: "CSV", description: "Flattened deals table including architecture and score dimensions" },
+      { id: "deals-pareto-json", name: "Pareto Frontier Deals (JSON)", url: `${BASE_URL}/deals-pareto.json`, format: "JSON", description: "Subset of deals on the Pareto frontier — not dominated on any scoring dimension. Key dataset for optimal deal analysis." },
+      { id: "experiments-csv", name: "Experiment Log (CSV)", url: `${BASE_URL}/experiments.csv`, format: "CSV", description: "Forecasting cycle experiment metadata, tokens consumed, and accuracy scores" },
+      { id: "stakeholders-json", name: "Stakeholder Profiles (JSON)", url: `${BASE_URL}/stakeholders.json`, format: "JSON", description: "All stakeholder profiles including goals, red lines, preferred outcomes, and influence weights" },
+      { id: "evidence-json", name: "Evidence Corpus (JSON)", url: `${BASE_URL}/evidence.json`, format: "JSON", description: "All gathered evidence items with stakeholder relevance, source, date, and influence indicators" },
+      { id: "costs-json", name: "Cost-of-War Records (JSON)", url: `${BASE_URL}/costs.json`, format: "JSON", description: "Economic, humanitarian, and strategic cost estimates by stakeholder and time period" },
     ],
   });
 });

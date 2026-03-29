@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import {
   useGetLatestForecasts, useListForecasts, useListEvidence,
   useGetCommunityForecastAggregate, useSubmitCommunityForecast,
+  useListStakeholders,
   type Forecast,
 } from "@workspace/api-client-react";
 import { useQuery } from "@tanstack/react-query";
@@ -401,14 +402,27 @@ export default function ForecastDashboard() {
   const { data: latestRes, isLoading, isError } = useGetLatestForecasts();
   const { data: historyRes } = useListForecasts({ limit: 100 });
   const { data: evidenceRes } = useListEvidence({ limit: 200 });
+  const { data: stakeholderList } = useListStakeholders();
   const [horizon, setHorizon] = useState<typeof TIME_HORIZONS[number]>('30d');
   const [activeTab, setActiveTab] = useState<'probabilities' | 'radar' | 'history'>('probabilities');
   const [historyWindow, setHistoryWindow] = useState(10);
+  const [lensStakeholderId, setLensStakeholderId] = useState<string>("");
 
   const activeForecast = useMemo(() => {
     if (!latestRes?.data) return null;
     return latestRes.data.find(f => f.timeHorizon === horizon);
   }, [latestRes, horizon]);
+
+  const lensStakeholder = useMemo(() => {
+    if (!lensStakeholderId) return null;
+    const list = ((stakeholderList as unknown as { data?: Array<{ id: string; name: string; preferredOutcomes?: unknown }> })?.data ?? []);
+    return list.find(s => s.id === lensStakeholderId) ?? null;
+  }, [stakeholderList, lensStakeholderId]);
+
+  const lensPreferred = useMemo((): string[] => {
+    if (!lensStakeholder) return [];
+    return Array.isArray(lensStakeholder.preferredOutcomes) ? lensStakeholder.preferredOutcomes as string[] : [];
+  }, [lensStakeholder]);
 
   const chartData = useMemo(() => {
     if (!activeForecast) return [];
@@ -417,9 +431,10 @@ export default function ForecastDashboard() {
       name: cat.label,
       shortName: cat.shortLabel,
       value: parseFloat(((p[cat.key] || 0) * 100).toFixed(1)),
-      color: cat.color,
+      color: lensPreferred.includes(cat.key) ? "#6366f1" : cat.color,
+      isPreferred: lensPreferred.includes(cat.key),
     }));
-  }, [activeForecast]);
+  }, [activeForecast, lensPreferred]);
 
   const radarData = useMemo(() => {
     if (!latestRes?.data) return [];
@@ -546,6 +561,30 @@ export default function ForecastDashboard() {
               <div className="text-xs text-muted-foreground mt-1">Brier Score</div>
             </Card>
           </div>
+
+          {(() => {
+            const stakeholders = ((stakeholderList as unknown as { data?: Array<{ id: string; name: string }> })?.data ?? []);
+            return stakeholders.length > 0 ? (
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border/30 text-xs">
+                <span className="text-muted-foreground font-semibold shrink-0">Stakeholder Lens:</span>
+                <select
+                  value={lensStakeholderId}
+                  onChange={e => setLensStakeholderId(e.target.value)}
+                  className="flex-1 max-w-xs border border-border/40 rounded px-2 py-1 bg-background text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                >
+                  <option value="">None (default colors)</option>
+                  {stakeholders.map(s => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+                {lensPreferred.length > 0 && (
+                  <span className="text-violet-400 font-semibold shrink-0">
+                    ⭐ {lensPreferred.length} preferred outcome{lensPreferred.length !== 1 ? "s" : ""} highlighted
+                  </span>
+                )}
+              </div>
+            ) : null;
+          })()}
 
           <div className="flex gap-2 border-b border-border">
             {(['probabilities', 'radar', 'history'] as const).map(tab => (

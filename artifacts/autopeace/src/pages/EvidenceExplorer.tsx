@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { useListEvidence, type EvidenceItem } from "@workspace/api-client-react";
 import { Card, PageHeader, Badge, Button } from "@/components/ui";
-import { Search, Filter, ExternalLink, ChevronDown, ChevronUp, Newspaper, Shield, DollarSign, Heart, Globe, Calendar, Users } from "lucide-react";
+import { Search, Filter, ExternalLink, ChevronDown, ChevronUp, Newspaper, Shield, DollarSign, Heart, Globe, Calendar, Users, TrendingUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const TYPE_ICONS: Record<string, React.ReactNode> = {
@@ -27,13 +27,15 @@ function parseStakeholderRelevance(raw: unknown): string[] {
   return [];
 }
 
-function EvidenceCard({ item, isHighInfluence }: { item: EvidenceItem; isHighInfluence?: boolean }) {
+function EvidenceCard({ item }: { item: EvidenceItem }) {
   const [expanded, setExpanded] = useState(false);
   const typeColor = TYPE_COLORS[item.evidenceType] ?? "border-border text-muted-foreground";
   const stakeholders = parseStakeholderRelevance(item.stakeholderRelevance);
+  const hasExplicitInfluence = !!item.influencedCycleId;
+  const shortCycleId = item.influencedCycleId ? item.influencedCycleId.slice(0, 8) : null;
 
   return (
-    <Card className={`p-4 hover:border-border/70 transition-colors ${isHighInfluence ? "ring-1 ring-amber-500/30 border-amber-700/30" : ""}`}>
+    <Card className={`p-4 hover:border-border/70 transition-colors ${hasExplicitInfluence ? "ring-1 ring-amber-500/30 border-amber-700/30" : ""}`}>
       <div className="flex items-start gap-3">
         <div className="shrink-0 mt-0.5 text-muted-foreground">
           {TYPE_ICONS[item.evidenceType] ?? <Newspaper className="w-3 h-3" />}
@@ -41,8 +43,11 @@ function EvidenceCard({ item, isHighInfluence }: { item: EvidenceItem; isHighInf
         <div className="flex-1 min-w-0">
           <div className="flex items-start gap-2 flex-wrap mb-1">
             <h3 className="text-sm font-medium leading-tight">{item.title}</h3>
-            {isHighInfluence && (
-              <Badge variant="outline" className="text-[8px] px-1 py-0 border-amber-500/40 text-amber-400">★ High Influence</Badge>
+            {hasExplicitInfluence && (
+              <Badge variant="outline" className="text-[8px] px-1 py-0 border-amber-500/40 text-amber-400 flex items-center gap-0.5">
+                <TrendingUp className="w-2.5 h-2.5" />
+                Influenced forecast
+              </Badge>
             )}
           </div>
           <div className="flex flex-wrap gap-2 mb-2">
@@ -55,6 +60,11 @@ function EvidenceCard({ item, isHighInfluence }: { item: EvidenceItem; isHighInf
             {item.publishedAt && (
               <span className="text-[10px] text-muted-foreground">
                 {new Date(item.publishedAt).toLocaleDateString()}
+              </span>
+            )}
+            {shortCycleId && (
+              <span className="text-[10px] text-amber-500/70 font-mono" title={`Research cycle: ${item.influencedCycleId}`}>
+                cycle·{shortCycleId}
               </span>
             )}
           </div>
@@ -135,16 +145,6 @@ export default function EvidenceExplorer() {
     return Array.from(seen).sort();
   }, [items]);
 
-  const highInfluenceIds = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const item of items) {
-      const count = parseStakeholderRelevance(item.stakeholderRelevance).length;
-      if (item.id) counts.set(item.id, count);
-    }
-    const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]);
-    return new Set(sorted.slice(0, Math.ceil(sorted.length * 0.25)).map(([id]) => id));
-  }, [items]);
-
   const filtered = useMemo(() => {
     let result = items.filter(item => {
       if (filterType !== "all" && item.evidenceType !== filterType) return false;
@@ -171,6 +171,9 @@ export default function EvidenceExplorer() {
     });
     if (sortBy === "influence") {
       result = [...result].sort((a, b) => {
+        const aExplicit = a.influencedForecastId ? 1 : 0;
+        const bExplicit = b.influencedForecastId ? 1 : 0;
+        if (bExplicit !== aExplicit) return bExplicit - aExplicit;
         const aLen = parseStakeholderRelevance(a.stakeholderRelevance).length;
         const bLen = parseStakeholderRelevance(b.stakeholderRelevance).length;
         return bLen - aLen;
@@ -334,7 +337,7 @@ export default function EvidenceExplorer() {
           </div>
           <div className="space-y-3">
             {paginated.map(item => (
-              <EvidenceCard key={item.id} item={item} isHighInfluence={item.id ? highInfluenceIds.has(item.id) : false} />
+              <EvidenceCard key={item.id} item={item} />
             ))}
           </div>
           {totalPages > 1 && (

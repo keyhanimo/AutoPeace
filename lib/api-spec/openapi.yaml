@@ -1530,6 +1530,14 @@ components:
         ingestedAt:
           type: string
           format: date-time
+        influencedCycleId:
+          type: string
+          nullable: true
+          description: The research cycle ID this evidence item was used in when generating forecasts
+        influencedForecastId:
+          type: string
+          nullable: true
+          description: The primary forecast ID this evidence item directly influenced
       required:
         - id
         - source

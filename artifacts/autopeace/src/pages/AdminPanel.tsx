@@ -15,7 +15,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAdminKey } from "@/hooks/use-admin";
 import { PageHeader, Card, Button, Input, Badge } from "@/components/ui";
-import { Lock, Play, Save, LogOut, Loader2, DollarSign, ToggleLeft, ToggleRight, Handshake, GitBranch, Cpu, Zap, CheckCircle2, AlertCircle, Plus, X } from "lucide-react";
+import { Lock, Play, Save, LogOut, Loader2, DollarSign, ToggleLeft, ToggleRight, Handshake, GitBranch, Cpu, Zap, CheckCircle2, AlertCircle, Plus, X, Inbox, CheckSquare, XSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatUsd } from "@/lib/utils";
 
@@ -114,6 +114,44 @@ export default function AdminPanel() {
     sequencing: "",
   });
   const [submittingProposal, setSubmittingProposal] = useState(false);
+
+  type QueueItem = {
+    id: string; sourceName: string; submitterName: string; summary: string;
+    status: string; submittedAt: string; adminNotes: string | null;
+  };
+  const [queueFilter, setQueueFilter] = useState<"pending" | "approved" | "rejected">("pending");
+  const [queueNotes, setQueueNotes] = useState<Record<string, string>>({});
+  const [actingOn, setActingOn] = useState<string | null>(null);
+  const { data: queueData, refetch: refetchQueue } = useQuery<{ data: QueueItem[]; total: number }>({
+    queryKey: ['/api/admin/proposals/queue', queueFilter, adminKey],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/proposals/queue?status=${queueFilter}`, {
+        headers: { 'X-Admin-Key': adminKey },
+      });
+      if (!res.ok) throw new Error('Failed to fetch queue');
+      return res.json() as Promise<{ data: QueueItem[]; total: number }>;
+    },
+    enabled: !!adminKey,
+  });
+
+  const handleQueueAction = async (id: string, action: "approve" | "reject") => {
+    setActingOn(id);
+    try {
+      const res = await fetch(`/api/admin/proposals/queue/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "X-Admin-Key": adminKey },
+        body: JSON.stringify({ action, adminNotes: queueNotes[id] ?? "" }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const result = await res.json() as { message: string };
+      toast({ title: action === "approve" ? "Approved" : "Rejected", description: result.message });
+      void refetchQueue();
+    } catch (err: unknown) {
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Action failed.", variant: "destructive" });
+    } finally {
+      setActingOn(null);
+    }
+  };
 
   const handleAddProposal = async () => {
     if (!proposalFormData.name || !proposalFormData.summary) {
@@ -493,6 +531,87 @@ export default function AdminPanel() {
                 ? <><Loader2 className="w-4 h-4 animate-spin" /> Evaluating proposals...</>
                 : <><Zap className="w-4 h-4" /> Evaluate All Proposals</>}
             </Button>
+          </Card>
+
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-4 border-b border-border/50 pb-2">
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                <Inbox className="w-5 h-5 text-blue-400" /> Community Submission Queue
+              </h3>
+              <div className="flex gap-1">
+                {(["pending", "approved", "rejected"] as const).map(f => (
+                  <button
+                    key={f}
+                    onClick={() => setQueueFilter(f)}
+                    className={`px-2 py-0.5 rounded text-[10px] font-semibold capitalize border transition-all ${
+                      queueFilter === f ? "border-primary/50 bg-primary/10 text-primary" : "border-border/30 text-muted-foreground hover:border-border"
+                    }`}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {(queueData?.data ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">
+                No {queueFilter} submissions.
+              </p>
+            ) : (
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                {(queueData?.data ?? []).map(item => (
+                  <div key={item.id} className="border border-border/40 rounded-lg p-4 space-y-3 text-sm">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="font-semibold">{item.sourceName}</p>
+                        <p className="text-xs text-muted-foreground">
+                          by {item.submitterName} · {new Date(item.submittedAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <Badge variant="outline" className={`text-[9px] shrink-0 ${
+                        item.status === "approved" ? "border-green-700/40 text-green-400"
+                        : item.status === "rejected" ? "border-red-700/40 text-red-400"
+                        : "border-amber-700/40 text-amber-400"
+                      }`}>
+                        {item.status}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground line-clamp-2">{item.summary}</p>
+                    {item.adminNotes && (
+                      <p className="text-xs text-blue-400/80 italic">Admin notes: {item.adminNotes}</p>
+                    )}
+                    {item.status === "pending" && (
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          placeholder="Admin notes (optional)"
+                          value={queueNotes[item.id] ?? ""}
+                          onChange={e => setQueueNotes(prev => ({ ...prev, [item.id]: e.target.value }))}
+                          className="w-full text-xs border border-border/40 rounded px-2 py-1 bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => void handleQueueAction(item.id, "approve")}
+                            disabled={actingOn === item.id}
+                            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold bg-green-800/40 hover:bg-green-800/60 text-green-300 border border-green-700/40 transition-all disabled:opacity-50"
+                          >
+                            {actingOn === item.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckSquare className="w-3 h-3" />}
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => void handleQueueAction(item.id, "reject")}
+                            disabled={actingOn === item.id}
+                            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold bg-red-900/40 hover:bg-red-900/60 text-red-300 border border-red-700/40 transition-all disabled:opacity-50"
+                          >
+                            {actingOn === item.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <XSquare className="w-3 h-3" />}
+                            Reject
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </Card>
 
           <Card className="p-6">

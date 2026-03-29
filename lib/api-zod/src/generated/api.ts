@@ -324,6 +324,18 @@ export const ListEvidenceResponse = zod.object({
       stakeholderRelevance: zod.array(zod.string()),
       isProcessed: zod.boolean(),
       ingestedAt: zod.coerce.date(),
+      influencedCycleId: zod
+        .string()
+        .nullish()
+        .describe(
+          "The research cycle ID this evidence item was used in when generating forecasts",
+        ),
+      influencedForecastId: zod
+        .string()
+        .nullish()
+        .describe(
+          "The primary forecast ID this evidence item directly influenced",
+        ),
     }),
   ),
   total: zod.number(),

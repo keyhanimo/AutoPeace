@@ -149,6 +149,10 @@ export interface EvidenceItem {
   stakeholderRelevance: string[];
   isProcessed: boolean;
   ingestedAt: string;
+  /** The research cycle ID this evidence item was used in when generating forecasts */
+  influencedCycleId?: string | null;
+  /** The primary forecast ID this evidence item directly influenced */
+  influencedForecastId?: string | null;
 }
 
 export type ChangelogEntryForecastDelta = { [key: string]: unknown } | null;
