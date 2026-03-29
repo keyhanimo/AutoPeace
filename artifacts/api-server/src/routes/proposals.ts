@@ -1,9 +1,30 @@
 import { Router } from "express";
 import { randomUUID } from "node:crypto";
 import { db } from "@workspace/db";
-import { proposalsTable, dealsTable } from "@workspace/db/schema";
+import { proposalsTable, dealsTable, adminConfigTable } from "@workspace/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { adminAuth } from "../lib/admin-auth";
+import {
+  evaluateStakeholders,
+  computeWhatWouldItTake,
+  judgeAndScore,
+  type DealTerms,
+  type ModelConfig,
+} from "../services/deal-engine";
+
+async function getModelConfig(): Promise<ModelConfig> {
+  try {
+    const rows = await db.select().from(adminConfigTable);
+    const cfg = Object.fromEntries(rows.map(r => [r.key, r.value]));
+    return {
+      anthropicModel: cfg["anthropicModel"] ?? "claude-sonnet-4-5",
+      openaiModel: cfg["openaiModel"] ?? "gpt-4o",
+      geminiModel: cfg["geminiModel"] ?? "gemini-2.5-flash",
+    };
+  } catch {
+    return { anthropicModel: "claude-sonnet-4-5", openaiModel: "gpt-4o", geminiModel: "gemini-2.5-flash" };
+  }
+}
 
 const router = Router();
 
@@ -46,6 +67,48 @@ router.get("/proposals/:id", async (req, res) => {
       return;
     }
     res.json(proposal);
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+router.post("/admin/proposals/:id/evaluate", adminAuth, async (req, res) => {
+  try {
+    const proposalId = String(req.params["id"]);
+    const [proposal] = await db.select().from(proposalsTable).where(eq(proposalsTable.id, proposalId));
+
+    if (!proposal) {
+      res.status(404).json({ error: "Proposal not found" });
+      return;
+    }
+
+    const modelConfig = await getModelConfig();
+    const terms = proposal.terms as DealTerms;
+
+    const { evaluations: stakeholderEvaluations } = await evaluateStakeholders(terms, modelConfig);
+
+    const [{ scores }, whatWouldItTakeList] = await Promise.all([
+      judgeAndScore(terms, stakeholderEvaluations, [], modelConfig),
+      computeWhatWouldItTake(terms, stakeholderEvaluations, modelConfig),
+    ]);
+
+    const whatWouldItTakeArray = whatWouldItTakeList.map(item => ({
+      dimension: item.stakeholder,
+      currentGap: "Stakeholder rejects or conditionally accepts current terms",
+      requiredChange: item.requirement,
+      feasibility: item.feasibility,
+    }));
+
+    await db.update(proposalsTable)
+      .set({
+        scores: scores as unknown as Record<string, never>,
+        stakeholderEvaluations: stakeholderEvaluations as unknown as Record<string, never>,
+        whatWouldItTake: whatWouldItTakeArray,
+      })
+      .where(eq(proposalsTable.id, proposalId as string));
+
+    const [updated] = await db.select().from(proposalsTable).where(eq(proposalsTable.id, proposalId as string));
+    res.json({ proposal: updated });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }

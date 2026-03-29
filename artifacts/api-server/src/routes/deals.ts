@@ -60,7 +60,7 @@ router.get("/deals/pareto", async (_req, res) => {
 
 router.get("/deals/tree", async (_req, res) => {
   try {
-    const nodes = await db.select().from(solutionTreeTable).orderBy(desc(dealsTable.createdAt));
+    const nodes = await db.select().from(solutionTreeTable).orderBy(desc(solutionTreeTable.createdAt));
     res.json({ nodes });
   } catch (err) {
     res.status(500).json({ error: String(err) });

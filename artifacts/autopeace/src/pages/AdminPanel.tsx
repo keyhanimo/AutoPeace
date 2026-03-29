@@ -7,6 +7,7 @@ import {
   useListEvidenceSources,
   useGetAdminCostsSummary,
   useGetCurrentDeal,
+  useListProposals,
   type AdminConfigResponse,
   type AdminConfigUpdate,
   type DealScores,
@@ -14,7 +15,7 @@ import {
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAdminKey } from "@/hooks/use-admin";
 import { PageHeader, Card, Button, Input, Badge } from "@/components/ui";
-import { Lock, Play, Save, LogOut, Loader2, DollarSign, ToggleLeft, ToggleRight, Handshake, GitBranch } from "lucide-react";
+import { Lock, Play, Save, LogOut, Loader2, DollarSign, ToggleLeft, ToggleRight, Handshake, GitBranch, Cpu, Zap, CheckCircle2, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatUsd } from "@/lib/utils";
 
@@ -37,6 +38,7 @@ export default function AdminPanel() {
   const runTrigger = useTriggerRun({ request: { headers: authHeaders } });
   const dealRunTrigger = useTriggerDealRun({ request: { headers: authHeaders } });
   const { data: currentDeal } = useGetCurrentDeal();
+  const { data: proposalsData, refetch: refetchProposals } = useListProposals();
 
   const queryClient = useQueryClient();
   const toggleSource = useMutation({
@@ -57,6 +59,35 @@ export default function AdminPanel() {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     },
   });
+
+  const [evaluatingProposals, setEvaluatingProposals] = useState(false);
+  const [evalResults, setEvalResults] = useState<{ id: string; name: string; ok: boolean }[]>([]);
+
+  const handleEvaluateAllProposals = async () => {
+    const proposals = proposalsData?.data ?? [];
+    if (proposals.length === 0) {
+      toast({ title: "No proposals", description: "No proposals found to evaluate." });
+      return;
+    }
+    setEvaluatingProposals(true);
+    setEvalResults([]);
+    const results: { id: string; name: string; ok: boolean }[] = [];
+    for (const proposal of proposals) {
+      try {
+        const res = await fetch(`/api/admin/proposals/${proposal.id}/evaluate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Admin-Key": adminKey },
+        });
+        results.push({ id: proposal.id, name: proposal.name, ok: res.ok });
+      } catch {
+        results.push({ id: proposal.id, name: proposal.name, ok: false });
+      }
+    }
+    setEvalResults(results);
+    setEvaluatingProposals(false);
+    void refetchProposals();
+    toast({ title: "Evaluation complete", description: `Evaluated ${results.length} proposal(s).` });
+  };
 
   const [formData, setFormData] = useState<AdminConfigUpdate>({});
 
@@ -228,6 +259,96 @@ export default function AdminPanel() {
                 Save Configuration
               </Button>
             </div>
+          </Card>
+
+          <Card className="p-6">
+            <h3 className="text-lg font-bold mb-4 border-b border-border/50 pb-2 flex items-center gap-2">
+              <Cpu className="w-5 h-5 text-primary" /> Model Assignment by Role
+            </h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border/50">
+                    <th className="pb-2 pr-4 font-semibold">Pipeline Stage</th>
+                    <th className="pb-2 pr-4 font-semibold">Role</th>
+                    <th className="pb-2 font-semibold">Model</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/30">
+                  {([
+                    ["Stage 1 — Proposal Agent", "Generation", "anthropic", formData.anthropicModel ?? config?.anthropicModel ?? "claude-sonnet-4-5"],
+                    ["Stage 2 — Stakeholder Evaluator", "Evaluation", "openai", formData.openaiModel ?? config?.openaiModel ?? "gpt-4o"],
+                    ["Stage 3 — Domestic Audience", "Evaluation", "openai", formData.openaiModel ?? config?.openaiModel ?? "gpt-4o"],
+                    ["Stage 4 — Red-Team Agent", "Adversarial", "gemini", formData.geminiModel ?? config?.geminiModel ?? "gemini-2.5-flash"],
+                    ["Stage 5 — Negotiator Agent", "Bridging", "anthropic", formData.anthropicModel ?? config?.anthropicModel ?? "claude-sonnet-4-5"],
+                    ["Stage 6 — Judge Agent", "Scoring", "openai", formData.openaiModel ?? config?.openaiModel ?? "gpt-4o"],
+                    ["Stage 7 — Meta-Evaluator", "Meta-Eval", "openai", formData.openaiModel ?? config?.openaiModel ?? "gpt-4o"],
+                    ["Stage 8 — Diagnosis", "Synthesis", "gemini", formData.geminiModel ?? config?.geminiModel ?? "gemini-2.5-flash"],
+                  ] as [string, string, string, string][]).map(([stage, role, provider, model]) => (
+                    <tr key={stage} className="hover:bg-secondary/20 transition-colors">
+                      <td className="py-2 pr-4 font-medium text-xs">{stage}</td>
+                      <td className="py-2 pr-4">
+                        <Badge variant="outline" className={`text-[10px] ${
+                          role === "Generation" || role === "Bridging" ? "border-violet-700/40 text-violet-400" :
+                          role === "Evaluation" || role === "Scoring" || role === "Meta-Eval" ? "border-blue-700/40 text-blue-400" :
+                          role === "Adversarial" || role === "Synthesis" ? "border-orange-700/40 text-orange-400" :
+                          "border-border text-muted-foreground"
+                        }`}>{role}</Badge>
+                      </td>
+                      <td className="py-2">
+                        <span className={`text-xs font-mono px-2 py-0.5 rounded ${
+                          provider === "anthropic" ? "bg-violet-950/50 text-violet-300" :
+                          provider === "openai" ? "bg-blue-950/50 text-blue-300" :
+                          "bg-orange-950/50 text-orange-300"
+                        }`}>{model}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs text-muted-foreground mt-3">
+              Update model names above in Pipeline Configuration to change assignments.
+            </p>
+          </Card>
+
+          <Card className="p-6">
+            <h3 className="text-lg font-bold mb-4 border-b border-border/50 pb-2 flex items-center gap-2">
+              <Zap className="w-5 h-5 text-amber-400" /> Proposal Evaluation
+            </h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Run the multi-agent evaluation pipeline on all seeded proposals. This calls stakeholder evaluator, judge, and what-would-it-take on each proposal.
+            </p>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm text-muted-foreground">
+                {proposalsData?.data?.length ?? 0} proposal(s) loaded
+                {proposalsData?.data?.filter(p => p.scores).length
+                  ? ` · ${proposalsData.data?.filter(p => p.scores).length} already evaluated`
+                  : ""}
+              </span>
+            </div>
+            {evalResults.length > 0 && (
+              <div className="space-y-1.5 mb-4">
+                {evalResults.map(r => (
+                  <div key={r.id} className="flex items-center gap-2 text-xs">
+                    {r.ok
+                      ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      : <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />}
+                    <span className={r.ok ? "text-emerald-300" : "text-red-300"}>{r.name}</span>
+                    <span className="text-muted-foreground ml-auto">{r.ok ? "evaluated" : "failed"}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <Button
+              onClick={handleEvaluateAllProposals}
+              disabled={evaluatingProposals}
+              className="w-full gap-2 bg-amber-600 hover:bg-amber-700 text-white border-0"
+            >
+              {evaluatingProposals
+                ? <><Loader2 className="w-4 h-4 animate-spin" /> Evaluating proposals...</>
+                : <><Zap className="w-4 h-4" /> Evaluate All Proposals</>}
+            </Button>
           </Card>
 
           <Card className="p-6">

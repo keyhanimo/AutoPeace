@@ -44,6 +44,23 @@ export const dealsTable = pgTable("deals", {
     response: string;
     survived: boolean;
   }>>(),
+  negotiatorResult: jsonb("negotiator_result").$type<{
+    proposedAmendments: Array<{
+      stakeholder: string;
+      originalConcern: string;
+      proposedChange: string;
+      likelihood: "low" | "medium" | "high";
+    }>;
+    revisedTermsPartial: Record<string, unknown>;
+    negotiationStrategy: string;
+  }>(),
+  metaEvaluatorResult: jsonb("meta_evaluator_result").$type<{
+    pipelineQuality: number;
+    reasoning: string;
+    blindspots: string[];
+    suggestedNextArchitecture: string;
+    confidenceInOutcome: number;
+  }>(),
   diagnosis: text("diagnosis"),
   isPareto: boolean("is_pareto").notNull().default(false),
   isCurrent: boolean("is_current").notNull().default(false),

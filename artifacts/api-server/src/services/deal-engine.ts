@@ -43,12 +43,39 @@ export type RedTeamResult = {
   survived: boolean;
 };
 
+export type NegotiatorResult = {
+  proposedAmendments: Array<{
+    stakeholder: string;
+    originalConcern: string;
+    proposedChange: string;
+    likelihood: "low" | "medium" | "high";
+  }>;
+  revisedTermsPartial: Partial<DealTerms>;
+  negotiationStrategy: string;
+};
+
+export type MetaEvaluatorResult = {
+  pipelineQuality: number;
+  reasoning: string;
+  blindspots: string[];
+  suggestedNextArchitecture: string;
+  confidenceInOutcome: number;
+};
+
+export type ModelConfig = {
+  anthropicModel: string;
+  openaiModel: string;
+  geminiModel: string;
+};
+
 export type EvaluatedDeal = {
   terms: DealTerms;
   scores: DealScores;
   stakeholderEvaluations: Record<string, StakeholderVerdict>;
   domesticEvaluations: Record<string, DomesticVerdict>;
   redTeamResults: RedTeamResult[];
+  negotiatorResult: NegotiatorResult | null;
+  metaEvaluatorResult: MetaEvaluatorResult | null;
   diagnosis: string;
   tokensConsumed: number;
   costUsd: number;
@@ -56,6 +83,12 @@ export type EvaluatedDeal = {
 
 const ARCHITECTURES = ["balanced", "nuclear-first", "hormuz-first", "humanitarian-first"] as const;
 type Architecture = typeof ARCHITECTURES[number];
+
+const DEFAULT_MODELS: ModelConfig = {
+  anthropicModel: "claude-sonnet-4-5",
+  openaiModel: "gpt-4o",
+  geminiModel: "gemini-2.5-flash",
+};
 
 let _openai: import("openai").OpenAI | null = null;
 async function getOpenAI() {
@@ -84,11 +117,15 @@ async function getAnthropic() {
   return _anthropic;
 }
 
-async function callOpenAI(prompt: string, systemPrompt: string): Promise<{ content: string; tokens: number }> {
+async function callOpenAI(
+  prompt: string,
+  systemPrompt: string,
+  model = DEFAULT_MODELS.openaiModel,
+): Promise<{ content: string; tokens: number }> {
   try {
     const openai = await getOpenAI();
     const resp = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: prompt },
@@ -106,11 +143,14 @@ async function callOpenAI(prompt: string, systemPrompt: string): Promise<{ conte
   }
 }
 
-async function callGemini(prompt: string): Promise<{ content: string; tokens: number }> {
+async function callGemini(
+  prompt: string,
+  model = DEFAULT_MODELS.geminiModel,
+): Promise<{ content: string; tokens: number }> {
   try {
     const gemini = await getGemini();
     const resp = await gemini.models.generateContent({
-      model: "gemini-2.5-flash",
+      model,
       contents: prompt,
     });
     return {
@@ -123,11 +163,15 @@ async function callGemini(prompt: string): Promise<{ content: string; tokens: nu
   }
 }
 
-async function callAnthropic(prompt: string, systemPrompt: string): Promise<{ content: string; tokens: number }> {
+async function callAnthropic(
+  prompt: string,
+  systemPrompt: string,
+  model = DEFAULT_MODELS.anthropicModel,
+): Promise<{ content: string; tokens: number }> {
   try {
     const anthropic = await getAnthropic();
     const resp = await anthropic.messages.create({
-      model: "claude-sonnet-4-5",
+      model,
       max_tokens: 2000,
       system: systemPrompt,
       messages: [{ role: "user", content: prompt }],
@@ -145,7 +189,7 @@ async function callAnthropic(prompt: string, systemPrompt: string): Promise<{ co
 
 function parseLLMJson<T>(text: string, fallback: T): T {
   try {
-    const match = text.match(/```(?:json)?\s*([\s\S]*?)```/) ?? text.match(/(\{[\s\S]*\})/);
+    const match = text.match(/```(?:json)?\s*([\s\S]*?)```/) ?? text.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
     const raw = match?.[1] ?? text;
     return JSON.parse(raw) as T;
   } catch {
@@ -179,24 +223,32 @@ function getDefaultTerms(architecture: Architecture): DealTerms {
   return base;
 }
 
-function getDefaultScores(architecture: Architecture): DealScores {
-  const base = 0.45 + Math.random() * 0.25;
-  return {
-    feasibility: base + (Math.random() - 0.5) * 0.15,
-    coherence: base + (Math.random() - 0.5) * 0.15,
-    evidenceGrounding: base + (Math.random() - 0.5) * 0.15,
-    domesticSellability: base - 0.05 + (Math.random() - 0.5) * 0.15,
-    regionalStability: base + (Math.random() - 0.5) * 0.15,
-    implementability: base - 0.03 + (Math.random() - 0.5) * 0.15,
-    durability: base + (Math.random() - 0.5) * 0.15,
-    composite: base,
-  };
-}
+const CORE_STAKEHOLDERS = [
+  { id: "iran", name: "Iran", profile: "Seeks sanctions relief, nuclear recognition, no regime change threat. Red lines: denuclearization, regime change, loss of deterrence." },
+  { id: "us", name: "United States", profile: "Seeks verifiable denuclearization, regional security. Red lines: nuclear weapons capability, Hormuz blockade." },
+  { id: "israel", name: "Israel", profile: "Opposes any deal that leaves Iran with enrichment capacity. Red line: any path to Iranian nuclear weapon." },
+  { id: "saudi-arabia", name: "Saudi Arabia", profile: "Seeks regional security guarantees, economic normalization. Concerned about Iranian influence in Yemen, Lebanon." },
+  { id: "iaea", name: "IAEA", profile: "Supports verification mechanisms, snap inspections, continuous monitoring." },
+  { id: "russia", name: "Russia", profile: "Supports Iranian sovereignty, opposes Western-led sanctions." },
+  { id: "china", name: "China", profile: "Values economic ties with Iran, opposes sanctions, supports negotiated solution." },
+  { id: "eu3", name: "EU (France/UK/Germany)", profile: "Strong verification advocate, supports phased sanctions relief, regional stability." },
+];
 
+const DOMESTIC_AUDIENCES: Record<string, { stakeholder: string; audiences: string[] }> = {
+  "iran": { stakeholder: "Iran", audiences: ["Supreme Leader", "IRGC", "reformists", "public"] },
+  "us": { stakeholder: "United States", audiences: ["Congress", "Pentagon", "Israel lobby", "public"] },
+  "israel": { stakeholder: "Israel", audiences: ["Knesset hardliners", "security establishment", "center-left coalition"] },
+};
+
+/**
+ * PROPOSAL AGENT (Anthropic) — generation role
+ * Designs the initial deal terms for a given architecture.
+ */
 export async function generateProposal(
   evidenceSummary: string,
   previousDiagnosis: string,
   architecture: Architecture = "balanced",
+  modelConfig: ModelConfig = DEFAULT_MODELS,
 ): Promise<{ terms: DealTerms; tokens: number }> {
   const systemPrompt = `You are an expert peace negotiator and conflict resolution specialist.
 Your task is to design a detailed, realistic peace deal framework for the Iran-US conflict.
@@ -222,30 +274,18 @@ Generate a peace deal JSON with these exact keys:
   "additionalClauses": ["array", "of", "additional", "terms"]
 }`;
 
-  const { content, tokens } = await callAnthropic(prompt, systemPrompt);
+  const { content, tokens } = await callAnthropic(prompt, systemPrompt, modelConfig.anthropicModel);
   const terms = parseLLMJson<DealTerms>(content, getDefaultTerms(architecture));
   return { terms, tokens };
 }
 
-const CORE_STAKEHOLDERS = [
-  { id: "iran", name: "Iran", profile: "Seeks sanctions relief, nuclear recognition, no regime change threat. Red lines: denuclearization, regime change, loss of deterrence." },
-  { id: "us", name: "United States", profile: "Seeks verifiable denuclearization, regional security. Red lines: nuclear weapons capability, Hormuz blockade." },
-  { id: "israel", name: "Israel", profile: "Opposes any deal that leaves Iran with enrichment capacity. Red line: any path to Iranian nuclear weapon." },
-  { id: "saudi-arabia", name: "Saudi Arabia", profile: "Seeks regional security guarantees, economic normalization. Concerned about Iranian influence in Yemen, Lebanon." },
-  { id: "iaea", name: "IAEA", profile: "Supports verification mechanisms, snap inspections, continuous monitoring." },
-  { id: "russia", name: "Russia", profile: "Supports Iranian sovereignty, opposes Western-led sanctions." },
-  { id: "china", name: "China", profile: "Values economic ties with Iran, opposes sanctions, supports negotiated solution." },
-  { id: "eu3", name: "EU (France/UK/Germany)", profile: "Strong verification advocate, supports phased sanctions relief, regional stability." },
-];
-
-const DOMESTIC_AUDIENCES: Record<string, { stakeholder: string; audiences: string[] }> = {
-  "iran": { stakeholder: "Iran", audiences: ["Supreme Leader", "IRGC", "reformists", "public"] },
-  "us": { stakeholder: "United States", audiences: ["Congress", "Pentagon", "Israel lobby", "public"] },
-  "israel": { stakeholder: "Israel", audiences: ["Knesset hardliners", "security establishment", "center-left coalition"] },
-};
-
+/**
+ * STAKEHOLDER EVALUATION AGENT (OpenAI) — evaluation role
+ * Assesses each core stakeholder's acceptance of the deal.
+ */
 export async function evaluateStakeholders(
   terms: DealTerms,
+  modelConfig: ModelConfig = DEFAULT_MODELS,
 ): Promise<{ evaluations: Record<string, StakeholderVerdict>; tokens: number }> {
   const systemPrompt = `You are a geopolitical analyst evaluating how stakeholders will respond to a peace proposal.
 Output a JSON object mapping stakeholder IDs to their verdict. Each verdict has:
@@ -267,7 +307,7 @@ ${CORE_STAKEHOLDERS.map(s => `- ${s.id}: ${s.name}. Profile: ${s.profile}`).join
 
 Return JSON: { "iran": { verdict, rationale, redLineViolations, conditions }, "us": {...}, ... }`;
 
-  const { content, tokens } = await callOpenAI(prompt, systemPrompt);
+  const { content, tokens } = await callOpenAI(prompt, systemPrompt, modelConfig.openaiModel);
 
   const fallback: Record<string, StakeholderVerdict> = {};
   for (const s of CORE_STAKEHOLDERS) {
@@ -283,28 +323,122 @@ Return JSON: { "iran": { verdict, rationale, redLineViolations, conditions }, "u
   return { evaluations: parsed, tokens };
 }
 
-export async function evaluateDomesticAudiences(
+/**
+ * NEGOTIATOR AGENT (Anthropic) — generation role
+ * Analyzes rejecting stakeholders and proposes targeted amendments to bridge gaps.
+ * Runs after initial stakeholder evaluation to attempt to reconcile rejections.
+ */
+export async function runNegotiator(
   terms: DealTerms,
-): Promise<{ evaluations: Record<string, DomesticVerdict>; tokens: number }> {
-  const results: Record<string, DomesticVerdict> = {};
-  let totalTokens = 0;
+  stakeholderEvaluations: Record<string, StakeholderVerdict>,
+  modelConfig: ModelConfig = DEFAULT_MODELS,
+): Promise<{ result: NegotiatorResult; tokens: number }> {
+  const rejecters = Object.entries(stakeholderEvaluations)
+    .filter(([, e]) => e.verdict === "reject")
+    .map(([id, e]) => ({ id, rationale: e.rationale, redLineViolations: e.redLineViolations, conditions: e.conditions }));
 
-  for (const [stakeholderId, { stakeholder, audiences }] of Object.entries(DOMESTIC_AUDIENCES)) {
-    for (const audience of audiences) {
-      const key = `${stakeholderId}_${audience.replace(/\s+/g, "_").toLowerCase()}`;
-      results[key] = {
-        audience: `${stakeholder} — ${audience}`,
-        verdict: Math.random() > 0.4 ? "difficult" : Math.random() > 0.5 ? "sellable" : "unsellable",
-        rationale: `${audience} has ${Math.random() > 0.5 ? "significant" : "moderate"} reservations about the ${terms.sequencing.slice(0, 80)} approach.`,
-      };
-      totalTokens += 50;
-    }
+  const conditionals = Object.entries(stakeholderEvaluations)
+    .filter(([, e]) => e.verdict === "conditional")
+    .map(([id, e]) => ({ id, conditions: e.conditions }));
+
+  const fallback: NegotiatorResult = {
+    proposedAmendments: rejecters.map(r => ({
+      stakeholder: r.id,
+      originalConcern: r.redLineViolations[0] ?? r.rationale.slice(0, 100),
+      proposedChange: r.conditions[0] ?? "Strengthen verification and address core sovereignty concerns",
+      likelihood: "medium" as const,
+    })),
+    revisedTermsPartial: {},
+    negotiationStrategy: "Sequential confidence-building with parallel technical tracks for each stakeholder group",
+  };
+
+  if (rejecters.length === 0 && conditionals.length === 0) {
+    return { result: fallback, tokens: 0 };
   }
 
-  return { evaluations: results, tokens: totalTokens };
+  const systemPrompt = `You are a master negotiator specializing in multi-party peace agreements.
+Your role: given stakeholder objections, propose specific, realistic amendments that could bring rejecting/conditional parties toward acceptance WITHOUT losing other parties' support.
+Output JSON only.`;
+
+  const prompt = `Negotiate amendments for this Iran peace deal:
+
+CURRENT TERMS SUMMARY:
+- Nuclear: ${terms.nuclearProtocol.slice(0, 150)}
+- Sanctions: ${terms.sanctionsRelief.slice(0, 150)}
+- Sequencing: ${terms.sequencing.slice(0, 150)}
+
+REJECTING STAKEHOLDERS:
+${rejecters.map(r => `- ${r.id}: Red lines violated: ${r.redLineViolations.join(", ")}. Conditions for acceptance: ${r.conditions.join(", ")}`).join("\n")}
+
+CONDITIONAL STAKEHOLDERS:
+${conditionals.map(c => `- ${c.id}: Conditions: ${c.conditions.join(", ")}`).join("\n")}
+
+Return JSON:
+{
+  "proposedAmendments": [
+    { "stakeholder": "id", "originalConcern": "text", "proposedChange": "specific change text", "likelihood": "low|medium|high" }
+  ],
+  "revisedTermsPartial": { "nuclearProtocol": "revised if needed", "sequencing": "revised if needed" },
+  "negotiationStrategy": "overall strategy text"
+}`;
+
+  const { content, tokens } = await callAnthropic(prompt, systemPrompt, modelConfig.anthropicModel);
+  const result = parseLLMJson<NegotiatorResult>(content, fallback);
+  return { result, tokens };
 }
 
-export async function runRedTeam(terms: DealTerms): Promise<{ results: RedTeamResult[]; tokens: number }> {
+/**
+ * DOMESTIC AUDIENCE AGENTS (OpenAI) — evaluation role
+ * Assesses whether each domestic political audience in key countries would accept the deal.
+ */
+export async function evaluateDomesticAudiences(
+  terms: DealTerms,
+  modelConfig: ModelConfig = DEFAULT_MODELS,
+): Promise<{ evaluations: Record<string, DomesticVerdict>; tokens: number }> {
+  const systemPrompt = `You are a political analyst assessing domestic political sellability of a peace deal.
+For each audience, return: { "audience": "label", "verdict": "sellable|difficult|unsellable", "rationale": "1-2 sentences" }
+Output a JSON object with keys like "iran_supreme_leader", "us_congress", etc.`;
+
+  const audienceList = Object.entries(DOMESTIC_AUDIENCES).flatMap(([stakeholderId, { stakeholder, audiences }]) =>
+    audiences.map(a => ({ key: `${stakeholderId}_${a.replace(/\s+/g, "_").toLowerCase()}`, label: `${stakeholder} — ${a}` }))
+  );
+
+  const prompt = `Assess the domestic political sellability of this peace deal to these audiences:
+
+DEAL TERMS:
+- Nuclear: ${terms.nuclearProtocol}
+- Sanctions: ${terms.sanctionsRelief}
+- Sequencing: ${terms.sequencing}
+- Timeline: ${terms.timelineYears} years
+
+AUDIENCES:
+${audienceList.map(a => `- ${a.key}: ${a.label}`).join("\n")}
+
+Return JSON where each key maps to { "audience": "label", "verdict": "sellable|difficult|unsellable", "rationale": "brief" }.`;
+
+  const { content, tokens } = await callOpenAI(prompt, systemPrompt, modelConfig.openaiModel);
+
+  const fallback: Record<string, DomesticVerdict> = {};
+  for (const { key, label } of audienceList) {
+    fallback[key] = {
+      audience: label,
+      verdict: "difficult",
+      rationale: "Domestic political constraints make this deal difficult to sell without additional confidence-building measures.",
+    };
+  }
+
+  const parsed = parseLLMJson<Record<string, DomesticVerdict>>(content, fallback);
+  return { evaluations: parsed, tokens };
+}
+
+/**
+ * RED-TEAM AGENT (Gemini) — adversarial role
+ * Generates attack scenarios against the deal's viability.
+ */
+export async function runRedTeam(
+  terms: DealTerms,
+  modelConfig: ModelConfig = DEFAULT_MODELS,
+): Promise<{ results: RedTeamResult[]; tokens: number }> {
   const systemPrompt = `You are an adversarial red-team analyst trying to find fatal flaws in a peace deal.
 Generate 5 adversarial attacks that could collapse this deal. Output as JSON array.`;
 
@@ -315,7 +449,7 @@ Sequencing: ${terms.sequencing}
 
 Return JSON array: [{ "attack": "description", "severity": "low|medium|high|critical", "response": "how proponents respond", "survived": true|false }, ...]`;
 
-  const { content, tokens } = await callGemini(prompt);
+  const { content, tokens } = await callGemini(prompt, modelConfig.geminiModel);
 
   const fallback: RedTeamResult[] = [
     { attack: "Iran's IRGC rejects verification intrusions as sovereignty violation", severity: "high", response: "Narrow the inspection scope to declared sites only", survived: true },
@@ -329,10 +463,15 @@ Return JSON array: [{ "attack": "description", "severity": "low|medium|high|crit
   return { results: parsed, tokens };
 }
 
+/**
+ * JUDGE AGENT (OpenAI) — scoring role
+ * Scores the deal across 7 dimensions based on all evaluation evidence.
+ */
 export async function judgeAndScore(
   terms: DealTerms,
   stakeholderEvaluations: Record<string, StakeholderVerdict>,
   redTeamResults: RedTeamResult[],
+  modelConfig: ModelConfig = DEFAULT_MODELS,
 ): Promise<{ scores: DealScores; tokens: number }> {
   const acceptCount = Object.values(stakeholderEvaluations).filter(e => e.verdict === "accept").length;
   const rejectCount = Object.values(stakeholderEvaluations).filter(e => e.verdict === "reject").length;
@@ -356,7 +495,7 @@ RED-TEAM: ${survivedCount}/${totalRedTeam} attacks survived
 
 Score JSON: { "feasibility": 0.0-1.0, "coherence": 0.0-1.0, "evidenceGrounding": 0.0-1.0, "domesticSellability": 0.0-1.0, "regionalStability": 0.0-1.0, "implementability": 0.0-1.0, "durability": 0.0-1.0 }`;
 
-  const { content, tokens } = await callOpenAI(prompt, systemPrompt);
+  const { content, tokens } = await callOpenAI(prompt, systemPrompt, modelConfig.openaiModel);
 
   const acceptRate = acceptCount / totalStakeholders;
   const redTeamSurvival = survivedCount / totalRedTeam;
@@ -399,11 +538,69 @@ Score JSON: { "feasibility": 0.0-1.0, "coherence": 0.0-1.0, "evidenceGrounding":
   return { scores, tokens };
 }
 
+/**
+ * META-EVALUATOR AGENT (OpenAI) — meta-evaluation role
+ * Evaluates the overall quality of the pipeline's reasoning and suggests next steps.
+ * Separated from the judge: the judge scores the deal, the meta-evaluator scores the reasoning process.
+ */
+export async function runMetaEvaluator(
+  terms: DealTerms,
+  scores: DealScores,
+  negotiatorResult: NegotiatorResult | null,
+  stakeholderEvaluations: Record<string, StakeholderVerdict>,
+  modelConfig: ModelConfig = DEFAULT_MODELS,
+): Promise<{ result: MetaEvaluatorResult; tokens: number }> {
+  const fallback: MetaEvaluatorResult = {
+    pipelineQuality: 0.6,
+    reasoning: "Pipeline produced a reasonable deal evaluation. Stakeholder coverage is adequate but domestic analysis could be deeper.",
+    blindspots: ["Long-term implementation risks not fully assessed", "Regional spoiler dynamics under-modeled"],
+    suggestedNextArchitecture: "nuclear-first",
+    confidenceInOutcome: 0.55,
+  };
+
+  const systemPrompt = `You are a meta-level evaluator assessing the quality of an AI peace deal pipeline's reasoning.
+You review the overall analysis process, identify blind spots, and suggest improvements.
+Output JSON only.`;
+
+  const acceptCount = Object.values(stakeholderEvaluations).filter(e => e.verdict === "accept").length;
+  const rejectCount = Object.values(stakeholderEvaluations).filter(e => e.verdict === "reject").length;
+
+  const prompt = `Evaluate this AI pipeline's reasoning about an Iran peace deal:
+
+DEAL COMPOSITE SCORE: ${(scores.composite * 100).toFixed(1)}%
+STAKEHOLDER RESULTS: ${acceptCount} accept, ${rejectCount} reject out of ${Object.keys(stakeholderEvaluations).length}
+NEGOTIATOR APPLIED: ${negotiatorResult ? `Yes — proposed ${negotiatorResult.proposedAmendments.length} amendments` : "No"}
+WEAKEST DIMENSIONS: ${Object.entries(scores)
+  .filter(([k]) => k !== "composite")
+  .sort(([, a], [, b]) => (a as number) - (b as number))
+  .slice(0, 2)
+  .map(([k, v]) => `${k}: ${((v as number) * 100).toFixed(0)}%`)
+  .join(", ")}
+
+Assess the reasoning quality and return:
+{
+  "pipelineQuality": 0.0-1.0 (how well the pipeline reasoned about this deal),
+  "reasoning": "2-3 sentence assessment of pipeline's reasoning quality",
+  "blindspots": ["list", "of", "identified", "gaps"],
+  "suggestedNextArchitecture": "balanced|nuclear-first|hormuz-first|humanitarian-first",
+  "confidenceInOutcome": 0.0-1.0
+}`;
+
+  const { content, tokens } = await callOpenAI(prompt, systemPrompt, modelConfig.openaiModel);
+  const result = parseLLMJson<MetaEvaluatorResult>(content, fallback);
+  return { result, tokens };
+}
+
+/**
+ * DIAGNOSIS GENERATOR (Gemini) — adversarial/synthesis role
+ * Produces a human-readable explanation of why the deal succeeded or failed.
+ */
 export async function generateDiagnosis(
   terms: DealTerms,
   stakeholderEvaluations: Record<string, StakeholderVerdict>,
   redTeamResults: RedTeamResult[],
   scores: DealScores,
+  modelConfig: ModelConfig = DEFAULT_MODELS,
 ): Promise<{ diagnosis: string; tokens: number }> {
   const rejecters = Object.entries(stakeholderEvaluations)
     .filter(([, e]) => e.verdict === "reject")
@@ -423,61 +620,120 @@ export async function generateDiagnosis(
 
 Key rejectors: ${rejecters.slice(0, 3).join("; ")}
 Failed red-team stress tests: ${failures.slice(0, 3).join("; ")}
-Lowest scoring dimension: ${Object.entries(scores).sort((a, b) => (a[1] as number) - (b[1] as number))[0]?.[0]}
+Lowest scoring dimension: ${Object.entries(scores).filter(([k]) => k !== "composite").sort((a, b) => (a[1] as number) - (b[1] as number))[0]?.[0]}
 
 Be specific about which stakeholder objections and which structural weakness are most critical to fix.`;
 
-  const { content, tokens } = await callGemini(prompt);
+  const { content, tokens } = await callGemini(prompt, modelConfig.geminiModel);
   return {
     diagnosis: content.trim().replace(/^```[\s\S]*?```$/m, "").trim() || "Deal faces significant stakeholder resistance. Nuclear verification and domestic political constraints are the primary barriers.",
     tokens,
   };
 }
 
+/**
+ * WHAT-WOULD-IT-TAKE — computes concrete requirements for acceptance
+ * Now uses LLM to generate detailed, actionable requirements per rejecting stakeholder.
+ */
 export async function computeWhatWouldItTake(
   terms: DealTerms,
   stakeholderEvaluations: Record<string, StakeholderVerdict>,
-): Promise<Array<{ dimension: string; currentGap: string; requiredChange: string; feasibility: "low" | "medium" | "high" }>> {
+  modelConfig: ModelConfig = DEFAULT_MODELS,
+): Promise<Array<{ stakeholder: string; requirement: string; feasibility: "low" | "medium" | "high" }>> {
   const rejecters = Object.entries(stakeholderEvaluations).filter(([, e]) => e.verdict === "reject");
+  const conditionals = Object.entries(stakeholderEvaluations).filter(([, e]) => e.verdict === "conditional");
 
-  if (rejecters.length === 0) return [];
+  if (rejecters.length === 0 && conditionals.length === 0) return [];
 
-  return rejecters.flatMap(([stakeholderId, evaluation]) =>
+  const systemPrompt = `You are a conflict resolution specialist. For each rejecting or conditional stakeholder, specify exactly what concrete change to the deal would move them toward acceptance. Be specific and actionable. Output JSON array.`;
+
+  const prompt = `For this Iran peace deal, what concrete changes are needed for each stakeholder?
+
+CURRENT DEAL:
+- Nuclear: ${terms.nuclearProtocol.slice(0, 150)}
+- Sanctions: ${terms.sanctionsRelief.slice(0, 150)}
+- Sequencing: ${terms.sequencing.slice(0, 150)}
+
+STAKEHOLDERS NEEDING CHANGES:
+${[...rejecters, ...conditionals].map(([id, e]) => `- ${id}: violations: ${e.redLineViolations.join(", ")}; conditions: ${e.conditions.join(", ")}`).join("\n")}
+
+Return JSON array: [{ "stakeholder": "id", "requirement": "specific concrete requirement", "feasibility": "low|medium|high" }]
+Limit to 6 items total.`;
+
+  const { content } = await callOpenAI(prompt, systemPrompt, modelConfig.openaiModel);
+
+  const fallback = rejecters.flatMap(([stakeholderId, evaluation]) =>
     (evaluation.redLineViolations ?? []).slice(0, 2).map(violation => ({
-      dimension: stakeholderId,
-      currentGap: violation,
-      requiredChange: evaluation.conditions?.[0] ?? "Address core concerns through confidence-building measures",
+      stakeholder: stakeholderId,
+      requirement: evaluation.conditions?.[0] ?? `Address: ${violation}`,
       feasibility: (["low", "medium", "high"] as const)[Math.floor(Math.random() * 3)] ?? "medium",
     }))
   ).slice(0, 6);
+
+  return parseLLMJson<Array<{ stakeholder: string; requirement: string; feasibility: "low" | "medium" | "high" }>>(content, fallback);
 }
 
+/**
+ * FULL EVALUATION PIPELINE
+ * Stages:
+ * 1. Proposal Agent (Anthropic) — generates deal terms
+ * 2. Stakeholder Evaluation Agent (OpenAI) — assesses stakeholder acceptance
+ * 3. Domestic Audience Agent (OpenAI) — assesses domestic political sellability
+ * 4. Red-Team Agent (Gemini) — adversarial stress testing
+ * 5. Negotiator Agent (Anthropic) — proposes amendments for rejecters
+ * 6. Judge Agent (OpenAI) — scores on 7 dimensions
+ * 7. Meta-Evaluator (OpenAI) — evaluates overall pipeline reasoning quality
+ * 8. Diagnosis Generator (Gemini) — human-readable explanation
+ */
 export async function runFullEvaluation(
   evidenceSummary: string,
   previousDiagnosis: string,
   architecture: Architecture = "balanced",
+  modelConfig: ModelConfig = DEFAULT_MODELS,
 ): Promise<EvaluatedDeal> {
-  logger.info({ architecture }, "Starting full deal evaluation");
+  logger.info({ architecture, models: modelConfig }, "Starting full deal evaluation pipeline");
   let totalTokens = 0;
   let totalCost = 0;
 
-  const { terms, tokens: t1 } = await generateProposal(evidenceSummary, previousDiagnosis, architecture);
+  // Stage 1: Proposal Agent (Anthropic — generation role)
+  const { terms, tokens: t1 } = await generateProposal(evidenceSummary, previousDiagnosis, architecture, modelConfig);
   totalTokens += t1;
+  logger.info({ stage: "proposal", tokens: t1 }, "Stage 1 complete");
 
-  const { evaluations: stakeholderEvaluations, tokens: t2 } = await evaluateStakeholders(terms);
+  // Stage 2: Stakeholder Evaluation Agent (OpenAI — evaluation role)
+  const { evaluations: stakeholderEvaluations, tokens: t2 } = await evaluateStakeholders(terms, modelConfig);
   totalTokens += t2;
+  logger.info({ stage: "stakeholders", tokens: t2 }, "Stage 2 complete");
 
-  const { evaluations: domesticEvaluations, tokens: t3 } = await evaluateDomesticAudiences(terms);
+  // Stage 3: Domestic Audience Agent (OpenAI — evaluation role)
+  const { evaluations: domesticEvaluations, tokens: t3 } = await evaluateDomesticAudiences(terms, modelConfig);
   totalTokens += t3;
+  logger.info({ stage: "domestic", tokens: t3 }, "Stage 3 complete");
 
-  const { results: redTeamResults, tokens: t4 } = await runRedTeam(terms);
+  // Stage 4: Red-Team Agent (Gemini — adversarial role)
+  const { results: redTeamResults, tokens: t4 } = await runRedTeam(terms, modelConfig);
   totalTokens += t4;
+  logger.info({ stage: "redteam", tokens: t4 }, "Stage 4 complete");
 
-  const { scores, tokens: t5 } = await judgeAndScore(terms, stakeholderEvaluations, redTeamResults);
+  // Stage 5: Negotiator Agent (Anthropic — generation/bridging role)
+  const { result: negotiatorResult, tokens: t5 } = await runNegotiator(terms, stakeholderEvaluations, modelConfig);
   totalTokens += t5;
+  logger.info({ stage: "negotiator", amendments: negotiatorResult.proposedAmendments.length, tokens: t5 }, "Stage 5 complete");
 
-  const { diagnosis, tokens: t6 } = await generateDiagnosis(terms, stakeholderEvaluations, redTeamResults, scores);
+  // Stage 6: Judge Agent (OpenAI — scoring role)
+  const { scores, tokens: t6 } = await judgeAndScore(terms, stakeholderEvaluations, redTeamResults, modelConfig);
   totalTokens += t6;
+  logger.info({ stage: "judge", composite: scores.composite.toFixed(3), tokens: t6 }, "Stage 6 complete");
+
+  // Stage 7: Meta-Evaluator (OpenAI — meta-evaluation role, distinct from judge)
+  const { result: metaEvaluatorResult, tokens: t7 } = await runMetaEvaluator(terms, scores, negotiatorResult, stakeholderEvaluations, modelConfig);
+  totalTokens += t7;
+  logger.info({ stage: "meta-evaluator", quality: metaEvaluatorResult.pipelineQuality, tokens: t7 }, "Stage 7 complete");
+
+  // Stage 8: Diagnosis Generator (Gemini — synthesis role)
+  const { diagnosis, tokens: t8 } = await generateDiagnosis(terms, stakeholderEvaluations, redTeamResults, scores, modelConfig);
+  totalTokens += t8;
+  logger.info({ stage: "diagnosis", tokens: t8 }, "Stage 8 complete");
 
   totalCost = totalTokens * 0.000003;
 
@@ -487,6 +743,8 @@ export async function runFullEvaluation(
     stakeholderEvaluations,
     domesticEvaluations,
     redTeamResults,
+    negotiatorResult,
+    metaEvaluatorResult,
     diagnosis,
     tokensConsumed: totalTokens,
     costUsd: totalCost,

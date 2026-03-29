@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { db } from "@workspace/db";
-import { dealsTable, solutionTreeTable, cyclesTable } from "@workspace/db/schema";
+import { dealsTable, solutionTreeTable, cyclesTable, adminConfigTable } from "@workspace/db/schema";
 import { desc, eq, isNull } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import {
@@ -8,6 +8,7 @@ import {
   isDominatedOnAllDimensions,
   DEAL_ARCHITECTURES,
   type DealScores,
+  type ModelConfig,
 } from "./deal-engine";
 import { ingestAllSources } from "./evidence-ingestion";
 
@@ -18,6 +19,20 @@ export function isDealCycleRunning() {
 }
 
 const STALL_THRESHOLD = 3;
+
+async function getModelConfig(): Promise<ModelConfig> {
+  try {
+    const rows = await db.select().from(adminConfigTable);
+    const cfg = Object.fromEntries(rows.map(r => [r.key, r.value]));
+    return {
+      anthropicModel: cfg["anthropicModel"] ?? "claude-sonnet-4-5",
+      openaiModel: cfg["openaiModel"] ?? "gpt-4o",
+      geminiModel: cfg["geminiModel"] ?? "gemini-2.5-flash",
+    };
+  } catch {
+    return { anthropicModel: "claude-sonnet-4-5", openaiModel: "gpt-4o", geminiModel: "gemini-2.5-flash" };
+  }
+}
 
 async function getEvidenceSummary(): Promise<string> {
   try {
@@ -137,7 +152,8 @@ async function runDealCycleAsync(cycleId: string): Promise<void> {
       logger.info({ cycleId, chosenArch }, "Branching to new architecture due to stall");
     }
 
-    const evaluated = await runFullEvaluation(evidenceSummary, previousDiagnosis, chosenArch);
+    const modelConfig = await getModelConfig();
+    const evaluated = await runFullEvaluation(evidenceSummary, previousDiagnosis, chosenArch, modelConfig);
 
     const dealId = randomUUID();
     const isBetterThanCurrent = !currentBest?.scores ||
@@ -159,6 +175,8 @@ async function runDealCycleAsync(cycleId: string): Promise<void> {
       stakeholderEvaluations: evaluated.stakeholderEvaluations,
       domesticEvaluations: evaluated.domesticEvaluations,
       redTeamResults: evaluated.redTeamResults,
+      negotiatorResult: evaluated.negotiatorResult ?? undefined,
+      metaEvaluatorResult: evaluated.metaEvaluatorResult ?? undefined,
       diagnosis: evaluated.diagnosis,
       isPareto: false,
       isCurrent: isBetterThanCurrent,
