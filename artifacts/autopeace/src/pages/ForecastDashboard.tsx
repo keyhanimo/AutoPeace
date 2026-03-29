@@ -66,8 +66,10 @@ function WhatIfPanel({ activeForecast }: { activeForecast: Forecast }) {
 
   const chartData = CATEGORIES.map(cat => ({
     name: cat.shortLabel,
-    base: parseFloat((baseProbs[cat.key] ?? 0).toFixed(1)),
-    scenario: activeScenario ? (activeScenario.absoluteProbabilities[cat.key] ?? 0) : undefined,
+    base: parseFloat(((baseProbs[cat.key] ?? 0) * 100).toFixed(1)),
+    scenario: activeScenario
+      ? parseFloat(((activeScenario.absoluteProbabilities[cat.key] ?? 0) * 100).toFixed(1))
+      : undefined,
     color: cat.color,
   }));
 
@@ -154,7 +156,7 @@ function CommunityForecastPanel({ activeForecast }: { activeForecast: Forecast }
     if (!data?.aggregated) return [];
     return CATEGORIES.map(cat => ({
       name: cat.shortLabel,
-      ai: parseFloat((baseProbs[cat.key] ?? 0).toFixed(1)),
+      ai: parseFloat(((baseProbs[cat.key] ?? 0) * 100).toFixed(1)),
       community: parseFloat((data.aggregated[cat.key] ?? 0).toFixed(1)),
       color: cat.color,
     }));
