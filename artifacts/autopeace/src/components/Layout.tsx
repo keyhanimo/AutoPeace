@@ -1,4 +1,4 @@
-import { Link, useLocation } from "wouter";
+import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { Menu, X, Activity, BarChart2, DollarSign, FlaskConical, BookOpen, HelpCircle, Shield, ChevronRight } from "lucide-react";
 
@@ -13,7 +13,7 @@ const NAV_ITEMS = [
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  const [location] = useLocation();
+  const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
@@ -21,7 +21,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex flex-col w-60 border-r border-border/50 bg-card/50 backdrop-blur-sm fixed top-0 left-0 h-full z-40">
         <div className="p-6 border-b border-border/50">
-          <Link href="/" className="flex items-center gap-2 group">
+          <Link to="/" className="flex items-center gap-2 group">
             <div className="w-8 h-8 rounded-lg bg-primary/20 border border-primary/40 flex items-center justify-center">
               <Activity className="w-4 h-4 text-primary" />
             </div>
@@ -34,11 +34,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-            const isActive = location === href || (href !== "/" && location.startsWith(href));
+            const isActive = location.pathname === href || (href !== "/" && location.pathname.startsWith(href));
             return (
               <Link
                 key={href}
-                href={href}
+                to={href}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group
                   ${isActive
                     ? "bg-primary/15 text-primary border border-primary/20"
@@ -63,7 +63,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Mobile Header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 h-14 bg-card/80 backdrop-blur-sm border-b border-border/50 flex items-center px-4 z-50">
-        <Link href="/" className="flex items-center gap-2 mr-auto">
+        <Link to="/" className="flex items-center gap-2 mr-auto">
           <div className="w-7 h-7 rounded-md bg-primary/20 border border-primary/40 flex items-center justify-center">
             <Activity className="w-3.5 h-3.5 text-primary" />
           </div>
@@ -84,11 +84,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
           <nav className="absolute top-14 left-0 right-0 bg-card border-b border-border/50 p-3 space-y-1">
             {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-              const isActive = location === href || (href !== "/" && location.startsWith(href));
+              const isActive = location.pathname === href || (href !== "/" && location.pathname.startsWith(href));
               return (
                 <Link
                   key={href}
-                  href={href}
+                  to={href}
                   onClick={() => setMobileOpen(false)}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
                     ${isActive ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"}`}

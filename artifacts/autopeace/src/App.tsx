@@ -1,10 +1,9 @@
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Layout } from "@/components/Layout";
 
-// Pages
 import Home from "@/pages/Home";
 import ForecastDashboard from "@/pages/ForecastDashboard";
 import CostsExplorer from "@/pages/CostsExplorer";
@@ -20,23 +19,23 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       staleTime: 60000,
       retry: 1,
-    }
-  }
+    },
+  },
 });
 
 function Router() {
   return (
     <Layout>
-      <Switch>
-        <Route path="/" component={Home} />
-        <Route path="/forecasts" component={ForecastDashboard} />
-        <Route path="/costs" component={CostsExplorer} />
-        <Route path="/experiments" component={ExperimentLog} />
-        <Route path="/changelog" component={Changelog} />
-        <Route path="/methodology" component={Methodology} />
-        <Route path="/admin" component={AdminPanel} />
-        <Route component={NotFound} />
-      </Switch>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/forecasts" element={<ForecastDashboard />} />
+        <Route path="/costs" element={<CostsExplorer />} />
+        <Route path="/experiments" element={<ExperimentLog />} />
+        <Route path="/changelog" element={<Changelog />} />
+        <Route path="/methodology" element={<Methodology />} />
+        <Route path="/admin" element={<AdminPanel />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
     </Layout>
   );
 }
@@ -45,9 +44,9 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+        <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, "")}>
           <Router />
-        </WouterRouter>
+        </BrowserRouter>
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>

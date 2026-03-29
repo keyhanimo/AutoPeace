@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "wouter";
+import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Activity, Zap, BarChart, Database } from "lucide-react";
 import { useGetExperimentStats, useGetLatestForecasts, type Forecast } from "@workspace/api-client-react";
@@ -210,12 +210,12 @@ export default function Home() {
             </p>
             <LiveTicker />
             <div className="flex flex-wrap gap-4 pt-2">
-              <Link href="/forecasts">
+              <Link to="/forecasts">
                 <Button size="lg" className="w-full sm:w-auto gap-2">
                   View Latest Forecasts <ArrowRight className="w-5 h-5" />
                 </Button>
               </Link>
-              <Link href="/methodology">
+              <Link to="/methodology">
                 <Button variant="outline" size="lg" className="w-full sm:w-auto bg-background/50 backdrop-blur-sm">
                   Read Methodology
                 </Button>

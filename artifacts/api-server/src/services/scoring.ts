@@ -43,18 +43,28 @@ export function normalizeProbabilities(raw: Record<string, number>): ForecastPro
   return result as ForecastProbabilities;
 }
 
+const OUTCOME_KEYS: (keyof ForecastProbabilities)[] = [
+  "continued_conflict",
+  "informal_deescalation",
+  "limited_ceasefire",
+  "humanitarian_mini_deal",
+  "sanctions_partial_deal",
+  "regional_framework",
+  "broad_settlement",
+  "major_escalation",
+];
+
 export function computeBrierScore(
   probabilities: ForecastProbabilities,
   outcome: keyof ForecastProbabilities
 ): number {
-  const keys = Object.keys(probabilities) as (keyof ForecastProbabilities)[];
-  let score = 0;
-  for (const key of keys) {
+  let sumSq = 0;
+  for (const key of OUTCOME_KEYS) {
     const actual = key === outcome ? 1 : 0;
-    const predicted = probabilities[key];
-    score += (predicted - actual) ** 2;
+    const predicted = probabilities[key] ?? 0;
+    sumSq += (predicted - actual) ** 2;
   }
-  return score;
+  return sumSq / OUTCOME_KEYS.length;
 }
 
 export function computeLogScore(

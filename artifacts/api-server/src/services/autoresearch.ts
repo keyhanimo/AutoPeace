@@ -309,6 +309,9 @@ Respond with JSON: {"recommendation": "retain_challenger" | "retain_champion", "
       totalTokens += 1800;
       totalCost += 0.004;
 
+      const scoresBefore = { ...champion.probabilities };
+      const scoresAfter = retained ? { ...mutantProbs } : { ...champion.probabilities };
+
       if (retained) {
         champion = { ...champion, probabilities: mutantProbs, rationale: `${champion.rationale} [${mutation.name} applied: ${evalResult["reasoning"] ?? "improved calibration"}]` };
         championScore = mutantScore;
@@ -322,8 +325,8 @@ Respond with JSON: {"recommendation": "retain_challenger" | "retain_champion", "
         task: mutation.task,
         changeDescription: `[${mutation.name}] ${evalResult["reasoning"] ?? "evaluated"}`,
         changeDiff: mutantText.slice(0, 500),
-        scoresBefore: champion.probabilities,
-        scoresAfter: retained ? mutantProbs : champion.probabilities,
+        scoresBefore,
+        scoresAfter,
         diagnosis: evalResult["reasoning"] ?? null,
         retained,
         tokensConsumed: 1800,
