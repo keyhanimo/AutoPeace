@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
   useGetProposalArena,
   useListProposals,
+  useListDeals,
   type Proposal,
   type Deal,
   type DealScores,
@@ -11,10 +12,11 @@ import { Card, PageHeader, Badge, Button } from "@/components/ui";
 import {
   RadarChart, PolarGrid, PolarAngleAxis, Radar,
   ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, Legend,
+  LineChart, Line, CartesianGrid, ReferenceLine,
 } from "recharts";
 import {
   CheckCircle2, XCircle, AlertTriangle, GitCompare,
-  ExternalLink, ChevronDown, ChevronUp, Globe,
+  ExternalLink, ChevronDown, ChevronUp, Globe, TrendingUp, Target,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -307,6 +309,121 @@ function ArenaCompareChart({ proposals, aiDeal }: { proposals: Proposal[]; aiDea
   );
 }
 
+function DealScoreEvolution() {
+  const { data: dealsData } = useListDeals();
+  const deals = dealsData?.data ?? [];
+
+  const chartData = [...deals]
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+    .map((d, i) => {
+      const s = d.scores as DealScores | null;
+      return {
+        name: `#${i + 1}`,
+        composite: s ? Math.round((s.composite ?? 0) * 100) : null,
+        feasibility: s ? Math.round((s.feasibility ?? 0) * 100) : null,
+        domestic: s ? Math.round((s.domesticSellability ?? 0) * 100) : null,
+        architecture: d.architecture,
+      };
+    });
+
+  if (chartData.length < 2) return null;
+
+  return (
+    <Card className="p-6">
+      <h3 className="text-lg font-bold mb-1 flex items-center gap-2">
+        <TrendingUp className="w-4 h-4 text-primary" /> Score Evolution
+      </h3>
+      <p className="text-xs text-muted-foreground mb-4">AI deal score progression across {chartData.length} iterations</p>
+      <div className="h-56">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+            <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#94a3b8" }} />
+            <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} tickFormatter={(v: number) => `${v}%`} domain={[0, 100]} />
+            <Tooltip
+              contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "8px", fontSize: "11px" }}
+              formatter={(v: number) => [`${v}%`]}
+            />
+            <ReferenceLine y={65} stroke="#10b981" strokeDasharray="4 2" strokeOpacity={0.4} label={{ value: "target", fontSize: 9, fill: "#10b981" }} />
+            <Legend wrapperStyle={{ fontSize: "10px" }} />
+            <Line type="monotone" dataKey="composite" name="Composite" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+            <Line type="monotone" dataKey="feasibility" name="Feasibility" stroke="#10b981" strokeWidth={1.5} dot={{ r: 2 }} strokeDasharray="4 2" />
+            <Line type="monotone" dataKey="domestic" name="Domestic" stroke="#8b5cf6" strokeWidth={1.5} dot={{ r: 2 }} strokeDasharray="4 2" />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </Card>
+  );
+}
+
+function GapAnalysis({ proposals, aiDeal }: { proposals: Proposal[]; aiDeal: Deal | null }) {
+  const scoredProposals = proposals.filter(p => p.scores);
+  if (scoredProposals.length === 0 && !aiDeal) return null;
+
+  const allItems: { name: string; scores: DealScores }[] = [];
+  if (aiDeal?.scores) allItems.push({ name: "AI Deal", scores: aiDeal.scores as DealScores });
+  for (const p of scoredProposals.slice(0, 6)) {
+    allItems.push({ name: p.name.slice(0, 22), scores: p.scores as DealScores });
+  }
+
+  const dims = SCORE_DIMENSIONS;
+
+  return (
+    <Card className="p-6">
+      <h3 className="text-lg font-bold mb-1 flex items-center gap-2">
+        <Target className="w-4 h-4 text-primary" /> Gap Analysis — Distance to Ideal
+      </h3>
+      <p className="text-xs text-muted-foreground mb-4">
+        Each cell shows the gap below 100% for that dimension. Darker = larger gap.
+      </p>
+      <div className="overflow-x-auto">
+        <table className="w-full text-[10px]">
+          <thead>
+            <tr>
+              <th className="text-left py-2 pr-3 text-muted-foreground font-medium min-w-[100px]">Proposal</th>
+              {dims.map(d => (
+                <th key={d.key} className="text-center py-2 px-1 text-muted-foreground font-medium min-w-[48px]">
+                  {d.label}
+                </th>
+              ))}
+              <th className="text-center py-2 px-1 text-muted-foreground font-medium min-w-[52px]">Composite</th>
+            </tr>
+          </thead>
+          <tbody>
+            {allItems.map((item, i) => (
+              <tr key={i} className="border-t border-border/30">
+                <td className="py-1.5 pr-3 text-foreground font-medium truncate max-w-[120px]">{item.name}</td>
+                {dims.map(d => {
+                  const val = item.scores[d.key] as number | undefined ?? 0;
+                  const gap = 1 - val;
+                  const pct = Math.round(val * 100);
+                  const bg = gap < 0.15 ? "bg-emerald-950/60 text-emerald-400" :
+                             gap < 0.35 ? "bg-amber-950/60 text-amber-400" :
+                             "bg-red-950/60 text-red-400";
+                  return (
+                    <td key={d.key} className="py-1.5 px-1 text-center">
+                      <span className={`inline-block rounded px-1 py-0.5 font-mono ${bg}`}>{pct}%</span>
+                    </td>
+                  );
+                })}
+                <td className="py-1.5 px-1 text-center">
+                  {(() => {
+                    const comp = item.scores.composite as number | undefined ?? 0;
+                    const bg = comp >= 0.65 ? "bg-emerald-950/60 text-emerald-400" :
+                               comp >= 0.45 ? "bg-amber-950/60 text-amber-400" :
+                               "bg-red-950/60 text-red-400";
+                    return <span className={`inline-block rounded px-1 py-0.5 font-mono font-bold ${bg}`}>{Math.round(comp * 100)}%</span>;
+                  })()}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Card>
+  );
+}
+
 export default function ProposalArena() {
   const { data: arenaData, isLoading } = useGetProposalArena();
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -380,6 +497,10 @@ export default function ProposalArena() {
       )}
 
       <ArenaCompareChart proposals={proposals} aiDeal={aiDeal} />
+
+      <DealScoreEvolution />
+
+      <GapAnalysis proposals={proposals} aiDeal={aiDeal} />
 
       <div className="space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-3">

@@ -37,7 +37,21 @@ const CONFLICT_EDGES = [
   { from: "china", to: "iran", tension: 0.25, color: "#f97316" },
 ];
 
-function ConflictMap({ selectedId, onSelect }: { selectedId: string | null; onSelect: (id: string) => void }) {
+const ACCEPTANCE_COLORS: Record<string, string> = {
+  accept: "#10b981",
+  conditional: "#f59e0b",
+  reject: "#ef4444",
+};
+
+function ConflictMap({
+  selectedId, onSelect,
+  acceptanceMap,
+}: {
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+  acceptanceMap?: Record<string, string>;
+}) {
+  const hasAcceptance = acceptanceMap && Object.keys(acceptanceMap).length > 0;
   return (
     <div className="relative w-full rounded-2xl overflow-hidden border border-border/50 bg-card/50 aspect-[2/1]">
       <svg viewBox="0 0 100 60" className="w-full h-full" style={{ minHeight: 180 }}>
@@ -72,10 +86,13 @@ function ConflictMap({ selectedId, onSelect }: { selectedId: string | null; onSe
 
         {CONFLICT_NODES.map(node => {
           const isSelected = selectedId === node.id;
+          const verdict = acceptanceMap?.[node.id] ?? acceptanceMap?.[node.id.replace(/-/g, '_')];
+          const nodeColor = hasAcceptance && verdict ? (ACCEPTANCE_COLORS[verdict] ?? node.color) : node.color;
           return (
             <g key={node.id} onClick={() => onSelect(node.id)} style={{ cursor: "pointer" }}>
-              <circle cx={node.x} cy={node.y} r={node.r * 1.8} fill={node.color} fillOpacity={isSelected ? 0.2 : 0.08} filter="url(#glow)" />
-              <circle cx={node.x} cy={node.y} r={node.r * 0.5} fill={node.color} fillOpacity={isSelected ? 1 : 0.7} />
+              <circle cx={node.x} cy={node.y} r={node.r * 1.8} fill={nodeColor} fillOpacity={isSelected ? 0.25 : 0.1} filter="url(#glow)" />
+              <circle cx={node.x} cy={node.y} r={node.r * 0.5} fill={nodeColor} fillOpacity={isSelected ? 1 : 0.8} />
+              {isSelected && <circle cx={node.x} cy={node.y} r={node.r * 0.7} fill="none" stroke={nodeColor} strokeWidth={0.5} />}
               {(isSelected || node.r >= 9) && (
                 <text x={node.x} y={node.y + node.r + 3.5} textAnchor="middle"
                   fill={isSelected ? "white" : "#94a3b8"} fontSize="2.2" fontWeight={isSelected ? "bold" : "normal"}
@@ -88,7 +105,51 @@ function ConflictMap({ selectedId, onSelect }: { selectedId: string | null; onSe
         })}
       </svg>
       <div className="absolute bottom-2 left-3 text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
-        Conflict Network
+        {hasAcceptance ? "Deal Acceptance States" : "Conflict Network"}
+      </div>
+      {hasAcceptance && (
+        <div className="absolute bottom-2 right-3 flex items-center gap-2">
+          {[["accept", "#10b981", "Accept"], ["conditional", "#f59e0b", "Cond."], ["reject", "#ef4444", "Reject"]].map(([, color, label]) => (
+            <div key={label} className="flex items-center gap-1 text-[8px] text-muted-foreground">
+              <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color as string }} />
+              {label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DealComparisonStrip({ deal }: { deal: { scores: unknown; stakeholderEvaluations: unknown; architecture: string } }) {
+  const scores = deal.scores as DealScores | null;
+  const evals = (deal.stakeholderEvaluations ?? {}) as Record<string, { verdict: string }>;
+
+  const usVerdict = evals["united_states"] ?? evals["us"];
+  const iranVerdict = evals["iran"];
+
+  const verdictBadge = (v: string | undefined) => {
+    if (!v) return <span className="text-[10px] text-muted-foreground">—</span>;
+    const colors = { accept: "text-emerald-400", conditional: "text-amber-400", reject: "text-red-400" };
+    return <span className={`text-[10px] font-bold capitalize ${colors[v as keyof typeof colors] ?? "text-foreground"}`}>{v}</span>;
+  };
+
+  return (
+    <div className="grid grid-cols-3 gap-2 mt-3">
+      <div className="bg-secondary/30 rounded-xl p-3 text-center">
+        <div className="text-[9px] text-muted-foreground uppercase tracking-widest mb-1">AI Deal Score</div>
+        <div className="text-xl font-display font-bold text-amber-400">{((scores?.composite ?? 0) * 100).toFixed(0)}%</div>
+        <div className="text-[9px] text-muted-foreground capitalize mt-0.5">{deal.architecture}</div>
+      </div>
+      <div className="bg-secondary/30 rounded-xl p-3 text-center">
+        <div className="text-[9px] text-muted-foreground uppercase tracking-widest mb-1">🇺🇸 US Position</div>
+        {verdictBadge(usVerdict?.verdict)}
+        <div className="text-[9px] text-muted-foreground mt-0.5">Stakeholder eval</div>
+      </div>
+      <div className="bg-secondary/30 rounded-xl p-3 text-center">
+        <div className="text-[9px] text-muted-foreground uppercase tracking-widest mb-1">🇮🇷 Iran Position</div>
+        {verdictBadge(iranVerdict?.verdict)}
+        <div className="text-[9px] text-muted-foreground mt-0.5">Stakeholder eval</div>
       </div>
     </div>
   );
@@ -404,10 +465,16 @@ function DealHeroSection() {
 export default function Home() {
   const { data: stats, isLoading: statsLoading } = useGetExperimentStats();
   const { data: latestRes, isLoading: forecastLoading } = useGetLatestForecasts();
+  const { data: currentDeal } = useGetCurrentDeal();
   const [selectedNode, setSelectedNode] = useState<string | null>("iran");
 
   const forecasts = latestRes?.data || [];
   const peaceProb = calculatePeaceProbability(forecasts);
+
+  const stakeholderEvals = (currentDeal?.stakeholderEvaluations ?? {}) as Record<string, { verdict: string }>;
+  const acceptanceMap: Record<string, string> = Object.fromEntries(
+    Object.entries(stakeholderEvals).map(([k, v]) => [k.replace(/_/g, '-'), v.verdict])
+  );
 
   const radius = 120;
   const circumference = 2 * Math.PI * radius;
@@ -447,7 +514,10 @@ export default function Home() {
           </div>
 
           <div className="space-y-4">
-            <ConflictMap selectedId={selectedNode} onSelect={setSelectedNode} />
+            <ConflictMap selectedId={selectedNode} onSelect={setSelectedNode} acceptanceMap={acceptanceMap} />
+            {currentDeal && (
+              <DealComparisonStrip deal={currentDeal as { scores: unknown; stakeholderEvaluations: unknown; architecture: string }} />
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-card border border-border rounded-xl p-4 flex flex-col items-center">
                 <div className="relative w-24 h-24">

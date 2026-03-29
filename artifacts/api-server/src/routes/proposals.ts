@@ -114,7 +114,7 @@ router.post("/admin/proposals/:id/evaluate", adminAuth, async (req, res) => {
     const { evaluations: stakeholderEvaluations } = await evaluateStakeholders(terms, modelConfig);
 
     const [{ scores }, whatWouldItTakeList] = await Promise.all([
-      judgeAndScore(terms, stakeholderEvaluations, [], modelConfig),
+      judgeAndScore(terms, stakeholderEvaluations, [], {}, modelConfig),
       computeWhatWouldItTake(terms, stakeholderEvaluations, modelConfig),
     ]);
 

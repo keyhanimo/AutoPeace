@@ -149,7 +149,7 @@ export default function DealDashboard() {
   const { data: historyRes } = useListDeals({ limit: 30 });
   const { data: treeRes } = useGetSolutionTree();
 
-  const [activeTab, setActiveTab] = useState<"terms" | "stakeholders" | "domestic" | "redteam" | "pareto" | "tree" | "history">("terms");
+  const [activeTab, setActiveTab] = useState<"terms" | "stakeholders" | "domestic" | "redteam" | "pareto" | "tree" | "history" | "comparison" | "robustness">("terms");
 
   const scores = currentDeal?.scores as DealScores | null ?? null;
   const stakeholderEvals = currentDeal?.stakeholderEvaluations as Record<string, { verdict: string; rationale: string }> | null ?? {};
@@ -184,6 +184,8 @@ export default function DealDashboard() {
     { key: "stakeholders", label: "Stakeholders" },
     { key: "domestic", label: "Domestic" },
     { key: "redteam", label: "Red Team" },
+    { key: "comparison", label: "Comparison" },
+    { key: "robustness", label: "Robustness" },
     { key: "pareto", label: "Pareto" },
     { key: "tree", label: "Solution Tree" },
     { key: "history", label: "History" },
@@ -379,6 +381,181 @@ export default function DealDashboard() {
             )}
           </div>
         </Card>
+      )}
+
+      {activeTab === "comparison" && (
+        <div className="space-y-4">
+          <Card className="p-6">
+            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-primary" /> Multi-Deal Comparison
+            </h3>
+            <p className="text-xs text-muted-foreground mb-4">All scored deals ranked by composite score — see where each architecture excels and falls short.</p>
+            {(historyRes?.data ?? []).length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-4">No deals to compare yet. Run more deal cycles.</p>
+            ) : (
+              <>
+                <div className="h-72">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={(historyRes?.data ?? [])
+                        .filter(d => d.scores)
+                        .sort((a, b) => ((b.scores as DealScores).composite ?? 0) - ((a.scores as DealScores).composite ?? 0))
+                        .slice(0, 10)
+                        .map((d, i) => {
+                          const s = d.scores as DealScores;
+                          return {
+                            name: `#${i + 1} ${d.architecture.slice(0, 8)}`,
+                            composite: Math.round((s.composite ?? 0) * 100),
+                            feasibility: Math.round((s.feasibility ?? 0) * 100),
+                            domestic: Math.round((s.domesticSellability ?? 0) * 100),
+                            durability: Math.round((s.durability ?? 0) * 100),
+                            isCurrent: d.isCurrent,
+                          };
+                        })}
+                      margin={{ top: 10, right: 10, left: 0, bottom: 50 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                      <XAxis dataKey="name" angle={-35} textAnchor="end" tick={{ fontSize: 9, fill: "#94a3b8" }} />
+                      <YAxis tick={{ fontSize: 9, fill: "#94a3b8" }} tickFormatter={(v: number) => `${v}%`} domain={[0, 100]} />
+                      <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "8px", fontSize: "11px" }} formatter={(v: number) => [`${v}%`]} />
+                      <Legend wrapperStyle={{ fontSize: "10px" }} />
+                      <Bar dataKey="composite" name="Composite" fill="#f59e0b" radius={[2, 2, 0, 0]} />
+                      <Bar dataKey="feasibility" name="Feasibility" fill="#10b981" radius={[2, 2, 0, 0]} />
+                      <Bar dataKey="domestic" name="Domestic" fill="#8b5cf6" radius={[2, 2, 0, 0]} />
+                      <Bar dataKey="durability" name="Durability" fill="#ec4899" radius={[2, 2, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="mt-4 overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-border/50">
+                        <th className="text-left py-2 pr-4 text-muted-foreground font-medium">Architecture</th>
+                        {SCORE_DIMENSIONS.map(d => (
+                          <th key={d.key} className="text-center py-2 px-2 text-muted-foreground font-medium">{d.label}</th>
+                        ))}
+                        <th className="text-center py-2 px-2 text-muted-foreground font-medium">Composite</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(historyRes?.data ?? [])
+                        .filter(d => d.scores)
+                        .sort((a, b) => ((b.scores as DealScores).composite ?? 0) - ((a.scores as DealScores).composite ?? 0))
+                        .slice(0, 8)
+                        .map(d => {
+                          const s = d.scores as DealScores;
+                          return (
+                            <tr key={d.id} className={`border-b border-border/20 ${d.isCurrent ? "bg-primary/5" : ""}`}>
+                              <td className="py-2 pr-4 font-medium capitalize flex items-center gap-1">
+                                <span style={{ color: ARCHITECTURE_COLORS[d.architecture] ?? "#94a3b8" }}>{d.architecture}</span>
+                                {d.isCurrent && <Badge className="text-[8px] px-1 py-0 h-3.5">now</Badge>}
+                              </td>
+                              {SCORE_DIMENSIONS.map(dim => {
+                                const v = s[dim.key] as number ?? 0;
+                                const color = v >= 0.65 ? "text-emerald-400" : v >= 0.45 ? "text-amber-400" : "text-red-400";
+                                return (
+                                  <td key={dim.key} className={`text-center py-2 px-2 font-mono ${color}`}>
+                                    {Math.round(v * 100)}%
+                                  </td>
+                                );
+                              })}
+                              <td className={`text-center py-2 px-2 font-mono font-bold ${scoreColor(s.composite ?? 0)}`}>
+                                {Math.round((s.composite ?? 0) * 100)}%
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </Card>
+        </div>
+      )}
+
+      {activeTab === "robustness" && (
+        <div className="space-y-4">
+          {(() => {
+            const total = redTeamResults.length;
+            const survived = redTeamResults.filter(r => r.survived).length;
+            const critical = redTeamResults.filter(r => r.severity === "critical").length;
+            const criticalSurvived = redTeamResults.filter(r => r.severity === "critical" && r.survived).length;
+            const survivalRate = total > 0 ? (survived / total) * 100 : 0;
+            return (
+              <div className="grid sm:grid-cols-4 gap-4">
+                <Card className="p-4 text-center">
+                  <div className={`text-3xl font-display font-bold ${survivalRate >= 70 ? "text-emerald-400" : survivalRate >= 50 ? "text-amber-400" : "text-red-400"}`}>
+                    {total > 0 ? `${survivalRate.toFixed(0)}%` : "—"}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">Overall Survival</div>
+                </Card>
+                <Card className="p-4 text-center">
+                  <div className="text-3xl font-display font-bold text-emerald-400">{survived}</div>
+                  <div className="text-xs text-muted-foreground mt-1">Attacks Survived</div>
+                </Card>
+                <Card className="p-4 text-center">
+                  <div className="text-3xl font-display font-bold text-red-400">{total - survived}</div>
+                  <div className="text-xs text-muted-foreground mt-1">Attacks Failed</div>
+                </Card>
+                <Card className="p-4 text-center">
+                  <div className={`text-3xl font-display font-bold ${critical === 0 || criticalSurvived === critical ? "text-emerald-400" : "text-red-400"}`}>
+                    {critical > 0 ? `${criticalSurvived}/${critical}` : "—"}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">Critical Survived</div>
+                </Card>
+              </div>
+            );
+          })()}
+          <Card className="p-6">
+            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+              <Shield className="w-4 h-4 text-primary" /> Attack Survival by Severity
+            </h3>
+            {redTeamResults.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-4">No red team results yet.</p>
+            ) : (
+              <>
+                {["critical", "high", "medium"].map(sev => {
+                  const attacks = redTeamResults.filter(r => r.severity === sev);
+                  if (attacks.length === 0) return null;
+                  const pass = attacks.filter(r => r.survived).length;
+                  const pct = Math.round((pass / attacks.length) * 100);
+                  const barColor = sev === "critical" ? "bg-red-500" : sev === "high" ? "bg-orange-500" : "bg-amber-500";
+                  const labelColor = sev === "critical" ? "text-red-400" : sev === "high" ? "text-orange-400" : "text-amber-400";
+                  return (
+                    <div key={sev} className="mb-4">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`text-xs font-bold uppercase ${labelColor}`}>{sev}</span>
+                        <span className="text-xs text-muted-foreground">{pass}/{attacks.length} survived ({pct}%)</span>
+                      </div>
+                      <div className="bg-secondary/50 rounded h-2 overflow-hidden">
+                        <motion.div
+                          className={`h-full rounded ${barColor}`}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${pct}%` }}
+                          transition={{ duration: 0.8, ease: "easeOut" }}
+                        />
+                      </div>
+                      <div className="mt-2 space-y-2">
+                        {attacks.map((r, i) => (
+                          <div key={i} className={`p-2.5 rounded-lg border text-xs ${r.survived ? "border-emerald-800/40 bg-emerald-950/10" : "border-red-800/40 bg-red-950/10"}`}>
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="text-foreground flex-1">{r.attack}</p>
+                              <span className={`font-bold shrink-0 ${r.survived ? "text-emerald-400" : "text-red-400"}`}>
+                                {r.survived ? "✓" : "✗"}
+                              </span>
+                            </div>
+                            {r.response && <p className="text-muted-foreground mt-1">{r.response}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </>
+            )}
+          </Card>
+        </div>
       )}
 
       {activeTab === "pareto" && (

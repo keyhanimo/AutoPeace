@@ -143,6 +143,26 @@ router.post("/admin/config", async (req, res) => {
       return;
     }
 
+    // Enforce stage-level separation: resolved effective provider for any generation-role stage
+    // must not equal the resolved effective provider for any evaluation-role stage.
+    const genStages = STAGE_META.filter(s => s.role === "generation");
+    const evalStages = STAGE_META.filter(s => s.role === "evaluation");
+    const effectiveGenProviders = new Set(genStages.map(s => {
+      const override = merged[`stage${s.stage}Provider`];
+      return override ?? effectiveGenProv;
+    }));
+    const effectiveEvalProviders = new Set(evalStages.map(s => {
+      const override = merged[`stage${s.stage}Provider`];
+      return override ?? effectiveEvalProv;
+    }));
+    const stageConflicts = [...effectiveGenProviders].filter(p => effectiveEvalProviders.has(p));
+    if (stageConflicts.length > 0) {
+      res.status(400).json({
+        error: `Config rejected: Stage-level overrides create generation/evaluation provider conflict. Provider(s) "${stageConflicts.join(', ')}" appear in both generation-role and evaluation-role stages. Each provider must serve only one role across all stages.`,
+      });
+      return;
+    }
+
     for (const [key, value] of Object.entries(updates)) {
       if (value === undefined || value === null) continue;
       const strValue = String(value);

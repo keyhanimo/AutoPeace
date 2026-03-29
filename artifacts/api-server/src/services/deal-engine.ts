@@ -558,6 +558,7 @@ export async function judgeAndScore(
   terms: DealTerms,
   stakeholderEvaluations: Record<string, StakeholderVerdict>,
   redTeamResults: RedTeamResult[],
+  domesticEvaluations: Record<string, DomesticVerdict>,
   modelConfig: ModelConfig = DEFAULT_MODELS,
 ): Promise<{ scores: DealScores; tokens: number }> {
   const acceptCount = Object.values(stakeholderEvaluations).filter(e => e.verdict === "accept").length;
@@ -566,19 +567,24 @@ export async function judgeAndScore(
   const survivedCount = redTeamResults.filter(r => r.survived).length;
   const totalRedTeam = redTeamResults.length || 1;
 
+  const domesticSellable = Object.values(domesticEvaluations).filter(d => d.verdict === "sellable").length;
+  const domesticUnsellable = Object.values(domesticEvaluations).filter(d => d.verdict === "unsellable").length;
+  const domesticTotal = Object.keys(domesticEvaluations).length || 1;
+
   const systemPrompt = `You are a panel of senior diplomats and conflict resolution experts scoring a peace deal on seven dimensions from 0.0 to 1.0.
 Output JSON only.`;
 
   const prompt = `Score this peace deal (0.0-1.0 per dimension):
 
-DEAL SUMMARY:
+DEAL SUMMARY (post-negotiator amendments applied):
 - Nuclear protocol: ${terms.nuclearProtocol.slice(0, 200)}
 - Sanctions: ${terms.sanctionsRelief.slice(0, 200)}
 - Timeline: ${terms.timelineYears} years
 - Sequencing: ${terms.sequencing.slice(0, 200)}
 
 STAKEHOLDER RESULTS: ${acceptCount}/${totalStakeholders} accept, ${rejectCount} reject
-RED-TEAM: ${survivedCount}/${totalRedTeam} attacks survived
+RED-TEAM SURVIVAL: ${survivedCount}/${totalRedTeam} attacks survived
+DOMESTIC SELLABILITY: ${domesticSellable}/${domesticTotal} sellable, ${domesticUnsellable} unsellable
 
 Score JSON: { "feasibility": 0.0-1.0, "coherence": 0.0-1.0, "evidenceGrounding": 0.0-1.0, "domesticSellability": 0.0-1.0, "regionalStability": 0.0-1.0, "implementability": 0.0-1.0, "durability": 0.0-1.0 }`;
 
@@ -809,8 +815,14 @@ export async function runFullEvaluation(
   totalTokens += t5;
   logger.info({ stage: "negotiator", amendments: negotiatorResult.proposedAmendments.length, tokens: t5 }, "Stage 5 complete");
 
-  // Stage 6: Judge Agent (OpenAI — scoring role)
-  const { scores, tokens: t6 } = await judgeAndScore(terms, stakeholderEvaluations, redTeamResults, modelConfig);
+  // Apply negotiator's revisedTermsPartial before judge scores the deal
+  const revisedTerms: DealTerms = {
+    ...terms,
+    ...(negotiatorResult.revisedTermsPartial as Partial<DealTerms>),
+  };
+
+  // Stage 6: Judge Agent (OpenAI — scoring role) uses revised terms + domestic evaluations
+  const { scores, tokens: t6 } = await judgeAndScore(revisedTerms, stakeholderEvaluations, redTeamResults, domesticEvaluations, modelConfig);
   totalTokens += t6;
   logger.info({ stage: "judge", composite: scores.composite.toFixed(3), tokens: t6 }, "Stage 6 complete");
 
@@ -827,7 +839,7 @@ export async function runFullEvaluation(
   totalCost = totalTokens * 0.000003;
 
   return {
-    terms,
+    terms: revisedTerms,
     scores,
     stakeholderEvaluations,
     domesticEvaluations,

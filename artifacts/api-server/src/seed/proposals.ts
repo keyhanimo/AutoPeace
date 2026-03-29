@@ -160,7 +160,7 @@ export async function seedProposals(): Promise<void> {
       const terms = proposal.terms;
       const { evaluations: aiEvals } = await evaluateStakeholders(terms, modelConfig);
       const [{ scores: aiScores }, rawWwit] = await Promise.all([
-        judgeAndScore(terms, aiEvals, [], modelConfig),
+        judgeAndScore(terms, aiEvals, [], {}, modelConfig),
         computeWhatWouldItTake(terms, aiEvals, modelConfig),
       ]);
 
