@@ -13,6 +13,7 @@ import communityForecastsRouter from "./community-forecasts";
 import proposalSubmissionsRouter from "./proposal-submissions";
 import downloadsRouter from "./downloads";
 import scenariosRouter from "./scenarios";
+import subscribeRouter from "./subscribe";
 import { publicApiLimiter, submitLimiter, downloadLimiter } from "../middlewares/rateLimiter";
 
 const router: IRouter = Router();
@@ -33,6 +34,8 @@ router.use(scenariosRouter);
 
 router.use("/proposals/submit", submitLimiter);
 router.use(proposalSubmissionsRouter);
+
+router.use(subscribeRouter);
 
 router.use("/downloads", downloadLimiter);
 router.use(downloadsRouter);

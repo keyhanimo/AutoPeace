@@ -57,12 +57,13 @@ function useWhatIfScenarios() {
   });
 }
 
-function WhatIfPanel({ activeForecast }: { activeForecast: Forecast }) {
+function WhatIfPanel({ allForecasts }: { allForecasts: Forecast[] }) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const { data: scenariosData, isLoading: scenariosLoading } = useWhatIfScenarios();
   const scenarios = scenariosData?.data ?? [];
 
-  const baseProbs = getProbs(activeForecast);
+  const baseline90d = allForecasts.find(f => f.timeHorizon === "90d") ?? allForecasts[0];
+  const baseProbs = baseline90d ? getProbs(baseline90d) : {};
   const activeScenario = scenarios.find(s => s.id === activeId) ?? null;
 
   const chartData = CATEGORIES.map(cat => ({
@@ -826,7 +827,7 @@ export default function ForecastDashboard() {
           </div>
 
           <div className="grid lg:grid-cols-2 gap-6">
-            <WhatIfPanel activeForecast={activeForecast} />
+            <WhatIfPanel allForecasts={latestRes?.data ?? []} />
             <CommunityForecastPanel activeForecast={activeForecast} />
           </div>
 

@@ -1,6 +1,91 @@
-import React from "react";
+import React, { useState } from "react";
 import { Card, PageHeader, Badge } from "@/components/ui";
-import { Github, Code2, FileText, Database, Globe, FlaskConical, Users, Heart, BookOpen, ArrowRight } from "lucide-react";
+import { Github, Code2, FileText, Database, Globe, FlaskConical, Users, Heart, BookOpen, ArrowRight, Mail, Bell } from "lucide-react";
+
+function getBaseUrl() {
+  return window.location.origin + import.meta.env.BASE_URL.replace(/\/$/, "");
+}
+
+function NewsletterSignup() {
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [message, setMessage] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.includes("@")) {
+      setMessage("Please enter a valid email address.");
+      setStatus("error");
+      return;
+    }
+    setStatus("submitting");
+    try {
+      const res = await fetch(`${getBaseUrl()}/api/subscribe`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, name, source: "open-source-page" }),
+      });
+      const data = await res.json() as { message?: string; error?: string };
+      if (!res.ok) throw new Error(data.error ?? "Subscription failed");
+      setMessage(data.message ?? "Subscribed successfully!");
+      setStatus("success");
+      setEmail("");
+      setName("");
+    } catch (err: unknown) {
+      setMessage(err instanceof Error ? err.message : "Subscription failed. Please try again.");
+      setStatus("error");
+    }
+  };
+
+  if (status === "success") {
+    return (
+      <div className="flex items-center gap-3 py-4">
+        <Bell className="w-5 h-5 text-emerald-400 shrink-0" aria-hidden="true" />
+        <p className="text-sm text-emerald-400">{message}</p>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={(e) => void handleSubmit(e)} className="space-y-3" aria-label="Email subscription form">
+      <div className="grid sm:grid-cols-2 gap-2">
+        <input
+          type="text"
+          placeholder="Name (optional)"
+          value={name}
+          onChange={e => setName(e.target.value)}
+          className="text-sm border border-border/50 rounded-lg px-3 py-2 bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+          aria-label="Your name"
+        />
+        <input
+          type="email"
+          placeholder="your@email.com"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          required
+          className="text-sm border border-border/50 rounded-lg px-3 py-2 bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+          aria-label="Your email address"
+          aria-required="true"
+        />
+      </div>
+      {status === "error" && (
+        <p className="text-xs text-red-400">{message}</p>
+      )}
+      <button
+        type="submit"
+        disabled={status === "submitting"}
+        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/20 hover:bg-primary/30 text-primary text-sm font-semibold border border-primary/40 transition-all disabled:opacity-50"
+      >
+        <Mail className="w-3.5 h-3.5" />
+        {status === "submitting" ? "Subscribing…" : "Subscribe to research updates"}
+      </button>
+      <p className="text-[10px] text-muted-foreground">
+        Receive a digest each time a new analysis cycle completes. No spam — unsubscribe anytime via <code>DELETE /api/subscribe</code>.
+      </p>
+    </form>
+  );
+}
 
 const TECH_STACK = [
   { label: "Backend", items: ["Express 5", "TypeScript", "Drizzle ORM", "PostgreSQL"], icon: <Database className="w-4 h-4" /> },
@@ -139,6 +224,18 @@ export default function OpenSource() {
             </li>
           ))}
         </ol>
+      </Card>
+
+      <Card className="p-6">
+        <div className="flex items-center gap-2 mb-3">
+          <Bell className="w-4 h-4 text-primary" aria-hidden="true" />
+          <h3 className="font-bold">Research Update Digest</h3>
+        </div>
+        <p className="text-sm text-muted-foreground mb-4">
+          Subscribe to receive a digest each time AutoPeace completes a new research cycle — covering forecast shifts,
+          new evidence, and deal viability changes. You can also subscribe via RSS from the Changelog page.
+        </p>
+        <NewsletterSignup />
       </Card>
 
       <Card className="p-5 border-primary/20 bg-primary/5">
