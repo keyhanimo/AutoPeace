@@ -616,6 +616,194 @@ paths:
                       $ref: "#/components/schemas/SolutionTreeNode"
                 required: [nodes]
 
+  /deals/history:
+    get:
+      operationId: getDealHistory
+      tags: [deals]
+      summary: List all deals ordered by creation time with lightweight payload
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Historical deal list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        cycleId: { type: string }
+                        architecture: { type: string }
+                        scores: { $ref: "#/components/schemas/DealScores" }
+                        diagnosis: { type: string, nullable: true }
+                        isCurrent: { type: boolean }
+                        isPareto: { type: boolean }
+                        generatedBy: { type: string }
+                        tokensConsumed: { type: integer }
+                        costUsd: { type: number }
+                        createdAt: { type: string, format: date-time }
+                      required: [id, cycleId, architecture, isCurrent, isPareto, generatedBy, tokensConsumed, costUsd, createdAt]
+                  total: { type: integer }
+                  offset: { type: integer }
+                  limit: { type: integer }
+                required: [data, total, offset, limit]
+
+  /deals/robustness:
+    get:
+      operationId: getDealRobustness
+      tags: [deals]
+      summary: Red-team attack survival rate and severity breakdown across recent deals
+      parameters:
+        - name: n
+          in: query
+          description: Number of most recent deals to analyze (max 50)
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Robustness report
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  dealsSampled: { type: integer }
+                  totalAttacks: { type: integer }
+                  survivedAttacks: { type: integer }
+                  survivalRate: { type: number, nullable: true }
+                  criticalFails: { type: integer }
+                  bySeverity:
+                    type: object
+                    additionalProperties:
+                      type: object
+                      properties:
+                        total: { type: integer }
+                        survived: { type: integer }
+                      required: [total, survived]
+                  deals:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        architecture: { type: string }
+                        composite: { type: number, nullable: true }
+                        createdAt: { type: string, format: date-time }
+                required: [dealsSampled, totalAttacks, survivedAttacks, criticalFails, bySeverity, deals]
+
+  /deals/compare:
+    get:
+      operationId: compareDeals
+      tags: [deals]
+      summary: Compare 2-10 deals side-by-side across all scoring dimensions
+      parameters:
+        - name: ids
+          in: query
+          required: true
+          description: Comma-separated list of deal IDs (2–10)
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Side-by-side comparison
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deals:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        architecture: { type: string }
+                        isCurrent: { type: boolean }
+                        isPareto: { type: boolean }
+                        generatedBy: { type: string }
+                        diagnosis: { type: string, nullable: true }
+                        scores:
+                          type: object
+                          additionalProperties:
+                            type: number
+                            nullable: true
+                        createdAt: { type: string, format: date-time }
+                      required: [id, architecture, isCurrent, isPareto, generatedBy, scores, createdAt]
+                  leaders:
+                    type: object
+                    additionalProperties:
+                      type: string
+                      nullable: true
+                required: [deals, leaders]
+        "400":
+          description: Invalid ids parameter (need 2-10 IDs)
+        "404":
+          description: No matching deals found
+
+  /deals/{id}/stakeholder-evals:
+    get:
+      operationId: getDealStakeholderEvals
+      tags: [deals]
+      summary: Get stakeholder evaluations, domestic evals, and negotiator amendments for a deal
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Stakeholder evaluation detail
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  dealId: { type: string }
+                  architecture: { type: string }
+                  stakeholderEvaluations:
+                    type: object
+                    additionalProperties:
+                      $ref: "#/components/schemas/StakeholderVerdict"
+                  domesticEvaluations:
+                    type: object
+                    additionalProperties:
+                      type: object
+                      properties:
+                        audience: { type: string }
+                        verdict:
+                          type: string
+                          enum: [sellable, difficult, unsellable]
+                        rationale: { type: string }
+                  negotiatorAmendments:
+                    nullable: true
+                    type: object
+                  summary:
+                    type: object
+                    properties:
+                      accept: { type: integer }
+                      conditional: { type: integer }
+                      reject: { type: integer }
+                    required: [accept, conditional, reject]
+                required: [dealId, architecture, summary]
+        "404":
+          description: Deal not found
+
   /deals/{id}:
     get:
       operationId: getDeal
@@ -710,6 +898,67 @@ paths:
                 $ref: "#/components/schemas/Proposal"
         "404":
           description: Not found
+
+  /admin/proposals/{id}/evaluate:
+    post:
+      operationId: evaluateProposal
+      tags: [proposals, admin]
+      summary: Run AI evaluation pipeline on a real-world proposal (admin only)
+      description: Runs stakeholder evaluation, judge scoring, and what-would-it-take analysis on the proposal and persists results.
+      security:
+        - adminKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Evaluated proposal
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  proposal:
+                    $ref: "#/components/schemas/Proposal"
+                required: [proposal]
+        "401":
+          description: Unauthorized
+        "404":
+          description: Proposal not found
+
+  /admin/pipeline/config:
+    get:
+      operationId: getPipelineConfig
+      tags: [admin]
+      summary: Get the current pipeline stage-to-provider-model assignment (admin only)
+      security:
+        - adminKey: []
+      responses:
+        "200":
+          description: Pipeline configuration
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stages:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        stage: { type: integer }
+                        name: { type: string }
+                        role: { type: string }
+                        provider: { type: string, enum: [anthropic, openai, gemini] }
+                        model: { type: string }
+                      required: [stage, name, role, provider, model]
+                  constraint: { type: string }
+                required: [stages, constraint]
+        "401":
+          description: Unauthorized
 
 components:
   securitySchemes:
@@ -1121,6 +1370,21 @@ components:
           type: string
         geminiModel:
           type: string
+        generationProvider:
+          type: string
+          enum: [anthropic, openai, gemini]
+        generationModel:
+          type: string
+        evaluationProvider:
+          type: string
+          enum: [anthropic, openai, gemini]
+        evaluationModel:
+          type: string
+        adversarialProvider:
+          type: string
+          enum: [anthropic, openai, gemini]
+        adversarialModel:
+          type: string
       required:
         - cadence
         - budgetCapUsd
@@ -1128,6 +1392,12 @@ components:
         - anthropicModel
         - openaiModel
         - geminiModel
+        - generationProvider
+        - generationModel
+        - evaluationProvider
+        - evaluationModel
+        - adversarialProvider
+        - adversarialModel
 
     AdminConfigUpdate:
       type: object
@@ -1144,6 +1414,21 @@ components:
         openaiModel:
           type: string
         geminiModel:
+          type: string
+        generationProvider:
+          type: string
+          enum: [anthropic, openai, gemini]
+        generationModel:
+          type: string
+        evaluationProvider:
+          type: string
+          enum: [anthropic, openai, gemini]
+        evaluationModel:
+          type: string
+        adversarialProvider:
+          type: string
+          enum: [anthropic, openai, gemini]
+        adversarialModel:
           type: string
 
     EvidenceSource:

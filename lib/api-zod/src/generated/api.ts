@@ -436,6 +436,12 @@ export const GetAdminConfigResponse = zod.object({
   anthropicModel: zod.string(),
   openaiModel: zod.string(),
   geminiModel: zod.string(),
+  generationProvider: zod.enum(["anthropic", "openai", "gemini"]),
+  generationModel: zod.string(),
+  evaluationProvider: zod.enum(["anthropic", "openai", "gemini"]),
+  evaluationModel: zod.string(),
+  adversarialProvider: zod.enum(["anthropic", "openai", "gemini"]),
+  adversarialModel: zod.string(),
 });
 
 /**
@@ -448,6 +454,12 @@ export const UpdateAdminConfigBody = zod.object({
   anthropicModel: zod.string().optional(),
   openaiModel: zod.string().optional(),
   geminiModel: zod.string().optional(),
+  generationProvider: zod.enum(["anthropic", "openai", "gemini"]).optional(),
+  generationModel: zod.string().optional(),
+  evaluationProvider: zod.enum(["anthropic", "openai", "gemini"]).optional(),
+  evaluationModel: zod.string().optional(),
+  adversarialProvider: zod.enum(["anthropic", "openai", "gemini"]).optional(),
+  adversarialModel: zod.string().optional(),
 });
 
 export const UpdateAdminConfigResponse = zod.object({
@@ -457,6 +469,12 @@ export const UpdateAdminConfigResponse = zod.object({
   anthropicModel: zod.string(),
   openaiModel: zod.string(),
   geminiModel: zod.string(),
+  generationProvider: zod.enum(["anthropic", "openai", "gemini"]),
+  generationModel: zod.string(),
+  evaluationProvider: zod.enum(["anthropic", "openai", "gemini"]),
+  evaluationModel: zod.string(),
+  adversarialProvider: zod.enum(["anthropic", "openai", "gemini"]),
+  adversarialModel: zod.string(),
 });
 
 /**
@@ -759,6 +777,146 @@ export const GetSolutionTreeResponse = zod.object({
 });
 
 /**
+ * @summary List all deals ordered by creation time with lightweight payload
+ */
+export const getDealHistoryQueryLimitDefault = 50;
+export const getDealHistoryQueryOffsetDefault = 0;
+
+export const GetDealHistoryQueryParams = zod.object({
+  limit: zod.coerce.number().default(getDealHistoryQueryLimitDefault),
+  offset: zod.coerce.number().default(getDealHistoryQueryOffsetDefault),
+});
+
+export const GetDealHistoryResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.string(),
+      cycleId: zod.string(),
+      architecture: zod.string(),
+      scores: zod
+        .object({
+          feasibility: zod.number().optional(),
+          coherence: zod.number().optional(),
+          evidenceGrounding: zod.number().optional(),
+          domesticSellability: zod.number().optional(),
+          regionalStability: zod.number().optional(),
+          implementability: zod.number().optional(),
+          durability: zod.number().optional(),
+          composite: zod.number().optional(),
+        })
+        .optional(),
+      diagnosis: zod.string().nullish(),
+      isCurrent: zod.boolean(),
+      isPareto: zod.boolean(),
+      generatedBy: zod.string(),
+      tokensConsumed: zod.number(),
+      costUsd: zod.number(),
+      createdAt: zod.coerce.date(),
+    }),
+  ),
+  total: zod.number(),
+  offset: zod.number(),
+  limit: zod.number(),
+});
+
+/**
+ * @summary Red-team attack survival rate and severity breakdown across recent deals
+ */
+export const getDealRobustnessQueryNDefault = 10;
+
+export const GetDealRobustnessQueryParams = zod.object({
+  n: zod.coerce
+    .number()
+    .default(getDealRobustnessQueryNDefault)
+    .describe("Number of most recent deals to analyze (max 50)"),
+});
+
+export const GetDealRobustnessResponse = zod.object({
+  dealsSampled: zod.number(),
+  totalAttacks: zod.number(),
+  survivedAttacks: zod.number(),
+  survivalRate: zod.number().nullish(),
+  criticalFails: zod.number(),
+  bySeverity: zod.record(
+    zod.string(),
+    zod.object({
+      total: zod.number(),
+      survived: zod.number(),
+    }),
+  ),
+  deals: zod.array(
+    zod.object({
+      id: zod.string().optional(),
+      architecture: zod.string().optional(),
+      composite: zod.number().nullish(),
+      createdAt: zod.coerce.date().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary Compare 2-10 deals side-by-side across all scoring dimensions
+ */
+export const CompareDealsQueryParams = zod.object({
+  ids: zod.coerce.string().describe("Comma-separated list of deal IDs (2–10)"),
+});
+
+export const CompareDealsResponse = zod.object({
+  deals: zod.array(
+    zod.object({
+      id: zod.string(),
+      architecture: zod.string(),
+      isCurrent: zod.boolean(),
+      isPareto: zod.boolean(),
+      generatedBy: zod.string(),
+      diagnosis: zod.string().nullish(),
+      scores: zod.record(zod.string(), zod.number().nullable()),
+      createdAt: zod.coerce.date(),
+    }),
+  ),
+  leaders: zod.record(zod.string(), zod.string().nullable()),
+});
+
+/**
+ * @summary Get stakeholder evaluations, domestic evals, and negotiator amendments for a deal
+ */
+export const GetDealStakeholderEvalsParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetDealStakeholderEvalsResponse = zod.object({
+  dealId: zod.string(),
+  architecture: zod.string(),
+  stakeholderEvaluations: zod
+    .record(
+      zod.string(),
+      zod.object({
+        verdict: zod.enum(["accept", "conditional", "reject"]),
+        rationale: zod.string(),
+        redLineViolations: zod.array(zod.string()).optional(),
+        conditions: zod.array(zod.string()).optional(),
+      }),
+    )
+    .optional(),
+  domesticEvaluations: zod
+    .record(
+      zod.string(),
+      zod.object({
+        audience: zod.string().optional(),
+        verdict: zod.enum(["sellable", "difficult", "unsellable"]).optional(),
+        rationale: zod.string().optional(),
+      }),
+    )
+    .optional(),
+  negotiatorAmendments: zod.object({}).passthrough().nullish(),
+  summary: zod.object({
+    accept: zod.number(),
+    conditional: zod.number(),
+    reject: zod.number(),
+  }),
+});
+
+/**
  * @summary Get a single deal by ID
  */
 export const GetDealParams = zod.object({
@@ -1057,4 +1215,77 @@ export const GetProposalResponse = zod.object({
   summary: zod.string(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
+});
+
+/**
+ * Runs stakeholder evaluation, judge scoring, and what-would-it-take analysis on the proposal and persists results.
+ * @summary Run AI evaluation pipeline on a real-world proposal (admin only)
+ */
+export const EvaluateProposalParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const EvaluateProposalResponse = zod.object({
+  proposal: zod.object({
+    id: zod.string(),
+    name: zod.string(),
+    source: zod.string(),
+    submittedBy: zod.string(),
+    terms: zod.object({
+      nuclearProtocol: zod.string().optional(),
+      sanctionsRelief: zod.string().optional(),
+      hormuzArrangements: zod.string().optional(),
+      humanitarianProvisions: zod.string().optional(),
+      verificationMechanism: zod.string().optional(),
+      timelineYears: zod.number().optional(),
+      sequencing: zod.string().optional(),
+      additionalClauses: zod.array(zod.string()).optional(),
+    }),
+    scores: zod
+      .object({
+        feasibility: zod.number().optional(),
+        coherence: zod.number().optional(),
+        evidenceGrounding: zod.number().optional(),
+        domesticSellability: zod.number().optional(),
+        regionalStability: zod.number().optional(),
+        implementability: zod.number().optional(),
+        durability: zod.number().optional(),
+        composite: zod.number().optional(),
+      })
+      .nullish(),
+    stakeholderEvaluations: zod
+      .record(
+        zod.string(),
+        zod.object({
+          verdict: zod.enum(["accept", "conditional", "reject"]),
+          rationale: zod.string(),
+          redLineViolations: zod.array(zod.string()).optional(),
+          conditions: zod.array(zod.string()).optional(),
+        }),
+      )
+      .nullish(),
+    knownResponses: zod.record(zod.string(), zod.string()).nullish(),
+    whatWouldItTake: zod
+      .array(zod.record(zod.string(), zod.unknown()))
+      .nullish(),
+    summary: zod.string(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+});
+
+/**
+ * @summary Get the current pipeline stage-to-provider-model assignment (admin only)
+ */
+export const GetPipelineConfigResponse = zod.object({
+  stages: zod.array(
+    zod.object({
+      stage: zod.number(),
+      name: zod.string(),
+      role: zod.string(),
+      provider: zod.enum(["anthropic", "openai", "gemini"]),
+      model: zod.string(),
+    }),
+  ),
+  constraint: zod.string(),
 });

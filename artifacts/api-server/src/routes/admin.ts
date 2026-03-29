@@ -18,6 +18,12 @@ const CONFIG_DEFAULTS: Record<string, string> = {
   anthropicModel: "claude-sonnet-4-5",
   openaiModel: "gpt-4o",
   geminiModel: "gemini-2.5-flash",
+  generationProvider: "anthropic",
+  generationModel: "claude-sonnet-4-5",
+  evaluationProvider: "openai",
+  evaluationModel: "gpt-4o",
+  adversarialProvider: "gemini",
+  adversarialModel: "gemini-2.5-flash",
 };
 
 async function getConfigMap(): Promise<Record<string, string>> {
@@ -37,28 +43,37 @@ function mapToResponse(cfg: Record<string, string>) {
     anthropicModel: cfg["anthropicModel"] ?? "claude-sonnet-4-5",
     openaiModel: cfg["openaiModel"] ?? "gpt-4o",
     geminiModel: cfg["geminiModel"] ?? "gemini-2.5-flash",
+    generationProvider: cfg["generationProvider"] ?? "anthropic",
+    generationModel: cfg["generationModel"] ?? cfg["anthropicModel"] ?? "claude-sonnet-4-5",
+    evaluationProvider: cfg["evaluationProvider"] ?? "openai",
+    evaluationModel: cfg["evaluationModel"] ?? cfg["openaiModel"] ?? "gpt-4o",
+    adversarialProvider: cfg["adversarialProvider"] ?? "gemini",
+    adversarialModel: cfg["adversarialModel"] ?? cfg["geminiModel"] ?? "gemini-2.5-flash",
   };
 }
 
 router.get("/admin/pipeline/config", async (_req, res) => {
   try {
     const cfg = await getConfigMap();
-    const anthropicModel = cfg["anthropicModel"] ?? "claude-sonnet-4-5";
-    const openaiModel = cfg["openaiModel"] ?? "gpt-4o";
-    const geminiModel = cfg["geminiModel"] ?? "gemini-2.5-flash";
+    const genProvider = cfg["generationProvider"] ?? "anthropic";
+    const genModel = cfg["generationModel"] ?? cfg["anthropicModel"] ?? "claude-sonnet-4-5";
+    const evalProvider = cfg["evaluationProvider"] ?? "openai";
+    const evalModel = cfg["evaluationModel"] ?? cfg["openaiModel"] ?? "gpt-4o";
+    const advProvider = cfg["adversarialProvider"] ?? "gemini";
+    const advModel = cfg["adversarialModel"] ?? cfg["geminiModel"] ?? "gemini-2.5-flash";
 
     res.json({
       stages: [
-        { stage: 1, name: "Proposal Agent",        role: "generation",     provider: "anthropic", model: anthropicModel },
-        { stage: 2, name: "Stakeholder Evaluator",  role: "evaluation",     provider: "openai",    model: openaiModel },
-        { stage: 3, name: "Domestic Audiences",     role: "evaluation",     provider: "openai",    model: openaiModel },
-        { stage: 4, name: "Red-Team Agent",         role: "adversarial",    provider: "gemini",    model: geminiModel },
-        { stage: 5, name: "Negotiator Agent",       role: "generation",     provider: "anthropic", model: anthropicModel },
-        { stage: 6, name: "Judge Agent",            role: "scoring",        provider: "openai",    model: openaiModel },
-        { stage: 7, name: "Meta-Evaluator",         role: "meta-evaluation",provider: "openai",    model: openaiModel },
-        { stage: 8, name: "Diagnosis Generator",    role: "synthesis",      provider: "gemini",    model: geminiModel },
+        { stage: 1, name: "Proposal Agent",        role: "generation",      provider: genProvider,  model: genModel },
+        { stage: 2, name: "Stakeholder Evaluator",  role: "evaluation",      provider: evalProvider, model: evalModel },
+        { stage: 3, name: "Domestic Audiences",     role: "evaluation",      provider: evalProvider, model: evalModel },
+        { stage: 4, name: "Red-Team Agent",         role: "adversarial",     provider: advProvider,  model: advModel },
+        { stage: 5, name: "Negotiator Agent",       role: "generation",      provider: genProvider,  model: genModel },
+        { stage: 6, name: "Judge Agent",            role: "evaluation",      provider: evalProvider, model: evalModel },
+        { stage: 7, name: "Meta-Evaluator",         role: "evaluation",      provider: evalProvider, model: evalModel },
+        { stage: 8, name: "Diagnosis Generator",    role: "adversarial",     provider: advProvider,  model: advModel },
       ],
-      constraint: "Generation and bridging roles use Anthropic; evaluation, scoring, and meta-evaluation use OpenAI; adversarial and synthesis use Gemini. Provider assignments per role are architecturally fixed; model names are configurable.",
+      constraint: `Generation/bridging: ${genProvider}/${genModel}. Evaluation/scoring: ${evalProvider}/${evalModel}. Adversarial/synthesis: ${advProvider}/${advModel}. Generation and evaluation must use different providers.`,
     });
   } catch (err) {
     res.status(500).json({ error: String(err) });

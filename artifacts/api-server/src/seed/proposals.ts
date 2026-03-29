@@ -1,6 +1,41 @@
 import { db } from "@workspace/db";
-import { proposalsTable } from "@workspace/db/schema";
+import { proposalsTable, adminConfigTable } from "@workspace/db/schema";
+import { eq } from "drizzle-orm";
 import { logger } from "../lib/logger";
+import {
+  evaluateStakeholders,
+  judgeAndScore,
+  computeWhatWouldItTake,
+  type ModelConfig,
+} from "../services/deal-engine";
+
+async function getSeedModelConfig(): Promise<ModelConfig> {
+  try {
+    const rows = await db.select().from(adminConfigTable);
+    const cfg = Object.fromEntries(rows.map(r => [r.key, r.value]));
+    const anthropicModel = cfg["anthropicModel"] ?? "claude-sonnet-4-5";
+    const openaiModel = cfg["openaiModel"] ?? "gpt-4o";
+    const geminiModel = cfg["geminiModel"] ?? "gemini-2.5-flash";
+    return {
+      anthropicModel,
+      openaiModel,
+      geminiModel,
+      generationProvider: (cfg["generationProvider"] ?? "anthropic") as "anthropic" | "openai" | "gemini",
+      generationModel: cfg["generationModel"] ?? anthropicModel,
+      evaluationProvider: (cfg["evaluationProvider"] ?? "openai") as "anthropic" | "openai" | "gemini",
+      evaluationModel: cfg["evaluationModel"] ?? openaiModel,
+      adversarialProvider: (cfg["adversarialProvider"] ?? "gemini") as "anthropic" | "openai" | "gemini",
+      adversarialModel: cfg["adversarialModel"] ?? geminiModel,
+    };
+  } catch {
+    return {
+      anthropicModel: "claude-sonnet-4-5", openaiModel: "gpt-4o", geminiModel: "gemini-2.5-flash",
+      generationProvider: "anthropic", generationModel: "claude-sonnet-4-5",
+      evaluationProvider: "openai", evaluationModel: "gpt-4o",
+      adversarialProvider: "gemini", adversarialModel: "gemini-2.5-flash",
+    };
+  }
+}
 
 const US_15_POINT_PLAN = {
   id: "us-15-point-plan",
@@ -91,12 +126,20 @@ export async function seedProposals(): Promise<void> {
   const existingIds = new Set(existing.map(e => e.id));
 
   const proposals = [US_15_POINT_PLAN, IRAN_5_POINT_PLAN];
+  const modelConfig = await getSeedModelConfig();
 
   for (const proposal of proposals) {
     if (existingIds.has(proposal.id)) {
       logger.debug({ id: proposal.id }, "Proposal already exists, skipping");
       continue;
     }
+
+    const initialEvals = Object.fromEntries(
+      Object.entries(proposal.knownResponses).map(([stakeholder, rationale]) => [
+        stakeholder,
+        { verdict: "conditional" as const, rationale, redLineViolations: [], conditions: [] },
+      ])
+    );
 
     await db.insert(proposalsTable).values({
       id: proposal.id,
@@ -106,21 +149,39 @@ export async function seedProposals(): Promise<void> {
       summary: proposal.summary,
       terms: proposal.terms,
       scores: proposal.scores,
-      stakeholderEvaluations: Object.fromEntries(
-        Object.entries(proposal.knownResponses).map(([stakeholder, rationale]) => [
-          stakeholder,
-          {
-            verdict: "conditional" as const,
-            rationale,
-            redLineViolations: [],
-            conditions: [],
-          },
-        ])
-      ),
+      stakeholderEvaluations: initialEvals,
       knownResponses: proposal.knownResponses,
       whatWouldItTake: [],
     });
 
-    logger.info({ id: proposal.id }, "Seeded real-world proposal");
+    logger.info({ id: proposal.id }, "Seeded real-world proposal — running AI evaluation");
+
+    try {
+      const terms = proposal.terms;
+      const { evaluations: aiEvals } = await evaluateStakeholders(terms, modelConfig);
+      const [{ scores: aiScores }, rawWwit] = await Promise.all([
+        judgeAndScore(terms, aiEvals, [], modelConfig),
+        computeWhatWouldItTake(terms, aiEvals, modelConfig),
+      ]);
+
+      const whatWouldItTake = rawWwit.map(item => ({
+        dimension: item.stakeholder,
+        currentGap: "Stakeholder rejects or conditionally accepts current terms",
+        requiredChange: item.requirement,
+        feasibility: item.feasibility,
+      }));
+
+      await db.update(proposalsTable)
+        .set({
+          stakeholderEvaluations: aiEvals,
+          scores: aiScores,
+          whatWouldItTake,
+        })
+        .where(eq(proposalsTable.id, proposal.id));
+
+      logger.info({ id: proposal.id }, "AI evaluation complete for seeded proposal");
+    } catch (err) {
+      logger.warn({ id: proposal.id, err }, "AI evaluation failed for seeded proposal — keeping static scores");
+    }
   }
 }

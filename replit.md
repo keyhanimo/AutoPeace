@@ -100,25 +100,47 @@ Scheduler: hourly cron check, runs at UTC 6am daily by default.
 
 | Route | Page |
 |---|---|
-| `/` | Home — hero, peace gauge, stakeholder grid |
+| `/` | Home — hero, peace gauge, stakeholder grid, DealHeroSection |
 | `/forecasts` | Forecast Dashboard — bar chart, model metadata, rationale |
+| `/deals` | Deal Dashboard — solution tree, Pareto frontier, deal cards |
+| `/proposals` | Proposal Arena — US vs Iran vs AI deal comparison |
+| `/stakeholders` | Stakeholder Gallery — expandable stakeholder profile cards |
 | `/costs` | Cost Explorer — economic/human cost data by actor |
 | `/experiments` | Evolution Log — mutation table with result badges |
 | `/changelog` | Platform Changelog — timeline of cycle headlines |
-| `/changelog/:id` | Changelog Entry — detail view with forecast distribution, key evidence, permalink |
+| `/changelog/:id` | Changelog Entry — detail view |
 | `/methodology` | Methodology — Bayesian approach, 8-state MECE taxonomy |
-| `/admin` | Admin Panel — password-gated controls (X-Admin-Key) |
+| `/admin` | Admin Panel — password-gated (X-Admin-Key); model/provider config, proposal management, deal engine trigger |
+
+## Phase 2 — Deal Engine (Task B)
+
+8-stage multi-agent pipeline (`deal-engine.ts`):
+1. **Proposal Agent** (generation role) — designs deal terms per architecture
+2. **Stakeholder Evaluator** (evaluation role) — assesses 8 core stakeholder verdicts
+3. **Domestic Audiences** (evaluation role) — Iran/US/Israel domestic political sellability
+4. **Red-Team Agent** (adversarial role) — 5 attack scenarios, severity + survival
+5. **Negotiator Agent** (generation role) — targeted amendments for rejectors
+6. **Judge Agent** (evaluation role) — 7-dimension scoring (0–1 each)
+7. **Meta-Evaluator** (evaluation role) — pipeline reasoning quality + next architecture suggestion
+8. **Diagnosis Generator** (adversarial role) — plain-language explanation of failure
+
+**Per-role provider config**: generation/evaluation/adversarial each have independent `{provider, model}` settings stored in `admin_config` key-value store. `validateModelConfig()` enforces `generationProvider !== evaluationProvider` at runtime.
+
+**API routes added**: `/deals/history`, `/deals/robustness`, `/deals/compare`, `/deals/{id}/stakeholder-evals`, `/admin/proposals/{id}/evaluate`, `/admin/pipeline/config`
 
 ## Key Files
 
-- `artifacts/api-server/src/services/autoresearch.ts` — main cycle orchestrator
-- `artifacts/api-server/src/services/forecasting.ts` — Anthropic forecasting
-- `artifacts/api-server/src/services/evidence-ingestion.ts` — RSS ingest
-- `artifacts/api-server/src/seed/` — seed data (stakeholders, RSS sources, costs)
+- `artifacts/api-server/src/services/autoresearch.ts` — forecast cycle orchestrator
+- `artifacts/api-server/src/services/deal-engine.ts` — 8-stage deal pipeline + validateModelConfig
+- `artifacts/api-server/src/services/deal-autoresearch.ts` — deal cycle loop, solution tree, Pareto
+- `artifacts/api-server/src/routes/deals.ts` — deal API endpoints incl. history/robustness/compare
+- `artifacts/api-server/src/routes/proposals.ts` — proposals + admin evaluate endpoint
+- `artifacts/api-server/src/routes/admin.ts` — admin config + pipeline config with per-role providers
+- `artifacts/api-server/src/seed/proposals.ts` — seeds US 15-pt + Iran 5-pt proposals + AI auto-eval
+- `artifacts/autopeace/src/pages/AdminPanel.tsx` — per-role provider dropdowns + proposal management form
 - `artifacts/autopeace/src/App.tsx` — React router + page layout
-- `artifacts/autopeace/src/components/Layout.tsx` — sidebar nav
-- `artifacts/autopeace/src/index.css` — dark navy + amber/gold theme
-- `lib/api-spec/openapi.yaml` — full OpenAPI 3.1 spec
+- `lib/api-spec/openapi.yaml` — full OpenAPI 3.1 spec (all new endpoints documented)
+- `lib/api-client-react/src/generated/` — orval-generated React Query hooks
 
 ## TypeScript & Composite Projects
 

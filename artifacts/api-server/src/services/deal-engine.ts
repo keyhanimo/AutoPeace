@@ -62,11 +62,27 @@ export type MetaEvaluatorResult = {
   confidenceInOutcome: number;
 };
 
+export type ProviderName = "anthropic" | "openai" | "gemini";
+
 export type ModelConfig = {
   anthropicModel: string;
   openaiModel: string;
   geminiModel: string;
+  generationProvider: ProviderName;
+  generationModel: string;
+  evaluationProvider: ProviderName;
+  evaluationModel: string;
+  adversarialProvider: ProviderName;
+  adversarialModel: string;
 };
+
+export function validateModelConfig(config: ModelConfig): void {
+  if (config.generationProvider === config.evaluationProvider) {
+    throw new Error(
+      `ModelConfig violation: generationProvider (${config.generationProvider}) and evaluationProvider (${config.evaluationProvider}) must use different LLM providers to ensure generation/evaluation independence.`
+    );
+  }
+}
 
 export type EvaluatedDeal = {
   terms: DealTerms;
@@ -88,6 +104,12 @@ const DEFAULT_MODELS: ModelConfig = {
   anthropicModel: "claude-sonnet-4-5",
   openaiModel: "gpt-4o",
   geminiModel: "gemini-2.5-flash",
+  generationProvider: "anthropic",
+  generationModel: "claude-sonnet-4-5",
+  evaluationProvider: "openai",
+  evaluationModel: "gpt-4o",
+  adversarialProvider: "gemini",
+  adversarialModel: "gemini-2.5-flash",
 };
 
 let _openai: import("openai").OpenAI | null = null;
@@ -187,6 +209,31 @@ async function callAnthropic(
   }
 }
 
+/**
+ * callLLM — routes an LLM call to the correct provider based on the per-role ModelConfig.
+ * Ensures generation/evaluation/adversarial use their configured providers.
+ */
+async function callLLM(
+  prompt: string,
+  systemPrompt: string,
+  role: "generation" | "evaluation" | "adversarial",
+  config: ModelConfig,
+): Promise<{ content: string; tokens: number }> {
+  const provider = config[`${role}Provider`];
+  const model = config[`${role}Model`];
+  switch (provider) {
+    case "anthropic":
+      return callAnthropic(prompt, systemPrompt, model);
+    case "openai":
+      return callOpenAI(prompt, systemPrompt, model);
+    case "gemini":
+      return callGemini(prompt, model);
+    default:
+      logger.warn({ provider }, "Unknown provider, falling back to anthropic");
+      return callAnthropic(prompt, systemPrompt, model);
+  }
+}
+
 function parseLLMJson<T>(text: string, fallback: T): T {
   try {
     const match = text.match(/```(?:json)?\s*([\s\S]*?)```/) ?? text.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
@@ -274,7 +321,7 @@ Generate a peace deal JSON with these exact keys:
   "additionalClauses": ["array", "of", "additional", "terms"]
 }`;
 
-  const { content, tokens } = await callAnthropic(prompt, systemPrompt, modelConfig.anthropicModel);
+  const { content, tokens } = await callLLM(prompt, systemPrompt, "generation", modelConfig);
   const terms = parseLLMJson<DealTerms>(content, getDefaultTerms(architecture));
   return { terms, tokens };
 }
@@ -307,7 +354,7 @@ ${CORE_STAKEHOLDERS.map(s => `- ${s.id}: ${s.name}. Profile: ${s.profile}`).join
 
 Return JSON: { "iran": { verdict, rationale, redLineViolations, conditions }, "us": {...}, ... }`;
 
-  const { content, tokens } = await callOpenAI(prompt, systemPrompt, modelConfig.openaiModel);
+  const { content, tokens } = await callLLM(prompt, systemPrompt, "evaluation", modelConfig);
 
   const fallback: Record<string, StakeholderVerdict> = {};
   for (const s of CORE_STAKEHOLDERS) {
@@ -382,7 +429,7 @@ Return JSON:
   "negotiationStrategy": "overall strategy text"
 }`;
 
-  const { content, tokens } = await callAnthropic(prompt, systemPrompt, modelConfig.anthropicModel);
+  const { content, tokens } = await callLLM(prompt, systemPrompt, "generation", modelConfig);
   const result = parseLLMJson<NegotiatorResult>(content, fallback);
   return { result, tokens };
 }
@@ -416,7 +463,7 @@ ${audienceList.map(a => `- ${a.key}: ${a.label}`).join("\n")}
 
 Return JSON where each key maps to { "audience": "label", "verdict": "sellable|difficult|unsellable", "rationale": "brief" }.`;
 
-  const { content, tokens } = await callOpenAI(prompt, systemPrompt, modelConfig.openaiModel);
+  const { content, tokens } = await callLLM(prompt, systemPrompt, "evaluation", modelConfig);
 
   const fallback: Record<string, DomesticVerdict> = {};
   for (const { key, label } of audienceList) {
@@ -449,7 +496,7 @@ Sequencing: ${terms.sequencing}
 
 Return JSON array: [{ "attack": "description", "severity": "low|medium|high|critical", "response": "how proponents respond", "survived": true|false }, ...]`;
 
-  const { content, tokens } = await callGemini(prompt, modelConfig.geminiModel);
+  const { content, tokens } = await callLLM(prompt, "You are an adversarial analyst. Output JSON.", "adversarial", modelConfig);
 
   const fallback: RedTeamResult[] = [
     { attack: "Iran's IRGC rejects verification intrusions as sovereignty violation", severity: "high", response: "Narrow the inspection scope to declared sites only", survived: true },
@@ -495,7 +542,7 @@ RED-TEAM: ${survivedCount}/${totalRedTeam} attacks survived
 
 Score JSON: { "feasibility": 0.0-1.0, "coherence": 0.0-1.0, "evidenceGrounding": 0.0-1.0, "domesticSellability": 0.0-1.0, "regionalStability": 0.0-1.0, "implementability": 0.0-1.0, "durability": 0.0-1.0 }`;
 
-  const { content, tokens } = await callOpenAI(prompt, systemPrompt, modelConfig.openaiModel);
+  const { content, tokens } = await callLLM(prompt, systemPrompt, "evaluation", modelConfig);
 
   const acceptRate = acceptCount / totalStakeholders;
   const redTeamSurvival = survivedCount / totalRedTeam;
@@ -586,7 +633,7 @@ Assess the reasoning quality and return:
   "confidenceInOutcome": 0.0-1.0
 }`;
 
-  const { content, tokens } = await callOpenAI(prompt, systemPrompt, modelConfig.openaiModel);
+  const { content, tokens } = await callLLM(prompt, systemPrompt, "evaluation", modelConfig);
   const result = parseLLMJson<MetaEvaluatorResult>(content, fallback);
   return { result, tokens };
 }
@@ -624,7 +671,7 @@ Lowest scoring dimension: ${Object.entries(scores).filter(([k]) => k !== "compos
 
 Be specific about which stakeholder objections and which structural weakness are most critical to fix.`;
 
-  const { content, tokens } = await callGemini(prompt, modelConfig.geminiModel);
+  const { content, tokens } = await callLLM(prompt, "You are a strategic conflict analyst. Provide a concise diagnosis paragraph. No JSON.", "adversarial", modelConfig);
   return {
     diagnosis: content.trim().replace(/^```[\s\S]*?```$/m, "").trim() || "Deal faces significant stakeholder resistance. Nuclear verification and domestic political constraints are the primary barriers.",
     tokens,
@@ -660,7 +707,7 @@ ${[...rejecters, ...conditionals].map(([id, e]) => `- ${id}: violations: ${e.red
 Return JSON array: [{ "stakeholder": "id", "requirement": "specific concrete requirement", "feasibility": "low|medium|high" }]
 Limit to 6 items total.`;
 
-  const { content } = await callOpenAI(prompt, systemPrompt, modelConfig.openaiModel);
+  const { content } = await callLLM(prompt, systemPrompt, "evaluation", modelConfig);
 
   const fallback = rejecters.flatMap(([stakeholderId, evaluation]) =>
     (evaluation.redLineViolations ?? []).slice(0, 2).map(violation => ({
@@ -691,6 +738,7 @@ export async function runFullEvaluation(
   architecture: Architecture = "balanced",
   modelConfig: ModelConfig = DEFAULT_MODELS,
 ): Promise<EvaluatedDeal> {
+  validateModelConfig(modelConfig);
   logger.info({ architecture, models: modelConfig }, "Starting full deal evaluation pipeline");
   let totalTokens = 0;
   let totalCost = 0;

@@ -24,13 +24,32 @@ async function getModelConfig(): Promise<ModelConfig> {
   try {
     const rows = await db.select().from(adminConfigTable);
     const cfg = Object.fromEntries(rows.map(r => [r.key, r.value]));
+    const anthropicModel = cfg["anthropicModel"] ?? "claude-sonnet-4-5";
+    const openaiModel = cfg["openaiModel"] ?? "gpt-4o";
+    const geminiModel = cfg["geminiModel"] ?? "gemini-2.5-flash";
     return {
-      anthropicModel: cfg["anthropicModel"] ?? "claude-sonnet-4-5",
-      openaiModel: cfg["openaiModel"] ?? "gpt-4o",
-      geminiModel: cfg["geminiModel"] ?? "gemini-2.5-flash",
+      anthropicModel,
+      openaiModel,
+      geminiModel,
+      generationProvider: (cfg["generationProvider"] ?? "anthropic") as "anthropic" | "openai" | "gemini",
+      generationModel: cfg["generationModel"] ?? anthropicModel,
+      evaluationProvider: (cfg["evaluationProvider"] ?? "openai") as "anthropic" | "openai" | "gemini",
+      evaluationModel: cfg["evaluationModel"] ?? openaiModel,
+      adversarialProvider: (cfg["adversarialProvider"] ?? "gemini") as "anthropic" | "openai" | "gemini",
+      adversarialModel: cfg["adversarialModel"] ?? geminiModel,
     };
   } catch {
-    return { anthropicModel: "claude-sonnet-4-5", openaiModel: "gpt-4o", geminiModel: "gemini-2.5-flash" };
+    return {
+      anthropicModel: "claude-sonnet-4-5",
+      openaiModel: "gpt-4o",
+      geminiModel: "gemini-2.5-flash",
+      generationProvider: "anthropic",
+      generationModel: "claude-sonnet-4-5",
+      evaluationProvider: "openai",
+      evaluationModel: "gpt-4o",
+      adversarialProvider: "gemini",
+      adversarialModel: "gemini-2.5-flash",
+    };
   }
 }
 

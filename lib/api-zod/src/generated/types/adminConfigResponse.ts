@@ -5,7 +5,10 @@
  * AutoPeace API — AI-powered conflict forecasting and peace research
  * OpenAPI spec version: 0.1.0
  */
+import type { AdminConfigResponseAdversarialProvider } from "./adminConfigResponseAdversarialProvider";
 import type { AdminConfigResponseCadence } from "./adminConfigResponseCadence";
+import type { AdminConfigResponseEvaluationProvider } from "./adminConfigResponseEvaluationProvider";
+import type { AdminConfigResponseGenerationProvider } from "./adminConfigResponseGenerationProvider";
 
 export interface AdminConfigResponse {
   cadence: AdminConfigResponseCadence;
@@ -14,4 +17,10 @@ export interface AdminConfigResponse {
   anthropicModel: string;
   openaiModel: string;
   geminiModel: string;
+  generationProvider: AdminConfigResponseGenerationProvider;
+  generationModel: string;
+  evaluationProvider: AdminConfigResponseEvaluationProvider;
+  evaluationModel: string;
+  adversarialProvider: AdminConfigResponseAdversarialProvider;
+  adversarialModel: string;
 }

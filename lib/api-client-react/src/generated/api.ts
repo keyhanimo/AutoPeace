@@ -20,16 +20,25 @@ import type {
   AdminConfigResponse,
   AdminConfigUpdate,
   ChangelogEntry,
+  CompareDeals200,
+  CompareDealsParams,
   CostOfWar,
   CostSummary,
   CreateProposalRequest,
   Deal,
+  EvaluateProposal200,
   EvidenceSource,
   EvidenceSourceUpdate,
   ExperimentStats,
   Forecast,
+  GetDealHistory200,
+  GetDealHistoryParams,
+  GetDealRobustness200,
+  GetDealRobustnessParams,
+  GetDealStakeholderEvals200,
   GetLatestForecasts200,
   GetParetoDeals200,
+  GetPipelineConfig200,
   GetSolutionTree200,
   HealthStatus,
   ListChangelog200,
@@ -2087,6 +2096,383 @@ export function useGetSolutionTree<
 }
 
 /**
+ * @summary List all deals ordered by creation time with lightweight payload
+ */
+export const getGetDealHistoryUrl = (params?: GetDealHistoryParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/deals/history?${stringifiedParams}`
+    : `/api/deals/history`;
+};
+
+export const getDealHistory = async (
+  params?: GetDealHistoryParams,
+  options?: RequestInit,
+): Promise<GetDealHistory200> => {
+  return customFetch<GetDealHistory200>(getGetDealHistoryUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetDealHistoryQueryKey = (params?: GetDealHistoryParams) => {
+  return [`/api/deals/history`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetDealHistoryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDealHistory>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetDealHistoryParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDealHistory>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDealHistoryQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getDealHistory>>> = ({
+    signal,
+  }) => getDealHistory(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDealHistory>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDealHistoryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDealHistory>>
+>;
+export type GetDealHistoryQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all deals ordered by creation time with lightweight payload
+ */
+
+export function useGetDealHistory<
+  TData = Awaited<ReturnType<typeof getDealHistory>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetDealHistoryParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDealHistory>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDealHistoryQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Red-team attack survival rate and severity breakdown across recent deals
+ */
+export const getGetDealRobustnessUrl = (params?: GetDealRobustnessParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/deals/robustness?${stringifiedParams}`
+    : `/api/deals/robustness`;
+};
+
+export const getDealRobustness = async (
+  params?: GetDealRobustnessParams,
+  options?: RequestInit,
+): Promise<GetDealRobustness200> => {
+  return customFetch<GetDealRobustness200>(getGetDealRobustnessUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetDealRobustnessQueryKey = (
+  params?: GetDealRobustnessParams,
+) => {
+  return [`/api/deals/robustness`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetDealRobustnessQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDealRobustness>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetDealRobustnessParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDealRobustness>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetDealRobustnessQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getDealRobustness>>
+  > = ({ signal }) => getDealRobustness(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDealRobustness>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDealRobustnessQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDealRobustness>>
+>;
+export type GetDealRobustnessQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Red-team attack survival rate and severity breakdown across recent deals
+ */
+
+export function useGetDealRobustness<
+  TData = Awaited<ReturnType<typeof getDealRobustness>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetDealRobustnessParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDealRobustness>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDealRobustnessQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Compare 2-10 deals side-by-side across all scoring dimensions
+ */
+export const getCompareDealsUrl = (params: CompareDealsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/deals/compare?${stringifiedParams}`
+    : `/api/deals/compare`;
+};
+
+export const compareDeals = async (
+  params: CompareDealsParams,
+  options?: RequestInit,
+): Promise<CompareDeals200> => {
+  return customFetch<CompareDeals200>(getCompareDealsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getCompareDealsQueryKey = (params?: CompareDealsParams) => {
+  return [`/api/deals/compare`, ...(params ? [params] : [])] as const;
+};
+
+export const getCompareDealsQueryOptions = <
+  TData = Awaited<ReturnType<typeof compareDeals>>,
+  TError = ErrorType<void>,
+>(
+  params: CompareDealsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof compareDeals>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getCompareDealsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof compareDeals>>> = ({
+    signal,
+  }) => compareDeals(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof compareDeals>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type CompareDealsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof compareDeals>>
+>;
+export type CompareDealsQueryError = ErrorType<void>;
+
+/**
+ * @summary Compare 2-10 deals side-by-side across all scoring dimensions
+ */
+
+export function useCompareDeals<
+  TData = Awaited<ReturnType<typeof compareDeals>>,
+  TError = ErrorType<void>,
+>(
+  params: CompareDealsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof compareDeals>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getCompareDealsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get stakeholder evaluations, domestic evals, and negotiator amendments for a deal
+ */
+export const getGetDealStakeholderEvalsUrl = (id: string) => {
+  return `/api/deals/${id}/stakeholder-evals`;
+};
+
+export const getDealStakeholderEvals = async (
+  id: string,
+  options?: RequestInit,
+): Promise<GetDealStakeholderEvals200> => {
+  return customFetch<GetDealStakeholderEvals200>(
+    getGetDealStakeholderEvalsUrl(id),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetDealStakeholderEvalsQueryKey = (id: string) => {
+  return [`/api/deals/${id}/stakeholder-evals`] as const;
+};
+
+export const getGetDealStakeholderEvalsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDealStakeholderEvals>>,
+  TError = ErrorType<void>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDealStakeholderEvals>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetDealStakeholderEvalsQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getDealStakeholderEvals>>
+  > = ({ signal }) =>
+    getDealStakeholderEvals(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDealStakeholderEvals>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDealStakeholderEvalsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDealStakeholderEvals>>
+>;
+export type GetDealStakeholderEvalsQueryError = ErrorType<void>;
+
+/**
+ * @summary Get stakeholder evaluations, domestic evals, and negotiator amendments for a deal
+ */
+
+export function useGetDealStakeholderEvals<
+  TData = Awaited<ReturnType<typeof getDealStakeholderEvals>>,
+  TError = ErrorType<void>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDealStakeholderEvals>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDealStakeholderEvalsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
  * @summary Get a single deal by ID
  */
 export const getGetDealUrl = (id: string) => {
@@ -2478,6 +2864,166 @@ export function useGetProposal<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetProposalQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Runs stakeholder evaluation, judge scoring, and what-would-it-take analysis on the proposal and persists results.
+ * @summary Run AI evaluation pipeline on a real-world proposal (admin only)
+ */
+export const getEvaluateProposalUrl = (id: string) => {
+  return `/api/admin/proposals/${id}/evaluate`;
+};
+
+export const evaluateProposal = async (
+  id: string,
+  options?: RequestInit,
+): Promise<EvaluateProposal200> => {
+  return customFetch<EvaluateProposal200>(getEvaluateProposalUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getEvaluateProposalMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof evaluateProposal>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof evaluateProposal>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["evaluateProposal"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof evaluateProposal>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return evaluateProposal(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type EvaluateProposalMutationResult = NonNullable<
+  Awaited<ReturnType<typeof evaluateProposal>>
+>;
+
+export type EvaluateProposalMutationError = ErrorType<void>;
+
+/**
+ * @summary Run AI evaluation pipeline on a real-world proposal (admin only)
+ */
+export const useEvaluateProposal = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof evaluateProposal>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof evaluateProposal>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getEvaluateProposalMutationOptions(options));
+};
+
+/**
+ * @summary Get the current pipeline stage-to-provider-model assignment (admin only)
+ */
+export const getGetPipelineConfigUrl = () => {
+  return `/api/admin/pipeline/config`;
+};
+
+export const getPipelineConfig = async (
+  options?: RequestInit,
+): Promise<GetPipelineConfig200> => {
+  return customFetch<GetPipelineConfig200>(getGetPipelineConfigUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetPipelineConfigQueryKey = () => {
+  return [`/api/admin/pipeline/config`] as const;
+};
+
+export const getGetPipelineConfigQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPipelineConfig>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getPipelineConfig>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetPipelineConfigQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getPipelineConfig>>
+  > = ({ signal }) => getPipelineConfig({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPipelineConfig>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPipelineConfigQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPipelineConfig>>
+>;
+export type GetPipelineConfigQueryError = ErrorType<void>;
+
+/**
+ * @summary Get the current pipeline stage-to-provider-model assignment (admin only)
+ */
+
+export function useGetPipelineConfig<
+  TData = Awaited<ReturnType<typeof getPipelineConfig>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getPipelineConfig>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPipelineConfigQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

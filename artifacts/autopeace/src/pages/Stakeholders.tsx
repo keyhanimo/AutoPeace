@@ -20,10 +20,11 @@ const STAKEHOLDER_ICONS: Record<string, string> = {
 function StakeholderCard({ stakeholder }: { stakeholder: Stakeholder }) {
   const [expanded, setExpanded] = useState(false);
 
-  const goals = (stakeholder.goals ?? []) as unknown as string[];
-  const redLines = (stakeholder.redLines ?? []) as unknown as string[];
-  const constraints = (stakeholder.constraints ?? []) as unknown as string[];
-  const preferred = (stakeholder.preferredOutcomes ?? []) as unknown as string[];
+  const toStrArr = (v: unknown): string[] => Array.isArray(v) ? v as string[] : [];
+  const goals = toStrArr(stakeholder.goals);
+  const redLines = toStrArr(stakeholder.redLines);
+  const constraints = toStrArr(stakeholder.constraints);
+  const preferred = toStrArr(stakeholder.preferredOutcomes);
 
   const icon = STAKEHOLDER_ICONS[stakeholder.id] ?? "🏛️";
 

@@ -15,7 +15,7 @@ import {
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAdminKey } from "@/hooks/use-admin";
 import { PageHeader, Card, Button, Input, Badge } from "@/components/ui";
-import { Lock, Play, Save, LogOut, Loader2, DollarSign, ToggleLeft, ToggleRight, Handshake, GitBranch, Cpu, Zap, CheckCircle2, AlertCircle } from "lucide-react";
+import { Lock, Play, Save, LogOut, Loader2, DollarSign, ToggleLeft, ToggleRight, Handshake, GitBranch, Cpu, Zap, CheckCircle2, AlertCircle, Plus, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatUsd } from "@/lib/utils";
 
@@ -90,18 +90,70 @@ export default function AdminPanel() {
   };
 
   const [formData, setFormData] = useState<AdminConfigUpdate>({});
+  const [showProposalForm, setShowProposalForm] = useState(false);
+  const [proposalFormData, setProposalFormData] = useState({
+    name: "", source: "", summary: "",
+    nuclearProtocol: "", sanctionsRelief: "", hormuzArrangements: "",
+    humanitarianProvisions: "", verificationMechanism: "", timelineYears: 5,
+    sequencing: "",
+  });
+  const [submittingProposal, setSubmittingProposal] = useState(false);
+
+  const handleAddProposal = async () => {
+    if (!proposalFormData.name || !proposalFormData.summary) {
+      toast({ title: "Validation Error", description: "Name and Summary are required.", variant: "destructive" });
+      return;
+    }
+    setSubmittingProposal(true);
+    try {
+      const res = await fetch(`/api/proposals`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Admin-Key": adminKey },
+        body: JSON.stringify({
+          name: proposalFormData.name,
+          source: proposalFormData.source || "Unknown",
+          submittedBy: "human",
+          summary: proposalFormData.summary,
+          terms: {
+            nuclearProtocol: proposalFormData.nuclearProtocol,
+            sanctionsRelief: proposalFormData.sanctionsRelief,
+            hormuzArrangements: proposalFormData.hormuzArrangements,
+            humanitarianProvisions: proposalFormData.humanitarianProvisions,
+            verificationMechanism: proposalFormData.verificationMechanism,
+            timelineYears: proposalFormData.timelineYears,
+            sequencing: proposalFormData.sequencing,
+            additionalClauses: [],
+          },
+        }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      toast({ title: "Proposal added", description: `"${proposalFormData.name}" created and queued for evaluation.` });
+      setShowProposalForm(false);
+      setProposalFormData({ name: "", source: "", summary: "", nuclearProtocol: "", sanctionsRelief: "", hormuzArrangements: "", humanitarianProvisions: "", verificationMechanism: "", timelineYears: 5, sequencing: "" });
+      void refetchProposals();
+    } catch (err: unknown) {
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to create proposal.", variant: "destructive" });
+    } finally {
+      setSubmittingProposal(false);
+    }
+  };
 
   React.useEffect(() => {
     if (config) {
-      const update: AdminConfigUpdate = {
+      setFormData({
         cadence: config.cadence,
         budgetCapUsd: config.budgetCapUsd,
         isPaused: config.isPaused,
         anthropicModel: config.anthropicModel,
         openaiModel: config.openaiModel,
         geminiModel: config.geminiModel,
-      };
-      setFormData(update);
+        generationProvider: config.generationProvider as AdminConfigUpdate["generationProvider"],
+        generationModel: config.generationModel,
+        evaluationProvider: config.evaluationProvider as AdminConfigUpdate["evaluationProvider"],
+        evaluationModel: config.evaluationModel,
+        adversarialProvider: config.adversarialProvider as AdminConfigUpdate["adversarialProvider"],
+        adversarialModel: config.adversarialModel,
+      });
     }
   }, [config]);
 
@@ -265,50 +317,77 @@ export default function AdminPanel() {
             <h3 className="text-lg font-bold mb-4 border-b border-border/50 pb-2 flex items-center gap-2">
               <Cpu className="w-5 h-5 text-primary" /> Model Assignment by Role
             </h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <div className="space-y-4 mb-4">
+              {(["generation", "evaluation", "adversarial"] as const).map(role => {
+                const providerKey = `${role}Provider` as "generationProvider" | "evaluationProvider" | "adversarialProvider";
+                const modelKey = `${role}Model` as "generationModel" | "evaluationModel" | "adversarialModel";
+                const providerVal = (formData[providerKey] ?? config?.[providerKey] ?? (role === "generation" ? "anthropic" : role === "evaluation" ? "openai" : "gemini")) as string;
+                const modelVal = formData[modelKey] ?? config?.[modelKey] ?? "";
+                const roleLabel = role === "generation" ? "Generation (Stages 1, 5)" : role === "evaluation" ? "Evaluation (Stages 2, 3, 6, 7)" : "Adversarial (Stages 4, 8)";
+                const roleColor = role === "generation" ? "text-violet-400" : role === "evaluation" ? "text-blue-400" : "text-orange-400";
+                return (
+                  <div key={role} className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className={`text-xs font-semibold ${roleColor}`}>{roleLabel} — Provider</label>
+                      <select
+                        className="w-full h-9 rounded-xl border border-border bg-background/50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                        value={providerVal}
+                        onChange={e => setFormData({ ...formData, [providerKey]: e.target.value as "anthropic" | "openai" | "gemini" })}
+                      >
+                        <option value="anthropic">Anthropic (Claude)</option>
+                        <option value="openai">OpenAI (GPT)</option>
+                        <option value="gemini">Google (Gemini)</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Model Name</label>
+                      <Input
+                        value={modelVal}
+                        onChange={e => setFormData({ ...formData, [modelKey]: e.target.value })}
+                        placeholder={role === "generation" ? "claude-sonnet-4-5" : role === "evaluation" ? "gpt-4o" : "gemini-2.5-flash"}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="overflow-x-auto border-t border-border/30 pt-4">
+              <table className="w-full text-xs">
                 <thead>
-                  <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border/50">
-                    <th className="pb-2 pr-4 font-semibold">Pipeline Stage</th>
-                    <th className="pb-2 pr-4 font-semibold">Role</th>
-                    <th className="pb-2 font-semibold">Model</th>
+                  <tr className="text-left uppercase tracking-wider text-muted-foreground border-b border-border/50">
+                    <th className="pb-2 pr-4 font-semibold">Stage</th>
+                    <th className="pb-2 pr-4 font-semibold">Agent</th>
+                    <th className="pb-2 font-semibold">Role</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/30">
                   {([
-                    ["Stage 1 — Proposal Agent", "Generation", "anthropic", formData.anthropicModel ?? config?.anthropicModel ?? "claude-sonnet-4-5"],
-                    ["Stage 2 — Stakeholder Evaluator", "Evaluation", "openai", formData.openaiModel ?? config?.openaiModel ?? "gpt-4o"],
-                    ["Stage 3 — Domestic Audience", "Evaluation", "openai", formData.openaiModel ?? config?.openaiModel ?? "gpt-4o"],
-                    ["Stage 4 — Red-Team Agent", "Adversarial", "gemini", formData.geminiModel ?? config?.geminiModel ?? "gemini-2.5-flash"],
-                    ["Stage 5 — Negotiator Agent", "Bridging", "anthropic", formData.anthropicModel ?? config?.anthropicModel ?? "claude-sonnet-4-5"],
-                    ["Stage 6 — Judge Agent", "Scoring", "openai", formData.openaiModel ?? config?.openaiModel ?? "gpt-4o"],
-                    ["Stage 7 — Meta-Evaluator", "Meta-Eval", "openai", formData.openaiModel ?? config?.openaiModel ?? "gpt-4o"],
-                    ["Stage 8 — Diagnosis", "Synthesis", "gemini", formData.geminiModel ?? config?.geminiModel ?? "gemini-2.5-flash"],
-                  ] as [string, string, string, string][]).map(([stage, role, provider, model]) => (
+                    ["1", "Proposal Agent", "generation"],
+                    ["2", "Stakeholder Evaluator", "evaluation"],
+                    ["3", "Domestic Audiences", "evaluation"],
+                    ["4", "Red-Team Agent", "adversarial"],
+                    ["5", "Negotiator Agent", "generation"],
+                    ["6", "Judge Agent", "evaluation"],
+                    ["7", "Meta-Evaluator", "evaluation"],
+                    ["8", "Diagnosis Generator", "adversarial"],
+                  ] as [string, string, string][]).map(([stage, name, role]) => (
                     <tr key={stage} className="hover:bg-secondary/20 transition-colors">
-                      <td className="py-2 pr-4 font-medium text-xs">{stage}</td>
-                      <td className="py-2 pr-4">
-                        <Badge variant="outline" className={`text-[10px] ${
-                          role === "Generation" || role === "Bridging" ? "border-violet-700/40 text-violet-400" :
-                          role === "Evaluation" || role === "Scoring" || role === "Meta-Eval" ? "border-blue-700/40 text-blue-400" :
-                          role === "Adversarial" || role === "Synthesis" ? "border-orange-700/40 text-orange-400" :
-                          "border-border text-muted-foreground"
+                      <td className="py-1.5 pr-4 font-mono text-muted-foreground">{stage}</td>
+                      <td className="py-1.5 pr-4 font-medium">{name}</td>
+                      <td className="py-1.5">
+                        <Badge variant="outline" className={`text-[9px] ${
+                          role === "generation" ? "border-violet-700/40 text-violet-400" :
+                          role === "evaluation" ? "border-blue-700/40 text-blue-400" :
+                          "border-orange-700/40 text-orange-400"
                         }`}>{role}</Badge>
-                      </td>
-                      <td className="py-2">
-                        <span className={`text-xs font-mono px-2 py-0.5 rounded ${
-                          provider === "anthropic" ? "bg-violet-950/50 text-violet-300" :
-                          provider === "openai" ? "bg-blue-950/50 text-blue-300" :
-                          "bg-orange-950/50 text-orange-300"
-                        }`}>{model}</span>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            <p className="text-xs text-muted-foreground mt-3">
-              Update model names above in Pipeline Configuration to change assignments.
+            <p className="text-xs text-muted-foreground mt-3 bg-amber-950/20 border border-amber-700/30 rounded-lg px-3 py-2">
+              ⚠ Generation and evaluation roles must use different providers. Save Configuration to apply.
             </p>
           </Card>
 
@@ -349,6 +428,83 @@ export default function AdminPanel() {
                 ? <><Loader2 className="w-4 h-4 animate-spin" /> Evaluating proposals...</>
                 : <><Zap className="w-4 h-4" /> Evaluate All Proposals</>}
             </Button>
+          </Card>
+
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-4 border-b border-border/50 pb-2">
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                <Plus className="w-5 h-5 text-primary" /> Proposal Management
+              </h3>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowProposalForm(!showProposalForm)}
+                className="gap-1.5"
+              >
+                {showProposalForm ? <><X className="w-3.5 h-3.5" /> Cancel</> : <><Plus className="w-3.5 h-3.5" /> Add Proposal</>}
+              </Button>
+            </div>
+            <div className="space-y-1.5 mb-4">
+              {proposalsData?.data?.map(p => (
+                <div key={p.id} className="flex items-center gap-2 p-2 bg-secondary/30 rounded-lg text-xs">
+                  <span className="font-medium truncate flex-1">{p.name}</span>
+                  <Badge variant="outline" className="text-[9px] shrink-0">{p.submittedBy}</Badge>
+                  {p.scores && <Badge variant="success" className="text-[9px] shrink-0">evaluated</Badge>}
+                </div>
+              ))}
+              {!proposalsData?.data?.length && <p className="text-sm text-muted-foreground">No proposals loaded.</p>}
+            </div>
+            {showProposalForm && (
+              <div className="border border-primary/30 rounded-xl p-4 space-y-3 bg-primary/5">
+                <p className="text-sm font-semibold text-primary">New Proposal</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1 col-span-2">
+                    <label className="text-xs font-medium text-muted-foreground">Name *</label>
+                    <Input value={proposalFormData.name} onChange={e => setProposalFormData({ ...proposalFormData, name: e.target.value })} placeholder="e.g. EU Compromise Framework 2025" />
+                  </div>
+                  <div className="space-y-1 col-span-2">
+                    <label className="text-xs font-medium text-muted-foreground">Source</label>
+                    <Input value={proposalFormData.source} onChange={e => setProposalFormData({ ...proposalFormData, source: e.target.value })} placeholder="e.g. European Union / Borrell 2025" />
+                  </div>
+                  <div className="space-y-1 col-span-2">
+                    <label className="text-xs font-medium text-muted-foreground">Summary *</label>
+                    <textarea
+                      className="w-full rounded-xl border border-border bg-background/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary min-h-[70px] resize-none"
+                      value={proposalFormData.summary}
+                      onChange={e => setProposalFormData({ ...proposalFormData, summary: e.target.value })}
+                      placeholder="Brief description of the proposal's overall approach and goals"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground">Nuclear Protocol</label>
+                    <textarea className="w-full rounded-xl border border-border bg-background/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary min-h-[60px] resize-none" value={proposalFormData.nuclearProtocol} onChange={e => setProposalFormData({ ...proposalFormData, nuclearProtocol: e.target.value })} placeholder="Enrichment limits, centrifuge constraints..." />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground">Sanctions Relief</label>
+                    <textarea className="w-full rounded-xl border border-border bg-background/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary min-h-[60px] resize-none" value={proposalFormData.sanctionsRelief} onChange={e => setProposalFormData({ ...proposalFormData, sanctionsRelief: e.target.value })} placeholder="Primary, secondary sanctions timeline..." />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground">Hormuz Arrangements</label>
+                    <textarea className="w-full rounded-xl border border-border bg-background/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary min-h-[60px] resize-none" value={proposalFormData.hormuzArrangements} onChange={e => setProposalFormData({ ...proposalFormData, hormuzArrangements: e.target.value })} placeholder="Maritime security framework..." />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground">Verification Mechanism</label>
+                    <textarea className="w-full rounded-xl border border-border bg-background/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary min-h-[60px] resize-none" value={proposalFormData.verificationMechanism} onChange={e => setProposalFormData({ ...proposalFormData, verificationMechanism: e.target.value })} placeholder="IAEA protocols, snap inspections..." />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground">Sequencing</label>
+                    <textarea className="w-full rounded-xl border border-border bg-background/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary min-h-[60px] resize-none" value={proposalFormData.sequencing} onChange={e => setProposalFormData({ ...proposalFormData, sequencing: e.target.value })} placeholder="Step-by-step implementation order..." />
+                  </div>
+                  <div className="space-y-1 flex flex-col justify-end">
+                    <label className="text-xs font-medium text-muted-foreground">Timeline (years)</label>
+                    <Input type="number" min={1} max={25} value={proposalFormData.timelineYears} onChange={e => setProposalFormData({ ...proposalFormData, timelineYears: parseInt(e.target.value) || 5 })} />
+                  </div>
+                </div>
+                <Button onClick={handleAddProposal} disabled={submittingProposal} className="w-full gap-2">
+                  {submittingProposal ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating...</> : <><Plus className="w-4 h-4" /> Create &amp; Queue Evaluation</>}
+                </Button>
+              </div>
+            )}
           </Card>
 
           <Card className="p-6">

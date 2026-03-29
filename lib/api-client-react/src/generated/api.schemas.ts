@@ -195,6 +195,33 @@ export const AdminConfigResponseCadence = {
   manual: "manual",
 } as const;
 
+export type AdminConfigResponseGenerationProvider =
+  (typeof AdminConfigResponseGenerationProvider)[keyof typeof AdminConfigResponseGenerationProvider];
+
+export const AdminConfigResponseGenerationProvider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
+export type AdminConfigResponseEvaluationProvider =
+  (typeof AdminConfigResponseEvaluationProvider)[keyof typeof AdminConfigResponseEvaluationProvider];
+
+export const AdminConfigResponseEvaluationProvider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
+export type AdminConfigResponseAdversarialProvider =
+  (typeof AdminConfigResponseAdversarialProvider)[keyof typeof AdminConfigResponseAdversarialProvider];
+
+export const AdminConfigResponseAdversarialProvider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
 export interface AdminConfigResponse {
   cadence: AdminConfigResponseCadence;
   budgetCapUsd: number;
@@ -202,6 +229,12 @@ export interface AdminConfigResponse {
   anthropicModel: string;
   openaiModel: string;
   geminiModel: string;
+  generationProvider: AdminConfigResponseGenerationProvider;
+  generationModel: string;
+  evaluationProvider: AdminConfigResponseEvaluationProvider;
+  evaluationModel: string;
+  adversarialProvider: AdminConfigResponseAdversarialProvider;
+  adversarialModel: string;
 }
 
 export type AdminConfigUpdateCadence =
@@ -214,6 +247,33 @@ export const AdminConfigUpdateCadence = {
   manual: "manual",
 } as const;
 
+export type AdminConfigUpdateGenerationProvider =
+  (typeof AdminConfigUpdateGenerationProvider)[keyof typeof AdminConfigUpdateGenerationProvider];
+
+export const AdminConfigUpdateGenerationProvider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
+export type AdminConfigUpdateEvaluationProvider =
+  (typeof AdminConfigUpdateEvaluationProvider)[keyof typeof AdminConfigUpdateEvaluationProvider];
+
+export const AdminConfigUpdateEvaluationProvider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
+export type AdminConfigUpdateAdversarialProvider =
+  (typeof AdminConfigUpdateAdversarialProvider)[keyof typeof AdminConfigUpdateAdversarialProvider];
+
+export const AdminConfigUpdateAdversarialProvider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
 export interface AdminConfigUpdate {
   cadence?: AdminConfigUpdateCadence;
   budgetCapUsd?: number;
@@ -221,6 +281,12 @@ export interface AdminConfigUpdate {
   anthropicModel?: string;
   openaiModel?: string;
   geminiModel?: string;
+  generationProvider?: AdminConfigUpdateGenerationProvider;
+  generationModel?: string;
+  evaluationProvider?: AdminConfigUpdateEvaluationProvider;
+  evaluationModel?: string;
+  adversarialProvider?: AdminConfigUpdateAdversarialProvider;
+  adversarialModel?: string;
 }
 
 export interface EvidenceSource {
@@ -506,6 +572,156 @@ export type GetSolutionTree200 = {
   nodes: SolutionTreeNode[];
 };
 
+export type GetDealHistoryParams = {
+  limit?: number;
+  offset?: number;
+};
+
+export type GetDealHistory200DataItem = {
+  id: string;
+  cycleId: string;
+  architecture: string;
+  scores?: DealScores;
+  diagnosis?: string | null;
+  isCurrent: boolean;
+  isPareto: boolean;
+  generatedBy: string;
+  tokensConsumed: number;
+  costUsd: number;
+  createdAt: string;
+};
+
+export type GetDealHistory200 = {
+  data: GetDealHistory200DataItem[];
+  total: number;
+  offset: number;
+  limit: number;
+};
+
+export type GetDealRobustnessParams = {
+  /**
+   * Number of most recent deals to analyze (max 50)
+   */
+  n?: number;
+};
+
+export type GetDealRobustness200BySeverity = {
+  [key: string]: {
+    total: number;
+    survived: number;
+  };
+};
+
+export type GetDealRobustness200DealsItem = {
+  id?: string;
+  architecture?: string;
+  composite?: number | null;
+  createdAt?: string;
+};
+
+export type GetDealRobustness200 = {
+  dealsSampled: number;
+  totalAttacks: number;
+  survivedAttacks: number;
+  survivalRate?: number | null;
+  criticalFails: number;
+  bySeverity: GetDealRobustness200BySeverity;
+  deals: GetDealRobustness200DealsItem[];
+};
+
+export type CompareDealsParams = {
+  /**
+   * Comma-separated list of deal IDs (2–10)
+   */
+  ids: string;
+};
+
+export type CompareDeals200DealsItemScores = { [key: string]: number | null };
+
+export type CompareDeals200DealsItem = {
+  id: string;
+  architecture: string;
+  isCurrent: boolean;
+  isPareto: boolean;
+  generatedBy: string;
+  diagnosis?: string | null;
+  scores: CompareDeals200DealsItemScores;
+  createdAt: string;
+};
+
+export type CompareDeals200Leaders = { [key: string]: string | null };
+
+export type CompareDeals200 = {
+  deals: CompareDeals200DealsItem[];
+  leaders: CompareDeals200Leaders;
+};
+
+export type GetDealStakeholderEvals200StakeholderEvaluations = {
+  [key: string]: StakeholderVerdict;
+};
+
+export type GetDealStakeholderEvals200DomesticEvaluationsVerdict =
+  (typeof GetDealStakeholderEvals200DomesticEvaluationsVerdict)[keyof typeof GetDealStakeholderEvals200DomesticEvaluationsVerdict];
+
+export const GetDealStakeholderEvals200DomesticEvaluationsVerdict = {
+  sellable: "sellable",
+  difficult: "difficult",
+  unsellable: "unsellable",
+} as const;
+
+export type GetDealStakeholderEvals200DomesticEvaluations = {
+  [key: string]: {
+    audience?: string;
+    verdict?: GetDealStakeholderEvals200DomesticEvaluationsVerdict;
+    rationale?: string;
+  };
+};
+
+export type GetDealStakeholderEvals200NegotiatorAmendments = {
+  [key: string]: unknown;
+} | null;
+
+export type GetDealStakeholderEvals200Summary = {
+  accept: number;
+  conditional: number;
+  reject: number;
+};
+
+export type GetDealStakeholderEvals200 = {
+  dealId: string;
+  architecture: string;
+  stakeholderEvaluations?: GetDealStakeholderEvals200StakeholderEvaluations;
+  domesticEvaluations?: GetDealStakeholderEvals200DomesticEvaluations;
+  negotiatorAmendments?: GetDealStakeholderEvals200NegotiatorAmendments;
+  summary: GetDealStakeholderEvals200Summary;
+};
+
 export type ListProposals200 = {
   data: Proposal[];
+};
+
+export type EvaluateProposal200 = {
+  proposal: Proposal;
+};
+
+export type GetPipelineConfig200StagesItemProvider =
+  (typeof GetPipelineConfig200StagesItemProvider)[keyof typeof GetPipelineConfig200StagesItemProvider];
+
+export const GetPipelineConfig200StagesItemProvider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
+export type GetPipelineConfig200StagesItem = {
+  stage: number;
+  name: string;
+  role: string;
+  provider: GetPipelineConfig200StagesItemProvider;
+  model: string;
+};
+
+export type GetPipelineConfig200 = {
+  stages: GetPipelineConfig200StagesItem[];
+  constraint: string;
 };
