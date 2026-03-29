@@ -10,8 +10,8 @@ import {
 import { desc, eq } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { generateForecasts } from "./forecasting";
-import { ingestRSSFeeds } from "./evidence-ingestion";
-import { parseLLMJson } from "./scoring";
+import { ingestAllSources } from "./evidence-ingestion";
+import { parseLLMJson, computeBrierScore, computeLogScore, type ForecastProbabilities } from "./scoring";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { ai } from "@workspace/integrations-gemini-ai";
 
@@ -61,7 +61,7 @@ async function runCycleAsync(cycleId: string): Promise<void> {
       return;
     }
 
-    const ingestedCount = await ingestRSSFeeds();
+    const ingestedCount = await ingestAllSources();
     logger.info({ cycleId, ingestedCount }, "Evidence ingestion complete");
 
     const evidencePackVersion = new Date().toISOString().slice(0, 10);
@@ -149,19 +149,39 @@ interface ExperimentResult {
 
 async function runExperiment(
   cycleId: string,
-  forecasts: Array<{ timeHorizon: string; probabilities: Record<string, number>; rationale: string }>
+  forecasts: Array<{ timeHorizon: string; probabilities: ForecastProbabilities; rationale: string }>
 ): Promise<ExperimentResult | null> {
   try {
     const primaryForecast = forecasts.find(f => f.timeHorizon === "90d");
     if (!primaryForecast) return null;
 
-    const probsStr = JSON.stringify(primaryForecast.probabilities, null, 2);
+    const probs = primaryForecast.probabilities;
+    const probsStr = JSON.stringify(probs, null, 2);
 
     const geminiResult = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `You are a conflict analysis red-team. Challenge this Iran conflict 90-day forecast with contrarian evidence and arguments:\n\n${probsStr}\n\nRationale: ${primaryForecast.rationale}\n\nProvide 3 specific counter-arguments and suggest adjusted probabilities if warranted.`,
+      contents: `You are a conflict analysis red-team. Challenge this Iran conflict 90-day forecast with contrarian evidence and arguments:\n\n${probsStr}\n\nRationale: ${primaryForecast.rationale}\n\nProvide 3 specific counter-arguments and suggest adjusted probabilities if warranted. Return your adjusted probabilities in a JSON code block with the same keys.`,
     });
     const redTeamText = geminiResult.text ?? "";
+
+    let adjustedProbs: ForecastProbabilities = probs;
+    try {
+      const parsed = parseLLMJson(redTeamText) as Record<string, unknown>;
+      if (parsed["probabilities"] && typeof parsed["probabilities"] === "object") {
+        const { normalizeProbabilities } = await import("./scoring");
+        adjustedProbs = normalizeProbabilities(parsed["probabilities"] as Record<string, number>);
+      }
+    } catch {
+      // No adjusted probs from red-team
+    }
+
+    const dominantOutcome = (Object.entries(probs).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "continued_conflict") as keyof ForecastProbabilities;
+    const brierBefore = computeBrierScore(probs, dominantOutcome);
+    const brierAfter = computeBrierScore(adjustedProbs, dominantOutcome);
+    const logBefore = computeLogScore(probs, dominantOutcome);
+    const logAfter = computeLogScore(adjustedProbs, dominantOutcome);
+
+    const scoreImprovement = (brierBefore - brierAfter) + (logAfter - logBefore) * 0.1;
 
     const evalResponse = await openai.chat.completions.create({
       model: process.env["OPENAI_MODEL"] || "gpt-4o",
@@ -172,10 +192,10 @@ async function runExperiment(
         },
         {
           role: "user",
-          content: `Evaluate this Iran conflict forecast and red-team challenge. Return JSON:
+          content: `Evaluate this Iran conflict forecast and red-team challenge. Brier score improvement: ${scoreImprovement.toFixed(4)}. Return JSON:
 {
-  "scoreImprovement": <-1 to 1>,
-  "recommendation": "retain" | "discard",
+  "scoreImprovement": ${scoreImprovement.toFixed(4)},
+  "recommendation": "${scoreImprovement > 0 ? "retain" : "discard"}",
   "reasoning": "<1 sentence>"
 }
 
@@ -191,10 +211,13 @@ RED-TEAM: ${redTeamText.slice(0, 1000)}`,
     try {
       evalResult = parseLLMJson(evalText) as typeof evalResult;
     } catch {
-      evalResult = { recommendation: "discard", reasoning: "Parse failed" };
+      evalResult = {
+        recommendation: scoreImprovement > 0 ? "retain" : "discard",
+        reasoning: `Brier improvement: ${scoreImprovement.toFixed(4)}, log improvement: ${(logAfter - logBefore).toFixed(4)}`,
+      };
     }
 
-    const retained = evalResult["recommendation"] === "retain";
+    const retained = (evalResult["recommendation"] ?? (scoreImprovement > 0 ? "retain" : "discard")) === "retain";
     const estimatedTokens = 2000;
     const estimatedCost = 0.003;
 
@@ -204,8 +227,8 @@ RED-TEAM: ${redTeamText.slice(0, 1000)}`,
       task: "A",
       changeDescription: `Red-team evaluation: ${evalResult["reasoning"] ?? "Unknown"}`,
       changeDiff: redTeamText.slice(0, 500),
-      scoresBefore: primaryForecast.probabilities,
-      scoresAfter: primaryForecast.probabilities,
+      scoresBefore: probs,
+      scoresAfter: retained ? adjustedProbs : probs,
       diagnosis: evalResult["reasoning"] ?? null,
       retained,
       tokensConsumed: estimatedTokens,
@@ -213,6 +236,7 @@ RED-TEAM: ${redTeamText.slice(0, 1000)}`,
       costUsd: estimatedCost,
     });
 
+    logger.info({ cycleId, retained, scoreImprovement, brierBefore, brierAfter, logBefore, logAfter }, "Experiment completed");
     return { retained, tokensConsumed: estimatedTokens, costUsd: estimatedCost };
   } catch (err) {
     logger.warn({ err, cycleId }, "Experiment failed");

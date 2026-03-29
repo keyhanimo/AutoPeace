@@ -28,7 +28,7 @@ export default function ForecastDashboard() {
 
   const chartData = useMemo(() => {
     if (!activeForecast) return [];
-    const p = activeForecast.probabilities as Record<string, number>;
+    const p = activeForecast.probabilities as unknown as Record<string, number>;
     return CATEGORIES.map(cat => ({
       name: cat.label,
       value: (p[cat.key] || 0) * 100,

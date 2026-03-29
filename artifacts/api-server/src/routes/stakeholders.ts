@@ -2,6 +2,8 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { stakeholdersTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
+import { ListStakeholdersResponse } from "@workspace/api-zod";
+import { sendValidated } from "../lib/validate-response";
 
 const router = Router();
 
@@ -14,7 +16,7 @@ router.get("/stakeholders", async (req, res) => {
     } else {
       data = await db.select().from(stakeholdersTable);
     }
-    res.json({ data });
+    sendValidated(res, ListStakeholdersResponse, { data });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }

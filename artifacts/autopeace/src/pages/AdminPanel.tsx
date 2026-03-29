@@ -55,7 +55,7 @@ export default function AdminPanel() {
 
   const handleRun = async () => {
     try {
-      await runTrigger.mutateAsync({});
+      await runTrigger.mutateAsync();
       toast({ title: "Run Triggered", description: "Autoresearch loop started in background." });
     } catch (e) {
       toast({ title: "Trigger Failed", description: "Could not start loop or already running.", variant: "destructive" });

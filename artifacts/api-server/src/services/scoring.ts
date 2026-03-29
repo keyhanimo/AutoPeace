@@ -7,6 +7,7 @@ export interface ForecastProbabilities {
   regional_framework: number;
   broad_settlement: number;
   major_escalation: number;
+  [key: string]: number;
 }
 
 export function normalizeProbabilities(raw: Record<string, number>): ForecastProbabilities {
@@ -54,6 +55,40 @@ export function computeBrierScore(
     score += (predicted - actual) ** 2;
   }
   return score;
+}
+
+export function computeLogScore(
+  probabilities: ForecastProbabilities,
+  outcome: keyof ForecastProbabilities
+): number {
+  const p = Math.max(1e-9, probabilities[outcome] ?? 0);
+  return Math.log(p);
+}
+
+export interface CalibrationPoint {
+  binMid: number;
+  observedFreq: number;
+  count: number;
+}
+
+export function computeCalibrationCurve(
+  forecastOutcomePairs: Array<{ probability: number; correct: boolean }>,
+  bins = 10
+): CalibrationPoint[] {
+  const binSize = 1 / bins;
+  const buckets: Array<{ sum: number; correct: number }> = Array.from({ length: bins }, () => ({ sum: 0, correct: 0 }));
+
+  for (const { probability, correct } of forecastOutcomePairs) {
+    const binIdx = Math.min(Math.floor(probability / binSize), bins - 1);
+    buckets[binIdx].sum++;
+    if (correct) buckets[binIdx].correct++;
+  }
+
+  return buckets.map((b, i) => ({
+    binMid: (i + 0.5) * binSize,
+    observedFreq: b.sum === 0 ? 0 : b.correct / b.sum,
+    count: b.sum,
+  }));
 }
 
 export function parseLLMJson(text: string): Record<string, unknown> {

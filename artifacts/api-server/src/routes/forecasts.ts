@@ -2,6 +2,8 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { forecastsTable } from "@workspace/db/schema";
 import { eq, desc, and, count } from "drizzle-orm";
+import { GetLatestForecastsResponse, ListForecastsResponse } from "@workspace/api-zod";
+import { sendValidated } from "../lib/validate-response";
 
 const router = Router();
 
@@ -27,7 +29,7 @@ router.get("/forecasts", async (req, res) => {
       db.select({ count: count() }).from(forecastsTable).where(where),
     ]);
 
-    res.json({ data, total: totalResult[0]?.count ?? 0 });
+    sendValidated(res, ListForecastsResponse, { data, total: totalResult[0]?.count ?? 0 });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }
@@ -45,7 +47,7 @@ router.get("/forecasts/latest", async (_req, res) => {
       )
     );
     const data = results.flat();
-    res.json({ data });
+    sendValidated(res, GetLatestForecastsResponse, { data });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }

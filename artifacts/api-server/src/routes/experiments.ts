@@ -1,7 +1,9 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { experimentsTable, cyclesTable } from "@workspace/db/schema";
-import { eq, desc, and, count, sum, avg } from "drizzle-orm";
+import { eq, desc, and, count, sum } from "drizzle-orm";
+import { ListExperimentsResponse, GetExperimentStatsResponse } from "@workspace/api-zod";
+import { sendValidated } from "../lib/validate-response";
 
 const router = Router();
 
@@ -31,7 +33,7 @@ router.get("/experiments", async (req, res) => {
       db.select({ count: count() }).from(experimentsTable).where(where),
     ]);
 
-    res.json({ data, total: totalResult[0]?.count ?? 0 });
+    sendValidated(res, ListExperimentsResponse, { data, total: totalResult[0]?.count ?? 0 });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }
@@ -54,7 +56,7 @@ router.get("/experiments/stats", async (_req, res) => {
     const total = allStats?.total ?? 0;
     const retained = retainedStats?.retained ?? 0;
 
-    res.json({
+    sendValidated(res, GetExperimentStatsResponse, {
       total,
       retained,
       retentionRate: total > 0 ? retained / total : 0,
