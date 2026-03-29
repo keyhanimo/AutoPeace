@@ -28,6 +28,13 @@ export const proposalsTable = pgTable("proposals", {
     composite?: number;
     scoreRationale?: Record<string, string>;
     evaluationError?: string;
+    judgePanel?: Array<{
+      provider: string;
+      model: string;
+      scores: Record<string, number>;
+      rationale: Record<string, string>;
+    }>;
+    judgePrompt?: string;
   }>(),
   stakeholderEvaluations: jsonb("stakeholder_evaluations").$type<Record<string, {
     verdict: "accept" | "conditional" | "reject";

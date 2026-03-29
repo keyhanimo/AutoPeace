@@ -12,6 +12,13 @@ export type DealTerms = {
   additionalClauses: string[];
 };
 
+export type JudgePanelEntry = {
+  provider: ProviderName;
+  model: string;
+  scores: Record<string, number>;
+  rationale: Record<string, string>;
+};
+
 export type DealScores = {
   feasibility: number;
   coherence: number;
@@ -23,6 +30,8 @@ export type DealScores = {
   composite: number;
   scoreRationale?: Record<string, string>;
   evaluationError?: string;
+  judgePanel?: JudgePanelEntry[];
+  judgePrompt?: string;
 };
 
 export type StakeholderVerdict = {
@@ -552,9 +561,14 @@ Return JSON array: [{ "attack": "description", "severity": "low|medium|high|crit
   return { results: parsed, tokens };
 }
 
+const SCORE_KEYS = ["feasibility", "coherence", "evidenceGrounding", "domesticSellability", "regionalStability", "implementability", "durability"] as const;
+
 /**
- * JUDGE AGENT (OpenAI) — scoring role
- * Scores the deal across 7 dimensions based on all evaluation evidence.
+ * JUDGE PANEL — multi-LLM scoring
+ * Calls all 3 LLM providers (Anthropic, OpenAI, Gemini) in parallel with the
+ * same prompt. Each returns per-dimension scores + rationale. The final scores
+ * are the arithmetic mean across all providers. All individual responses are
+ * stored in `judgePanel` for full transparency.
  */
 export async function judgeAndScore(
   terms: DealTerms,
@@ -600,44 +614,98 @@ Return JSON with scores and rationale for each dimension:
   "durability": 0.0-1.0, "durabilityRationale": "why this score"
 }`;
 
-  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 6, "evaluation", modelConfig);
+  const providers: { provider: ProviderName; model: string }[] = [
+    { provider: "anthropic", model: modelConfig.anthropicModel },
+    { provider: "openai", model: modelConfig.openaiModel },
+    { provider: "gemini", model: modelConfig.geminiModel },
+  ];
 
   const acceptRate = acceptCount / totalStakeholders;
   const redTeamSurvival = survivedCount / totalRedTeam;
   const baseScore = 0.3 + acceptRate * 0.3 + redTeamSurvival * 0.2;
 
-  const fallback: Omit<DealScores, "composite"> = {
-    feasibility: baseScore + (Math.random() - 0.5) * 0.1,
-    coherence: baseScore + 0.05 + (Math.random() - 0.5) * 0.1,
-    evidenceGrounding: baseScore + (Math.random() - 0.5) * 0.1,
-    domesticSellability: baseScore - 0.05 + (Math.random() - 0.5) * 0.1,
-    regionalStability: baseScore + (Math.random() - 0.5) * 0.1,
-    implementability: baseScore - 0.02 + (Math.random() - 0.5) * 0.1,
-    durability: baseScore + (Math.random() - 0.5) * 0.1,
-  };
-
-  const parsed = parseLLMJson<Record<string, unknown>>(content, fallback as Record<string, unknown>);
   const clamp = (v: number) => Math.max(0, Math.min(1, v));
   const num = (v: unknown, fb: number) => { const n = Number(v); return Number.isFinite(n) ? n : fb; };
 
+  const MIN_VALID_DIMENSIONS = 4;
+
+  const results = await Promise.allSettled(
+    providers.map(async ({ provider, model }) => {
+      let content: string;
+      let tokens: number;
+      try {
+        const resp = await callLLM(prompt, systemPrompt, provider, model);
+        content = resp.content;
+        tokens = resp.tokens;
+      } catch (err) {
+        throw new Error(`${provider} call failed: ${err instanceof Error ? err.message : String(err)}`);
+      }
+
+      if (!content || content === "{}") {
+        throw new Error(`${provider} returned empty response`);
+      }
+
+      const parsed = parseLLMJson<Record<string, unknown>>(content, {} as Record<string, unknown>);
+
+      let validDimensions = 0;
+      const scores: Record<string, number> = {};
+      const rationale: Record<string, string> = {};
+      for (const key of SCORE_KEYS) {
+        const raw = Number(parsed[key]);
+        if (Number.isFinite(raw) && raw >= 0 && raw <= 1) {
+          scores[key] = clamp(raw);
+          validDimensions++;
+        } else {
+          scores[key] = clamp(baseScore + (Math.random() - 0.5) * 0.1);
+        }
+        rationale[key] = String(parsed[`${key}Rationale`] ?? "");
+      }
+
+      if (validDimensions < MIN_VALID_DIMENSIONS) {
+        throw new Error(`${provider} returned only ${validDimensions}/${SCORE_KEYS.length} valid dimensions (need ${MIN_VALID_DIMENSIONS})`);
+      }
+
+      return { provider, model, scores, rationale, tokens };
+    })
+  );
+
+  const panelEntries: JudgePanelEntry[] = [];
+  let totalTokens = 0;
+
+  for (const result of results) {
+    if (result.status === "fulfilled") {
+      const { provider, model, scores, rationale, tokens } = result.value;
+      panelEntries.push({ provider, model, scores, rationale });
+      totalTokens += tokens;
+    } else {
+      logger.error({ error: result.reason }, "Judge panel LLM call failed");
+    }
+  }
+
+  if (panelEntries.length === 0) {
+    throw new Error("All judge panel LLM calls failed");
+  }
+
+  const averaged: Record<string, number> = {};
+  const mergedRationale: Record<string, string> = {};
+  for (const key of SCORE_KEYS) {
+    const values = panelEntries.map(e => e.scores[key]);
+    averaged[key] = values.reduce((a, b) => a + b, 0) / values.length;
+    mergedRationale[key] = panelEntries.map(e => e.rationale[key]).filter(Boolean).join(" | ");
+  }
+
   const scores: DealScores = {
-    feasibility: clamp(num(parsed.feasibility, fallback.feasibility)),
-    coherence: clamp(num(parsed.coherence, fallback.coherence)),
-    evidenceGrounding: clamp(num(parsed.evidenceGrounding, fallback.evidenceGrounding)),
-    domesticSellability: clamp(num(parsed.domesticSellability, fallback.domesticSellability)),
-    regionalStability: clamp(num(parsed.regionalStability, fallback.regionalStability)),
-    implementability: clamp(num(parsed.implementability, fallback.implementability)),
-    durability: clamp(num(parsed.durability, fallback.durability)),
+    feasibility: averaged.feasibility,
+    coherence: averaged.coherence,
+    evidenceGrounding: averaged.evidenceGrounding,
+    domesticSellability: averaged.domesticSellability,
+    regionalStability: averaged.regionalStability,
+    implementability: averaged.implementability,
+    durability: averaged.durability,
     composite: 0,
-    scoreRationale: {
-      feasibility: String(parsed.feasibilityRationale ?? ""),
-      coherence: String(parsed.coherenceRationale ?? ""),
-      evidenceGrounding: String(parsed.evidenceGroundingRationale ?? ""),
-      domesticSellability: String(parsed.domesticSellabilityRationale ?? ""),
-      regionalStability: String(parsed.regionalStabilityRationale ?? ""),
-      implementability: String(parsed.implementabilityRationale ?? ""),
-      durability: String(parsed.durabilityRationale ?? ""),
-    },
+    scoreRationale: mergedRationale,
+    judgePanel: panelEntries,
+    judgePrompt: `[SYSTEM]\n${systemPrompt}\n\n[USER]\n${prompt}`,
   };
 
   scores.composite = (
@@ -650,7 +718,7 @@ Return JSON with scores and rationale for each dimension:
     scores.durability * 0.1
   );
 
-  return { scores, tokens };
+  return { scores, tokens: totalTokens };
 }
 
 /**
