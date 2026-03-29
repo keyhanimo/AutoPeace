@@ -527,6 +527,55 @@ paths:
         "409":
           description: Already running
 
+  /admin/deal-cycles:
+    get:
+      operationId: listDealCycles
+      tags: [admin]
+      summary: List recent deal autoresearch cycles with status
+      security:
+        - adminKey: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: List of deal cycles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cycles:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        status:
+                          type: string
+                          enum: [running, complete, error]
+                        startedAt:
+                          type: string
+                          format: date-time
+                        completedAt:
+                          type: string
+                          format: date-time
+                          nullable: true
+                        dealId:
+                          type: string
+                          nullable: true
+                        error:
+                          type: string
+                          nullable: true
+                      required: [id, status, startedAt]
+                required: [cycles]
+        "401":
+          description: Unauthorized
+
   /deals:
     get:
       operationId: listDeals

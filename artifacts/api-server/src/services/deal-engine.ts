@@ -862,5 +862,9 @@ export function isDominatedOnAllDimensions(
     "feasibility", "coherence", "evidenceGrounding", "domesticSellability",
     "regionalStability", "implementability", "durability",
   ];
-  return dims.every(d => (a[d] ?? 0) <= (b[d] ?? 0));
+  // b dominates a iff: b >= a on ALL dimensions AND b > a on AT LEAST ONE dimension.
+  // Ties are not domination — identical deals both survive on the frontier.
+  const bWeaklyDominates = dims.every(d => (b[d] ?? 0) >= (a[d] ?? 0));
+  const bStrictlyBetterOnOne = dims.some(d => (b[d] ?? 0) > (a[d] ?? 0));
+  return bWeaklyDominates && bStrictlyBetterOnOne;
 }

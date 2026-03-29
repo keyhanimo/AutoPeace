@@ -604,6 +604,28 @@ export const TriggerDealRunResponse = zod.object({
 });
 
 /**
+ * @summary List recent deal autoresearch cycles with status
+ */
+export const listDealCyclesQueryLimitDefault = 20;
+
+export const ListDealCyclesQueryParams = zod.object({
+  limit: zod.coerce.number().default(listDealCyclesQueryLimitDefault),
+});
+
+export const ListDealCyclesResponse = zod.object({
+  cycles: zod.array(
+    zod.object({
+      id: zod.string(),
+      status: zod.enum(["running", "complete", "error"]),
+      startedAt: zod.coerce.date(),
+      completedAt: zod.coerce.date().nullish(),
+      dealId: zod.string().nullish(),
+      error: zod.string().nullish(),
+    }),
+  ),
+});
+
+/**
  * @summary List all AI-generated deals
  */
 export const listDealsQueryLimitDefault = 20;

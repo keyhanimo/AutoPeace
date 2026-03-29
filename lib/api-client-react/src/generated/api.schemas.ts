@@ -729,6 +729,32 @@ export type TriggerDealRun200 = {
   message: string;
 };
 
+export type ListDealCyclesParams = {
+  limit?: number;
+};
+
+export type ListDealCycles200CyclesItemStatus =
+  (typeof ListDealCycles200CyclesItemStatus)[keyof typeof ListDealCycles200CyclesItemStatus];
+
+export const ListDealCycles200CyclesItemStatus = {
+  running: "running",
+  complete: "complete",
+  error: "error",
+} as const;
+
+export type ListDealCycles200CyclesItem = {
+  id: string;
+  status: ListDealCycles200CyclesItemStatus;
+  startedAt: string;
+  completedAt?: string | null;
+  dealId?: string | null;
+  error?: string | null;
+};
+
+export type ListDealCycles200 = {
+  cycles: ListDealCycles200CyclesItem[];
+};
+
 export type ListDealsParams = {
   limit?: number;
   offset?: number;
