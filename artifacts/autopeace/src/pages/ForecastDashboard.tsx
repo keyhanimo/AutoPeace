@@ -74,15 +74,31 @@ function WhatIfPanel({ activeForecast }: { activeForecast: Forecast }) {
     color: cat.color,
   }));
 
+  const deltaData = activeScenario
+    ? CATEGORIES.map(cat => {
+        const base = parseFloat(((baseProbs[cat.key] ?? 0) * 100).toFixed(1));
+        const scenario = parseFloat(((activeScenario.absoluteProbabilities[cat.key] ?? 0) * 100).toFixed(1));
+        return { name: cat.shortLabel, delta: parseFloat((scenario - base).toFixed(1)) };
+      })
+    : [];
+
   return (
     <Card className="p-6">
       <h3 className="text-lg font-bold mb-1 flex items-center gap-2">
         <Zap className="w-4 h-4 text-primary" /> What-If Scenarios
       </h3>
-      <p className="text-xs text-muted-foreground mb-4">Pre-computed scenario variants updated with each research cycle. Select a scenario to compare its forecast against the current baseline.</p>
+      <p className="text-xs text-muted-foreground mb-4">
+        Pre-computed scenario variants updated each research cycle. Baseline is the <strong>90-day</strong> forecast for consistency with scenario computation.
+        Select a scenario to compare probability shifts vs. baseline.
+      </p>
       {scenariosLoading ? (
         <div className="grid sm:grid-cols-2 gap-2 mb-5">
           {[0, 1, 2, 3].map(i => <div key={i} className="h-16 animate-pulse bg-secondary/40 rounded-lg" />)}
+        </div>
+      ) : scenarios.length === 0 ? (
+        <div className="text-center py-8 border border-border/20 rounded-lg bg-secondary/10 mb-5">
+          <p className="text-xs text-muted-foreground">Scenario snapshots are generated during each research cycle.</p>
+          <p className="text-[10px] text-muted-foreground/60 mt-1">Run a research cycle or ask an admin to compute scenarios.</p>
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 gap-2 mb-5">
@@ -107,7 +123,7 @@ function WhatIfPanel({ activeForecast }: { activeForecast: Forecast }) {
       {activeScenario ? (
         <div>
           <div className="flex items-center gap-3 mb-3 text-[10px] text-muted-foreground">
-            <span className="flex items-center gap-1"><span className="w-3 h-2 bg-slate-500/60 rounded-sm inline-block" />Baseline</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-2 bg-slate-500/60 rounded-sm inline-block" />90d Baseline</span>
             <span className="flex items-center gap-1"><span className="w-3 h-2 bg-primary/70 rounded-sm inline-block" />Scenario</span>
             <Badge variant="outline" className="ml-auto border-primary/40 text-primary text-[9px]">{activeScenario.name}</Badge>
           </div>
@@ -117,12 +133,25 @@ function WhatIfPanel({ activeForecast }: { activeForecast: Forecast }) {
               <YAxis tickFormatter={v => `${v}%`} tick={{ fontSize: 9, fill: "#94a3b8" }} width={32} />
               <Tooltip
                 contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', fontSize: 11 }}
-                formatter={(v: number, name: string) => [`${v}%`, name === "base" ? "Baseline" : "Scenario"]}
+                formatter={(v: number, name: string) => [`${v}%`, name === "base" ? "90d Baseline" : "Scenario"]}
               />
               <Bar dataKey="base" fill="#475569" opacity={0.5} radius={[2, 2, 0, 0]} name="base" />
               <Bar dataKey="scenario" fill="#6366f1" radius={[2, 2, 0, 0]} name="scenario" />
             </BarChart>
           </ResponsiveContainer>
+          <div className="mt-4">
+            <div className="text-[10px] text-muted-foreground uppercase tracking-widest mb-2">Probability Deltas vs 90d Baseline</div>
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-1">
+              {deltaData.map(d => (
+                <div key={d.name} className="text-center rounded bg-secondary/30 p-1.5">
+                  <div className="text-[9px] text-muted-foreground mb-0.5">{d.name}</div>
+                  <div className={`text-[11px] font-mono font-bold ${d.delta > 0 ? "text-emerald-400" : d.delta < 0 ? "text-red-400" : "text-muted-foreground"}`}>
+                    {d.delta > 0 ? "+" : ""}{d.delta}%
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
           {activeScenario.basedOnCycleId && (
             <p className="text-[9px] text-muted-foreground mt-2">Based on cycle: {activeScenario.basedOnCycleId.slice(0, 8)}…</p>
           )}

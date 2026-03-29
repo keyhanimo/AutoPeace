@@ -217,7 +217,17 @@ router.patch("/admin/proposals/queue/:id", adminAuth, async (req, res) => {
               whatWouldItTake: whatWouldItTakeArray,
             })
             .where(eq(proposalsTable.id, pid));
-        } catch {
+
+          console.info(`[proposal-eval] Evaluation complete for proposal ${pid} (submission ${id})`);
+        } catch (evalErr: unknown) {
+          const errMsg = evalErr instanceof Error ? evalErr.message : String(evalErr);
+          console.error(`[proposal-eval] Evaluation FAILED for proposal ${pid} (submission ${id}): ${errMsg}`);
+          try {
+            await db.update(proposalsTable)
+              .set({ scores: { evaluationError: errMsg } as unknown as Record<string, number> })
+              .where(eq(proposalsTable.id, pid));
+          } catch {
+          }
         }
       })();
     }
