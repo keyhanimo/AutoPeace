@@ -118,37 +118,61 @@ export default function ExperimentLog() {
           <table className="w-full text-sm text-left">
             <thead className="text-xs text-muted-foreground uppercase tracking-wider bg-secondary/50">
               <tr>
-                <th className="px-6 py-4 font-medium">Timestamp</th>
-                <th className="px-6 py-4 font-medium">Task</th>
-                <th className="px-6 py-4 font-medium">Mutation Description</th>
-                <th className="px-6 py-4 font-medium">Cost / Tokens</th>
-                <th className="px-6 py-4 font-medium text-right">Result</th>
+                <th className="px-4 py-4 font-medium">Timestamp</th>
+                <th className="px-4 py-4 font-medium">Task</th>
+                <th className="px-4 py-4 font-medium">Mutation Description</th>
+                <th className="px-4 py-4 font-medium">Score Before → After</th>
+                <th className="px-4 py-4 font-medium">Cost / Tokens</th>
+                <th className="px-4 py-4 font-medium text-right">Result</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/50">
               {isLoading ? (
-                <tr><td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">Loading log...</td></tr>
+                <tr><td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">Loading log...</td></tr>
               ) : experiments.length === 0 ? (
-                <tr><td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">No experiments match your filters.</td></tr>
+                <tr><td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">No experiments match your filters.</td></tr>
               ) : (
-                experiments.map((exp) => (
+                experiments.map((exp) => {
+                  const scoreBefore = exp.scoresBefore as Record<string, number> | null;
+                  const scoresAfter = exp.scoresAfter as Record<string, number> | null;
+                  const topBefore = scoreBefore
+                    ? Object.entries(scoreBefore).sort((a, b) => b[1] - a[1])[0]
+                    : null;
+                  const topAfter = scoresAfter
+                    ? Object.entries(scoresAfter).sort((a, b) => b[1] - a[1])[0]
+                    : null;
+                  return (
                   <tr key={exp.id} className="hover:bg-secondary/20 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">
+                    <td className="px-4 py-4 whitespace-nowrap text-muted-foreground text-xs">
                       {new Date(exp.timestamp).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-4">
                       <Badge variant="outline">{exp.task}</Badge>
                     </td>
-                    <td className="px-6 py-4 max-w-xs truncate text-foreground font-medium" title={exp.changeDescription}>
+                    <td className="px-4 py-4 max-w-[180px] truncate text-foreground font-medium text-xs" title={exp.changeDescription}>
                       {exp.changeDescription}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-4 whitespace-nowrap text-xs font-mono">
+                      {topBefore && topAfter ? (
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-muted-foreground">
+                            {topBefore[0].replace(/_/g, ' ').slice(0, 12)}: <span className="text-foreground">{(topBefore[1] * 100).toFixed(0)}%</span>
+                          </span>
+                          <span className="text-primary">
+                            → {topAfter[0].replace(/_/g, ' ').slice(0, 12)}: <span className="font-bold">{(topAfter[1] * 100).toFixed(0)}%</span>
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap">
                       <div className="flex flex-col">
-                        <span className="text-amber-400 font-mono">{formatUsd(exp.costUsd)}</span>
+                        <span className="text-amber-400 font-mono text-xs">{formatUsd(exp.costUsd)}</span>
                         <span className="text-xs text-muted-foreground">{exp.tokensConsumed.toLocaleString()} tks</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                    <td className="px-4 py-4 whitespace-nowrap text-right">
                       {exp.retained ? (
                         <Badge variant="success" className="gap-1"><CheckCircle2 className="w-3 h-3"/> Retained</Badge>
                       ) : (
@@ -156,7 +180,8 @@ export default function ExperimentLog() {
                       )}
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { forecastsTable } from "@workspace/db/schema";
-import { eq, desc, and, count } from "drizzle-orm";
+import { eq, desc, and, count, isNotNull } from "drizzle-orm";
 import { GetForecastResponse, GetLatestForecastsResponse, ListForecastsResponse } from "@workspace/api-zod";
 import { sendValidated } from "../lib/validate-response";
 
@@ -48,6 +48,63 @@ router.get("/forecasts/latest", async (_req, res) => {
     );
     const data = results.flat();
     sendValidated(res, GetLatestForecastsResponse, { data });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+router.get("/forecasts/calibration/curve", async (_req, res) => {
+  try {
+    const forecasts = await db.select({
+      probabilities: forecastsTable.probabilities,
+      brierScore: forecastsTable.brierScore,
+      timeHorizon: forecastsTable.timeHorizon,
+    })
+      .from(forecastsTable)
+      .where(isNotNull(forecastsTable.brierScore))
+      .orderBy(desc(forecastsTable.createdAt))
+      .limit(200);
+
+    const NUM_BINS = 10;
+    type BinAcc = { sumForecast: number; sumOutcome: number; count: number };
+    const bins: BinAcc[] = Array.from({ length: NUM_BINS }, () => ({ sumForecast: 0, sumOutcome: 0, count: 0 }));
+
+    for (const f of forecasts) {
+      if (!f.probabilities || f.brierScore === null) continue;
+      const probs = f.probabilities as Record<string, number>;
+
+      for (const [, prob] of Object.entries(probs)) {
+        if (typeof prob !== 'number') continue;
+        const binIdx = Math.min(Math.floor(prob * NUM_BINS), NUM_BINS - 1);
+        bins[binIdx]!.sumForecast += prob;
+        bins[binIdx]!.count += 1;
+      }
+    }
+
+    const brierScores = forecasts.map(f => f.brierScore as number);
+    const meanBrier = brierScores.length > 0 ? brierScores.reduce((a, b) => a + b, 0) / brierScores.length : null;
+    const byHorizon: Record<string, number> = {};
+    for (const f of forecasts) {
+      if (f.brierScore !== null && f.timeHorizon) {
+        byHorizon[f.timeHorizon] = byHorizon[f.timeHorizon]
+          ? (byHorizon[f.timeHorizon]! + (f.brierScore as number)) / 2
+          : (f.brierScore as number);
+      }
+    }
+
+    const curve = bins.map((bin, i) => ({
+      binMidpoint: (i + 0.5) / NUM_BINS,
+      meanForecast: bin.count > 0 ? bin.sumForecast / bin.count : (i + 0.5) / NUM_BINS,
+      meanOutcome: bin.count > 0 ? bin.sumOutcome / bin.count : null,
+      count: bin.count,
+    }));
+
+    res.json({
+      curve,
+      meanBrierScore: meanBrier,
+      byHorizon,
+      sampleSize: forecasts.length,
+    });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }

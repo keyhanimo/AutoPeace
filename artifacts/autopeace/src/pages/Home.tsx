@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Activity, Zap, BarChart, Database } from "lucide-react";
-import { useGetExperimentStats, useGetLatestForecasts, type Forecast } from "@workspace/api-client-react";
+import { ArrowRight, Activity, Zap, BarChart, Database, DollarSign } from "lucide-react";
+import { useGetExperimentStats, useGetLatestForecasts, useListCosts, type Forecast } from "@workspace/api-client-react";
 import { Card, Button, Badge } from "@/components/ui";
+import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 
 const OUTCOME_COLORS: Record<string, string> = {
   continued_conflict: '#ef4444',
@@ -178,6 +179,106 @@ function OutcomeSparkbar({ forecasts }: { forecasts: Forecast[] }) {
   );
 }
 
+function CostOfWarSection() {
+  const { data: costsRes, isLoading } = useListCosts();
+  const costs = costsRes?.data ?? [];
+
+  const sorted = [...costs].sort((a, b) => (b.economic.totalUsd ?? 0) - (a.economic.totalUsd ?? 0));
+  const sparkData = sorted.slice(0, 8).map(c => ({
+    name: c.stakeholderId.slice(0, 8),
+    value: (c.economic.totalUsd ?? 0) / 1e9,
+  }));
+
+  const totalUsd = costs.reduce((sum, c) => sum + (c.economic.totalUsd ?? 0), 0);
+  const topCost = sorted[0];
+
+  if (isLoading) {
+    return (
+      <Card className="p-6 animate-pulse">
+        <div className="h-4 bg-secondary rounded w-48 mb-4" />
+        <div className="h-24 bg-secondary rounded" />
+      </Card>
+    );
+  }
+
+  if (!costs.length) return null;
+
+  return (
+    <Card className="p-6 border-red-900/30 bg-gradient-to-br from-card to-red-950/10">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className="p-2 bg-red-500/10 rounded-lg">
+            <DollarSign className="w-5 h-5 text-red-400" />
+          </div>
+          <div>
+            <h2 className="text-base font-bold">Cost of War</h2>
+            <p className="text-xs text-muted-foreground">Economic burden across all tracked stakeholders</p>
+          </div>
+        </div>
+        <div className="text-right">
+          <div className="text-2xl font-display font-bold text-red-400">
+            ${(totalUsd / 1e9).toFixed(1)}B
+          </div>
+          <div className="text-[10px] text-muted-foreground">Total Estimated USD</div>
+        </div>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-6 items-center">
+        <div className="h-24">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={sparkData} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
+              <defs>
+                <linearGradient id="costGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <XAxis dataKey="name" hide />
+              <Tooltip
+                contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '6px', fontSize: '10px' }}
+                formatter={(v: number) => [`$${v.toFixed(1)}B`, 'Econ. Cost']}
+              />
+              <Area type="monotone" dataKey="value" stroke="#ef4444" strokeWidth={2} fill="url(#costGradient)" dot={false} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="space-y-2">
+          {sorted.slice(0, 4).map(c => {
+            const val = c.economic.totalUsd ?? 0;
+            const pct = totalUsd > 0 ? (val / totalUsd) * 100 : 0;
+            return (
+              <div key={c.id} className="flex items-center gap-2 text-xs">
+                <span className="w-28 shrink-0 text-muted-foreground truncate font-mono text-[10px]">{c.stakeholderId.replace(/-/g, ' ')}</span>
+                <div className="flex-1 bg-secondary/50 rounded h-1.5 overflow-hidden">
+                  <motion.div
+                    className="h-full bg-red-500 rounded"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${pct.toFixed(1)}%` }}
+                    transition={{ duration: 1, ease: "easeOut" }}
+                  />
+                </div>
+                <span className="w-12 text-right font-mono text-foreground shrink-0">${(val / 1e9).toFixed(1)}B</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {topCost && (
+        <p className="text-[10px] text-muted-foreground mt-4 italic border-t border-border/50 pt-3">
+          Largest burden: <strong className="text-foreground">{topCost.stakeholderId}</strong> — Economic cost ${(topCost.economic.totalUsd / 1e9).toFixed(1)}B
+          {topCost.humanitarian.casualtiesEstimate ? `, ~${topCost.humanitarian.casualtiesEstimate.toLocaleString()} casualties est.` : ''}
+        </p>
+      )}
+
+      <div className="mt-3 text-right">
+        <Link to="/costs" className="text-xs text-primary hover:underline underline-offset-2">Explore all costs →</Link>
+      </div>
+    </Card>
+  );
+}
+
 export default function Home() {
   const { data: stats, isLoading: statsLoading } = useGetExperimentStats();
   const { data: latestRes, isLoading: forecastLoading } = useGetLatestForecasts();
@@ -293,6 +394,10 @@ export default function Home() {
           <h3 className="text-3xl font-display font-bold">{statsLoading ? "--" : new Intl.NumberFormat('en-US', { notation: "compact", compactDisplay: "short" }).format(stats?.totalTokensConsumed || 0)}</h3>
           <p className="text-xs text-muted-foreground mt-2">Total LLM context analyzed</p>
         </Card>
+      </section>
+
+      <section>
+        <CostOfWarSection />
       </section>
 
       <section>

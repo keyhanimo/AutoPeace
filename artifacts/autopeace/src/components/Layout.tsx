@@ -103,10 +103,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 lg:ml-60 min-h-screen">
-        <div className="px-4 py-6 lg:px-8 lg:py-8 pt-20 lg:pt-8 max-w-6xl mx-auto">
+      <main className="flex-1 lg:ml-60 min-h-screen flex flex-col">
+        <div className="bg-amber-900/20 border-b border-amber-700/30 px-4 py-2 text-center text-xs text-amber-300/80">
+          <span className="font-semibold">Disclaimer:</span> AutoPeace forecasts are AI-generated probabilistic estimates for research purposes only. They do not constitute geopolitical advice or predictions. Accuracy is not guaranteed.
+        </div>
+        <div className="flex-1 px-4 py-6 lg:px-8 lg:py-8 pt-6 lg:pt-6 max-w-6xl mx-auto w-full">
           {children}
         </div>
+        <footer className="lg:ml-0 border-t border-border/30 px-6 py-4 text-xs text-muted-foreground flex flex-wrap gap-4 items-center justify-between bg-card/30">
+          <span>AutoPeace — AI-powered conflict research · For educational and research use only</span>
+          <div className="flex gap-4">
+            <a href="/methodology" className="hover:text-primary transition-colors">Methodology</a>
+            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">GitHub</a>
+          </div>
+        </footer>
       </main>
     </div>
   );

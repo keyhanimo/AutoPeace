@@ -1,7 +1,7 @@
 import React from "react";
 import { useListStakeholders } from "@workspace/api-client-react";
 import { PageHeader, Card, Badge } from "@/components/ui";
-import { Users } from "lucide-react";
+import { Users, AlertTriangle, ExternalLink } from "lucide-react";
 
 export default function Methodology() {
   const { data: stakeholderRes, isLoading: stakeholdersLoading } = useListStakeholders();
@@ -87,6 +87,53 @@ export default function Methodology() {
               ))}
             </div>
           )}
+        </Card>
+
+        <Card className="p-8 border-amber-700/40 bg-amber-900/10">
+          <h2 className="text-2xl font-bold font-display text-foreground mt-0 flex items-center gap-3">
+            <AlertTriangle className="w-6 h-6 text-amber-400" /> Limitations & Disclaimer
+          </h2>
+          <ul className="space-y-2 text-sm text-muted-foreground mt-4 list-disc list-inside">
+            <li>Forecasts are <strong>probabilistic estimates</strong> produced by AI models and are not verified ground truth.</li>
+            <li>Evidence is sourced from public RSS feeds, GDELT, and ACLED — all subject to reporting lag, bias, and incompleteness.</li>
+            <li>LLM forecasters (Anthropic Claude, Gemini, GPT-4o) may exhibit hallucination, anchoring bias, or training cutoff limitations.</li>
+            <li>The hill-climbing loop optimizes for Brier score on historical seeds, which may not reflect future accuracy.</li>
+            <li>Forecasts should <strong>never</strong> be used as the sole basis for policy, investment, or personal safety decisions.</li>
+            <li>Calibration backtesting uses a limited seed corpus of historical forecasts — results should be interpreted with caution.</li>
+          </ul>
+          <p className="text-xs text-amber-300/70 mt-4 italic">
+            This platform is provided for research and educational purposes only. The authors make no warranties regarding accuracy or completeness.
+          </p>
+        </Card>
+
+        <Card className="p-6">
+          <h2 className="text-xl font-bold font-display text-foreground mt-0">Open Source &amp; Resources</h2>
+          <div className="flex flex-col sm:flex-row gap-3 mt-4">
+            <a
+              href="https://github.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border hover:border-primary/50 hover:bg-secondary/50 transition-colors text-sm text-foreground"
+            >
+              <ExternalLink className="w-4 h-4 text-primary" /> View Source on GitHub
+            </a>
+            <a
+              href="https://acleddata.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border hover:border-primary/50 hover:bg-secondary/50 transition-colors text-sm text-foreground"
+            >
+              <ExternalLink className="w-4 h-4 text-primary" /> ACLED Data
+            </a>
+            <a
+              href="https://gdeltproject.org"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border hover:border-primary/50 hover:bg-secondary/50 transition-colors text-sm text-foreground"
+            >
+              <ExternalLink className="w-4 h-4 text-primary" /> GDELT Project
+            </a>
+          </div>
         </Card>
       </div>
     </div>

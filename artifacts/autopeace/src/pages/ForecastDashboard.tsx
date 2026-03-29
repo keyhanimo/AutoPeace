@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { useGetLatestForecasts, useListForecasts, type Forecast } from "@workspace/api-client-react";
+import { useGetLatestForecasts, useListForecasts, useListEvidence, type Forecast } from "@workspace/api-client-react";
 import { Card, PageHeader } from "@/components/ui";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
@@ -132,6 +132,7 @@ function PredictionMarketComparison({ activeForecast }: { activeForecast: Foreca
 export default function ForecastDashboard() {
   const { data: latestRes, isLoading, isError } = useGetLatestForecasts();
   const { data: historyRes } = useListForecasts({ limit: 100 });
+  const { data: evidenceRes } = useListEvidence({ limit: 200 });
   const [horizon, setHorizon] = useState<typeof TIME_HORIZONS[number]>('30d');
   const [activeTab, setActiveTab] = useState<'probabilities' | 'radar' | 'history'>('probabilities');
   const [historyWindow, setHistoryWindow] = useState(10);
@@ -198,6 +199,17 @@ export default function ForecastDashboard() {
   }, [activeForecast]);
 
   const allForecasts = historyRes?.data ?? [];
+
+  const evidenceByTitle = useMemo(() => {
+    const items = evidenceRes?.data ?? [];
+    const map = new Map<string, { url: string; source: string; type: string }>();
+    for (const ev of items) {
+      if (ev.title) {
+        map.set(ev.title.toLowerCase().trim(), { url: ev.sourceUrl, source: ev.source, type: ev.evidenceType });
+      }
+    }
+    return map;
+  }, [evidenceRes]);
 
   if (isLoading) {
     return (
@@ -426,13 +438,39 @@ export default function ForecastDashboard() {
                   Evidence Audit
                 </h3>
                 {activeForecast.keyEvidenceItems && activeForecast.keyEvidenceItems.length > 0 ? (
-                  <ul className="space-y-2">
-                    {(activeForecast.keyEvidenceItems as string[]).slice(0, 5).map((item, i) => (
-                      <li key={i} className="text-xs text-muted-foreground flex gap-2">
-                        <span className="text-primary font-bold shrink-0">{i + 1}.</span>
-                        <span>{item}</span>
-                      </li>
-                    ))}
+                  <ul className="space-y-3">
+                    {(activeForecast.keyEvidenceItems as string[]).slice(0, 5).map((item, i) => {
+                      const match = evidenceByTitle.get(item.toLowerCase().trim());
+                      return (
+                        <li key={i} className="text-xs flex gap-2 items-start">
+                          <span className="text-primary font-bold shrink-0 mt-0.5">{i + 1}.</span>
+                          <div className="flex flex-col gap-1 flex-1 min-w-0">
+                            {match?.url ? (
+                              <a
+                                href={match.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-foreground hover:text-primary transition-colors underline underline-offset-2 leading-relaxed"
+                              >
+                                {item}
+                              </a>
+                            ) : (
+                              <span className="text-muted-foreground leading-relaxed">{item}</span>
+                            )}
+                            {match && (
+                              <div className="flex items-center gap-1.5">
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-mono uppercase bg-secondary text-muted-foreground border border-border/50">
+                                  {match.source}
+                                </span>
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-mono uppercase bg-primary/10 text-primary border border-primary/20">
+                                  {match.type}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </li>
+                      );
+                    })}
                   </ul>
                 ) : (
                   <p className="text-xs text-muted-foreground">No evidence items recorded for this forecast.</p>

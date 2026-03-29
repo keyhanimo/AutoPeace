@@ -45,7 +45,7 @@ export default function AdminPanel() {
       return res.json();
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'sources'] });
+      void queryClient.invalidateQueries({ queryKey: ['/api/admin/sources'] });
       toast({ title: "Source updated", description: "Evidence source toggled successfully." });
     },
     onError: (err: Error) => {
