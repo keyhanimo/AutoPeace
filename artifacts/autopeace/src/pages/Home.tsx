@@ -180,22 +180,24 @@ function LiveTicker() {
   }, []);
 
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 border-l-2 border-l-primary text-xs text-primary font-mono w-full">
+    <div className="flex items-center gap-2 px-3 bg-primary/5 border-l-2 border-l-primary text-xs text-primary font-mono w-full h-8 overflow-hidden">
       <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse shrink-0" />
-      <AnimatePresence mode="wait">
-        {visible && (
-          <motion.span
-            key={idx}
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.3 }}
-            className="truncate"
-          >
-            {TICKER_ITEMS[idx]}
-          </motion.span>
-        )}
-      </AnimatePresence>
+      <div className="relative flex-1 h-full overflow-hidden">
+        <AnimatePresence mode="wait">
+          {visible && (
+            <motion.span
+              key={idx}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.3 }}
+              className="absolute inset-0 flex items-center truncate"
+            >
+              {TICKER_ITEMS[idx]}
+            </motion.span>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
