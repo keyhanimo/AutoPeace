@@ -3,7 +3,7 @@ import { db } from "@workspace/db";
 import { adminConfigTable, evidenceSourcesTable, experimentsTable, cyclesTable } from "@workspace/db/schema";
 import { eq, sum, count } from "drizzle-orm";
 import { adminAuth } from "../lib/admin-auth";
-import { runCycleNow } from "../services/autoresearch";
+import { runCycleNow, isRunning } from "../services/autoresearch";
 
 const router = Router();
 
@@ -67,21 +67,16 @@ router.post("/admin/config", async (req, res) => {
   }
 });
 
-let isRunning = false;
-
 router.post("/admin/run", async (_req, res) => {
-  if (isRunning) {
+  if (isRunning()) {
     res.status(409).json({ error: "A cycle is already running", cycleId: "", message: "Already running" });
     return;
   }
   try {
-    isRunning = true;
     const cycleId = await runCycleNow();
     res.json({ cycleId, message: "Autoresearch cycle started" });
   } catch (err) {
     res.status(500).json({ error: String(err) });
-  } finally {
-    isRunning = false;
   }
 });
 
@@ -116,9 +111,10 @@ router.patch("/admin/sources/:id", async (req, res) => {
 
 router.get("/admin/costs-summary", async (_req, res) => {
   try {
-    const [expAgg] = await db.select({
-      totalExpCostUsd: sum(experimentsTable.costUsd),
-      totalExpTokens: sum(experimentsTable.tokensConsumed),
+    const experiments = await db.select({
+      costUsd: experimentsTable.costUsd,
+      tokensConsumed: experimentsTable.tokensConsumed,
+      providerCosts: experimentsTable.providerCosts,
     }).from(experimentsTable);
 
     const [cycleAgg] = await db.select({
@@ -133,18 +129,31 @@ router.get("/admin/costs-summary", async (_req, res) => {
       tokens: cyclesTable.tokensConsumed,
     }).from(cyclesTable);
 
-    const totalExpCostUsd = Number(expAgg?.totalExpCostUsd ?? 0);
-    const totalExpTokens = Number(expAgg?.totalExpTokens ?? 0);
+    let geminiCostUsd = 0;
+    let openaiCostUsd = 0;
+    let totalExpCostUsd = 0;
+    let totalExpTokens = 0;
+
+    for (const exp of experiments) {
+      totalExpCostUsd += Number(exp.costUsd ?? 0);
+      totalExpTokens += Number(exp.tokensConsumed ?? 0);
+      const pc = exp.providerCosts as { gemini?: number; openai?: number } | null;
+      if (pc) {
+        geminiCostUsd += pc.gemini ?? 0;
+        openaiCostUsd += pc.openai ?? 0;
+      } else {
+        geminiCostUsd += Number(exp.costUsd ?? 0) * 0.5;
+        openaiCostUsd += Number(exp.costUsd ?? 0) * 0.5;
+      }
+    }
+
     const totalCycleCostUsd = Number(cycleAgg?.totalCycleCostUsd ?? 0);
     const totalCycleTokens = Number(cycleAgg?.totalCycleTokens ?? 0);
 
     const anthropicCostUsd = Math.max(0, totalCycleCostUsd - totalExpCostUsd);
     const anthropicTokens = Math.max(0, totalCycleTokens - totalExpTokens);
-
-    const geminiCostUsd = totalExpCostUsd * 0.5;
-    const geminiTokens = Math.round(totalExpTokens * 0.5);
-    const openaiCostUsd = totalExpCostUsd * 0.5;
-    const openaiTokens = Math.round(totalExpTokens * 0.5);
+    const geminiTokensEst = totalExpTokens > 0 ? Math.round(totalExpTokens * (geminiCostUsd / (geminiCostUsd + openaiCostUsd + 0.00001))) : 0;
+    const openaiTokensEst = totalExpTokens - geminiTokensEst;
 
     res.json({
       totalCostUsd: parseFloat(totalCycleCostUsd.toFixed(4)),
@@ -157,12 +166,12 @@ router.get("/admin/costs-summary", async (_req, res) => {
         },
         gemini: {
           costUsd: parseFloat(geminiCostUsd.toFixed(4)),
-          tokens: geminiTokens,
+          tokens: geminiTokensEst,
           role: "mutation-red-teaming",
         },
         openai: {
           costUsd: parseFloat(openaiCostUsd.toFixed(4)),
-          tokens: openaiTokens,
+          tokens: openaiTokensEst,
           role: "champion-evaluation",
         },
       },

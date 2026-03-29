@@ -335,8 +335,15 @@ Respond with JSON: {"recommendation": "retain_challenger" | "retain_champion", "
 
       const retained = evalResult["recommendation"] === "retain_challenger";
       experimentsRun++;
-      totalTokens += 1800;
-      totalCost += 0.004;
+
+      const geminiTokens = geminiResult.usageMetadata?.totalTokenCount ?? 600;
+      const openaiTokens = evalResponse.usage?.total_tokens ?? 200;
+      const geminiCostEst = geminiTokens * 0.00000015;
+      const openaiCostEst = openaiTokens * 0.000005;
+      const expCost = geminiCostEst + openaiCostEst;
+      const expTokens = geminiTokens + openaiTokens;
+      totalTokens += expTokens;
+      totalCost += expCost;
 
       const scoresBefore = { ...champion.probabilities };
       const scoresAfter = retained ? { ...mutantProbs } : { ...champion.probabilities };
@@ -358,9 +365,10 @@ Respond with JSON: {"recommendation": "retain_challenger" | "retain_champion", "
         scoresAfter,
         diagnosis: evalResult["reasoning"] ?? null,
         retained,
-        tokensConsumed: 1800,
+        tokensConsumed: expTokens,
         wallClockSeconds: null,
-        costUsd: 0.004,
+        costUsd: expCost,
+        providerCosts: { gemini: geminiCostEst, openai: openaiCostEst },
       });
     } catch (err) {
       logger.warn({ err, mutation: mutation.name, cycleId }, "Mutation experiment failed");

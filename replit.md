@@ -51,7 +51,7 @@ artifacts-monorepo/
 
 ## Database Schema (9 tables)
 
-- **stakeholders** — 28 conflict actors (Iran, US, Israel, Houthis, etc.) with flags/roles
+- **stakeholders** — 32 conflict actors (Iran, US, Israel, Houthis, IAEA, etc.) with flags/roles
 - **cycles** — autoresearch run records (status, tokens, cost, timestamps)
 - **forecasts** — probability distributions across 8 outcome states per time horizon
 - **experiments** — red-team mutation log (Task A: Gemini red-team + GPT-4o eval)
@@ -72,13 +72,16 @@ Run migrations: `pnpm --filter @workspace/db run push`
 - `GET /api/costs` — cost-of-war data
 - `GET /api/evidence` — recent evidence items
 - `GET /api/changelog` — cycle changelog entries
-- `GET /api/stakeholders` — all 28 stakeholders
+- `GET /api/stakeholders` — all 32 stakeholders
+- `GET /api/changelog/:id` — single changelog entry detail
 
 ### Admin (requires `X-Admin-Key: $ADMIN_PASSWORD`)
-- `POST /api/admin/run` — trigger autoresearch cycle immediately
+- `POST /api/admin/run` — trigger autoresearch cycle immediately (409 if cycle already running)
 - `GET /api/admin/config` — view admin config
-- `PUT /api/admin/config` — update config (isPaused, cadence)
-- `GET /api/admin/cycles` — list all cycles with status
+- `POST /api/admin/config` — update config (isPaused, cadence, budgetCapUsd, model names)
+- `GET /api/admin/sources` — list evidence sources
+- `PATCH /api/admin/sources/:id` — enable/disable or change fetch frequency
+- `GET /api/admin/costs-summary` — per-provider cost breakdown with actual Gemini/OpenAI attribution
 
 ## Autoresearch Pipeline
 
@@ -100,6 +103,7 @@ Scheduler: hourly cron check, runs at UTC 6am daily by default.
 | `/costs` | Cost Explorer — economic/human cost data by actor |
 | `/experiments` | Evolution Log — mutation table with result badges |
 | `/changelog` | Platform Changelog — timeline of cycle headlines |
+| `/changelog/:id` | Changelog Entry — detail view with forecast distribution, key evidence, permalink |
 | `/methodology` | Methodology — Bayesian approach, 8-state MECE taxonomy |
 | `/admin` | Admin Panel — password-gated controls (X-Admin-Key) |
 

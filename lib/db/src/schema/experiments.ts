@@ -16,6 +16,7 @@ export const experimentsTable = pgTable("experiments", {
   tokensConsumed: integer("tokens_consumed").notNull().default(0),
   wallClockSeconds: integer("wall_clock_seconds"),
   costUsd: real("cost_usd").notNull().default(0),
+  providerCosts: jsonb("provider_costs").$type<{ gemini?: number; openai?: number; anthropic?: number }>(),
 });
 
 export const insertExperimentSchema = createInsertSchema(experimentsTable).omit({ timestamp: true });
