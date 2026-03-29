@@ -90,7 +90,7 @@ function ProposalCard({
   const evals = (proposal.stakeholderEvaluations ?? {}) as Record<string, StakeholderVerdict>;
   const terms = proposal.terms as Record<string, unknown>;
   const knownResponses = (proposal.knownResponses ?? {}) as Record<string, string>;
-  const whatWouldItTake = (proposal.whatWouldItTake ?? []) as Array<{ stakeholder: string; requirement: string; feasibility: string }>;
+  const whatWouldItTake = (proposal.whatWouldItTake ?? []) as Array<{ dimension: string; currentGap: string; requiredChange: string; feasibility: string }>;
 
   const radarData = SCORE_DIMENSIONS.map(d => ({
     dimension: d.label,
@@ -234,12 +234,12 @@ function ProposalCard({
                     {whatWouldItTake.map((item, i) => (
                       <div key={i} className="p-3 rounded-lg border border-border text-xs">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="font-bold capitalize text-foreground">{item.stakeholder}</span>
+                          <span className="font-bold capitalize text-foreground">{item.dimension}</span>
                           <Badge variant="outline" className={`text-[9px] px-1 py-0 h-4 ${item.feasibility === "high" ? "border-emerald-700 text-emerald-400" : item.feasibility === "low" ? "border-red-700 text-red-400" : "border-amber-700 text-amber-400"}`}>
                             {item.feasibility} feasibility
                           </Badge>
                         </div>
-                        <p className="text-muted-foreground">{item.requirement}</p>
+                        <p className="text-muted-foreground">{item.requiredChange}</p>
                       </div>
                     ))}
                   </div>

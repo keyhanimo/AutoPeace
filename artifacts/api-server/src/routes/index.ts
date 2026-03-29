@@ -19,8 +19,8 @@ router.use(costsRouter);
 router.use(evidenceRouter);
 router.use(changelogRouter);
 router.use(stakeholdersRouter);
-router.use(adminRouter);
 router.use(dealsRouter);
 router.use(proposalsRouter);
+router.use(adminRouter);
 
 export default router;

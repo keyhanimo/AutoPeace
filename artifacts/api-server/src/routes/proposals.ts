@@ -99,15 +99,35 @@ router.post("/admin/proposals/:id/evaluate", adminAuth, async (req, res) => {
       feasibility: item.feasibility,
     }));
 
+    const proposalScores = {
+      feasibility: scores.feasibility,
+      coherence: scores.coherence,
+      evidenceGrounding: scores.evidenceGrounding,
+      domesticSellability: scores.domesticSellability,
+      regionalStability: scores.regionalStability,
+      implementability: scores.implementability,
+      durability: scores.durability,
+      composite: scores.composite,
+    };
+
+    const proposalStakeholderEvals: typeof proposalsTable.$inferInsert["stakeholderEvaluations"] = Object.fromEntries(
+      Object.entries(stakeholderEvaluations).map(([k, v]) => [k, {
+        verdict: v.verdict,
+        rationale: v.rationale,
+        redLineViolations: v.redLineViolations,
+        conditions: v.conditions,
+      }])
+    );
+
     await db.update(proposalsTable)
       .set({
-        scores: scores as unknown as Record<string, never>,
-        stakeholderEvaluations: stakeholderEvaluations as unknown as Record<string, never>,
+        scores: proposalScores,
+        stakeholderEvaluations: proposalStakeholderEvals,
         whatWouldItTake: whatWouldItTakeArray,
       })
-      .where(eq(proposalsTable.id, proposalId as string));
+      .where(eq(proposalsTable.id, proposalId));
 
-    const [updated] = await db.select().from(proposalsTable).where(eq(proposalsTable.id, proposalId as string));
+    const [updated] = await db.select().from(proposalsTable).where(eq(proposalsTable.id, proposalId));
     res.json({ proposal: updated });
   } catch (err) {
     res.status(500).json({ error: String(err) });

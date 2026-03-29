@@ -40,6 +40,31 @@ function mapToResponse(cfg: Record<string, string>) {
   };
 }
 
+router.get("/admin/pipeline/config", async (_req, res) => {
+  try {
+    const cfg = await getConfigMap();
+    const anthropicModel = cfg["anthropicModel"] ?? "claude-sonnet-4-5";
+    const openaiModel = cfg["openaiModel"] ?? "gpt-4o";
+    const geminiModel = cfg["geminiModel"] ?? "gemini-2.5-flash";
+
+    res.json({
+      stages: [
+        { stage: 1, name: "Proposal Agent",        role: "generation",     provider: "anthropic", model: anthropicModel },
+        { stage: 2, name: "Stakeholder Evaluator",  role: "evaluation",     provider: "openai",    model: openaiModel },
+        { stage: 3, name: "Domestic Audiences",     role: "evaluation",     provider: "openai",    model: openaiModel },
+        { stage: 4, name: "Red-Team Agent",         role: "adversarial",    provider: "gemini",    model: geminiModel },
+        { stage: 5, name: "Negotiator Agent",       role: "generation",     provider: "anthropic", model: anthropicModel },
+        { stage: 6, name: "Judge Agent",            role: "scoring",        provider: "openai",    model: openaiModel },
+        { stage: 7, name: "Meta-Evaluator",         role: "meta-evaluation",provider: "openai",    model: openaiModel },
+        { stage: 8, name: "Diagnosis Generator",    role: "synthesis",      provider: "gemini",    model: geminiModel },
+      ],
+      constraint: "Generation and bridging roles use Anthropic; evaluation, scoring, and meta-evaluation use OpenAI; adversarial and synthesis use Gemini. Provider assignments per role are architecturally fixed; model names are configurable.",
+    });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
 router.get("/admin/config", async (_req, res) => {
   try {
     const cfg = await getConfigMap();

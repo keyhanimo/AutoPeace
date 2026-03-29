@@ -145,7 +145,16 @@ async function runDealCycleAsync(cycleId: string): Promise<void> {
       : 0;
 
     let chosenArch = DEAL_ARCHITECTURES[currentArchIdx % DEAL_ARCHITECTURES.length] ?? "balanced";
-    const stallCount = await getStallCount(chosenArch, currentBest?.id ?? null);
+
+    const [currentBestNode] = currentBest
+      ? await db.select({ id: solutionTreeTable.id, depth: solutionTreeTable.depth })
+          .from(solutionTreeTable)
+          .where(eq(solutionTreeTable.dealId, currentBest.id))
+          .orderBy(desc(solutionTreeTable.createdAt))
+          .limit(1)
+      : [undefined];
+
+    const stallCount = await getStallCount(chosenArch, currentBestNode?.id ?? null);
 
     if (stallCount >= STALL_THRESHOLD) {
       chosenArch = DEAL_ARCHITECTURES[(currentArchIdx + 1) % DEAL_ARCHITECTURES.length] ?? "balanced";
@@ -189,19 +198,15 @@ async function runDealCycleAsync(cycleId: string): Promise<void> {
     const isStalled = compositeScore < 0.35;
 
     const treeNodeId = randomUUID();
-    const [parentNode] = await db.select({ id: solutionTreeTable.id })
-      .from(solutionTreeTable)
-      .where(eq(solutionTreeTable.dealId, currentBest?.id ?? ""))
-      .limit(1);
 
     await db.insert(solutionTreeTable).values({
       id: treeNodeId,
       dealId,
-      parentNodeId: parentNode?.id ?? null,
+      parentNodeId: currentBestNode?.id ?? null,
       cycleId,
       branchLabel: `${chosenArch} attempt`,
       architecture: chosenArch,
-      depth: (parentNode ? 1 : 0),
+      depth: currentBestNode ? currentBestNode.depth + 1 : 0,
       isStalled,
       stalledReason: isStalled ? evaluated.diagnosis : null,
       isBestInBranch: isBetterThanCurrent,
