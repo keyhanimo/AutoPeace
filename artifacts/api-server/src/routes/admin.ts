@@ -116,10 +116,15 @@ router.patch("/admin/sources/:id", async (req, res) => {
 
 router.get("/admin/costs-summary", async (_req, res) => {
   try {
-    const [total] = await db.select({
-      totalCostUsd: sum(experimentsTable.costUsd),
-      totalTokens: sum(experimentsTable.tokensConsumed),
+    const [expAgg] = await db.select({
+      totalExpCostUsd: sum(experimentsTable.costUsd),
+      totalExpTokens: sum(experimentsTable.tokensConsumed),
     }).from(experimentsTable);
+
+    const [cycleAgg] = await db.select({
+      totalCycleCostUsd: sum(cyclesTable.costUsd),
+      totalCycleTokens: sum(cyclesTable.tokensConsumed),
+    }).from(cyclesTable);
 
     const cycles = await db.select({
       cycleId: cyclesTable.id,
@@ -128,43 +133,37 @@ router.get("/admin/costs-summary", async (_req, res) => {
       tokens: cyclesTable.tokensConsumed,
     }).from(cyclesTable);
 
-    const totalCostUsd = Number(total?.totalCostUsd ?? 0);
-    const totalTokens = Number(total?.totalTokens ?? 0);
+    const totalExpCostUsd = Number(expAgg?.totalExpCostUsd ?? 0);
+    const totalExpTokens = Number(expAgg?.totalExpTokens ?? 0);
+    const totalCycleCostUsd = Number(cycleAgg?.totalCycleCostUsd ?? 0);
+    const totalCycleTokens = Number(cycleAgg?.totalCycleTokens ?? 0);
 
-    const anthropicCost = await db.select({
-      costUsd: sum(experimentsTable.costUsd),
-      tokens: sum(experimentsTable.tokensConsumed),
-    }).from(experimentsTable).where(eq(experimentsTable.task, "B"));
+    const anthropicCostUsd = Math.max(0, totalCycleCostUsd - totalExpCostUsd);
+    const anthropicTokens = Math.max(0, totalCycleTokens - totalExpTokens);
 
-    const openaiCost = await db.select({
-      costUsd: sum(experimentsTable.costUsd),
-      tokens: sum(experimentsTable.tokensConsumed),
-    }).from(experimentsTable).where(eq(experimentsTable.task, "A"));
-
-    const geminiCost = await db.select({
-      costUsd: sum(experimentsTable.costUsd),
-      tokens: sum(experimentsTable.tokensConsumed),
-    }).from(experimentsTable).where(eq(experimentsTable.task, "both"));
-
-    const anthropicTotalCostUsd = Number(anthropicCost[0]?.costUsd ?? 0) + totalCostUsd * 0.60;
-    const openaiTotalCostUsd = Number(openaiCost[0]?.costUsd ?? 0) + totalCostUsd * 0.25;
-    const geminiTotalCostUsd = Number(geminiCost[0]?.costUsd ?? 0) + totalCostUsd * 0.15;
+    const geminiCostUsd = totalExpCostUsd * 0.5;
+    const geminiTokens = Math.round(totalExpTokens * 0.5);
+    const openaiCostUsd = totalExpCostUsd * 0.5;
+    const openaiTokens = Math.round(totalExpTokens * 0.5);
 
     res.json({
-      totalCostUsd,
-      totalTokens,
+      totalCostUsd: parseFloat(totalCycleCostUsd.toFixed(4)),
+      totalTokens: totalCycleTokens,
       byProvider: {
         anthropic: {
-          costUsd: parseFloat(anthropicTotalCostUsd.toFixed(4)),
-          tokens: Math.round(Number(anthropicCost[0]?.tokens ?? 0) + totalTokens * 0.60),
-        },
-        openai: {
-          costUsd: parseFloat(openaiTotalCostUsd.toFixed(4)),
-          tokens: Math.round(Number(openaiCost[0]?.tokens ?? 0) + totalTokens * 0.25),
+          costUsd: parseFloat(anthropicCostUsd.toFixed(4)),
+          tokens: anthropicTokens,
+          role: "base-forecast-generation",
         },
         gemini: {
-          costUsd: parseFloat(geminiTotalCostUsd.toFixed(4)),
-          tokens: Math.round(Number(geminiCost[0]?.tokens ?? 0) + totalTokens * 0.15),
+          costUsd: parseFloat(geminiCostUsd.toFixed(4)),
+          tokens: geminiTokens,
+          role: "mutation-red-teaming",
+        },
+        openai: {
+          costUsd: parseFloat(openaiCostUsd.toFixed(4)),
+          tokens: openaiTokens,
+          role: "champion-evaluation",
         },
       },
       byCycle: cycles.map(c => ({

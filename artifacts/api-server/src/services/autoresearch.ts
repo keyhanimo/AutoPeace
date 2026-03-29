@@ -102,6 +102,22 @@ async function runCycleAsync(cycleId: string): Promise<void> {
     totalTokens = hillClimbResults.totalTokens;
     totalCost = hillClimbResults.totalCost;
 
+    if (hillClimbResults.champion && hillClimbResults.experimentsRetained > 0) {
+      const championState = JSON.stringify({
+        probabilities: hillClimbResults.champion.probabilities,
+        rationale: hillClimbResults.champion.rationale,
+        cycleId,
+        retainedAt: new Date().toISOString(),
+      });
+      const existing = await db.select().from(adminConfigTable).where(eq(adminConfigTable.key, "championState"));
+      if (existing.length > 0) {
+        await db.update(adminConfigTable).set({ value: championState, updatedAt: new Date() }).where(eq(adminConfigTable.key, "championState"));
+      } else {
+        await db.insert(adminConfigTable).values({ key: "championState", value: championState });
+      }
+      logger.info({ cycleId, experimentsRetained }, "Champion state persisted to admin_config");
+    }
+
     const primaryForecast = hillClimbResults.champion ?? baseForecast.find(f => f.timeHorizon === "90d");
     if (primaryForecast) {
       const headline = generateHeadline(primaryForecast.probabilities);
@@ -187,6 +203,26 @@ const PROMPT_MUTATIONS: Array<{
 ];
 
 
+async function loadPersistedChampion(): Promise<GeneratedForecast | null> {
+  const rows = await db.select().from(adminConfigTable).where(eq(adminConfigTable.key, "championState"));
+  const raw = rows[0]?.value;
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as { probabilities?: ForecastProbabilities; rationale?: string; cycleId?: string };
+    if (parsed.probabilities && parsed.rationale) {
+      return {
+        timeHorizon: "90d",
+        probabilities: parsed.probabilities,
+        rationale: parsed.rationale,
+        keyEvidenceItems: [],
+      };
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 async function runHillClimbing(
   cycleId: string,
   baseForecastSet: GeneratedForecast[]
@@ -198,7 +234,9 @@ async function runHillClimbing(
 
   const backtestRecords = await getRecentForecastsForBacktest(cycleId);
 
-  let champion: GeneratedForecast = primary;
+  const persisted = await loadPersistedChampion();
+  const initialChampion = persisted ?? primary;
+  let champion: GeneratedForecast = initialChampion;
   let championScore = computeCompositeScore(champion.probabilities, backtestRecords);
 
   let experimentsRun = 0;
