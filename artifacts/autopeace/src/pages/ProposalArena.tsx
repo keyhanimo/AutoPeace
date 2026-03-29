@@ -20,14 +20,14 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const SCORE_DIMENSIONS: { key: keyof DealScores; label: string; color: string }[] = [
-  { key: "feasibility", label: "Feasibility", color: "#10b981" },
-  { key: "coherence", label: "Coherence", color: "#0284c7" },
-  { key: "evidenceGrounding", label: "Evidence", color: "#f59e0b" },
-  { key: "domesticSellability", label: "Domestic", color: "#8b5cf6" },
-  { key: "regionalStability", label: "Regional", color: "#06b6d4" },
-  { key: "implementability", label: "Implement.", color: "#f97316" },
-  { key: "durability", label: "Durability", color: "#ec4899" },
+const SCORE_DIMENSIONS: { key: keyof DealScores; label: string; color: string; weight: number; description: string }[] = [
+  { key: "feasibility", label: "Feasibility", color: "#10b981", weight: 0.20, description: "Likelihood the deal gets signed by all parties" },
+  { key: "coherence", label: "Coherence", color: "#0284c7", weight: 0.15, description: "Internal consistency of the terms — do they contradict each other?" },
+  { key: "evidenceGrounding", label: "Evidence", color: "#f59e0b", weight: 0.10, description: "How well the terms reflect documented evidence and real-world constraints" },
+  { key: "domesticSellability", label: "Domestic", color: "#8b5cf6", weight: 0.20, description: "Can leaders sell this deal domestically? (US Congress, Iran IRGC, etc.)" },
+  { key: "regionalStability", label: "Regional", color: "#06b6d4", weight: 0.15, description: "Predicted impact on broader Middle East stability" },
+  { key: "implementability", label: "Implement.", color: "#f97316", weight: 0.10, description: "Technical and logistical ease of executing the terms" },
+  { key: "durability", label: "Durability", color: "#ec4899", weight: 0.10, description: "Resilience against future shocks or changes in leadership" },
 ];
 
 const VERDICT_COLORS: Record<string, string> = {
@@ -194,6 +194,52 @@ function ProposalCard({
                   )}
                 </div>
               </div>
+
+              {scores && (
+                <div>
+                  <h4 className="text-xs font-bold text-primary uppercase tracking-wider mb-3">Score Breakdown</h4>
+                  <p className="text-[10px] text-muted-foreground mb-3">
+                    Each dimension is scored 0-100% by a Judge Agent (LLM panel of diplomats). The composite is a weighted average. Hover or read rationale for why each score was assigned.
+                  </p>
+                  <div className="space-y-2">
+                    {SCORE_DIMENSIONS.map(d => {
+                      const val = (scores[d.key] ?? 0) as number;
+                      const pct = Math.round(val * 100);
+                      const sr = (scores as DealScores & { scoreRationale?: Record<string, string> }).scoreRationale;
+                      const rationale = sr?.[d.key] || undefined;
+                      return (
+                        <div key={d.key} className="border border-border/30 rounded-sm p-2.5">
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: d.color }} />
+                              <span className="text-xs font-bold">{d.label}</span>
+                              <span className="text-[9px] text-muted-foreground/70 font-mono">{(d.weight * 100).toFixed(0)}% weight</span>
+                            </div>
+                            <span className={`text-sm font-bold font-mono ${scoreColor(val)}`}>{pct}%</span>
+                          </div>
+                          <div className="w-full bg-secondary/50 h-1.5 mb-1.5 overflow-hidden">
+                            <div className="h-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: d.color }} />
+                          </div>
+                          {rationale ? (
+                            <p className="text-[10px] text-muted-foreground leading-relaxed">{rationale}</p>
+                          ) : (
+                            <p className="text-[10px] text-muted-foreground/50 italic">{d.description}</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-3 p-2.5 border border-primary/20 rounded-sm bg-primary/5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-primary">Composite Score</span>
+                      <span className={`text-lg font-bold font-mono ${scoreColor(scores.composite ?? 0)}`}>{((scores.composite ?? 0) * 100).toFixed(0)}%</span>
+                    </div>
+                    <p className="text-[9px] text-muted-foreground mt-1">
+                      Weighted: Feasibility 20% + Domestic 20% + Coherence 15% + Regional 15% + Evidence 10% + Implement. 10% + Durability 10%
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {Object.keys(evals).length > 0 && (
                 <div>

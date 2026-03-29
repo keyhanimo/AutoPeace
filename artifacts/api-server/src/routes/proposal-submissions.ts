@@ -192,6 +192,7 @@ router.patch("/admin/proposals/queue/:id", adminAuth, async (req, res) => {
             implementability: scores.implementability,
             durability: scores.durability,
             composite: scores.composite,
+            scoreRationale: scores.scoreRationale,
           };
 
           const stakeholderEvals = Object.fromEntries(

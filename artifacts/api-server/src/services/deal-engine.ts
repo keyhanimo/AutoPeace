@@ -21,6 +21,8 @@ export type DealScores = {
   implementability: number;
   durability: number;
   composite: number;
+  scoreRationale?: Record<string, string>;
+  evaluationError?: string;
 };
 
 export type StakeholderVerdict = {
@@ -572,9 +574,10 @@ export async function judgeAndScore(
   const domesticTotal = Object.keys(domesticEvaluations).length || 1;
 
   const systemPrompt = `You are a panel of senior diplomats and conflict resolution experts scoring a peace deal on seven dimensions from 0.0 to 1.0.
+For each dimension, provide a score AND a 1-2 sentence rationale explaining the key factors behind the score.
 Output JSON only.`;
 
-  const prompt = `Score this peace deal (0.0-1.0 per dimension):
+  const prompt = `Score this peace deal (0.0-1.0 per dimension) and explain each score:
 
 DEAL SUMMARY (post-negotiator amendments applied):
 - Nuclear protocol: ${terms.nuclearProtocol.slice(0, 200)}
@@ -586,7 +589,16 @@ STAKEHOLDER RESULTS: ${acceptCount}/${totalStakeholders} accept, ${rejectCount} 
 RED-TEAM SURVIVAL: ${survivedCount}/${totalRedTeam} attacks survived
 DOMESTIC SELLABILITY: ${domesticSellable}/${domesticTotal} sellable, ${domesticUnsellable} unsellable
 
-Score JSON: { "feasibility": 0.0-1.0, "coherence": 0.0-1.0, "evidenceGrounding": 0.0-1.0, "domesticSellability": 0.0-1.0, "regionalStability": 0.0-1.0, "implementability": 0.0-1.0, "durability": 0.0-1.0 }`;
+Return JSON with scores and rationale for each dimension:
+{
+  "feasibility": 0.0-1.0, "feasibilityRationale": "why this score",
+  "coherence": 0.0-1.0, "coherenceRationale": "why this score",
+  "evidenceGrounding": 0.0-1.0, "evidenceGroundingRationale": "why this score",
+  "domesticSellability": 0.0-1.0, "domesticSellabilityRationale": "why this score",
+  "regionalStability": 0.0-1.0, "regionalStabilityRationale": "why this score",
+  "implementability": 0.0-1.0, "implementabilityRationale": "why this score",
+  "durability": 0.0-1.0, "durabilityRationale": "why this score"
+}`;
 
   const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 6, "evaluation", modelConfig);
 
@@ -604,18 +616,28 @@ Score JSON: { "feasibility": 0.0-1.0, "coherence": 0.0-1.0, "evidenceGrounding":
     durability: baseScore + (Math.random() - 0.5) * 0.1,
   };
 
-  const parsed = parseLLMJson<Omit<DealScores, "composite">>(content, fallback);
+  const parsed = parseLLMJson<Record<string, unknown>>(content, fallback as Record<string, unknown>);
   const clamp = (v: number) => Math.max(0, Math.min(1, v));
+  const num = (v: unknown, fb: number) => { const n = Number(v); return Number.isFinite(n) ? n : fb; };
 
   const scores: DealScores = {
-    feasibility: clamp(parsed.feasibility ?? fallback.feasibility),
-    coherence: clamp(parsed.coherence ?? fallback.coherence),
-    evidenceGrounding: clamp(parsed.evidenceGrounding ?? fallback.evidenceGrounding),
-    domesticSellability: clamp(parsed.domesticSellability ?? fallback.domesticSellability),
-    regionalStability: clamp(parsed.regionalStability ?? fallback.regionalStability),
-    implementability: clamp(parsed.implementability ?? fallback.implementability),
-    durability: clamp(parsed.durability ?? fallback.durability),
+    feasibility: clamp(num(parsed.feasibility, fallback.feasibility)),
+    coherence: clamp(num(parsed.coherence, fallback.coherence)),
+    evidenceGrounding: clamp(num(parsed.evidenceGrounding, fallback.evidenceGrounding)),
+    domesticSellability: clamp(num(parsed.domesticSellability, fallback.domesticSellability)),
+    regionalStability: clamp(num(parsed.regionalStability, fallback.regionalStability)),
+    implementability: clamp(num(parsed.implementability, fallback.implementability)),
+    durability: clamp(num(parsed.durability, fallback.durability)),
     composite: 0,
+    scoreRationale: {
+      feasibility: String(parsed.feasibilityRationale ?? ""),
+      coherence: String(parsed.coherenceRationale ?? ""),
+      evidenceGrounding: String(parsed.evidenceGroundingRationale ?? ""),
+      domesticSellability: String(parsed.domesticSellabilityRationale ?? ""),
+      regionalStability: String(parsed.regionalStabilityRationale ?? ""),
+      implementability: String(parsed.implementabilityRationale ?? ""),
+      durability: String(parsed.durabilityRationale ?? ""),
+    },
   };
 
   scores.composite = (
