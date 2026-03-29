@@ -89,10 +89,12 @@ const SCENARIO_DEFS: ScenarioDef[] = [
 ];
 
 function extractProbs(forecast: Record<string, unknown>): Record<string, number> {
+  const rawProbs = forecast["probabilities"] as Record<string, unknown> | undefined;
   const probs: Record<string, number> = {};
   for (const key of OUTCOMES) {
-    const val = forecast[key] ?? forecast[`prob_${key}`] ?? 0;
-    probs[key] = typeof val === "number" ? val : 0;
+    const val = rawProbs?.[key] ?? forecast[key] ?? 0;
+    const num = typeof val === "number" ? val : Number(val);
+    probs[key] = Number.isFinite(num) ? num : 0;
   }
   return probs;
 }

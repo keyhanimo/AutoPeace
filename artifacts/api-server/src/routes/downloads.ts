@@ -164,7 +164,7 @@ router.get("/downloads/costs.json", async (req, res) => {
 
 router.get("/openapi.yaml", (_req, res) => {
   try {
-    const specPath = path.join(process.cwd(), "lib", "api-spec", "openapi.yaml");
+    const specPath = path.join(process.cwd(), "..", "..", "lib", "api-spec", "openapi.yaml");
     const content = fs.readFileSync(specPath, "utf-8");
     res.setHeader("Content-Type", "text/yaml; charset=utf-8");
     res.setHeader("Access-Control-Allow-Origin", "*");

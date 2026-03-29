@@ -80,7 +80,7 @@ type WhatIfScenario = {
 };
 
 function useScenarios() {
-  return useQuery<WhatIfScenario[]>({
+  return useQuery<{ data: WhatIfScenario[] }>({
     queryKey: ["scenarios"],
     queryFn: async () => {
       const res = await fetch(`${getBaseUrl()}/api/scenarios`);
@@ -450,7 +450,7 @@ export default function StakeholderLens() {
   const [selectedId, setSelectedId] = useState<string>("");
 
   const stakeholders = ((stakeholderList as unknown as { data?: Stakeholder[] })?.data ?? []) as Stakeholder[];
-  const scenarios = (scenariosData as WhatIfScenario[]) ?? [];
+  const scenarios = scenariosData?.data ?? [];
 
   const selected = stakeholders.find(s => s.id === selectedId) ?? stakeholders[0] ?? null;
 

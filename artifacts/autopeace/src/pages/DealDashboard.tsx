@@ -164,7 +164,7 @@ type WhatIfScenario = {
 };
 
 function DealWhatIfPanel({ currentDealName }: { currentDealName?: string }) {
-  const { data, isLoading } = useQuery<WhatIfScenario[]>({
+  const { data, isLoading } = useQuery<{ data: WhatIfScenario[] }>({
     queryKey: ["scenarios"],
     queryFn: async () => {
       const res = await fetch(`${getBaseUrl()}/api/scenarios`);
@@ -175,7 +175,7 @@ function DealWhatIfPanel({ currentDealName }: { currentDealName?: string }) {
   });
 
   const [selected, setSelected] = useState<string>("");
-  const scenarios = data ?? [];
+  const scenarios = data?.data ?? [];
   const scenario = scenarios.find(s => s.id === selected) ?? scenarios[0] ?? null;
 
   if (isLoading) {
