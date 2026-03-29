@@ -353,6 +353,9 @@ export interface AdminConfigResponse {
   evaluationModel: string;
   adversarialProvider: AdminConfigResponseAdversarialProvider;
   adversarialModel: string;
+  judgePanelAnthropicModel?: string;
+  judgePanelOpenaiModel?: string;
+  judgePanelGeminiModel?: string;
   stage1Provider?: AdminConfigResponseStage1Provider;
   stage1Model?: string;
   stage2Provider?: AdminConfigResponseStage2Provider;
@@ -493,6 +496,9 @@ export interface AdminConfigUpdate {
   evaluationModel?: string;
   adversarialProvider?: AdminConfigUpdateAdversarialProvider;
   adversarialModel?: string;
+  judgePanelAnthropicModel?: string;
+  judgePanelOpenaiModel?: string;
+  judgePanelGeminiModel?: string;
   stage1Provider?: AdminConfigUpdateStage1Provider;
   stage1Model?: string;
   stage2Provider?: AdminConfigUpdateStage2Provider;

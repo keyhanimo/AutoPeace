@@ -37,6 +37,9 @@ async function getModelConfig(): Promise<ModelConfig> {
       evaluationModel: cfg["evaluationModel"] ?? openaiModel,
       adversarialProvider: (cfg["adversarialProvider"] ?? "gemini") as "anthropic" | "openai" | "gemini",
       adversarialModel: cfg["adversarialModel"] ?? geminiModel,
+      judgePanelAnthropicModel: cfg["judgePanelAnthropicModel"] || undefined,
+      judgePanelOpenaiModel: cfg["judgePanelOpenaiModel"] || undefined,
+      judgePanelGeminiModel: cfg["judgePanelGeminiModel"] || undefined,
     };
     for (let s = 1; s <= 8; s++) {
       const pk = `stage${s}Provider` as keyof ModelConfig;

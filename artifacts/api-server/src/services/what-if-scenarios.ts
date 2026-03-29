@@ -74,6 +74,9 @@ async function getDefaultModelConfig(): Promise<ModelConfig> {
     evaluationModel: map["evaluationModel"] ?? openaiModel,
     adversarialProvider: (map["adversarialProvider"] ?? "anthropic") as "anthropic" | "openai" | "gemini",
     adversarialModel: map["adversarialModel"] ?? "claude-sonnet-4-5",
+    judgePanelAnthropicModel: map["judgePanelAnthropicModel"] || undefined,
+    judgePanelOpenaiModel: map["judgePanelOpenaiModel"] || undefined,
+    judgePanelGeminiModel: map["judgePanelGeminiModel"] || undefined,
   };
 }
 

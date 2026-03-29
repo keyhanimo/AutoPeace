@@ -35,6 +35,9 @@ const CONFIG_DEFAULTS: Record<string, string> = {
   evaluationModel: "gpt-4o",
   adversarialProvider: "gemini",
   adversarialModel: "gemini-2.5-flash",
+  judgePanelAnthropicModel: "",
+  judgePanelOpenaiModel: "",
+  judgePanelGeminiModel: "",
   // Per-stage overrides are intentionally absent from defaults — empty means "inherit from role"
 };
 
@@ -61,6 +64,9 @@ function mapToResponse(cfg: Record<string, string>) {
     evaluationModel: cfg["evaluationModel"] ?? cfg["openaiModel"] ?? "gpt-4o",
     adversarialProvider: cfg["adversarialProvider"] ?? "gemini",
     adversarialModel: cfg["adversarialModel"] ?? cfg["geminiModel"] ?? "gemini-2.5-flash",
+    judgePanelAnthropicModel: cfg["judgePanelAnthropicModel"] ?? "",
+    judgePanelOpenaiModel: cfg["judgePanelOpenaiModel"] ?? "",
+    judgePanelGeminiModel: cfg["judgePanelGeminiModel"] ?? "",
   };
   // Include per-stage overrides if present
   for (let s = 1; s <= 8; s++) {

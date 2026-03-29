@@ -2103,6 +2103,12 @@ components:
           enum: [anthropic, openai, gemini]
         adversarialModel:
           type: string
+        judgePanelAnthropicModel:
+          type: string
+        judgePanelOpenaiModel:
+          type: string
+        judgePanelGeminiModel:
+          type: string
         stage1Provider:
           type: string
           enum: [anthropic, openai, gemini]
@@ -2187,6 +2193,12 @@ components:
           type: string
           enum: [anthropic, openai, gemini]
         adversarialModel:
+          type: string
+        judgePanelAnthropicModel:
+          type: string
+        judgePanelOpenaiModel:
+          type: string
+        judgePanelGeminiModel:
           type: string
         stage1Provider:
           type: string

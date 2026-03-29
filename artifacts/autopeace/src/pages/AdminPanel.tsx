@@ -236,6 +236,9 @@ export default function AdminPanel() {
         evaluationModel: config.evaluationModel,
         adversarialProvider: config.adversarialProvider as AdminConfigUpdate["adversarialProvider"],
         adversarialModel: config.adversarialModel,
+        judgePanelAnthropicModel: config.judgePanelAnthropicModel ?? "",
+        judgePanelOpenaiModel: config.judgePanelOpenaiModel ?? "",
+        judgePanelGeminiModel: config.judgePanelGeminiModel ?? "",
         ...stageFields,
       });
     }
@@ -393,6 +396,50 @@ export default function AdminPanel() {
               <Button onClick={handleSaveConfig} disabled={updateConfig.isPending} className="gap-2">
                 {updateConfig.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 Save Configuration
+              </Button>
+            </div>
+          </Card>
+
+          <Card className="p-6">
+            <h3 className="text-lg font-bold mb-4 border-b border-border/50 pb-2 flex items-center gap-2">
+              <Zap className="w-5 h-5 text-amber-400" /> 3-Model Judge Panel
+            </h3>
+            <p className="text-xs text-muted-foreground mb-4">
+              The judge panel runs all 3 providers in parallel when scoring proposals. Leave blank to use the base model for each provider (shown as placeholder). Set a custom model to override just for scoring.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-amber-400">Anthropic Judge</label>
+                <Input
+                  value={formData.judgePanelAnthropicModel ?? ""}
+                  onChange={e => setFormData({ ...formData, judgePanelAnthropicModel: e.target.value })}
+                  placeholder={formData.anthropicModel || "claude-sonnet-4-5"}
+                />
+                <p className="text-[10px] text-muted-foreground">Fallback: {formData.anthropicModel || "claude-sonnet-4-5"}</p>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-emerald-400">OpenAI Judge</label>
+                <Input
+                  value={formData.judgePanelOpenaiModel ?? ""}
+                  onChange={e => setFormData({ ...formData, judgePanelOpenaiModel: e.target.value })}
+                  placeholder={formData.openaiModel || "gpt-4o"}
+                />
+                <p className="text-[10px] text-muted-foreground">Fallback: {formData.openaiModel || "gpt-4o"}</p>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-blue-400">Gemini Judge</label>
+                <Input
+                  value={formData.judgePanelGeminiModel ?? ""}
+                  onChange={e => setFormData({ ...formData, judgePanelGeminiModel: e.target.value })}
+                  placeholder={formData.geminiModel || "gemini-2.5-flash"}
+                />
+                <p className="text-[10px] text-muted-foreground">Fallback: {formData.geminiModel || "gemini-2.5-flash"}</p>
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end">
+              <Button onClick={handleSaveConfig} disabled={updateConfig.isPending} className="gap-2">
+                {updateConfig.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                Save Judge Panel Config
               </Button>
             </div>
           </Card>

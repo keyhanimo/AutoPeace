@@ -92,6 +92,10 @@ export type ModelConfig = {
   evaluationModel: string;
   adversarialProvider: ProviderName;
   adversarialModel: string;
+  // Judge panel model overrides (for 3-model scoring; falls back to base models)
+  judgePanelAnthropicModel?: string;
+  judgePanelOpenaiModel?: string;
+  judgePanelGeminiModel?: string;
   // Per-agent stage overrides (highest priority)
   stage1Provider?: ProviderName; stage1Model?: string;   // Proposal Agent
   stage2Provider?: ProviderName; stage2Model?: string;   // Stakeholder Evaluator
@@ -615,9 +619,9 @@ Return JSON with scores and rationale for each dimension:
 }`;
 
   const providers: { provider: ProviderName; model: string }[] = [
-    { provider: "anthropic", model: modelConfig.anthropicModel },
-    { provider: "openai", model: modelConfig.openaiModel },
-    { provider: "gemini", model: modelConfig.geminiModel },
+    { provider: "anthropic", model: modelConfig.judgePanelAnthropicModel ?? modelConfig.anthropicModel },
+    { provider: "openai", model: modelConfig.judgePanelOpenaiModel ?? modelConfig.openaiModel },
+    { provider: "gemini", model: modelConfig.judgePanelGeminiModel ?? modelConfig.geminiModel },
   ];
 
   const acceptRate = acceptCount / totalStakeholders;
