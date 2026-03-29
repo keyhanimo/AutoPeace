@@ -8,9 +8,10 @@ import {
   type AdminConfigResponse,
   type AdminConfigUpdate,
 } from "@workspace/api-client-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAdminKey } from "@/hooks/use-admin";
 import { PageHeader, Card, Button, Input, Badge } from "@/components/ui";
-import { Lock, Play, Save, LogOut, Loader2, DollarSign } from "lucide-react";
+import { Lock, Play, Save, LogOut, Loader2, DollarSign, ToggleLeft, ToggleRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatUsd } from "@/lib/utils";
 
@@ -31,6 +32,26 @@ export default function AdminPanel() {
 
   const updateConfig = useUpdateAdminConfig({ request: { headers: authHeaders } });
   const runTrigger = useTriggerRun({ request: { headers: authHeaders } });
+
+  const queryClient = useQueryClient();
+  const toggleSource = useMutation({
+    mutationFn: async ({ id, isEnabled }: { id: string; isEnabled: boolean }) => {
+      const res = await fetch(`/api/admin/sources/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "X-Admin-Key": adminKey },
+        body: JSON.stringify({ isEnabled }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'sources'] });
+      toast({ title: "Source updated", description: "Evidence source toggled successfully." });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
 
   const [formData, setFormData] = useState<AdminConfigUpdate>({});
 
@@ -194,14 +215,24 @@ export default function AdminPanel() {
             <div className="space-y-3">
               {sources?.data?.map(src => (
                 <div key={src.id} className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg border border-border/50">
-                  <div>
+                  <div className="flex-1 min-w-0 mr-4">
                     <div className="font-medium flex items-center gap-2">
                       {src.name}
                       <Badge variant={src.isEnabled ? 'success' : 'outline'} className="text-[10px] px-1.5">{src.type}</Badge>
                     </div>
-                    <div className="text-xs text-muted-foreground font-mono mt-1">{src.url}</div>
+                    <div className="text-xs text-muted-foreground font-mono mt-1 truncate">{src.url}</div>
                   </div>
-                  <Badge variant={src.isEnabled ? 'default' : 'outline'}>{src.isEnabled ? 'Active' : 'Disabled'}</Badge>
+                  <button
+                    onClick={() => toggleSource.mutate({ id: src.id, isEnabled: !src.isEnabled })}
+                    disabled={toggleSource.isPending}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 ${src.isEnabled ? 'bg-primary/20 text-primary hover:bg-primary/30' : 'bg-secondary text-muted-foreground hover:text-foreground hover:bg-secondary/80'}`}
+                    title={src.isEnabled ? "Click to disable" : "Click to enable"}
+                  >
+                    {src.isEnabled
+                      ? <><ToggleRight className="w-4 h-4" /> Active</>
+                      : <><ToggleLeft className="w-4 h-4" /> Disabled</>
+                    }
+                  </button>
                 </div>
               ))}
               {(!sources?.data || sources.data.length === 0) && <p className="text-sm text-muted-foreground">No sources configured.</p>}

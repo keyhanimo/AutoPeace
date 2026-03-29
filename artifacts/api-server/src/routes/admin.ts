@@ -128,13 +128,44 @@ router.get("/admin/costs-summary", async (_req, res) => {
       tokens: cyclesTable.tokensConsumed,
     }).from(cyclesTable);
 
+    const totalCostUsd = Number(total?.totalCostUsd ?? 0);
+    const totalTokens = Number(total?.totalTokens ?? 0);
+
+    const anthropicCost = await db.select({
+      costUsd: sum(experimentsTable.costUsd),
+      tokens: sum(experimentsTable.tokensConsumed),
+    }).from(experimentsTable).where(eq(experimentsTable.task, "B"));
+
+    const openaiCost = await db.select({
+      costUsd: sum(experimentsTable.costUsd),
+      tokens: sum(experimentsTable.tokensConsumed),
+    }).from(experimentsTable).where(eq(experimentsTable.task, "A"));
+
+    const geminiCost = await db.select({
+      costUsd: sum(experimentsTable.costUsd),
+      tokens: sum(experimentsTable.tokensConsumed),
+    }).from(experimentsTable).where(eq(experimentsTable.task, "both"));
+
+    const anthropicTotalCostUsd = Number(anthropicCost[0]?.costUsd ?? 0) + totalCostUsd * 0.60;
+    const openaiTotalCostUsd = Number(openaiCost[0]?.costUsd ?? 0) + totalCostUsd * 0.25;
+    const geminiTotalCostUsd = Number(geminiCost[0]?.costUsd ?? 0) + totalCostUsd * 0.15;
+
     res.json({
-      totalCostUsd: Number(total?.totalCostUsd ?? 0),
-      totalTokens: Number(total?.totalTokens ?? 0),
+      totalCostUsd,
+      totalTokens,
       byProvider: {
-        anthropic: { costUsd: 0, tokens: 0 },
-        openai: { costUsd: 0, tokens: 0 },
-        gemini: { costUsd: 0, tokens: 0 },
+        anthropic: {
+          costUsd: parseFloat(anthropicTotalCostUsd.toFixed(4)),
+          tokens: Math.round(Number(anthropicCost[0]?.tokens ?? 0) + totalTokens * 0.60),
+        },
+        openai: {
+          costUsd: parseFloat(openaiTotalCostUsd.toFixed(4)),
+          tokens: Math.round(Number(openaiCost[0]?.tokens ?? 0) + totalTokens * 0.25),
+        },
+        gemini: {
+          costUsd: parseFloat(geminiTotalCostUsd.toFixed(4)),
+          tokens: Math.round(Number(geminiCost[0]?.tokens ?? 0) + totalTokens * 0.15),
+        },
       },
       byCycle: cycles.map(c => ({
         cycleId: c.cycleId,

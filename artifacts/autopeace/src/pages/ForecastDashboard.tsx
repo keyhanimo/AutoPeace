@@ -1,25 +1,59 @@
 import React, { useState, useMemo } from "react";
-import { useGetLatestForecasts } from "@workspace/api-client-react";
+import { useGetLatestForecasts, useListForecasts, type Forecast } from "@workspace/api-client-react";
 import { Card, PageHeader, Badge } from "@/components/ui";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import { AlertCircle, Clock, CheckCircle2 } from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  Radar,
+  LineChart,
+  Line,
+  Legend,
+} from "recharts";
+import { AlertCircle, Clock, CheckCircle2, FileText, Target, TrendingUp } from "lucide-react";
 
 const TIME_HORIZONS = ['30d', '90d', '180d', '1y'] as const;
 
 const CATEGORIES = [
-  { key: 'continued_conflict', label: 'Continued Conflict', color: '#ef4444' }, // red
-  { key: 'major_escalation', label: 'Major Escalation', color: '#b91c1c' }, // dark red
-  { key: 'informal_deescalation', label: 'Informal De-escalation', color: '#f59e0b' }, // amber
-  { key: 'limited_ceasefire', label: 'Limited Ceasefire', color: '#fcd34d' }, // light amber
-  { key: 'humanitarian_mini_deal', label: 'Humanitarian Deal', color: '#34d399' }, // light green
-  { key: 'sanctions_partial_deal', label: 'Sanctions Deal', color: '#10b981' }, // green
-  { key: 'regional_framework', label: 'Regional Framework', color: '#059669' }, // dark green
-  { key: 'broad_settlement', label: 'Broad Settlement', color: '#0284c7' }, // blue/teal
+  { key: 'continued_conflict', label: 'Continued Conflict', shortLabel: 'Conflict', color: '#ef4444' },
+  { key: 'major_escalation', label: 'Major Escalation', shortLabel: 'Escalation', color: '#b91c1c' },
+  { key: 'informal_deescalation', label: 'Informal De-escalation', shortLabel: 'De-escalation', color: '#f59e0b' },
+  { key: 'limited_ceasefire', label: 'Limited Ceasefire', shortLabel: 'Ceasefire', color: '#fcd34d' },
+  { key: 'humanitarian_mini_deal', label: 'Humanitarian Deal', shortLabel: 'Humanitarian', color: '#34d399' },
+  { key: 'sanctions_partial_deal', label: 'Sanctions Deal', shortLabel: 'Sanctions', color: '#10b981' },
+  { key: 'regional_framework', label: 'Regional Framework', shortLabel: 'Regional', color: '#059669' },
+  { key: 'broad_settlement', label: 'Broad Settlement', shortLabel: 'Settlement', color: '#0284c7' },
 ];
+
+const PEACE_KEYS = new Set([
+  'humanitarian_mini_deal', 'sanctions_partial_deal', 'regional_framework', 'broad_settlement',
+]);
+
+function getProbs(f: Forecast): Record<string, number> {
+  return f.probabilities as unknown as Record<string, number>;
+}
+
+function computePeaceProb(probs: Record<string, number>): number {
+  return PEACE_KEYS.has('humanitarian_mini_deal')
+    ? (probs['humanitarian_mini_deal'] ?? 0) +
+        (probs['sanctions_partial_deal'] ?? 0) +
+        (probs['regional_framework'] ?? 0) +
+        (probs['broad_settlement'] ?? 0)
+    : 0;
+}
 
 export default function ForecastDashboard() {
   const { data: latestRes, isLoading, isError } = useGetLatestForecasts();
+  const { data: historyRes } = useListForecasts({ limit: 40 });
   const [horizon, setHorizon] = useState<typeof TIME_HORIZONS[number]>('30d');
+  const [activeTab, setActiveTab] = useState<'probabilities' | 'radar' | 'history'>('probabilities');
 
   const activeForecast = useMemo(() => {
     if (!latestRes?.data) return null;
@@ -28,21 +62,77 @@ export default function ForecastDashboard() {
 
   const chartData = useMemo(() => {
     if (!activeForecast) return [];
-    const p = activeForecast.probabilities as unknown as Record<string, number>;
+    const p = getProbs(activeForecast);
     return CATEGORIES.map(cat => ({
       name: cat.label,
-      value: (p[cat.key] || 0) * 100,
-      color: cat.color
+      shortName: cat.shortLabel,
+      value: parseFloat(((p[cat.key] || 0) * 100).toFixed(1)),
+      color: cat.color,
     }));
   }, [activeForecast]);
 
-  if (isLoading) return <div className="animate-pulse space-y-8"><div className="h-20 bg-card rounded-2xl" /><div className="h-96 bg-card rounded-2xl" /></div>;
-  if (isError) return <div className="text-destructive p-8 bg-destructive/10 rounded-2xl border border-destructive/20 text-center">Failed to load forecasts. Backend may not be fully initialized.</div>;
+  const radarData = useMemo(() => {
+    if (!latestRes?.data) return [];
+    return CATEGORIES.map(cat => {
+      const entry: Record<string, number | string> = { outcome: cat.shortLabel };
+      for (const f of latestRes.data) {
+        const p = getProbs(f);
+        entry[f.timeHorizon] = parseFloat(((p[cat.key] || 0) * 100).toFixed(1));
+      }
+      return entry;
+    });
+  }, [latestRes]);
+
+  const historyData = useMemo(() => {
+    if (!historyRes?.data) return [];
+    const byHorizon = historyRes.data
+      .filter(f => f.timeHorizon === horizon)
+      .slice(0, 10)
+      .reverse();
+    return byHorizon.map((f, i) => {
+      const p = getProbs(f);
+      return {
+        cycle: `C${i + 1}`,
+        peace: parseFloat((computePeaceProb(p) * 100).toFixed(1)),
+        conflict: parseFloat(((p['continued_conflict'] ?? 0) * 100).toFixed(1)),
+        escalation: parseFloat(((p['major_escalation'] ?? 0) * 100).toFixed(1)),
+      };
+    });
+  }, [historyRes, horizon]);
+
+  const peaceProb = useMemo(() => {
+    if (!activeForecast) return 0;
+    return computePeaceProb(getProbs(activeForecast)) * 100;
+  }, [activeForecast]);
+
+  const uncertaintyRange = useMemo(() => {
+    if (!activeForecast) return null;
+    const p = getProbs(activeForecast);
+    const maxProb = Math.max(...Object.values(p));
+    const entropy = -Object.values(p).filter(v => v > 0).reduce((acc, v) => acc + v * Math.log2(v), 0);
+    return { maxProb: maxProb * 100, entropy: entropy.toFixed(2) };
+  }, [activeForecast]);
+
+  if (isLoading) {
+    return (
+      <div className="animate-pulse space-y-8">
+        <div className="h-20 bg-card rounded-2xl" />
+        <div className="h-96 bg-card rounded-2xl" />
+      </div>
+    );
+  }
+  if (isError) {
+    return (
+      <div className="text-destructive p-8 bg-destructive/10 rounded-2xl border border-destructive/20 text-center">
+        Failed to load forecasts. Backend may not be fully initialized.
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 animate-fade-in pb-12">
-      <PageHeader 
-        title="Forecast Dashboard" 
+      <PageHeader
+        title="Forecast Dashboard"
         description="Live probabilistic outcome models generated via cross-model adversarial debate."
       >
         <div className="flex bg-secondary p-1 rounded-lg">
@@ -65,65 +155,198 @@ export default function ForecastDashboard() {
           <p className="text-muted-foreground">No forecast generated for {horizon} horizon yet.</p>
         </Card>
       ) : (
-        <div className="grid lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-2 p-6 flex flex-col">
-            <h3 className="text-xl font-display font-bold mb-6 flex items-center gap-2">
-              <BarChart className="w-5 h-5 text-primary" />
-              Outcome Probabilities
-            </h3>
-            <div className="flex-1 min-h-[400px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                  <XAxis type="number" domain={[0, 100]} stroke="#475569" tickFormatter={(val) => `${val}%`} />
-                  <YAxis dataKey="name" type="category" width={140} stroke="#94a3b8" tick={{ fontSize: 12 }} />
-                  <Tooltip 
-                    cursor={{fill: '#1e293b'}} 
-                    contentStyle={{backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', color: '#f8fafc'}}
-                    formatter={(value: number) => [`${value.toFixed(1)}%`, 'Probability']}
-                  />
-                  <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                    {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </Card>
-
-          <div className="space-y-6 flex flex-col">
-            <Card className="p-6">
-              <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-muted-foreground" /> 
-                Model Metadata
-              </h3>
-              <div className="space-y-4 text-sm">
-                <div className="flex justify-between border-b border-border/50 pb-2">
-                  <span className="text-muted-foreground">Cycle ID</span>
-                  <span className="font-mono text-xs">{activeForecast.cycleId.slice(0,8)}...</span>
-                </div>
-                <div className="flex justify-between border-b border-border/50 pb-2">
-                  <span className="text-muted-foreground">Brier Score</span>
-                  <span className="font-mono">{activeForecast.brierScore?.toFixed(3) || 'Pending'}</span>
-                </div>
-                <div className="flex justify-between pb-2">
-                  <span className="text-muted-foreground">Generated</span>
-                  <span>{new Date(activeForecast.createdAt).toLocaleDateString()}</span>
-                </div>
-              </div>
+        <>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="p-4 text-center">
+              <div className="text-3xl font-display font-bold text-primary">{peaceProb.toFixed(1)}%</div>
+              <div className="text-xs text-muted-foreground mt-1">Peace Probability</div>
             </Card>
-
-            <Card className="p-6 flex-1 bg-gradient-to-br from-card to-secondary/50">
-              <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-primary" />
-                Strategic Rationale
-              </h3>
-              <div className="prose prose-sm prose-invert max-w-none text-muted-foreground leading-relaxed h-[250px] overflow-y-auto pr-2">
-                {activeForecast.rationale || "No rationale provided by the model."}
+            <Card className="p-4 text-center">
+              <div className="text-3xl font-display font-bold text-destructive">
+                {((getProbs(activeForecast)['continued_conflict'] ?? 0) * 100).toFixed(1)}%
               </div>
+              <div className="text-xs text-muted-foreground mt-1">Continued Conflict</div>
+            </Card>
+            <Card className="p-4 text-center">
+              <div className="text-3xl font-display font-bold text-amber-400">
+                {uncertaintyRange?.entropy ?? '—'}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">Shannon Entropy</div>
+            </Card>
+            <Card className="p-4 text-center">
+              <div className="text-3xl font-display font-bold text-blue-400">
+                {activeForecast.brierScore?.toFixed(3) ?? '—'}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">Brier Score</div>
             </Card>
           </div>
-        </div>
+
+          <div className="flex gap-2 border-b border-border">
+            {(['probabilities', 'radar', 'history'] as const).map(tab => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-4 py-2 text-sm font-medium transition-colors capitalize border-b-2 -mb-px ${activeTab === tab ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+              >
+                {tab === 'probabilities' ? 'Outcome Probabilities' : tab === 'radar' ? 'Cross-Horizon Radar' : 'Historical Trend'}
+              </button>
+            ))}
+          </div>
+
+          <div className="grid lg:grid-cols-3 gap-6">
+            <Card className="lg:col-span-2 p-6 flex flex-col">
+              {activeTab === 'probabilities' && (
+                <>
+                  <h3 className="text-xl font-display font-bold mb-6 flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-primary" />
+                    Outcome Probabilities — {horizon.toUpperCase()}
+                  </h3>
+                  <div className="flex-1 min-h-[380px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                        <XAxis type="number" domain={[0, 100]} stroke="#475569" tickFormatter={(val: number) => `${val}%`} />
+                        <YAxis dataKey="name" type="category" width={140} stroke="#94a3b8" tick={{ fontSize: 12 }} />
+                        <Tooltip
+                          cursor={{ fill: '#1e293b' }}
+                          contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', color: '#f8fafc' }}
+                          formatter={(value: number) => [`${value.toFixed(1)}%`, 'Probability']}
+                        />
+                        <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                          {chartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </>
+              )}
+
+              {activeTab === 'radar' && (
+                <>
+                  <h3 className="text-xl font-display font-bold mb-6 flex items-center gap-2">
+                    <Target className="w-5 h-5 text-primary" />
+                    Cross-Horizon Comparison
+                  </h3>
+                  <div className="flex-1 min-h-[380px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RadarChart data={radarData}>
+                        <PolarGrid stroke="#1e293b" />
+                        <PolarAngleAxis dataKey="outcome" tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                        {TIME_HORIZONS.map((h, i) => (
+                          <Radar
+                            key={h}
+                            name={h.toUpperCase()}
+                            dataKey={h}
+                            stroke={['#f59e0b', '#10b981', '#0284c7', '#8b5cf6'][i]}
+                            fill={['#f59e0b', '#10b981', '#0284c7', '#8b5cf6'][i]}
+                            fillOpacity={0.15}
+                          />
+                        ))}
+                        <Tooltip
+                          contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', color: '#f8fafc' }}
+                          formatter={(value: number) => [`${value.toFixed(1)}%`]}
+                        />
+                        <Legend />
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </>
+              )}
+
+              {activeTab === 'history' && (
+                <>
+                  <h3 className="text-xl font-display font-bold mb-6 flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-primary" />
+                    Historical Trend — {horizon.toUpperCase()}
+                  </h3>
+                  {historyData.length < 2 ? (
+                    <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
+                      Run more research cycles to see historical trends.
+                    </div>
+                  ) : (
+                    <div className="flex-1 min-h-[380px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={historyData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                          <XAxis dataKey="cycle" stroke="#475569" />
+                          <YAxis stroke="#475569" tickFormatter={(v: number) => `${v}%`} />
+                          <Tooltip
+                            contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', color: '#f8fafc' }}
+                            formatter={(value: number) => [`${value.toFixed(1)}%`]}
+                          />
+                          <Legend />
+                          <Line type="monotone" dataKey="peace" stroke="#10b981" name="Peace" strokeWidth={2} dot={false} />
+                          <Line type="monotone" dataKey="conflict" stroke="#ef4444" name="Conflict" strokeWidth={2} dot={false} />
+                          <Line type="monotone" dataKey="escalation" stroke="#b91c1c" name="Escalation" strokeWidth={2} dot={false} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                </>
+              )}
+            </Card>
+
+            <div className="space-y-6 flex flex-col">
+              <Card className="p-6">
+                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-muted-foreground" />
+                  Model Metadata
+                </h3>
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between border-b border-border/50 pb-2">
+                    <span className="text-muted-foreground">Cycle ID</span>
+                    <span className="font-mono text-xs">{activeForecast.cycleId.slice(0, 8)}…</span>
+                  </div>
+                  <div className="flex justify-between border-b border-border/50 pb-2">
+                    <span className="text-muted-foreground">Evidence Pack</span>
+                    <span className="font-mono text-xs">{activeForecast.evidencePackVersion}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-border/50 pb-2">
+                    <span className="text-muted-foreground">Brier Score</span>
+                    <span className="font-mono">{activeForecast.brierScore?.toFixed(3) ?? '—'}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-border/50 pb-2">
+                    <span className="text-muted-foreground">Max Outcome</span>
+                    <span className="font-mono">{uncertaintyRange?.maxProb.toFixed(1)}%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Generated</span>
+                    <span>{new Date(activeForecast.createdAt).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="p-6">
+                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-primary" />
+                  Evidence Audit
+                </h3>
+                {activeForecast.keyEvidenceItems && activeForecast.keyEvidenceItems.length > 0 ? (
+                  <ul className="space-y-2">
+                    {(activeForecast.keyEvidenceItems as string[]).slice(0, 5).map((item, i) => (
+                      <li key={i} className="text-xs text-muted-foreground flex gap-2">
+                        <span className="text-primary font-bold shrink-0">{i + 1}.</span>
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-xs text-muted-foreground">No evidence items recorded for this forecast.</p>
+                )}
+              </Card>
+
+              <Card className="p-6 flex-1 bg-gradient-to-br from-card to-secondary/50">
+                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-primary" />
+                  Strategic Rationale
+                </h3>
+                <div className="prose prose-sm prose-invert max-w-none text-muted-foreground leading-relaxed h-[200px] overflow-y-auto pr-2 text-xs">
+                  {activeForecast.rationale || "No rationale provided by the model."}
+                </div>
+              </Card>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

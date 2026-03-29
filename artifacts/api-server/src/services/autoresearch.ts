@@ -145,21 +145,41 @@ interface HillClimbResults {
   champion: GeneratedForecast | null;
 }
 
-const PROMPT_MUTATIONS = [
+const OUTCOME_KEYS = [
+  "continued_conflict",
+  "informal_deescalation",
+  "limited_ceasefire",
+  "humanitarian_mini_deal",
+  "sanctions_partial_deal",
+  "regional_framework",
+  "broad_settlement",
+  "major_escalation",
+] as const;
+
+const OUTCOME_KEYS_STR = OUTCOME_KEYS.join(", ");
+
+const PROMPT_MUTATIONS: Array<{
+  name: string;
+  task: "A" | "B" | "both";
+  prompt: (probs: string, rationale: string) => string;
+}> = [
   {
     name: "red-team-optimistic",
+    task: "A",
     prompt: (probs: string, rationale: string) =>
-      `You are an optimistic peace analyst challenging a bearish Iran conflict forecast.\n\nCurrent 90-day probabilities:\n${probs}\nRationale: ${rationale}\n\nArgue for a higher probability of peace outcomes using recent diplomatic signals. Return adjusted probabilities in a JSON code block with keys: humanitarian_mini_deal, sanctions_partial_deal, regional_framework, broad_settlement, continued_conflict, military_escalation, nuclear_crisis.`,
+      `You are an optimistic peace analyst challenging a bearish Iran conflict forecast.\n\nCurrent 90-day probabilities:\n${probs}\nRationale: ${rationale}\n\nArgue for a higher probability of peace outcomes using recent diplomatic signals. Return ONLY a JSON code block with adjusted probabilities using exactly these keys: ${OUTCOME_KEYS_STR}.`,
   },
   {
     name: "red-team-pessimistic",
+    task: "B",
     prompt: (probs: string, rationale: string) =>
-      `You are a hawkish strategic analyst challenging an optimistic Iran conflict forecast.\n\nCurrent 90-day probabilities:\n${probs}\nRationale: ${rationale}\n\nArgue for higher conflict risk using regional threat assessments and historical conflict patterns. Return adjusted probabilities in a JSON code block with keys: humanitarian_mini_deal, sanctions_partial_deal, regional_framework, broad_settlement, continued_conflict, military_escalation, nuclear_crisis.`,
+      `You are a hawkish strategic analyst challenging an optimistic Iran conflict forecast.\n\nCurrent 90-day probabilities:\n${probs}\nRationale: ${rationale}\n\nArgue for higher conflict risk using regional threat assessments and historical conflict patterns. Return ONLY a JSON code block with adjusted probabilities using exactly these keys: ${OUTCOME_KEYS_STR}.`,
   },
   {
     name: "red-team-base-rate",
+    task: "both",
     prompt: (probs: string, rationale: string) =>
-      `You are a superforecaster applying base-rate thinking to an Iran conflict forecast.\n\nCurrent 90-day probabilities:\n${probs}\nRationale: ${rationale}\n\nUsing historical conflict resolution base rates and regression-to-mean adjustments, propose calibrated probability estimates. Return adjusted probabilities in a JSON code block with keys: humanitarian_mini_deal, sanctions_partial_deal, regional_framework, broad_settlement, continued_conflict, military_escalation, nuclear_crisis.`,
+      `You are a superforecaster applying base-rate thinking to an Iran conflict forecast.\n\nCurrent 90-day probabilities:\n${probs}\nRationale: ${rationale}\n\nUsing historical conflict resolution base rates and regression-to-mean adjustments, propose calibrated probability estimates. Return ONLY a JSON code block with adjusted probabilities using exactly these keys: ${OUTCOME_KEYS_STR}.`,
   },
 ];
 
@@ -257,8 +277,8 @@ Respond with JSON: {"recommendation": "retain_challenger" | "retain_champion", "
       await db.insert(experimentsTable).values({
         id: randomUUID(),
         cycleId,
-        task: mutation.name,
-        changeDescription: `Hill-climb mutation '${mutation.name}': ${evalResult["reasoning"] ?? "evaluated"}`,
+        task: mutation.task,
+        changeDescription: `[${mutation.name}] ${evalResult["reasoning"] ?? "evaluated"}`,
         changeDiff: mutantText.slice(0, 500),
         scoresBefore: champion.probabilities,
         scoresAfter: retained ? mutantProbs : champion.probabilities,
