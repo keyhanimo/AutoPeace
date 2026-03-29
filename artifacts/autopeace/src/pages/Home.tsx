@@ -2,15 +2,21 @@ import React from "react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { ArrowRight, Activity, Zap, BarChart, ShieldAlert, Database } from "lucide-react";
-import { useGetExperimentStats, useGetLatestForecasts } from "@workspace/api-client-react";
+import { useGetExperimentStats, useGetLatestForecasts, type Forecast } from "@workspace/api-client-react";
 import { Card, Button, Badge } from "@/components/ui";
 
-function calculatePeaceProbability(forecasts: any[]) {
+function calculatePeaceProbability(forecasts: Forecast[]): number {
   if (!forecasts || forecasts.length === 0) return 0;
-  // Use 30d horizon by default
-  const f30 = forecasts.find(f => f.timeHorizon === '30d') || forecasts[0];
+  const f30 = forecasts.find(f => f.timeHorizon === '30d') ?? forecasts[0];
+  if (!f30) return 0;
   const p = f30.probabilities;
-  return (p.humanitarian_mini_deal + p.sanctions_partial_deal + p.regional_framework + p.broad_settlement) * 100;
+  const peacefulOutcomes = [
+    p.humanitarian_mini_deal ?? 0,
+    p.sanctions_partial_deal ?? 0,
+    p.regional_framework ?? 0,
+    p.broad_settlement ?? 0,
+  ];
+  return peacefulOutcomes.reduce((a, b) => a + b, 0) * 100;
 }
 
 export default function Home() {

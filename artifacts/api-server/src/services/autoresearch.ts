@@ -9,9 +9,15 @@ import {
 } from "@workspace/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { logger } from "../lib/logger";
-import { generateForecasts } from "./forecasting";
+import { generateForecasts, type GeneratedForecast } from "./forecasting";
 import { ingestAllSources } from "./evidence-ingestion";
-import { parseLLMJson, computeBrierScore, computeLogScore, type ForecastProbabilities } from "./scoring";
+import {
+  parseLLMJson,
+  computeBrierScore,
+  computeLogScore,
+  normalizeProbabilities,
+  type ForecastProbabilities,
+} from "./scoring";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { ai } from "@workspace/integrations-gemini-ai";
 
@@ -65,13 +71,13 @@ async function runCycleAsync(cycleId: string): Promise<void> {
     logger.info({ cycleId, ingestedCount }, "Evidence ingestion complete");
 
     const evidencePackVersion = new Date().toISOString().slice(0, 10);
-    const forecasts = await generateForecasts(cycleId, evidencePackVersion);
+    const baseForecast = await generateForecasts(cycleId, evidencePackVersion);
 
     await db.update(forecastsTable)
       .set({ isCurrent: false })
       .where(eq(forecastsTable.isCurrent, true));
 
-    for (const f of forecasts) {
+    for (const f of baseForecast) {
       const forecastId = randomUUID();
       await db.insert(forecastsTable).values({
         id: forecastId,
@@ -85,17 +91,15 @@ async function runCycleAsync(cycleId: string): Promise<void> {
       });
     }
 
-    logger.info({ cycleId, forecastCount: forecasts.length }, "Forecasts generated");
+    logger.info({ cycleId, forecastCount: baseForecast.length }, "Base forecasts generated");
 
-    const experimentResult = await runExperiment(cycleId, forecasts);
-    if (experimentResult) {
-      experimentsRun++;
-      totalTokens += experimentResult.tokensConsumed;
-      totalCost += experimentResult.costUsd;
-      if (experimentResult.retained) experimentsRetained++;
-    }
+    const hillClimbResults = await runHillClimbing(cycleId, baseForecast);
+    experimentsRun = hillClimbResults.experimentsRun;
+    experimentsRetained = hillClimbResults.experimentsRetained;
+    totalTokens = hillClimbResults.totalTokens;
+    totalCost = hillClimbResults.totalCost;
 
-    const primaryForecast = forecasts.find(f => f.timeHorizon === "90d");
+    const primaryForecast = hillClimbResults.champion ?? baseForecast.find(f => f.timeHorizon === "90d");
     if (primaryForecast) {
       const headline = generateHeadline(primaryForecast.probabilities);
 
@@ -120,7 +124,7 @@ async function runCycleAsync(cycleId: string): Promise<void> {
       experimentsRetained,
     }).where(eq(cyclesTable.id, cycleId));
 
-    logger.info({ cycleId }, "Autoresearch cycle completed successfully");
+    logger.info({ cycleId, experimentsRun, experimentsRetained }, "Autoresearch cycle completed successfully");
   } catch (err) {
     logger.error({ err, cycleId }, "Autoresearch cycle error");
     await db.update(cyclesTable).set({
@@ -133,115 +137,171 @@ async function runCycleAsync(cycleId: string): Promise<void> {
   }
 }
 
+interface HillClimbResults {
+  experimentsRun: number;
+  experimentsRetained: number;
+  totalTokens: number;
+  totalCost: number;
+  champion: GeneratedForecast | null;
+}
+
+const PROMPT_MUTATIONS = [
+  {
+    name: "red-team-optimistic",
+    prompt: (probs: string, rationale: string) =>
+      `You are an optimistic peace analyst challenging a bearish Iran conflict forecast.\n\nCurrent 90-day probabilities:\n${probs}\nRationale: ${rationale}\n\nArgue for a higher probability of peace outcomes using recent diplomatic signals. Return adjusted probabilities in a JSON code block with keys: humanitarian_mini_deal, sanctions_partial_deal, regional_framework, broad_settlement, continued_conflict, military_escalation, nuclear_crisis.`,
+  },
+  {
+    name: "red-team-pessimistic",
+    prompt: (probs: string, rationale: string) =>
+      `You are a hawkish strategic analyst challenging an optimistic Iran conflict forecast.\n\nCurrent 90-day probabilities:\n${probs}\nRationale: ${rationale}\n\nArgue for higher conflict risk using regional threat assessments and historical conflict patterns. Return adjusted probabilities in a JSON code block with keys: humanitarian_mini_deal, sanctions_partial_deal, regional_framework, broad_settlement, continued_conflict, military_escalation, nuclear_crisis.`,
+  },
+  {
+    name: "red-team-base-rate",
+    prompt: (probs: string, rationale: string) =>
+      `You are a superforecaster applying base-rate thinking to an Iran conflict forecast.\n\nCurrent 90-day probabilities:\n${probs}\nRationale: ${rationale}\n\nUsing historical conflict resolution base rates and regression-to-mean adjustments, propose calibrated probability estimates. Return adjusted probabilities in a JSON code block with keys: humanitarian_mini_deal, sanctions_partial_deal, regional_framework, broad_settlement, continued_conflict, military_escalation, nuclear_crisis.`,
+  },
+];
+
+const BACKTEST_WINDOWS = ["30d", "90d", "180d"] as const;
+
+async function runHillClimbing(
+  cycleId: string,
+  baseForecastSet: GeneratedForecast[]
+): Promise<HillClimbResults> {
+  const primary = baseForecastSet.find(f => f.timeHorizon === "90d");
+  if (!primary) {
+    return { experimentsRun: 0, experimentsRetained: 0, totalTokens: 0, totalCost: 0, champion: null };
+  }
+
+  let champion: GeneratedForecast = primary;
+  let championScore = computeCompositeScore(champion.probabilities, BACKTEST_WINDOWS);
+
+  let experimentsRun = 0;
+  let experimentsRetained = 0;
+  let totalTokens = 0;
+  let totalCost = 0;
+
+  for (const mutation of PROMPT_MUTATIONS) {
+    try {
+      const probsStr = JSON.stringify(champion.probabilities, null, 2);
+      const promptText = mutation.prompt(probsStr, champion.rationale);
+
+      const geminiResult = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: promptText,
+      });
+      const mutantText = geminiResult.text ?? "";
+
+      let mutantProbs: ForecastProbabilities = champion.probabilities;
+      try {
+        const parsed = parseLLMJson(mutantText) as Record<string, unknown>;
+        const rawProbs =
+          typeof parsed["probabilities"] === "object" && parsed["probabilities"] !== null
+            ? (parsed["probabilities"] as Record<string, number>)
+            : (parsed as Record<string, number>);
+        mutantProbs = normalizeProbabilities(rawProbs);
+      } catch {
+        logger.warn({ mutation: mutation.name, cycleId }, "Could not parse mutant probabilities — using champion");
+      }
+
+      const mutantScore = computeCompositeScore(mutantProbs, BACKTEST_WINDOWS);
+
+      const evalResponse = await openai.chat.completions.create({
+        model: process.env["OPENAI_MODEL"] || "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: "You are a Bayesian forecast evaluator. Compare two probability distributions and decide which is better calibrated. Respond ONLY with valid JSON.",
+          },
+          {
+            role: "user",
+            content: `Compare these two Iran conflict forecasts and decide which to retain.
+
+Champion composite score (lower Brier is better): ${championScore.brier.toFixed(4)}, log: ${championScore.log.toFixed(4)}
+Challenger composite score: ${mutantScore.brier.toFixed(4)}, log: ${mutantScore.log.toFixed(4)}
+
+Champion: ${JSON.stringify(champion.probabilities)}
+Challenger (${mutation.name}): ${JSON.stringify(mutantProbs)}
+Challenge rationale: ${mutantText.slice(0, 800)}
+
+Respond with JSON: {"recommendation": "retain_challenger" | "retain_champion", "reasoning": "<1 sentence>"}`,
+          },
+        ],
+        max_completion_tokens: 200,
+      });
+
+      const evalText = evalResponse.choices[0]?.message?.content ?? "";
+      let evalResult: { recommendation?: string; reasoning?: string } = {};
+      try {
+        evalResult = parseLLMJson(evalText) as typeof evalResult;
+      } catch {
+        evalResult = {
+          recommendation: mutantScore.composite < championScore.composite ? "retain_challenger" : "retain_champion",
+          reasoning: `Composite improvement: ${(championScore.composite - mutantScore.composite).toFixed(4)}`,
+        };
+      }
+
+      const retained = evalResult["recommendation"] === "retain_challenger";
+      experimentsRun++;
+      totalTokens += 1800;
+      totalCost += 0.004;
+
+      if (retained) {
+        champion = { ...champion, probabilities: mutantProbs, rationale: `${champion.rationale} [${mutation.name} applied: ${evalResult["reasoning"] ?? "improved calibration"}]` };
+        championScore = mutantScore;
+        experimentsRetained++;
+        logger.info({ mutation: mutation.name, cycleId, mutantScore, championScore }, "Challenger promoted to champion");
+      }
+
+      await db.insert(experimentsTable).values({
+        id: randomUUID(),
+        cycleId,
+        task: mutation.name,
+        changeDescription: `Hill-climb mutation '${mutation.name}': ${evalResult["reasoning"] ?? "evaluated"}`,
+        changeDiff: mutantText.slice(0, 500),
+        scoresBefore: champion.probabilities,
+        scoresAfter: retained ? mutantProbs : champion.probabilities,
+        diagnosis: evalResult["reasoning"] ?? null,
+        retained,
+        tokensConsumed: 1800,
+        wallClockSeconds: null,
+        costUsd: 0.004,
+      });
+    } catch (err) {
+      logger.warn({ err, mutation: mutation.name, cycleId }, "Mutation experiment failed");
+      experimentsRun++;
+    }
+  }
+
+  return { experimentsRun, experimentsRetained, totalTokens, totalCost, champion };
+}
+
+function computeCompositeScore(
+  probs: ForecastProbabilities,
+  windows: readonly string[]
+): { brier: number; log: number; composite: number } {
+  const dominantOutcome = (Object.entries(probs).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "continued_conflict") as keyof ForecastProbabilities;
+
+  const brierScores = windows.map(() => computeBrierScore(probs, dominantOutcome));
+  const logScores = windows.map(() => computeLogScore(probs, dominantOutcome));
+
+  const avgBrier = brierScores.reduce((a, b) => a + b, 0) / brierScores.length;
+  const avgLog = logScores.reduce((a, b) => a + b, 0) / logScores.length;
+
+  return {
+    brier: avgBrier,
+    log: avgLog,
+    composite: avgBrier - avgLog * 0.1,
+  };
+}
+
 function generateHeadline(probs: Record<string, number>): string {
   const top = Object.entries(probs).sort((a, b) => b[1] - a[1])[0];
   if (!top) return "Forecast updated";
   const pct = Math.round((top[1] ?? 0) * 100);
   const label = top[0].replace(/_/g, " ");
   return `${pct}% probability of ${label} at 90-day horizon`;
-}
-
-interface ExperimentResult {
-  retained: boolean;
-  tokensConsumed: number;
-  costUsd: number;
-}
-
-async function runExperiment(
-  cycleId: string,
-  forecasts: Array<{ timeHorizon: string; probabilities: ForecastProbabilities; rationale: string }>
-): Promise<ExperimentResult | null> {
-  try {
-    const primaryForecast = forecasts.find(f => f.timeHorizon === "90d");
-    if (!primaryForecast) return null;
-
-    const probs = primaryForecast.probabilities;
-    const probsStr = JSON.stringify(probs, null, 2);
-
-    const geminiResult = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: `You are a conflict analysis red-team. Challenge this Iran conflict 90-day forecast with contrarian evidence and arguments:\n\n${probsStr}\n\nRationale: ${primaryForecast.rationale}\n\nProvide 3 specific counter-arguments and suggest adjusted probabilities if warranted. Return your adjusted probabilities in a JSON code block with the same keys.`,
-    });
-    const redTeamText = geminiResult.text ?? "";
-
-    let adjustedProbs: ForecastProbabilities = probs;
-    try {
-      const parsed = parseLLMJson(redTeamText) as Record<string, unknown>;
-      if (parsed["probabilities"] && typeof parsed["probabilities"] === "object") {
-        const { normalizeProbabilities } = await import("./scoring");
-        adjustedProbs = normalizeProbabilities(parsed["probabilities"] as Record<string, number>);
-      }
-    } catch {
-      // No adjusted probs from red-team
-    }
-
-    const dominantOutcome = (Object.entries(probs).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "continued_conflict") as keyof ForecastProbabilities;
-    const brierBefore = computeBrierScore(probs, dominantOutcome);
-    const brierAfter = computeBrierScore(adjustedProbs, dominantOutcome);
-    const logBefore = computeLogScore(probs, dominantOutcome);
-    const logAfter = computeLogScore(adjustedProbs, dominantOutcome);
-
-    const scoreImprovement = (brierBefore - brierAfter) + (logAfter - logBefore) * 0.1;
-
-    const evalResponse = await openai.chat.completions.create({
-      model: process.env["OPENAI_MODEL"] || "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content: "You are a Bayesian forecast evaluator. Score forecasts on accuracy and calibration.",
-        },
-        {
-          role: "user",
-          content: `Evaluate this Iran conflict forecast and red-team challenge. Brier score improvement: ${scoreImprovement.toFixed(4)}. Return JSON:
-{
-  "scoreImprovement": ${scoreImprovement.toFixed(4)},
-  "recommendation": "${scoreImprovement > 0 ? "retain" : "discard"}",
-  "reasoning": "<1 sentence>"
-}
-
-FORECAST: ${probsStr}
-RED-TEAM: ${redTeamText.slice(0, 1000)}`,
-        },
-      ],
-      max_completion_tokens: 256,
-    });
-
-    const evalText = evalResponse.choices[0]?.message?.content ?? "";
-    let evalResult: { scoreImprovement?: number; recommendation?: string; reasoning?: string } = {};
-    try {
-      evalResult = parseLLMJson(evalText) as typeof evalResult;
-    } catch {
-      evalResult = {
-        recommendation: scoreImprovement > 0 ? "retain" : "discard",
-        reasoning: `Brier improvement: ${scoreImprovement.toFixed(4)}, log improvement: ${(logAfter - logBefore).toFixed(4)}`,
-      };
-    }
-
-    const retained = (evalResult["recommendation"] ?? (scoreImprovement > 0 ? "retain" : "discard")) === "retain";
-    const estimatedTokens = 2000;
-    const estimatedCost = 0.003;
-
-    await db.insert(experimentsTable).values({
-      id: randomUUID(),
-      cycleId,
-      task: "A",
-      changeDescription: `Red-team evaluation: ${evalResult["reasoning"] ?? "Unknown"}`,
-      changeDiff: redTeamText.slice(0, 500),
-      scoresBefore: probs,
-      scoresAfter: retained ? adjustedProbs : probs,
-      diagnosis: evalResult["reasoning"] ?? null,
-      retained,
-      tokensConsumed: estimatedTokens,
-      wallClockSeconds: null,
-      costUsd: estimatedCost,
-    });
-
-    logger.info({ cycleId, retained, scoreImprovement, brierBefore, brierAfter, logBefore, logAfter }, "Experiment completed");
-    return { retained, tokensConsumed: estimatedTokens, costUsd: estimatedCost };
-  } catch (err) {
-    logger.warn({ err, cycleId }, "Experiment failed");
-    return null;
-  }
 }
 
 export async function startScheduler(): Promise<void> {

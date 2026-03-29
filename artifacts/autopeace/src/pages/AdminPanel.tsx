@@ -4,7 +4,9 @@ import {
   useUpdateAdminConfig, 
   useTriggerRun,
   useListEvidenceSources,
-  useGetAdminCostsSummary
+  useGetAdminCostsSummary,
+  type AdminConfigResponse,
+  type AdminConfigUpdate,
 } from "@workspace/api-client-react";
 import { useAdminKey } from "@/hooks/use-admin";
 import { PageHeader, Card, Button, Input, Badge } from "@/components/ui";
@@ -19,11 +21,10 @@ export default function AdminPanel() {
 
   const authHeaders = { 'X-Admin-Key': adminKey };
 
-  const { data: config, isLoading: isConfigLoading, isError: isConfigError, error: configError, refetch } = useGetAdminConfig(
-    { request: { headers: authHeaders } },
-    // @ts-ignore - passing query options via orval generated hooks
-    { query: { enabled: !!adminKey, retry: false } }
-  );
+  const { data: config, isLoading: isConfigLoading, isError: isConfigError, refetch } = useGetAdminConfig({
+    request: { headers: authHeaders },
+    query: { enabled: !!adminKey, retry: false, queryKey: ['admin-config', adminKey] },
+  });
 
   const { data: sources } = useListEvidenceSources({ request: { headers: authHeaders } });
   const { data: costSummary } = useGetAdminCostsSummary({ request: { headers: authHeaders } });
@@ -31,11 +32,20 @@ export default function AdminPanel() {
   const updateConfig = useUpdateAdminConfig({ request: { headers: authHeaders } });
   const runTrigger = useTriggerRun({ request: { headers: authHeaders } });
 
-  const [formData, setFormData] = useState<any>({});
+  const [formData, setFormData] = useState<AdminConfigUpdate>({});
 
-  // Initialize form when config loads
   React.useEffect(() => {
-    if (config) setFormData(config);
+    if (config) {
+      const update: AdminConfigUpdate = {
+        cadence: config.cadence,
+        budgetCapUsd: config.budgetCapUsd,
+        isPaused: config.isPaused,
+        anthropicModel: config.anthropicModel,
+        openaiModel: config.openaiModel,
+        geminiModel: config.geminiModel,
+      };
+      setFormData(update);
+    }
   }, [config]);
 
   const handleLogin = (e: React.FormEvent) => {
@@ -62,7 +72,7 @@ export default function AdminPanel() {
     }
   };
 
-  const isUnauthorized = isConfigError && (configError as any)?.status === 401;
+  const isUnauthorized = isConfigError && !adminKey;
 
   if (!adminKey || isUnauthorized) {
     return (
@@ -83,9 +93,10 @@ export default function AdminPanel() {
               value={inputKey} 
               onChange={e => setInputKey(e.target.value)} 
               className="text-center text-lg"
+              autoComplete="current-password"
             />
             <Button type="submit" className="w-full">Authenticate</Button>
-            {isUnauthorized && adminKey && (
+            {isConfigError && adminKey && (
               <p className="text-destructive text-sm text-center font-medium mt-2">Invalid key provided.</p>
             )}
           </form>
@@ -120,8 +131,8 @@ export default function AdminPanel() {
                 <label className="text-sm font-medium text-muted-foreground">Cadence</label>
                 <select 
                   className="w-full h-10 rounded-xl border border-border bg-background/50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                  value={formData.cadence || 'daily'}
-                  onChange={e => setFormData({...formData, cadence: e.target.value})}
+                  value={formData.cadence ?? 'daily'}
+                  onChange={e => setFormData({...formData, cadence: e.target.value as AdminConfigResponse['cadence']})}
                 >
                   <option value="hourly">Hourly</option>
                   <option value="daily">Daily</option>
@@ -133,28 +144,28 @@ export default function AdminPanel() {
                 <label className="text-sm font-medium text-muted-foreground">Budget Cap (USD)</label>
                 <Input 
                   type="number" 
-                  value={formData.budgetCapUsd || 0}
+                  value={formData.budgetCapUsd ?? 0}
                   onChange={e => setFormData({...formData, budgetCapUsd: parseFloat(e.target.value)})}
                 />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-muted-foreground">Anthropic Forecaster Model</label>
                 <Input 
-                  value={formData.anthropicModel || ''}
+                  value={formData.anthropicModel ?? ''}
                   onChange={e => setFormData({...formData, anthropicModel: e.target.value})}
                 />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-muted-foreground">OpenAI Evaluator Model</label>
                 <Input 
-                  value={formData.openaiModel || ''}
+                  value={formData.openaiModel ?? ''}
                   onChange={e => setFormData({...formData, openaiModel: e.target.value})}
                 />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-muted-foreground">Gemini Red-Team Model</label>
                 <Input 
-                  value={formData.geminiModel || ''}
+                  value={formData.geminiModel ?? ''}
                   onChange={e => setFormData({...formData, geminiModel: e.target.value})}
                 />
               </div>
@@ -163,7 +174,7 @@ export default function AdminPanel() {
                   <input 
                     type="checkbox" 
                     className="w-5 h-5 rounded border-border text-primary focus:ring-primary/50 bg-background"
-                    checked={formData.isPaused || false}
+                    checked={formData.isPaused ?? false}
                     onChange={e => setFormData({...formData, isPaused: e.target.checked})}
                   />
                   <span className="text-sm font-medium">Pause Autoresearch Loop</span>
@@ -211,10 +222,10 @@ export default function AdminPanel() {
                 </div>
                 <div className="space-y-3">
                   <p className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border/50 pb-1">By Provider</p>
-                  {Object.entries(costSummary.byProvider || {}).map(([prov, data]) => (
+                  {Object.entries(costSummary.byProvider ?? {}).map(([prov, provData]) => (
                     <div key={prov} className="flex justify-between items-center text-sm">
                       <span className="capitalize">{prov}</span>
-                      <span className="font-mono">{formatUsd((data as any).costUsd)}</span>
+                      <span className="font-mono">{formatUsd(provData.costUsd)}</span>
                     </div>
                   ))}
                 </div>

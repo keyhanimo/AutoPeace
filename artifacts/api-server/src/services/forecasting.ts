@@ -18,9 +18,14 @@ const OUTCOMES = [
 
 const TIME_HORIZONS = ["30d", "90d", "180d", "1y"];
 
-export async function generateForecasts(cycleId: string, evidencePackVersion: string): Promise<
-  Array<{ timeHorizon: string; probabilities: ForecastProbabilities; rationale: string; keyEvidenceItems: string[] }>
-> {
+export type GeneratedForecast = {
+  timeHorizon: string;
+  probabilities: ForecastProbabilities;
+  rationale: string;
+  keyEvidenceItems: string[];
+};
+
+export async function generateForecasts(cycleId: string, evidencePackVersion: string): Promise<GeneratedForecast[]> {
   const recentEvidence = await db.select({
     id: evidenceItemsTable.id,
     title: evidenceItemsTable.title,

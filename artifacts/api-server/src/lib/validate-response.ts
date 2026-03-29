@@ -13,7 +13,9 @@ export function sendValidated(
 ): void {
   const result = schema.safeParse(data);
   if (!result.success) {
-    logger.warn({ issues: result.error?.issues }, "Response validation warning");
+    logger.error({ issues: result.error?.issues }, "Response schema validation failed — refusing to send malformed payload");
+    res.status(500).json({ error: "Internal response schema validation failed" });
+    return;
   }
   res.status(status).json(data);
 }

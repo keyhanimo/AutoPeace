@@ -2,6 +2,8 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { changelogEntriesTable } from "@workspace/db/schema";
 import { eq, desc, count } from "drizzle-orm";
+import { ListChangelogResponse } from "@workspace/api-zod";
+import { sendValidated } from "../lib/validate-response";
 
 const router = Router();
 
@@ -18,7 +20,7 @@ router.get("/changelog", async (req, res) => {
       db.select({ count: count() }).from(changelogEntriesTable),
     ]);
 
-    res.json({ data, total: totalResult[0]?.count ?? 0 });
+    sendValidated(res, ListChangelogResponse, { data, total: totalResult[0]?.count ?? 0 });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }

@@ -2,6 +2,8 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { costOfWarTable } from "@workspace/db/schema";
 import { eq, desc } from "drizzle-orm";
+import { ListCostsResponse } from "@workspace/api-zod";
+import { sendValidated } from "../lib/validate-response";
 
 const router = Router();
 
@@ -32,7 +34,7 @@ router.get("/costs", async (req, res) => {
       data = data.filter(Boolean);
     }
 
-    res.json({ data });
+    sendValidated(res, ListCostsResponse, { data });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }
