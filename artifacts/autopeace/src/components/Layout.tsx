@@ -174,7 +174,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <Link to="/methodology" className="hover:text-primary transition-colors">Methodology</Link>
             <Link to="/data" className="hover:text-primary transition-colors">Data</Link>
             <Link to="/open-source" className="hover:text-primary transition-colors">Open Source</Link>
-            <a href="https://github.com/AutoPeace" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">GitHub</a>
+            <a href="https://github.com/keyhanimo/AutoPeace" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">GitHub</a>
           </div>
         </footer>
       </main>

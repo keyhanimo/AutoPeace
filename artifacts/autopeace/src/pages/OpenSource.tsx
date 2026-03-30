@@ -144,7 +144,7 @@ export default function OpenSource() {
         description="AutoPeace is open research infrastructure — built collaboratively to make conflict analysis more transparent and accessible."
       >
         <a
-          href="https://github.com/AutoPeace"
+          href="https://github.com/keyhanimo/AutoPeace"
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary/70 hover:bg-secondary border border-border/50 text-xs font-medium transition-colors"
@@ -259,13 +259,13 @@ export default function OpenSource() {
             <p className="text-sm text-muted-foreground">Source code: MIT. Research data and outputs: CC BY 4.0.</p>
           </div>
           <a
-            href="https://github.com/AutoPeace"
+            href="https://github.com/keyhanimo/AutoPeace"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1.5 text-xs text-primary hover:underline"
             aria-label="Open GitHub profile (opens in new tab)"
           >
-            <Github className="w-3.5 h-3.5" /> github.com/AutoPeace <ArrowRight className="w-3.5 h-3.5" />
+            <Github className="w-3.5 h-3.5" /> github.com/keyhanimo/AutoPeace <ArrowRight className="w-3.5 h-3.5" />
           </a>
         </div>
       </Card>

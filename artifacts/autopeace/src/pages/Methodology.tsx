@@ -660,7 +660,7 @@ export default function Methodology() {
           <h2 className="text-xl font-bold font-display text-foreground mt-0">Open Source &amp; Resources</h2>
           <div className="flex flex-col sm:flex-row gap-3 mt-4">
             <a
-              href="https://github.com"
+              href="https://github.com/keyhanimo/AutoPeace"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 px-4 py-2 border border-border hover:border-primary/50 hover:bg-secondary/50 transition-colors text-sm text-foreground"
