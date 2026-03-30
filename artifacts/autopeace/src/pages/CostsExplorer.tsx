@@ -640,7 +640,7 @@ function ChannelCards() {
 }
 
 function StakeholderWaterfallChart({ stakeholders }: { stakeholders: StakeholderCBA[] }) {
-  const sorted = [...stakeholders].sort((a, b) => b.peaceBenefitB - a.peaceBenefitB);
+  const sorted = [...stakeholders].sort((a, b) => b.peaceBenefitB - a.peaceBenefitB).slice(0, 10);
   const data = sorted.map(s => ({
     name: s.flag + " " + (s.name.length > 12 ? s.name.slice(0, 11) + "…" : s.name),
     warCost: -s.warCostB,
@@ -656,11 +656,11 @@ function StakeholderWaterfallChart({ stakeholders }: { stakeholders: Stakeholder
         <Scale className="w-4 h-4 text-primary" />
         Stakeholder Impact Comparison
       </h3>
-      <p className="text-xs text-muted-foreground mb-1">All stakeholders by total war-to-peace swing (USD billions/year).</p>
+      <p className="text-xs text-muted-foreground mb-1">Top 10 stakeholders by total war-to-peace swing (USD billions/year).</p>
       <p className="text-xs text-muted-foreground mb-4">
         Each stakeholder shows two bars: <span className="text-red-400 font-medium">← war cost (left)</span> and <span className="text-emerald-400 font-medium">peace benefit (right) →</span>, both measured from the center zero line.
       </p>
-      <div className="h-[720px]">
+      <div className="h-[340px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }} layout="vertical" barGap={3} barCategoryGap="25%">
             <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={false} />
