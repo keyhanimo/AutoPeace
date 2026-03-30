@@ -3,7 +3,6 @@ import {
   useGetAdminConfig, 
   useUpdateAdminConfig, 
   useTriggerRun,
-  useTriggerDealRun,
   useListEvidenceSources,
   useGetCurrentDeal,
   useListProposals,
@@ -34,7 +33,6 @@ export default function AdminPanel() {
 
   const updateConfig = useUpdateAdminConfig({ request: { headers: authHeaders } });
   const runTrigger = useTriggerRun({ request: { headers: authHeaders } });
-  const dealRunTrigger = useTriggerDealRun({ request: { headers: authHeaders } });
   const { data: currentDeal } = useGetCurrentDeal();
   const { data: proposalsData, refetch: refetchProposals } = useListProposals();
 
@@ -264,18 +262,9 @@ export default function AdminPanel() {
   const handleRun = async () => {
     try {
       await runTrigger.mutateAsync();
-      toast({ title: "Run Triggered", description: "Autoresearch loop started in background." });
+      toast({ title: "Cycle Triggered", description: "Autoresearch cycle started — forecasting + deal generation." });
     } catch (e) {
-      toast({ title: "Trigger Failed", description: "Could not start loop or already running.", variant: "destructive" });
-    }
-  };
-
-  const handleDealRun = async () => {
-    try {
-      await dealRunTrigger.mutateAsync();
-      toast({ title: "Deal Cycle Started", description: "Task B deal engine running in background." });
-    } catch (e) {
-      toast({ title: "Deal Run Failed", description: "Could not start deal cycle or already running.", variant: "destructive" });
+      toast({ title: "Trigger Failed", description: "Could not start cycle or already running.", variant: "destructive" });
     }
   };
 
@@ -325,11 +314,7 @@ export default function AdminPanel() {
         <div className="flex gap-2 flex-wrap">
           <Button variant="destructive" onClick={handleRun} disabled={runTrigger.isPending} className="gap-2">
             {runTrigger.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-            Force Forecast Run
-          </Button>
-          <Button onClick={handleDealRun} disabled={dealRunTrigger.isPending} className="gap-2 bg-amber-600 hover:bg-amber-700 text-white border-0">
-            {dealRunTrigger.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Handshake className="w-4 h-4" />}
-            Run Deal Cycle
+            Run Full Cycle
           </Button>
           <Button variant="outline" onClick={clearKey} title="Log out"><LogOut className="w-4 h-4" /></Button>
         </div>
@@ -897,19 +882,20 @@ export default function AdminPanel() {
             ) : (
               <div className="text-sm text-muted-foreground">
                 <p className="mb-3">No deal generated yet.</p>
-                <p className="text-xs">Click "Run Deal Cycle" to start the multi-agent deal design pipeline.</p>
+                <p className="text-xs">Click "Run Full Cycle" to start the autoresearch pipeline, which includes deal generation.</p>
               </div>
             )}
             <div className="mt-4">
               <Button
-                onClick={handleDealRun}
-                disabled={dealRunTrigger.isPending}
-                className="w-full gap-2 bg-amber-600 hover:bg-amber-700 text-white border-0"
+                onClick={handleRun}
+                disabled={runTrigger.isPending}
+                variant="destructive"
+                className="w-full gap-2"
               >
-                {dealRunTrigger.isPending ? (
+                {runTrigger.isPending ? (
                   <><Loader2 className="w-4 h-4 animate-spin" /> Running...</>
                 ) : (
-                  <><GitBranch className="w-4 h-4" /> Run Deal Cycle</>
+                  <><Play className="w-4 h-4" /> Run Full Cycle</>
                 )}
               </Button>
             </div>
