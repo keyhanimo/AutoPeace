@@ -433,12 +433,9 @@ export default function Home() {
 
           <div className="space-y-5">
             <div className="bg-card/80 border border-border/50 rounded-sm p-5">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-sm font-bold uppercase tracking-wider">AI vs Human Proposals</h3>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">Composite score — same 7-dimension evaluation by 3 independent AI judges</p>
-                </div>
-                <Link to="/arena" className="text-[10px] text-primary hover:underline underline-offset-2 shrink-0">Full Arena →</Link>
+              <div className="mb-4">
+                <h3 className="text-sm font-bold uppercase tracking-wider">AI vs Human Proposals</h3>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Composite score — same 7-dimension evaluation by 3 independent AI judges</p>
               </div>
               <AIvsHumanChart
                 aiDeal={currentDeal as { scores: unknown; architecture: string } | null}
