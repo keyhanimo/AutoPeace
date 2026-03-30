@@ -64,7 +64,7 @@ interface StakeholderCBA {
 const STAKEHOLDERS: StakeholderCBA[] = [
   {
     id: "iran", name: "Iran", flag: "🇮🇷", region: "Core Principal", gdpB: 401,
-    warCostB: 87.5, peaceBenefitB: 142.0, netSwingB: 229.5, warCostPctGdp: 21.8,
+    warCostB: 87.5, peaceBenefitB: 142.0, netSwingB: 142.0, warCostPctGdp: 21.8,
     channels: {
       trade: { warCost: 28.0, peaceBenefit: 45.0 },
       energy: { warCost: 18.5, peaceBenefit: 32.0 },
@@ -85,7 +85,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
   },
   {
     id: "us", name: "United States", flag: "🇺🇸", region: "Core Principal", gdpB: 28780,
-    warCostB: 52.0, peaceBenefitB: 38.0, netSwingB: 90.0, warCostPctGdp: 0.18,
+    warCostB: 52.0, peaceBenefitB: 38.0, netSwingB: 38.0, warCostPctGdp: 0.18,
     channels: {
       trade: { warCost: 4.0, peaceBenefit: 6.0 },
       energy: { warCost: 8.5, peaceBenefit: 5.0 },
@@ -106,7 +106,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
   },
   {
     id: "israel", name: "Israel", flag: "🇮🇱", region: "Core Principal", gdpB: 539,
-    warCostB: 43.0, peaceBenefitB: 35.0, netSwingB: 78.0, warCostPctGdp: 8.0,
+    warCostB: 43.0, peaceBenefitB: 35.0, netSwingB: 35.0, warCostPctGdp: 8.0,
     channels: {
       trade: { warCost: 5.0, peaceBenefit: 6.0 },
       energy: { warCost: 3.5, peaceBenefit: 2.5 },
@@ -128,7 +128,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
   },
   {
     id: "saudi_arabia", name: "Saudi Arabia", flag: "🇸🇦", region: "Gulf State", gdpB: 1108,
-    warCostB: 18.5, peaceBenefitB: 28.0, netSwingB: 46.5, warCostPctGdp: 1.7,
+    warCostB: 18.5, peaceBenefitB: 28.0, netSwingB: 28.0, warCostPctGdp: 1.7,
     channels: {
       trade: { warCost: 2.0, peaceBenefit: 5.0 },
       energy: { warCost: -4.0, peaceBenefit: -6.0 },
@@ -148,7 +148,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
   },
   {
     id: "uae", name: "UAE", flag: "🇦🇪", region: "Gulf State", gdpB: 509,
-    warCostB: 14.0, peaceBenefitB: 22.0, netSwingB: 36.0, warCostPctGdp: 2.8,
+    warCostB: 14.0, peaceBenefitB: 22.0, netSwingB: 22.0, warCostPctGdp: 2.8,
     channels: {
       trade: { warCost: 2.5, peaceBenefit: 5.5 },
       energy: { warCost: -1.5, peaceBenefit: -2.0 },
@@ -168,7 +168,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
   },
   {
     id: "europe", name: "Europe (EU+UK)", flag: "🇪🇺", region: "Major External", gdpB: 19800,
-    warCostB: 42.0, peaceBenefitB: 55.0, netSwingB: 97.0, warCostPctGdp: 0.21,
+    warCostB: 42.0, peaceBenefitB: 55.0, netSwingB: 55.0, warCostPctGdp: 0.21,
     channels: {
       trade: { warCost: 8.0, peaceBenefit: 12.0 },
       energy: { warCost: 14.0, peaceBenefit: 15.0 },
@@ -188,7 +188,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
   },
   {
     id: "china", name: "China", flag: "🇨🇳", region: "Major External", gdpB: 17960,
-    warCostB: 35.0, peaceBenefitB: 48.0, netSwingB: 83.0, warCostPctGdp: 0.19,
+    warCostB: 35.0, peaceBenefitB: 48.0, netSwingB: 48.0, warCostPctGdp: 0.19,
     channels: {
       trade: { warCost: 6.0, peaceBenefit: 10.0 },
       energy: { warCost: 15.0, peaceBenefit: 18.0 },
@@ -208,7 +208,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
   },
   {
     id: "india", name: "India", flag: "🇮🇳", region: "Major External", gdpB: 3940,
-    warCostB: 22.0, peaceBenefitB: 30.0, netSwingB: 52.0, warCostPctGdp: 0.56,
+    warCostB: 22.0, peaceBenefitB: 30.0, netSwingB: 30.0, warCostPctGdp: 0.56,
     channels: {
       trade: { warCost: 3.0, peaceBenefit: 5.0 },
       energy: { warCost: 10.0, peaceBenefit: 12.0 },
@@ -228,7 +228,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
   },
   {
     id: "japan_korea", name: "Japan + South Korea", flag: "🇯🇵", region: "Major External", gdpB: 7200,
-    warCostB: 28.0, peaceBenefitB: 32.0, netSwingB: 60.0, warCostPctGdp: 0.39,
+    warCostB: 28.0, peaceBenefitB: 32.0, netSwingB: 32.0, warCostPctGdp: 0.39,
     channels: {
       trade: { warCost: 3.0, peaceBenefit: 4.0 },
       energy: { warCost: 14.0, peaceBenefit: 15.0 },
@@ -248,7 +248,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
   },
   {
     id: "ukraine", name: "Ukraine", flag: "🇺🇦", region: "Major External", gdpB: 179,
-    warCostB: 18.0, peaceBenefitB: 14.0, netSwingB: 32.0, warCostPctGdp: 10.1,
+    warCostB: 18.0, peaceBenefitB: 14.0, netSwingB: 14.0, warCostPctGdp: 10.1,
     channels: {
       trade: { warCost: 2.0, peaceBenefit: 2.5 },
       energy: { warCost: 4.0, peaceBenefit: 3.0 },
@@ -270,7 +270,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
   },
   {
     id: "iraq", name: "Iraq", flag: "🇮🇶", region: "Regional Spillover", gdpB: 264,
-    warCostB: 12.0, peaceBenefitB: 15.0, netSwingB: 27.0, warCostPctGdp: 4.5,
+    warCostB: 12.0, peaceBenefitB: 15.0, netSwingB: 15.0, warCostPctGdp: 4.5,
     channels: {
       trade: { warCost: 2.5, peaceBenefit: 4.0 },
       energy: { warCost: -1.0, peaceBenefit: -1.5 },
@@ -292,7 +292,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
   },
   {
     id: "turkey", name: "Turkey", flag: "🇹🇷", region: "Regional Spillover", gdpB: 1108,
-    warCostB: 10.0, peaceBenefitB: 16.0, netSwingB: 26.0, warCostPctGdp: 0.9,
+    warCostB: 10.0, peaceBenefitB: 16.0, netSwingB: 16.0, warCostPctGdp: 0.9,
     channels: {
       trade: { warCost: 2.5, peaceBenefit: 4.5 },
       energy: { warCost: 3.0, peaceBenefit: 4.0 },
@@ -312,7 +312,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
   },
   {
     id: "lebanon", name: "Lebanon", flag: "🇱🇧", region: "Regional Spillover", gdpB: 22,
-    warCostB: 8.5, peaceBenefitB: 6.0, netSwingB: 14.5, warCostPctGdp: 38.6,
+    warCostB: 8.5, peaceBenefitB: 6.0, netSwingB: 6.0, warCostPctGdp: 38.6,
     channels: {
       trade: { warCost: 0.5, peaceBenefit: 1.0 },
       energy: { warCost: 0.5, peaceBenefit: 0.5 },
@@ -334,7 +334,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
   },
   {
     id: "yemen", name: "Yemen", flag: "🇾🇪", region: "Regional Spillover", gdpB: 22,
-    warCostB: 6.0, peaceBenefitB: 4.0, netSwingB: 10.0, warCostPctGdp: 27.3,
+    warCostB: 6.0, peaceBenefitB: 4.0, netSwingB: 4.0, warCostPctGdp: 27.3,
     channels: {
       trade: { warCost: 0.5, peaceBenefit: 0.5 },
       energy: { warCost: 0.3, peaceBenefit: 0.3 },
@@ -356,7 +356,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
   },
   {
     id: "egypt", name: "Egypt", flag: "🇪🇬", region: "Regional Spillover", gdpB: 395,
-    warCostB: 8.0, peaceBenefitB: 12.0, netSwingB: 20.0, warCostPctGdp: 2.0,
+    warCostB: 8.0, peaceBenefitB: 12.0, netSwingB: 12.0, warCostPctGdp: 2.0,
     channels: {
       trade: { warCost: 1.0, peaceBenefit: 2.0 },
       energy: { warCost: 2.0, peaceBenefit: 2.5 },
@@ -376,7 +376,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
   },
   {
     id: "qatar", name: "Qatar", flag: "🇶🇦", region: "Gulf State", gdpB: 219,
-    warCostB: 6.0, peaceBenefitB: 10.0, netSwingB: 16.0, warCostPctGdp: 2.7,
+    warCostB: 6.0, peaceBenefitB: 10.0, netSwingB: 10.0, warCostPctGdp: 2.7,
     channels: {
       trade: { warCost: 0.5, peaceBenefit: 1.0 },
       energy: { warCost: -1.0, peaceBenefit: -2.0 },
@@ -396,7 +396,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
   },
   {
     id: "pakistan", name: "Pakistan", flag: "🇵🇰", region: "Regional Spillover", gdpB: 374,
-    warCostB: 7.0, peaceBenefitB: 9.0, netSwingB: 16.0, warCostPctGdp: 1.9,
+    warCostB: 7.0, peaceBenefitB: 9.0, netSwingB: 9.0, warCostPctGdp: 1.9,
     channels: {
       trade: { warCost: 1.0, peaceBenefit: 2.0 },
       energy: { warCost: 3.0, peaceBenefit: 3.5 },
@@ -416,7 +416,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
   },
   {
     id: "jordan", name: "Jordan", flag: "🇯🇴", region: "Regional Spillover", gdpB: 50,
-    warCostB: 4.0, peaceBenefitB: 5.0, netSwingB: 9.0, warCostPctGdp: 8.0,
+    warCostB: 4.0, peaceBenefitB: 5.0, netSwingB: 5.0, warCostPctGdp: 8.0,
     channels: {
       trade: { warCost: 0.5, peaceBenefit: 1.0 },
       energy: { warCost: 1.0, peaceBenefit: 1.0 },
@@ -436,7 +436,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
   },
   {
     id: "global_south_importers", name: "Global South (Importers)", flag: "🌍", region: "Global", gdpB: 15000,
-    warCostB: 45.0, peaceBenefitB: 55.0, netSwingB: 100.0, warCostPctGdp: 0.3,
+    warCostB: 45.0, peaceBenefitB: 55.0, netSwingB: 55.0, warCostPctGdp: 0.3,
     channels: {
       trade: { warCost: 5.0, peaceBenefit: 8.0 },
       energy: { warCost: 20.0, peaceBenefit: 22.0 },
@@ -458,7 +458,13 @@ const STAKEHOLDERS: StakeholderCBA[] = [
 
 const GLOBAL_WAR_COST_B = STAKEHOLDERS.reduce((s, sh) => s + sh.warCostB, 0);
 const GLOBAL_PEACE_BENEFIT_B = STAKEHOLDERS.reduce((s, sh) => s + sh.peaceBenefitB, 0);
-const GLOBAL_NET_SWING_B = GLOBAL_WAR_COST_B + GLOBAL_PEACE_BENEFIT_B;
+// Corrected: the net gain from transitioning war→peace = peaceBenefitB per stakeholder.
+// The former formula (warCost + peaceBenefit) double-counted cost cessation, which is
+// already embedded in peaceBenefitB. See methodology note for decomposition.
+const GLOBAL_NET_SWING_B = GLOBAL_PEACE_BENEFIT_B;
+// Component breakdown: cost reversal = war costs that stop; peace dividend = new activity above pre-conflict
+const GLOBAL_COST_REVERSAL_B = STAKEHOLDERS.reduce((s, sh) => s + Math.min(sh.warCostB, sh.peaceBenefitB), 0);
+const GLOBAL_PEACE_DIVIDEND_B = STAKEHOLDERS.reduce((s, sh) => s + Math.max(0, sh.peaceBenefitB - sh.warCostB), 0);
 const TOTAL_DISPLACED = STAKEHOLDERS.reduce((s, sh) => s + sh.displaced, 0);
 const TOTAL_CASUALTIES = STAKEHOLDERS.reduce((s, sh) => s + sh.casualties, 0);
 const IRAN_ATTRIBUTED_DISPLACED = Math.round(STAKEHOLDERS.reduce((s, sh) => s + sh.displaced * (sh.iranAttributionPct / 100), 0));
@@ -474,27 +480,37 @@ type SortKey = "warCostB" | "peaceBenefitB" | "netSwingB" | "warCostPctGdp";
 
 function GlobalSummaryCards() {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <Card className="p-5 border-l-4 border-l-red-500">
-        <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mb-1">Annual War Cost</div>
-        <div className="text-2xl font-bold font-mono text-red-400">{fmtB(GLOBAL_WAR_COST_B)}</div>
-        <div className="text-xs text-muted-foreground mt-1">Global GDP-equivalent loss/yr</div>
-      </Card>
-      <Card className="p-5 border-l-4 border-l-emerald-500">
-        <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mb-1">Annual Peace Benefit</div>
-        <div className="text-2xl font-bold font-mono text-emerald-400">{fmtB(GLOBAL_PEACE_BENEFIT_B)}</div>
-        <div className="text-xs text-muted-foreground mt-1">GDP-equivalent gain if peace</div>
-      </Card>
-      <Card className="p-5 border-l-4 border-l-amber-500">
-        <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mb-1">Total Swing (War vs Peace)</div>
-        <div className="text-2xl font-bold font-mono text-amber-400">{fmtB(GLOBAL_NET_SWING_B)}</div>
-        <div className="text-xs text-muted-foreground mt-1">Annual difference, peace minus war</div>
-      </Card>
-      <Card className="p-5 border-l-4 border-l-purple-500">
-        <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mb-1">5-Year Cumulative Swing</div>
-        <div className="text-2xl font-bold font-mono text-purple-400">{fmtB(GLOBAL_NET_SWING_B * 5)}</div>
-        <div className="text-xs text-muted-foreground mt-1">Peace vs war over 5 years</div>
-      </Card>
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="p-5 border-l-4 border-l-red-500">
+          <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mb-1">Annual Conflict Cost</div>
+          <div className="text-2xl font-bold font-mono text-red-400">{fmtB(GLOBAL_WAR_COST_B)}</div>
+          <div className="text-xs text-muted-foreground mt-1">GDP-equivalent loss vs. pre-conflict baseline</div>
+        </Card>
+        <Card className="p-5 border-l-4 border-l-emerald-500">
+          <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mb-1">Annual Peace Gain</div>
+          <div className="text-2xl font-bold font-mono text-emerald-400">{fmtB(GLOBAL_PEACE_BENEFIT_B)}</div>
+          <div className="text-xs text-muted-foreground mt-1">Net gain transitioning from conflict to peace</div>
+        </Card>
+        <Card className="p-5 border-l-4 border-l-blue-500">
+          <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mb-1">Of which: Peace Dividend</div>
+          <div className="text-2xl font-bold font-mono text-blue-400">{fmtB(GLOBAL_PEACE_DIVIDEND_B)}</div>
+          <div className="text-xs text-muted-foreground mt-1">New economic activity above pre-conflict level</div>
+        </Card>
+        <Card className="p-5 border-l-4 border-l-purple-500">
+          <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mb-1">5-Year Value of Peace</div>
+          <div className="text-2xl font-bold font-mono text-purple-400">{fmtB(GLOBAL_NET_SWING_B * 5)}</div>
+          <div className="text-xs text-muted-foreground mt-1">Cumulative peace gain over 5 years</div>
+        </Card>
+      </div>
+      <div className="flex items-start gap-2 px-3 py-2.5 bg-blue-950/20 border border-blue-800/20 rounded-sm">
+        <Info className="w-3.5 h-3.5 text-blue-400 mt-0.5 shrink-0" />
+        <p className="text-[11px] text-muted-foreground leading-relaxed">
+          <strong className="text-foreground">Accounting note:</strong> The <span className="text-emerald-400 font-medium">Annual Peace Gain</span> ({fmtB(GLOBAL_PEACE_BENEFIT_B)}) is the correct measure of the war→peace transition.
+          It decomposes into <span className="text-amber-400 font-medium">cost reversal</span> ({fmtB(GLOBAL_COST_REVERSAL_B)} — conflict costs that cease) and <span className="text-blue-400 font-medium">peace dividend</span> ({fmtB(GLOBAL_PEACE_DIVIDEND_B)} — genuinely new economic activity above the pre-conflict baseline).
+          Adding the conflict cost ({fmtB(GLOBAL_WAR_COST_B)}) to the peace gain would double-count the cost-cessation component.
+        </p>
+      </div>
     </div>
   );
 }
@@ -692,7 +708,7 @@ function ChannelCards() {
 }
 
 function StakeholderWaterfallChart({ stakeholders }: { stakeholders: StakeholderCBA[] }) {
-  const sorted = [...stakeholders].sort((a, b) => b.netSwingB - a.netSwingB).slice(0, 12);
+  const sorted = [...stakeholders].sort((a, b) => b.peaceBenefitB - a.peaceBenefitB).slice(0, 12);
   const data = sorted.map(s => ({
     name: s.flag + " " + (s.name.length > 12 ? s.name.slice(0, 11) + "…" : s.name),
     warCost: -s.warCostB,
@@ -801,8 +817,8 @@ function StakeholderRow({ s, isExpanded, onToggle }: { s: StakeholderCBA; isExpa
               <div className="text-sm font-bold font-mono text-emerald-400">{fmtB(s.peaceBenefitB)}/yr</div>
             </div>
             <div className="text-right">
-              <div className="text-[10px] text-muted-foreground uppercase">Net Swing</div>
-              <div className="text-sm font-bold font-mono text-amber-400">{fmtB(s.netSwingB)}/yr</div>
+              <div className="text-[10px] text-muted-foreground uppercase">War→Peace Gain</div>
+              <div className="text-sm font-bold font-mono text-amber-400">{fmtB(s.peaceBenefitB)}/yr</div>
             </div>
           </div>
           <div className="shrink-0 text-muted-foreground">
@@ -819,8 +835,8 @@ function StakeholderRow({ s, isExpanded, onToggle }: { s: StakeholderCBA; isExpa
             <div className="text-sm font-bold font-mono text-emerald-400">{fmtB(s.peaceBenefitB)}/yr</div>
           </div>
           <div>
-            <div className="text-[10px] text-muted-foreground uppercase">Net Swing</div>
-            <div className="text-sm font-bold font-mono text-amber-400">{fmtB(s.netSwingB)}/yr</div>
+            <div className="text-[10px] text-muted-foreground uppercase">War→Peace Gain</div>
+            <div className="text-sm font-bold font-mono text-amber-400">{fmtB(s.peaceBenefitB)}/yr</div>
           </div>
         </div>
       </button>
@@ -1011,7 +1027,8 @@ function MethodologyNote() {
           </div>
           <div>
             <p className="mb-1.5"><strong className="text-foreground">Limitations:</strong> All figures are researcher estimates, not audited accounts. Economic channel data uses base-case scenarios; conservative and upside bounds are not shown in the current interface. Transfer effects (negative war costs) are noted per stakeholder but netted out at the global level. Multi-causal conflicts resist clean decomposition — attribution weights involve judgment.</p>
-            <p><strong className="text-foreground">Modeling framework:</strong> Follows the principle ΔW(s₁, s₀) = W(peace) − W(war) applied per stakeholder and per channel. See methodology page for full specification.</p>
+            <p className="mb-1.5"><strong className="text-foreground">Modeling framework:</strong> Follows the principle ΔW(s₁, s₀) = W(peace) − W(war) applied per stakeholder and per channel. See methodology page for full specification.</p>
+            <p><strong className="text-foreground">Avoiding double-counting:</strong> The "Annual Peace Gain" ({fmtB(GLOBAL_PEACE_BENEFIT_B)}) is the correct war→peace swing. It decomposes into <em>cost reversal</em> ({fmtB(GLOBAL_COST_REVERSAL_B)} — conflict costs that stop) plus <em>peace dividend</em> ({fmtB(GLOBAL_PEACE_DIVIDEND_B)} — new economic activity above the pre-conflict baseline). Summing the conflict cost separately with the peace gain would double-count the cost-reversal component, which is already embedded in the peace gain figure.</p>
           </div>
         </div>
       </div>
@@ -1082,7 +1099,7 @@ export default function CostsExplorer() {
               onChange={e => setSortKey(e.target.value as SortKey)}
               className="bg-card border border-border text-sm px-3 py-1.5 rounded-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             >
-              <option value="netSwingB">Sort: Net Swing</option>
+              <option value="netSwingB">Sort: War→Peace Gain</option>
               <option value="warCostB">Sort: War Cost</option>
               <option value="peaceBenefitB">Sort: Peace Benefit</option>
               <option value="warCostPctGdp">Sort: % of GDP</option>
