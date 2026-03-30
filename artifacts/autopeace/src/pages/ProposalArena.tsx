@@ -1,22 +1,19 @@
 import React, { useState } from "react";
 import {
   useGetProposalArena,
-  useListProposals,
-  useListDeals,
   type Proposal,
   type Deal,
   type DealScores,
   type StakeholderVerdict,
 } from "@workspace/api-client-react";
-import { Card, PageHeader, Badge, Button } from "@/components/ui";
+import { Card, PageHeader, Badge } from "@/components/ui";
 import {
   RadarChart, PolarGrid, PolarAngleAxis, Radar,
   ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, Legend,
-  LineChart, Line, CartesianGrid, ReferenceLine,
 } from "recharts";
 import {
   CheckCircle2, XCircle, AlertTriangle, GitCompare,
-  ExternalLink, ChevronDown, ChevronUp, Globe, TrendingUp, Target, Code, Brain,
+  ExternalLink, ChevronDown, ChevronUp, Globe, Target, Code, Brain,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { DataSourceNote } from "@/components/DataSourceNote";
@@ -41,6 +38,19 @@ const VERDICT_ICONS: Record<string, React.ReactNode> = {
   conditional: <AlertTriangle className="w-3 h-3" />,
   reject: <XCircle className="w-3 h-3" />,
 };
+
+const ACCEPTANCE_TIERS: Record<string, { label: string; color: string }> = {
+  iran: { label: "Required", color: "text-red-300 bg-red-950/40 border-red-800/50" },
+  us: { label: "Required", color: "text-red-300 bg-red-950/40 border-red-800/50" },
+  israel: { label: "Critical", color: "text-orange-300 bg-orange-950/40 border-orange-800/50" },
+  saudi_arabia: { label: "Influential", color: "text-blue-300 bg-blue-950/40 border-blue-800/50" },
+  iaea: { label: "Influential", color: "text-blue-300 bg-blue-950/40 border-blue-800/50" },
+  russia: { label: "Influential", color: "text-blue-300 bg-blue-950/40 border-blue-800/50" },
+  china: { label: "Influential", color: "text-blue-300 bg-blue-950/40 border-blue-800/50" },
+  eu3: { label: "Influential", color: "text-blue-300 bg-blue-950/40 border-blue-800/50" },
+};
+const getStakeholderTier = (id: string) => ACCEPTANCE_TIERS[id] ?? { label: "Contextual", color: "text-gray-400 bg-gray-950/40 border-gray-700/50" };
+const TIER_ORDER: Record<string, number> = { Required: 0, Critical: 1, Influential: 2, Contextual: 3 };
 
 function scoreColor(score: number) {
   if (score >= 0.65) return "text-emerald-400";
@@ -78,6 +88,158 @@ function StakeholderBar({ evals }: { evals: Record<string, StakeholderVerdict> }
   );
 }
 
+function ScoreBreakdownPanel({
+  scores,
+  label,
+}: {
+  scores: DealScores & {
+    judgePanel?: Array<{ provider: string; model: string; scores: Record<string, number>; rationale: Record<string, string> }>;
+    judgePrompt?: string;
+    scoreRationale?: Record<string, string>;
+  };
+  label: string;
+}) {
+  const [activeJudge, setActiveJudge] = useState<string>("averaged");
+  const [showPrompt, setShowPrompt] = useState(false);
+  const panel = scores.judgePanel ?? [];
+  const hasPanel = panel.length > 0;
+  const activeEntry = activeJudge === "averaged" ? null : panel.find(e => e.provider === activeJudge);
+  const displayScores = activeEntry ? activeEntry.scores : Object.fromEntries(SCORE_DIMENSIONS.map(d => [d.key, scores[d.key] ?? 0]));
+  const displayRationale = activeEntry ? activeEntry.rationale : (scores.scoreRationale ?? {});
+
+  const PROVIDER_LABELS: Record<string, { label: string; color: string }> = {
+    anthropic: { label: "Anthropic (Claude)", color: "#d97706" },
+    openai: { label: "OpenAI (GPT)", color: "#10b981" },
+    gemini: { label: "Google (Gemini)", color: "#3b82f6" },
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <h4 className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
+          <Brain className="w-3.5 h-3.5" /> {label}
+        </h4>
+        {scores.judgePrompt && (
+          <button
+            onClick={() => setShowPrompt(!showPrompt)}
+            className="flex items-center gap-1 text-[9px] text-muted-foreground hover:text-primary transition-colors"
+          >
+            <Code className="w-3 h-3" /> {showPrompt ? "Hide" : "Show"} Prompt
+          </button>
+        )}
+      </div>
+
+      <p className="text-[10px] text-muted-foreground mb-3">
+        {hasPanel
+          ? `Scored by ${panel.length} independent LLM judges. Final scores are the arithmetic mean across all models.`
+          : "Scored by a single LLM judge."}
+      </p>
+
+      {showPrompt && scores.judgePrompt && (
+        <div className="mb-4 p-3 bg-secondary/30 border border-border/50 rounded-sm overflow-auto max-h-48">
+          <p className="text-[9px] font-bold text-primary uppercase tracking-wider mb-2">Judge Prompt (sent to all 3 LLMs)</p>
+          <pre className="text-[10px] text-muted-foreground whitespace-pre-wrap font-mono leading-relaxed">{scores.judgePrompt}</pre>
+        </div>
+      )}
+
+      {hasPanel && (
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          <button
+            onClick={() => setActiveJudge("averaged")}
+            className={`px-2.5 py-1 text-[10px] font-bold rounded-sm border transition-colors ${
+              activeJudge === "averaged"
+                ? "bg-primary/10 border-primary/50 text-primary"
+                : "border-border/40 text-muted-foreground hover:border-border hover:text-foreground"
+            }`}
+          >
+            Averaged ({panel.length} models)
+          </button>
+          {panel.map(entry => {
+            const info = PROVIDER_LABELS[entry.provider] ?? { label: entry.provider, color: "#94a3b8" };
+            return (
+              <button
+                key={entry.provider}
+                onClick={() => setActiveJudge(entry.provider)}
+                className={`px-2.5 py-1 text-[10px] font-bold rounded-sm border transition-colors ${
+                  activeJudge === entry.provider
+                    ? "bg-primary/10 border-primary/50 text-primary"
+                    : "border-border/40 text-muted-foreground hover:border-border hover:text-foreground"
+                }`}
+              >
+                <span className="inline-block w-1.5 h-1.5 rounded-full mr-1" style={{ backgroundColor: info.color }} />
+                {info.label}
+                <span className="ml-1 text-[8px] text-muted-foreground/60 font-mono">{entry.model}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="space-y-2">
+        {SCORE_DIMENSIONS.map(d => {
+          const val = displayScores[d.key] ?? 0;
+          const pct = Math.round(val * 100);
+          const rationale = displayRationale[d.key] || undefined;
+
+          const perModelScores = hasPanel ? panel.map(e => ({
+            provider: e.provider,
+            score: Math.round((e.scores[d.key] ?? 0) * 100),
+            color: (PROVIDER_LABELS[e.provider] ?? { color: "#94a3b8" }).color,
+          })) : [];
+
+          return (
+            <div key={d.key} className="border border-border/30 rounded-sm p-2.5">
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: d.color }} />
+                  <span className="text-xs font-bold">{d.label}</span>
+                  <span className="text-[9px] text-muted-foreground/70 font-mono">{(d.weight * 100).toFixed(0)}% weight</span>
+                </div>
+                <span className={`text-sm font-bold font-mono ${scoreColor(val)}`}>{pct}%</span>
+              </div>
+              <div className="w-full bg-secondary/50 h-1.5 mb-1.5 overflow-hidden">
+                <div className="h-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: d.color }} />
+              </div>
+              {activeJudge === "averaged" && hasPanel && (
+                <div className="flex items-center gap-3 mb-1.5">
+                  {perModelScores.map(m => (
+                    <span key={m.provider} className="text-[9px] font-mono text-muted-foreground flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ backgroundColor: m.color }} />
+                      {m.score}%
+                    </span>
+                  ))}
+                </div>
+              )}
+              {rationale ? (
+                <p className="text-[10px] text-muted-foreground leading-relaxed">{rationale}</p>
+              ) : (
+                <p className="text-[10px] text-muted-foreground/50 italic">{d.description}</p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-3 p-2.5 border border-primary/20 rounded-sm bg-primary/5">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold text-primary">
+            {activeJudge === "averaged" ? "Composite Score (Averaged)" : `Composite Score (${(PROVIDER_LABELS[activeJudge] ?? { label: activeJudge }).label})`}
+          </span>
+          {(() => {
+            const c = activeJudge === "averaged"
+              ? (scores.composite ?? 0)
+              : SCORE_DIMENSIONS.reduce((sum, d) => sum + (displayScores[d.key] ?? 0) * d.weight, 0);
+            return <span className={`text-lg font-bold font-mono ${scoreColor(c)}`}>{(c * 100).toFixed(0)}%</span>;
+          })()}
+        </div>
+        <p className="text-[9px] text-muted-foreground mt-1">
+          Weighted: Feasibility 20% + Domestic 20% + Coherence 15% + Regional 15% + Evidence 10% + Implement. 10% + Durability 10%
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function ProposalCard({
   proposal,
   isExpanded,
@@ -99,8 +261,6 @@ function ProposalCard({
   const terms = proposal.terms as Record<string, unknown>;
   const knownResponses = (proposal.knownResponses ?? {}) as Record<string, string>;
   const whatWouldItTake = (proposal.whatWouldItTake ?? []) as Array<{ dimension: string; currentGap: string; requiredChange: string; feasibility: string }>;
-  const [activeJudge, setActiveJudge] = useState<string>("averaged");
-  const [showPrompt, setShowPrompt] = useState(false);
 
   const radarData = SCORE_DIMENSIONS.map(d => ({
     dimension: d.label,
@@ -214,162 +374,30 @@ function ProposalCard({
                 </div>
               </div>
 
-              {scores && (() => {
-                const panel = scores.judgePanel ?? [];
-                const hasPanel = panel.length > 0;
-                const activeEntry = activeJudge === "averaged" ? null : panel.find(e => e.provider === activeJudge);
-                const displayScores = activeEntry ? activeEntry.scores : Object.fromEntries(SCORE_DIMENSIONS.map(d => [d.key, scores[d.key] ?? 0]));
-                const displayRationale = activeEntry ? activeEntry.rationale : (scores.scoreRationale ?? {});
-
-                const PROVIDER_LABELS: Record<string, { label: string; color: string }> = {
-                  anthropic: { label: "Anthropic (Claude)", color: "#d97706" },
-                  openai: { label: "OpenAI (GPT)", color: "#10b981" },
-                  gemini: { label: "Google (Gemini)", color: "#3b82f6" },
-                };
-
-                return (
-                  <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
-                        <Brain className="w-3.5 h-3.5" /> Score Breakdown
-                      </h4>
-                      {scores.judgePrompt && (
-                        <button
-                          onClick={() => setShowPrompt(!showPrompt)}
-                          className="flex items-center gap-1 text-[9px] text-muted-foreground hover:text-primary transition-colors"
-                        >
-                          <Code className="w-3 h-3" /> {showPrompt ? "Hide" : "Show"} Prompt
-                        </button>
-                      )}
-                    </div>
-
-                    <p className="text-[10px] text-muted-foreground mb-3">
-                      {hasPanel
-                        ? `Scored by ${panel.length} independent LLM judges. Final scores are the arithmetic mean across all models. Select a model to see its individual reasoning.`
-                        : "Scored by a single LLM judge. Future evaluations will use a 3-model panel for more robust scoring."}
-                    </p>
-
-                    {showPrompt && scores.judgePrompt && (
-                      <div className="mb-4 p-3 bg-secondary/30 border border-border/50 rounded-sm overflow-auto max-h-48">
-                        <p className="text-[9px] font-bold text-primary uppercase tracking-wider mb-2">Judge Prompt (sent to all 3 LLMs)</p>
-                        <pre className="text-[10px] text-muted-foreground whitespace-pre-wrap font-mono leading-relaxed">{scores.judgePrompt}</pre>
-                      </div>
-                    )}
-
-                    {hasPanel && (
-                      <div className="flex flex-wrap gap-1.5 mb-4">
-                        <button
-                          onClick={() => setActiveJudge("averaged")}
-                          className={`px-2.5 py-1 text-[10px] font-bold rounded-sm border transition-colors ${
-                            activeJudge === "averaged"
-                              ? "bg-primary/10 border-primary/50 text-primary"
-                              : "border-border/40 text-muted-foreground hover:border-border hover:text-foreground"
-                          }`}
-                        >
-                          Averaged ({panel.length} models)
-                        </button>
-                        {panel.map(entry => {
-                          const info = PROVIDER_LABELS[entry.provider] ?? { label: entry.provider, color: "#94a3b8" };
-                          return (
-                            <button
-                              key={entry.provider}
-                              onClick={() => setActiveJudge(entry.provider)}
-                              className={`px-2.5 py-1 text-[10px] font-bold rounded-sm border transition-colors ${
-                                activeJudge === entry.provider
-                                  ? "bg-primary/10 border-primary/50 text-primary"
-                                  : "border-border/40 text-muted-foreground hover:border-border hover:text-foreground"
-                              }`}
-                            >
-                              <span className="inline-block w-1.5 h-1.5 rounded-full mr-1" style={{ backgroundColor: info.color }} />
-                              {info.label}
-                              <span className="ml-1 text-[8px] text-muted-foreground/60 font-mono">{entry.model}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    <div className="space-y-2">
-                      {SCORE_DIMENSIONS.map(d => {
-                        const val = displayScores[d.key] ?? 0;
-                        const pct = Math.round(val * 100);
-                        const rationale = displayRationale[d.key] || undefined;
-
-                        const perModelScores = hasPanel ? panel.map(e => ({
-                          provider: e.provider,
-                          score: Math.round((e.scores[d.key] ?? 0) * 100),
-                          color: (PROVIDER_LABELS[e.provider] ?? { color: "#94a3b8" }).color,
-                        })) : [];
-
-                        return (
-                          <div key={d.key} className="border border-border/30 rounded-sm p-2.5">
-                            <div className="flex items-center justify-between mb-1">
-                              <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: d.color }} />
-                                <span className="text-xs font-bold">{d.label}</span>
-                                <span className="text-[9px] text-muted-foreground/70 font-mono">{(d.weight * 100).toFixed(0)}% weight</span>
-                              </div>
-                              <span className={`text-sm font-bold font-mono ${scoreColor(val)}`}>{pct}%</span>
-                            </div>
-                            <div className="w-full bg-secondary/50 h-1.5 mb-1.5 overflow-hidden">
-                              <div className="h-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: d.color }} />
-                            </div>
-                            {activeJudge === "averaged" && hasPanel && (
-                              <div className="flex items-center gap-3 mb-1.5">
-                                {perModelScores.map(m => (
-                                  <span key={m.provider} className="text-[9px] font-mono text-muted-foreground flex items-center gap-1">
-                                    <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ backgroundColor: m.color }} />
-                                    {m.score}%
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                            {rationale ? (
-                              <p className="text-[10px] text-muted-foreground leading-relaxed">{rationale}</p>
-                            ) : (
-                              <p className="text-[10px] text-muted-foreground/50 italic">{d.description}</p>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    <div className="mt-3 p-2.5 border border-primary/20 rounded-sm bg-primary/5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-primary">
-                          {activeJudge === "averaged" ? "Composite Score (Averaged)" : `Composite Score (${(PROVIDER_LABELS[activeJudge] ?? { label: activeJudge }).label})`}
-                        </span>
-                        {(() => {
-                          const c = activeJudge === "averaged"
-                            ? (scores.composite ?? 0)
-                            : SCORE_DIMENSIONS.reduce((sum, d) => sum + (displayScores[d.key] ?? 0) * d.weight, 0);
-                          return <span className={`text-lg font-bold font-mono ${scoreColor(c)}`}>{(c * 100).toFixed(0)}%</span>;
-                        })()}
-                      </div>
-                      <p className="text-[9px] text-muted-foreground mt-1">
-                        Weighted: Feasibility 20% + Domestic 20% + Coherence 15% + Regional 15% + Evidence 10% + Implement. 10% + Durability 10%
-                      </p>
-                    </div>
-                  </div>
-                );
-              })()}
+              {scores && <ScoreBreakdownPanel scores={scores} label="Score Breakdown" />}
 
               {Object.keys(evals).length > 0 && (
                 <div>
                   <h4 className="text-xs font-bold text-primary uppercase tracking-wider mb-3">Stakeholder Reactions</h4>
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-                    {Object.entries(evals).map(([id, ev]) => (
-                      <div
-                        key={id}
-                        className={`p-2 rounded-lg border text-xs ${VERDICT_COLORS[ev.verdict] ?? ""}`}
-                      >
-                        <div className="flex items-center gap-1 mb-1">
-                          {VERDICT_ICONS[ev.verdict]}
-                          <span className="font-mono font-bold capitalize truncate">{id.replace(/-/g, " ")}</span>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground line-clamp-2">{ev.rationale}</p>
-                      </div>
-                    ))}
+                    {[...Object.entries(evals)]
+                      .sort((a, b) => (TIER_ORDER[getStakeholderTier(a[0]).label] ?? 3) - (TIER_ORDER[getStakeholderTier(b[0]).label] ?? 3))
+                      .map(([id, ev]) => {
+                        const tier = getStakeholderTier(id);
+                        return (
+                          <div
+                            key={id}
+                            className={`p-2 rounded-lg border text-xs ${VERDICT_COLORS[ev.verdict] ?? ""}`}
+                          >
+                            <div className="flex items-center gap-1 mb-1">
+                              {VERDICT_ICONS[ev.verdict]}
+                              <span className="font-mono font-bold capitalize truncate">{id.replace(/[_-]/g, " ")}</span>
+                              <span className={`text-[7px] px-1 py-0.5 rounded border ${tier.color} font-semibold shrink-0 ml-auto`}>{tier.label}</span>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground line-clamp-2">{ev.rationale}</p>
+                          </div>
+                        );
+                      })}
                   </div>
                 </div>
               )}
@@ -414,6 +442,227 @@ function ProposalCard({
   );
 }
 
+function AiDealCard({
+  deal,
+  isExpanded,
+  onToggle,
+}: {
+  deal: Deal;
+  isExpanded: boolean;
+  onToggle: () => void;
+}) {
+  type ExtendedScores = DealScores & {
+    judgePanel?: Array<{ provider: string; model: string; scores: Record<string, number>; rationale: Record<string, string> }>;
+    judgePrompt?: string;
+    scoreRationale?: Record<string, string>;
+  };
+  const scores = deal.scores as ExtendedScores | null;
+  const evals = (deal.stakeholderEvaluations ?? {}) as Record<string, StakeholderVerdict>;
+  const terms = deal.terms as Record<string, unknown>;
+  const redTeamResults = (deal.redTeamResults ?? []) as Array<{ attack: string; severity: string; response: string; survived: boolean }>;
+  const domesticEvals = (deal.domesticEvaluations ?? {}) as Record<string, { audience: string; verdict: string; rationale: string }>;
+
+  return (
+    <Card className="overflow-hidden border-primary/30">
+      <button
+        className="w-full text-left p-5 flex items-start justify-between gap-4 hover:bg-muted/20 transition-colors"
+        onClick={onToggle}
+      >
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+            <Globe className="w-4 h-4 text-primary" />
+            <h3 className="text-base font-bold">Current AI Champion Deal</h3>
+            <Badge variant="outline" className="text-[10px] border-primary/40 text-primary capitalize">
+              {deal.architecture}
+            </Badge>
+            <Badge variant="outline" className="text-[10px]">
+              by {deal.generatedBy}
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Generated {new Date(deal.createdAt).toLocaleDateString()} · Click to {isExpanded ? "collapse" : "expand full scoring details"}
+          </p>
+          {scores && (
+            <div className="flex items-center gap-4 mt-2">
+              <span className={`text-sm font-bold ${scoreColor(scores.composite ?? 0)}`}>
+                {((scores.composite ?? 0) * 100).toFixed(0)}% composite
+              </span>
+              <StakeholderBar evals={evals} />
+            </div>
+          )}
+        </div>
+        <div className="text-muted-foreground shrink-0">
+          {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        </div>
+      </button>
+
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: "easeInOut" }}
+            className="overflow-hidden"
+          >
+            <div className="p-5 pt-0 space-y-5 border-t border-border/40">
+              <div className="grid lg:grid-cols-2 gap-5">
+                <div>
+                  <h4 className="text-xs font-bold text-primary uppercase tracking-wider mb-3">Deal Terms</h4>
+                  <div className="space-y-2 text-xs">
+                    {[
+                      { label: "Nuclear Protocol", key: "nuclearProtocol" },
+                      { label: "Sanctions Relief", key: "sanctionsRelief" },
+                      { label: "Maritime Security", key: "hormuzArrangements" },
+                      { label: "Humanitarian", key: "humanitarianProvisions" },
+                      { label: "Verification", key: "verificationMechanism" },
+                      { label: "Timeline", key: "timelineYears" },
+                      { label: "Sequencing", key: "sequencing" },
+                    ].map(({ label, key }) => (
+                      terms[key] ? (
+                        <div key={key} className="border-b border-border/20 pb-1.5 last:border-0">
+                          <span className="text-[10px] text-primary font-semibold uppercase tracking-wider block">{label}</span>
+                          <span className="text-muted-foreground">
+                            {key === "timelineYears" ? `${terms[key]} years` : String(terms[key]).slice(0, 300)}
+                          </span>
+                        </div>
+                      ) : null
+                    ))}
+                    {Boolean(terms.stakeholderCommitments && typeof terms.stakeholderCommitments === "object" && Object.keys(terms.stakeholderCommitments as Record<string, unknown>).length > 0) && (
+                      <div className="border-t border-border/30 pt-2 mt-2">
+                        <span className="text-[10px] text-cyan-400 font-semibold uppercase tracking-wider block mb-1.5">Coalition Commitments</span>
+                        {Object.entries(terms.stakeholderCommitments as Record<string, string>).map(([id, commitment]) => (
+                          <div key={id} className="flex gap-1.5 text-[11px] mb-1">
+                            <span className="text-primary font-semibold capitalize shrink-0">{id.replace(/_/g, " ")}:</span>
+                            <span className="text-muted-foreground">{String(commitment).slice(0, 200)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  {scores && (
+                    <>
+                      <h4 className="text-xs font-bold text-primary uppercase tracking-wider mb-3">Score Radar</h4>
+                      <div className="h-44">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <RadarChart data={SCORE_DIMENSIONS.map(d => ({
+                            dimension: d.label,
+                            score: Math.round((scores[d.key] ?? 0) * 100),
+                          }))}>
+                            <PolarGrid stroke="#1e293b" />
+                            <PolarAngleAxis dataKey="dimension" tick={{ fontSize: 8, fill: "#94a3b8" }} />
+                            <Radar name="Score" dataKey="score" stroke="#0284c7" fill="#0284c7" fillOpacity={0.2} />
+                            <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "8px", fontSize: "10px" }} formatter={(v: number) => [`${v}%`]} />
+                          </RadarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {scores && <ScoreBreakdownPanel scores={scores} label="AI Deal Score Breakdown" />}
+
+              {Object.keys(evals).length > 0 && (
+                <div>
+                  <h4 className="text-xs font-bold text-primary uppercase tracking-wider mb-3">
+                    Stakeholder Reactions ({Object.keys(evals).length} evaluated)
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                    {[...Object.entries(evals)]
+                      .sort((a, b) => (TIER_ORDER[getStakeholderTier(a[0]).label] ?? 3) - (TIER_ORDER[getStakeholderTier(b[0]).label] ?? 3))
+                      .map(([id, ev]) => {
+                        const tier = getStakeholderTier(id);
+                        return (
+                          <div
+                            key={id}
+                            className={`p-2 rounded-lg border text-xs ${VERDICT_COLORS[ev.verdict] ?? ""}`}
+                          >
+                            <div className="flex items-center gap-1 mb-1">
+                              {VERDICT_ICONS[ev.verdict]}
+                              <span className="font-mono font-bold capitalize truncate">{id.replace(/[_-]/g, " ")}</span>
+                              <span className={`text-[7px] px-1 py-0.5 rounded border ${tier.color} font-semibold shrink-0 ml-auto`}>{tier.label}</span>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground line-clamp-2">{ev.rationale}</p>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
+
+              {Object.keys(domesticEvals).length > 0 && (
+                <div>
+                  <h4 className="text-xs font-bold text-primary uppercase tracking-wider mb-3">Domestic Sellability</h4>
+                  <div className="grid sm:grid-cols-3 gap-2">
+                    {Object.entries(domesticEvals).map(([key, ev]) => {
+                      const verdict = typeof ev === "object" && ev && "verdict" in ev ? String(ev.verdict) : "unknown";
+                      const audience = typeof ev === "object" && ev && "audience" in ev ? String(ev.audience) : key;
+                      const rationale = typeof ev === "object" && ev && "rationale" in ev ? String(ev.rationale) : "";
+                      const color = verdict === "sellable" ? "text-emerald-400 border-emerald-800/40" :
+                        verdict === "unsellable" ? "text-red-400 border-red-800/40" : "text-amber-400 border-amber-800/40";
+                      return (
+                        <div key={key} className={`p-2.5 rounded-lg border text-xs ${color}`}>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-medium text-foreground">{audience}</span>
+                            <span className={`text-[10px] font-bold capitalize ${color.split(" ")[0]}`}>{verdict}</span>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground">{rationale}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {redTeamResults.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-bold text-primary uppercase tracking-wider mb-3">
+                    Red Team Attacks ({redTeamResults.filter(r => r.survived).length}/{redTeamResults.length} survived)
+                  </h4>
+                  <div className="space-y-2">
+                    {redTeamResults.map((r, i) => (
+                      <div key={i} className={`p-2.5 rounded-lg border text-xs ${r.survived ? "border-emerald-800/40 bg-emerald-950/10" : "border-red-800/40 bg-red-950/10"}`}>
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${r.severity === "critical" ? "bg-red-900/50 text-red-400" : r.severity === "high" ? "bg-orange-900/50 text-orange-400" : "bg-amber-900/50 text-amber-400"}`}>
+                              {r.severity}
+                            </span>
+                            <span className="text-foreground">{r.attack}</span>
+                          </div>
+                          <span className={`font-bold shrink-0 ${r.survived ? "text-emerald-400" : "text-red-400"}`}>
+                            {r.survived ? "Survived" : "Failed"}
+                          </span>
+                        </div>
+                        {r.response && <p className="text-[10px] text-muted-foreground">{r.response}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {deal.diagnosis && (
+                <div className="p-3 rounded-lg border border-amber-800/30 bg-amber-950/10">
+                  <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                    <AlertTriangle className="w-3 h-3" /> AI Diagnosis
+                  </h4>
+                  <p className="text-xs text-muted-foreground">{deal.diagnosis}</p>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </Card>
+  );
+}
+
+const PROPOSAL_COLORS = ["#f59e0b", "#ec4899", "#8b5cf6", "#06b6d4", "#f97316"];
+const AI_DEAL_COLOR = "#0284c7";
+
 function ArenaCompareChart({ proposals, aiDeal }: { proposals: Proposal[]; aiDeal: Deal | null }) {
   const scoredProposals = proposals.filter(p => p.scores !== null);
   if (scoredProposals.length === 0 && !aiDeal?.scores) return null;
@@ -426,15 +675,14 @@ function ArenaCompareChart({ proposals, aiDeal }: { proposals: Proposal[]; aiDea
     }
     if (aiDeal?.scores) {
       const s = aiDeal.scores as DealScores;
-      row["AI Deal"] = Math.round((s[d.key] ?? 0) * 100);
+      row["AI Champion"] = Math.round((s[d.key] ?? 0) * 100);
     }
     return row;
   });
 
-  const COLORS = ["#f59e0b", "#0284c7", "#10b981", "#8b5cf6", "#ec4899"];
   const keys = [
     ...scoredProposals.map(p => p.name),
-    ...(aiDeal?.scores ? ["AI Deal"] : []),
+    ...(aiDeal?.scores ? ["AI Champion"] : []),
   ];
 
   return (
@@ -442,7 +690,9 @@ function ArenaCompareChart({ proposals, aiDeal }: { proposals: Proposal[]; aiDea
       <h3 className="text-lg font-bold mb-1 flex items-center gap-2">
         <GitCompare className="w-4 h-4 text-primary" /> Arena Comparison
       </h3>
-      <p className="text-xs text-muted-foreground mb-4">All scored proposals vs. current AI deal across 7 dimensions</p>
+      <p className="text-xs text-muted-foreground mb-4">
+        All scored proposals vs. current AI champion across 7 dimensions (0-100%). Each dimension is scored independently by 3 LLM judges and averaged.
+      </p>
       <div className="h-72">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 30 }}>
@@ -457,58 +707,11 @@ function ArenaCompareChart({ proposals, aiDeal }: { proposals: Proposal[]; aiDea
               <Bar
                 key={key}
                 dataKey={key}
-                fill={key === "AI Deal" ? "#0284c7" : COLORS[i] ?? "#94a3b8"}
+                fill={key === "AI Champion" ? AI_DEAL_COLOR : PROPOSAL_COLORS[i % PROPOSAL_COLORS.length]}
                 radius={[2, 2, 0, 0]}
               />
             ))}
           </BarChart>
-        </ResponsiveContainer>
-      </div>
-    </Card>
-  );
-}
-
-function DealScoreEvolution() {
-  const { data: dealsData } = useListDeals();
-  const deals = dealsData?.data ?? [];
-
-  const chartData = [...deals]
-    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-    .map((d, i) => {
-      const s = d.scores as DealScores | null;
-      return {
-        name: `#${i + 1}`,
-        composite: s ? Math.round((s.composite ?? 0) * 100) : null,
-        feasibility: s ? Math.round((s.feasibility ?? 0) * 100) : null,
-        domestic: s ? Math.round((s.domesticSellability ?? 0) * 100) : null,
-        architecture: d.architecture,
-      };
-    });
-
-  if (chartData.length < 2) return null;
-
-  return (
-    <Card className="p-6">
-      <h3 className="text-lg font-bold mb-1 flex items-center gap-2">
-        <TrendingUp className="w-4 h-4 text-primary" /> Score Evolution
-      </h3>
-      <p className="text-xs text-muted-foreground mb-4">AI deal score progression across {chartData.length} iterations</p>
-      <div className="h-56">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-            <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#94a3b8" }} />
-            <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} tickFormatter={(v: number) => `${v}%`} domain={[0, 100]} />
-            <Tooltip
-              contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "8px", fontSize: "11px" }}
-              formatter={(v: number) => [`${v}%`]}
-            />
-            <ReferenceLine y={65} stroke="#10b981" strokeDasharray="4 2" strokeOpacity={0.4} label={{ value: "target", fontSize: 9, fill: "#10b981" }} />
-            <Legend wrapperStyle={{ fontSize: "10px" }} />
-            <Line type="monotone" dataKey="composite" name="Composite" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-            <Line type="monotone" dataKey="feasibility" name="Feasibility" stroke="#10b981" strokeWidth={1.5} dot={{ r: 2 }} strokeDasharray="4 2" />
-            <Line type="monotone" dataKey="domestic" name="Domestic" stroke="#8b5cf6" strokeWidth={1.5} dot={{ r: 2 }} strokeDasharray="4 2" />
-          </LineChart>
         </ResponsiveContainer>
       </div>
     </Card>
@@ -520,7 +723,7 @@ function GapAnalysis({ proposals, aiDeal }: { proposals: Proposal[]; aiDeal: Dea
   if (scoredProposals.length === 0 && !aiDeal) return null;
 
   const allItems: { name: string; scores: DealScores }[] = [];
-  if (aiDeal?.scores) allItems.push({ name: "AI Deal", scores: aiDeal.scores as DealScores });
+  if (aiDeal?.scores) allItems.push({ name: "AI Champion", scores: aiDeal.scores as DealScores });
   for (const p of scoredProposals.slice(0, 6)) {
     allItems.push({ name: p.name.slice(0, 22), scores: p.scores as DealScores });
   }
@@ -533,7 +736,8 @@ function GapAnalysis({ proposals, aiDeal }: { proposals: Proposal[]; aiDeal: Dea
         <Target className="w-4 h-4 text-primary" /> Gap Analysis — Distance to Ideal
       </h3>
       <p className="text-xs text-muted-foreground mb-4">
-        Each cell shows the gap below 100% for that dimension. Darker = larger gap.
+        Each cell shows the score for that dimension (0-100%). Color intensity indicates how far from the ideal score of 100%.
+        Green = above 85%, yellow = 45-85%, red = below 45%.
       </p>
       <div className="overflow-x-auto">
         <table className="w-full text-[10px]">
@@ -543,6 +747,7 @@ function GapAnalysis({ proposals, aiDeal }: { proposals: Proposal[]; aiDeal: Dea
               {dims.map(d => (
                 <th key={d.key} className="text-center py-2 px-1 text-muted-foreground font-medium min-w-[48px]">
                   {d.label}
+                  <div className="text-[8px] font-normal opacity-60">{(d.weight * 100)}%w</div>
                 </th>
               ))}
               <th className="text-center py-2 px-1 text-muted-foreground font-medium min-w-[52px]">Composite</th>
@@ -586,6 +791,7 @@ function GapAnalysis({ proposals, aiDeal }: { proposals: Proposal[]; aiDeal: Dea
 export default function ProposalArena() {
   const { data: arenaData, isLoading } = useGetProposalArena();
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [aiExpanded, setAiExpanded] = useState(false);
   const [filterSource, setFilterSource] = useState<string>("all");
 
   const proposals = arenaData?.proposals ?? [];
@@ -611,53 +817,24 @@ export default function ProposalArena() {
     <div className="space-y-8 animate-fade-in pb-12">
       <PageHeader
         title="Proposal Arena"
-        description="Real-world peace proposals — evaluated and compared head-to-head against the AI-generated deal."
+        description="All peace proposals — real-world and AI-generated — evaluated and compared head-to-head."
       >
         {aiDealScores && (
           <Badge variant="outline" className="border-primary/40 text-primary">
-            AI Deal: {((aiDealScores.composite ?? 0) * 100).toFixed(0)}% composite
+            AI Champion: {((aiDealScores.composite ?? 0) * 100).toFixed(0)}% composite
           </Badge>
         )}
       </PageHeader>
 
       {aiDeal && (
-        <div className="grid sm:grid-cols-3 gap-4">
-          <Card className="p-4 border-primary/30 bg-primary/5 sm:col-span-3">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <Globe className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-bold">Current AI Deal Benchmark</span>
-                  <Badge variant="outline" className="text-[9px] border-primary/40 text-primary capitalize">
-                    {aiDeal.architecture}
-                  </Badge>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Generated by {aiDeal.generatedBy} · {new Date(aiDeal.createdAt).toLocaleDateString()}
-                </p>
-              </div>
-              <div className="flex gap-4 text-center">
-                {aiDealScores && [
-                  { label: "Composite", v: aiDealScores.composite },
-                  { label: "Feasibility", v: aiDealScores.feasibility },
-                  { label: "Domestic", v: aiDealScores.domesticSellability },
-                ].map(({ label, v }) => (
-                  <div key={label}>
-                    <div className={`text-xl font-display font-bold ${scoreColor(v ?? 0)}`}>
-                      {((v ?? 0) * 100).toFixed(0)}%
-                    </div>
-                    <div className="text-[10px] text-muted-foreground">{label}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </Card>
-        </div>
+        <AiDealCard
+          deal={aiDeal}
+          isExpanded={aiExpanded}
+          onToggle={() => setAiExpanded(!aiExpanded)}
+        />
       )}
 
       <ArenaCompareChart proposals={proposals} aiDeal={aiDeal} />
-
-      <DealScoreEvolution />
 
       <GapAnalysis proposals={proposals} aiDeal={aiDeal} />
 
@@ -701,16 +878,16 @@ export default function ProposalArena() {
 
         <DataSourceNote
           title="Proposal Evaluation Methodology"
-          methodology="Each proposal is evaluated by a 3-model judge panel (Anthropic, OpenAI, Gemini) scoring 7 dimensions. The composite score is a weighted average: Feasibility (20%), Domestic Sellability (20%), Coherence (15%), Regional Stability (15%), Evidence Grounding (10%), Implementability (10%), Durability (10%). Stakeholder verdicts are simulated based on each actor's documented goals, red lines, and constraints. 'What Would It Take' analysis identifies minimum viable changes for rejecting stakeholders."
+          methodology="Each proposal is evaluated by a 3-model judge panel (Anthropic Claude, OpenAI GPT-4o, Google Gemini) scoring 7 dimensions independently. The composite score is a weighted average: Feasibility (20%), Domestic Sellability (20%), Coherence (15%), Regional Stability (15%), Evidence Grounding (10%), Implementability (10%), Durability (10%). Stakeholder verdicts are simulated using a tiered acceptance system: Iran and US are Required (deal-breaker), Israel is Critical (near-fatal), and others are Influential or Contextual."
           sources={[
-            { label: "Judge panel", detail: "3 independent LLM providers score each dimension independently" },
-            { label: "Stakeholder profiles", detail: "Goals, red lines, and constraints from academic/policy sources" },
+            { label: "Judge panel", detail: "3 independent LLM providers score each dimension independently; final score = arithmetic mean" },
+            { label: "Stakeholder profiles", detail: "Goals, red lines, and constraints from academic/policy sources for 23 stakeholders" },
             { label: "Scoring weights", detail: "Calibrated to prioritize political feasibility and domestic sellability" },
           ]}
           confidenceNote="Multi-model scoring reduces single-model bias. Standard deviation across judges measures inter-model agreement — high deviation flags contentious dimensions."
           limitations={[
             "AI-simulated evaluations — not validated against real diplomatic negotiation outcomes.",
-            "Proposals from external sources (US 15-point, Iran 5-point) are evaluated with the same pipeline as AI-generated deals.",
+            "Proposals from external sources are evaluated with the same pipeline as AI-generated deals.",
           ]}
         />
       </div>
