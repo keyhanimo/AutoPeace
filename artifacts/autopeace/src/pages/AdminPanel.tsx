@@ -5,7 +5,6 @@ import {
   useTriggerRun,
   useTriggerDealRun,
   useListEvidenceSources,
-  useGetAdminCostsSummary,
   useGetCurrentDeal,
   useListProposals,
   type AdminConfigResponse,
@@ -15,9 +14,8 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAdminKey } from "@/hooks/use-admin";
 import { PageHeader, Card, Button, Input, Badge } from "@/components/ui";
-import { Lock, Play, Save, LogOut, Loader2, DollarSign, ToggleLeft, ToggleRight, Handshake, GitBranch, Cpu, Zap, CheckCircle2, AlertCircle, Plus, X, Inbox, CheckSquare, XSquare, ShieldAlert } from "lucide-react";
+import { Lock, Play, Save, LogOut, Loader2, ToggleLeft, ToggleRight, Handshake, GitBranch, Cpu, Zap, CheckCircle2, AlertCircle, Plus, X, Inbox, CheckSquare, XSquare, ShieldAlert, BookOpen, Copy, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { formatUsd } from "@/lib/utils";
 
 export default function AdminPanel() {
   const { adminKey, saveKey, clearKey } = useAdminKey();
@@ -32,7 +30,7 @@ export default function AdminPanel() {
   });
 
   const { data: sources } = useListEvidenceSources({ request: { headers: authHeaders } });
-  const { data: costSummary } = useGetAdminCostsSummary({ request: { headers: authHeaders } });
+  const [copiedModel, setCopiedModel] = useState<string | null>(null);
 
   const updateConfig = useUpdateAdminConfig({ request: { headers: authHeaders } });
   const runTrigger = useTriggerRun({ request: { headers: authHeaders } });
@@ -43,7 +41,7 @@ export default function AdminPanel() {
   type DealCycle = {
     cycleId: string; status: string; dealsCount: number;
     bestComposite: number; architectures: string[];
-    tokensConsumed: number; costUsd: number; startedAt: string;
+    startedAt: string;
   };
   const { data: dealCyclesData, refetch: refetchDealCycles } = useQuery<{ data: DealCycle[]; currentlyRunning: boolean }>({
     queryKey: ['/api/admin/deal-cycles', adminKey],
@@ -225,7 +223,6 @@ export default function AdminPanel() {
       }
       setFormData({
         cadence: config.cadence,
-        budgetCapUsd: config.budgetCapUsd,
         isPaused: config.isPaused,
         anthropicModel: config.anthropicModel,
         openaiModel: config.openaiModel,
@@ -356,14 +353,6 @@ export default function AdminPanel() {
                   <option value="manual">Manual Only — no automatic updates</option>
                 </select>
                 <p className="text-[10px] text-muted-foreground leading-relaxed">Controls how often the full autoresearch pipeline runs: ingests new evidence from RSS/ACLED/GDELT, updates forecasts via multi-model pipeline, optimizes deal proposals via the deal engine, and refreshes what-if scenarios. All data on the platform updates with each cycle.</p>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground">Budget Cap (USD)</label>
-                <Input 
-                  type="number" 
-                  value={formData.budgetCapUsd ?? 0}
-                  onChange={e => setFormData({...formData, budgetCapUsd: parseFloat(e.target.value)})}
-                />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-muted-foreground">Anthropic Forecaster Model</label>
@@ -989,27 +978,67 @@ export default function AdminPanel() {
           <Card className="p-6 bg-gradient-to-br from-card to-card border-primary/20">
             <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
               <div className="w-0.5 h-5 bg-primary rounded-full" />
-              <DollarSign className="w-5 h-5 text-primary" /> Cost Summary
+              <BookOpen className="w-5 h-5 text-primary" /> Model Reference
             </h3>
-            {costSummary ? (
-              <div className="space-y-6">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Total API Spend</p>
-                  <p className="text-4xl font-display font-bold text-red-400">{formatUsd(costSummary.totalCostUsd)}</p>
-                </div>
-                <div className="space-y-3">
-                  <p className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border/50 pb-1">By Provider</p>
-                  {Object.entries(costSummary.byProvider ?? {}).map(([prov, provData]) => (
-                    <div key={prov} className="flex justify-between items-center text-sm">
-                      <span className="capitalize">{prov}</span>
-                      <span className="font-mono">{formatUsd(provData.costUsd)}</span>
-                    </div>
+            <p className="text-xs text-muted-foreground mb-4">Click any model name to copy it to clipboard, then paste into a config field above.</p>
+            {[
+              {
+                provider: "Anthropic",
+                color: "text-amber-400",
+                models: [
+                  "claude-sonnet-4-5",
+                  "claude-opus-4-5",
+                  "claude-4-5-haiku",
+                  "claude-sonnet-4-5-v2",
+                ],
+              },
+              {
+                provider: "OpenAI",
+                color: "text-emerald-400",
+                models: [
+                  "gpt-4.1",
+                  "gpt-4.1-mini",
+                  "gpt-4.1-nano",
+                  "o4-mini",
+                  "o3",
+                  "o3-pro",
+                ],
+              },
+              {
+                provider: "Google Gemini",
+                color: "text-blue-400",
+                models: [
+                  "gemini-2.5-pro",
+                  "gemini-2.5-flash",
+                  "gemini-2.5-flash-lite-preview-06-17",
+                ],
+              },
+            ].map(({ provider, color, models }) => (
+              <div key={provider} className="mb-4 last:mb-0">
+                <p className={`text-xs font-semibold ${color} uppercase tracking-wider mb-2`}>{provider}</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {models.map(model => (
+                    <button
+                      key={model}
+                      onClick={() => {
+                        navigator.clipboard.writeText(model);
+                        setCopiedModel(model);
+                        toast({ title: "Copied", description: `"${model}" copied to clipboard.` });
+                        setTimeout(() => setCopiedModel(null), 2000);
+                      }}
+                      className="group flex items-center gap-1 px-2 py-1 bg-secondary/60 hover:bg-secondary border border-border/40 hover:border-primary/40 text-xs font-mono text-foreground transition-all cursor-pointer"
+                    >
+                      {model}
+                      {copiedModel === model ? (
+                        <Check className="w-3 h-3 text-emerald-400" />
+                      ) : (
+                        <Copy className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                      )}
+                    </button>
                   ))}
                 </div>
               </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">Loading costs...</p>
-            )}
+            ))}
           </Card>
         </div>
       </div>

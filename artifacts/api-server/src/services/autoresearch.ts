@@ -8,7 +8,7 @@ import {
   adminConfigTable,
   evidenceItemsTable,
 } from "@workspace/db/schema";
-import { desc, eq, sql, isNull } from "drizzle-orm";
+import { desc, eq, isNull } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { computeAndStoreWhatIfScenarios } from "./what-if-scenarios";
 import { generateForecasts, getRecentForecastsForBacktest, type GeneratedForecast } from "./forecasting";
@@ -50,7 +50,6 @@ export async function runCycleNow(): Promise<string> {
 
 async function runCycleAsync(cycleId: string): Promise<void> {
   let totalTokens = 0;
-  let totalCost = 0;
   let experimentsRun = 0;
   let experimentsRetained = 0;
 
@@ -61,16 +60,6 @@ async function runCycleAsync(cycleId: string): Promise<void> {
     if (isPaused === "true") {
       logger.info({ cycleId }, "Cycle paused by admin config");
       await db.update(cyclesTable).set({ status: "completed", completedAt: new Date() }).where(eq(cyclesTable.id, cycleId));
-      runningCycleId = null;
-      return;
-    }
-
-    const budgetCapUsd = parseFloat(await getConfigValue("budgetCapUsd", "5.0"));
-    const [cycleAgg] = await db.select({ totalCostUsd: sql<number>`coalesce(sum(${cyclesTable.costUsd}),0)` }).from(cyclesTable);
-    const spentSoFar = Number(cycleAgg?.totalCostUsd ?? 0);
-    if (spentSoFar >= budgetCapUsd) {
-      logger.warn({ cycleId, spentSoFar, budgetCapUsd }, "Budget cap reached — cycle skipped");
-      await db.update(cyclesTable).set({ status: "completed", completedAt: new Date(), errorMessage: `Budget cap $${budgetCapUsd} reached` }).where(eq(cyclesTable.id, cycleId));
       runningCycleId = null;
       return;
     }
@@ -129,7 +118,6 @@ async function runCycleAsync(cycleId: string): Promise<void> {
     experimentsRun = hillClimbResults.experimentsRun;
     experimentsRetained = hillClimbResults.experimentsRetained;
     totalTokens = hillClimbResults.totalTokens;
-    totalCost = hillClimbResults.totalCost;
 
     if (hillClimbResults.champion && hillClimbResults.experimentsRetained > 0) {
       const championState = JSON.stringify({
@@ -167,7 +155,6 @@ async function runCycleAsync(cycleId: string): Promise<void> {
       status: "completed",
       completedAt: new Date(),
       tokensConsumed: totalTokens,
-      costUsd: totalCost,
       experimentsRun,
       experimentsRetained,
     }).where(eq(cyclesTable.id, cycleId));
@@ -208,7 +195,6 @@ interface HillClimbResults {
   experimentsRun: number;
   experimentsRetained: number;
   totalTokens: number;
-  totalCost: number;
   champion: GeneratedForecast | null;
 }
 
@@ -277,7 +263,7 @@ async function runHillClimbing(
 ): Promise<HillClimbResults> {
   const primary = baseForecastSet.find(f => f.timeHorizon === "90d");
   if (!primary) {
-    return { experimentsRun: 0, experimentsRetained: 0, totalTokens: 0, totalCost: 0, champion: null };
+    return { experimentsRun: 0, experimentsRetained: 0, totalTokens: 0, champion: null };
   }
 
   const backtestRecords = await getRecentForecastsForBacktest(cycleId);
@@ -290,7 +276,6 @@ async function runHillClimbing(
   let experimentsRun = 0;
   let experimentsRetained = 0;
   let totalTokens = 0;
-  let totalCost = 0;
 
   for (const mutation of PROMPT_MUTATIONS) {
     try {
@@ -345,12 +330,8 @@ Respond with JSON: {"recommendation": "retain_challenger" | "retain_champion", "
 
       const mutantTokens = mutantResp.tokens;
       const evalTokens = evalResp.tokens;
-      const mutantCostEst = mutantTokens * 0.00000015;
-      const evalCostEst = evalTokens * 0.000005;
-      const expCost = mutantCostEst + evalCostEst;
       const expTokens = mutantTokens + evalTokens;
       totalTokens += expTokens;
-      totalCost += expCost;
 
       const scoresBefore = { ...champion.probabilities };
       const scoresAfter = retained ? { ...mutantProbs } : { ...champion.probabilities };
@@ -374,8 +355,6 @@ Respond with JSON: {"recommendation": "retain_challenger" | "retain_champion", "
         retained,
         tokensConsumed: expTokens,
         wallClockSeconds: null,
-        costUsd: expCost,
-        providerCosts: { [modelCfg.adversarialProvider]: mutantCostEst, [modelCfg.evaluationProvider]: evalCostEst },
       });
     } catch (err) {
       logger.warn({ err, mutation: mutation.name, cycleId }, "Mutation experiment failed");
@@ -383,7 +362,7 @@ Respond with JSON: {"recommendation": "retain_challenger" | "retain_champion", "
     }
   }
 
-  return { experimentsRun, experimentsRetained, totalTokens, totalCost, champion };
+  return { experimentsRun, experimentsRetained, totalTokens, champion };
 }
 
 type BacktestRecord = { timeHorizon: string; probs: ForecastProbabilities; resolvedOutcome: string };

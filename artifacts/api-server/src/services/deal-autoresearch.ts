@@ -327,7 +327,6 @@ async function runDealCycleAsync(cycleId: string): Promise<void> {
       isCurrent: isBetterThanCurrent,
       generatedBy: "ai",
       tokensConsumed: evaluated.tokensConsumed,
-      costUsd: evaluated.costUsd,
     });
 
     const compositeScore = evaluated.scores.composite ?? 0;

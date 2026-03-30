@@ -52,7 +52,7 @@ artifacts-monorepo/
 ## Database Schema (10+ tables)
 
 - **stakeholders** — 32 conflict actors with flags/roles/definitions. Categories: core_principal (3), gulf_state (6), regional_broker (8), external_power (8), global_bloc (3), international_org (1), internal_faction (2). Definitions for each actor (including aggregate blocs) are in the Stakeholders page frontend.
-- **cycles** — autoresearch run records (status, tokens, cost, timestamps)
+- **cycles** — autoresearch run records (status, tokens, timestamps)
 - **forecasts** — probability distributions across 8 outcome states per time horizon
 - **experiments** — red-team mutation log (Task A: Gemini red-team + GPT-4o eval)
 - **evidence_items** — ingested RSS articles classified by evidence type
@@ -85,7 +85,6 @@ Run migrations: `pnpm --filter @workspace/db run push`
 - `POST /api/admin/config` — update config (isPaused, cadence, budgetCapUsd, model names)
 - `GET /api/admin/sources` — list evidence sources
 - `PATCH /api/admin/sources/:id` — enable/disable or change fetch frequency
-- `GET /api/admin/costs-summary` — per-provider cost breakdown with actual Gemini/OpenAI attribution
 
 ## Unified LLM Router (`llm-router.ts`)
 

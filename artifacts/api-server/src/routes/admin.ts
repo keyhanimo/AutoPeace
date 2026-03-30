@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { adminConfigTable, evidenceSourcesTable, experimentsTable, cyclesTable, dealsTable } from "@workspace/db/schema";
-import { eq, sum, desc, sql } from "drizzle-orm";
+import { adminConfigTable, evidenceSourcesTable, dealsTable } from "@workspace/db/schema";
+import { eq, desc, sql } from "drizzle-orm";
 import { adminAuth } from "../lib/admin-auth";
 import { runCycleNow, isRunning } from "../services/autoresearch";
 import { runDealCycleNow, isDealCycleRunning } from "../services/deal-autoresearch";
@@ -238,15 +238,13 @@ router.get("/admin/deal-cycles", async (_req, res) => {
       composite: sql<number>`(${dealsTable.scores}->>'composite')::float`,
       isPareto: dealsTable.isPareto,
       isCurrent: dealsTable.isCurrent,
-      tokensConsumed: dealsTable.tokensConsumed,
-      costUsd: dealsTable.costUsd,
       createdAt: dealsTable.createdAt,
     }).from(dealsTable).orderBy(desc(dealsTable.createdAt)).limit(50);
 
     const cycleMap = new Map<string, {
       cycleId: string; status: string; dealsCount: number;
       bestComposite: number; architectures: string[];
-      tokensConsumed: number; costUsd: number; startedAt: Date;
+      startedAt: Date;
     }>();
 
     for (const deal of recentDeals) {
@@ -259,15 +257,11 @@ router.get("/admin/deal-cycles", async (_req, res) => {
           dealsCount: 1,
           bestComposite: comp,
           architectures: [deal.architecture],
-          tokensConsumed: deal.tokensConsumed,
-          costUsd: deal.costUsd,
           startedAt: deal.createdAt,
         });
       } else {
         existing.dealsCount++;
         existing.bestComposite = Math.max(existing.bestComposite, comp);
-        existing.tokensConsumed += deal.tokensConsumed;
-        existing.costUsd += deal.costUsd;
         if (!existing.architectures.includes(deal.architecture)) existing.architectures.push(deal.architecture);
       }
     }
@@ -313,84 +307,6 @@ router.patch("/admin/sources/:id", async (req, res) => {
     await db.update(evidenceSourcesTable).set(updateData).where(eq(evidenceSourcesTable.id, id!));
     const [updated] = await db.select().from(evidenceSourcesTable).where(eq(evidenceSourcesTable.id, id!));
     res.json(updated);
-  } catch (err) {
-    res.status(500).json({ error: String(err) });
-  }
-});
-
-router.get("/admin/costs-summary", async (_req, res) => {
-  try {
-    const experiments = await db.select({
-      costUsd: experimentsTable.costUsd,
-      tokensConsumed: experimentsTable.tokensConsumed,
-      providerCosts: experimentsTable.providerCosts,
-    }).from(experimentsTable);
-
-    const [cycleAgg] = await db.select({
-      totalCycleCostUsd: sum(cyclesTable.costUsd),
-      totalCycleTokens: sum(cyclesTable.tokensConsumed),
-    }).from(cyclesTable);
-
-    const cycles = await db.select({
-      cycleId: cyclesTable.id,
-      startedAt: cyclesTable.startedAt,
-      costUsd: cyclesTable.costUsd,
-      tokens: cyclesTable.tokensConsumed,
-    }).from(cyclesTable);
-
-    let geminiCostUsd = 0;
-    let openaiCostUsd = 0;
-    let totalExpCostUsd = 0;
-    let totalExpTokens = 0;
-
-    for (const exp of experiments) {
-      totalExpCostUsd += Number(exp.costUsd ?? 0);
-      totalExpTokens += Number(exp.tokensConsumed ?? 0);
-      const pc = exp.providerCosts as { gemini?: number; openai?: number } | null;
-      if (pc) {
-        geminiCostUsd += pc.gemini ?? 0;
-        openaiCostUsd += pc.openai ?? 0;
-      } else {
-        geminiCostUsd += Number(exp.costUsd ?? 0) * 0.5;
-        openaiCostUsd += Number(exp.costUsd ?? 0) * 0.5;
-      }
-    }
-
-    const totalCycleCostUsd = Number(cycleAgg?.totalCycleCostUsd ?? 0);
-    const totalCycleTokens = Number(cycleAgg?.totalCycleTokens ?? 0);
-
-    const anthropicCostUsd = Math.max(0, totalCycleCostUsd - totalExpCostUsd);
-    const anthropicTokens = Math.max(0, totalCycleTokens - totalExpTokens);
-    const geminiTokensEst = totalExpTokens > 0 ? Math.round(totalExpTokens * (geminiCostUsd / (geminiCostUsd + openaiCostUsd + 0.00001))) : 0;
-    const openaiTokensEst = totalExpTokens - geminiTokensEst;
-
-    res.json({
-      totalCostUsd: parseFloat(totalCycleCostUsd.toFixed(4)),
-      totalTokens: totalCycleTokens,
-      byProvider: {
-        anthropic: {
-          costUsd: parseFloat(anthropicCostUsd.toFixed(4)),
-          tokens: anthropicTokens,
-          role: "base-forecast-generation",
-        },
-        gemini: {
-          costUsd: parseFloat(geminiCostUsd.toFixed(4)),
-          tokens: geminiTokensEst,
-          role: "mutation-red-teaming",
-        },
-        openai: {
-          costUsd: parseFloat(openaiCostUsd.toFixed(4)),
-          tokens: openaiTokensEst,
-          role: "champion-evaluation",
-        },
-      },
-      byCycle: cycles.map(c => ({
-        cycleId: c.cycleId,
-        startedAt: c.startedAt?.toISOString() ?? "",
-        costUsd: c.costUsd ?? 0,
-        tokens: c.tokens ?? 0,
-      })),
-    });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }

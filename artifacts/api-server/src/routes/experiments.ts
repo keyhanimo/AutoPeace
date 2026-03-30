@@ -43,7 +43,6 @@ router.get("/experiments/stats", async (_req, res) => {
   try {
     const [allStats] = await db.select({
       total: count(),
-      totalCost: sum(experimentsTable.costUsd),
       totalTokens: sum(experimentsTable.tokensConsumed),
     }).from(experimentsTable);
 
@@ -60,7 +59,7 @@ router.get("/experiments/stats", async (_req, res) => {
       total,
       retained,
       retentionRate: total > 0 ? retained / total : 0,
-      totalCostUsd: Number(allStats?.totalCost ?? 0),
+      totalCostUsd: 0,
       totalTokensConsumed: Number(allStats?.totalTokens ?? 0),
       latestBrierScore: null,
       cyclesRun: cyclesRun?.count ?? 0,

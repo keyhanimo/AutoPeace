@@ -1,9 +1,8 @@
 import React, { useState, useMemo } from "react";
 import { useListExperiments, useGetExperimentStats, useGetSolutionTree } from "@workspace/api-client-react";
 import { PageHeader, Card, Badge, Button } from "@/components/ui";
-import { formatUsd } from "@/lib/utils";
 import {
-  CheckCircle2, XCircle, Cpu, Coins, ChevronLeft, ChevronRight,
+  CheckCircle2, XCircle, Cpu, ChevronLeft, ChevronRight,
   Search, Filter, ChevronDown, ChevronUp, Clock, FileText,
   GitBranch, Stethoscope, BarChart3,
 } from "lucide-react";
@@ -88,32 +87,6 @@ function ScoresComparison({ before, after }: { before: Record<string, number> | 
   );
 }
 
-function ProviderCostBreakdown({ costs, total }: { costs: { gemini?: number; openai?: number; anthropic?: number } | null; total: number }) {
-  if (!costs) return null;
-  const entries = [
-    { label: "Anthropic", value: costs.anthropic ?? 0, color: "#d97706" },
-    { label: "OpenAI", value: costs.openai ?? 0, color: "#10b981" },
-    { label: "Gemini", value: costs.gemini ?? 0, color: "#0284c7" },
-  ].filter(e => e.value > 0);
-
-  if (entries.length === 0) return null;
-
-  return (
-    <div className="space-y-1">
-      <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Provider Cost Breakdown</h4>
-      {entries.map(e => (
-        <div key={e.label} className="flex items-center gap-2 text-xs">
-          <span className="w-[80px] text-muted-foreground">{e.label}</span>
-          <div className="flex-1 bg-secondary/50 rounded h-2 overflow-hidden">
-            <div className="h-full rounded" style={{ width: total > 0 ? `${(e.value / total * 100).toFixed(1)}%` : "0%", backgroundColor: e.color }} />
-          </div>
-          <span className="w-[60px] text-right font-mono text-foreground">{formatUsd(e.value)}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 type ExperimentRow = {
   id: string;
   cycleId: string;
@@ -134,11 +107,10 @@ type ExperimentRow = {
 function ExpandedExperiment({ exp }: { exp: ExperimentRow }) {
   const scoreBefore = exp.scoresBefore;
   const scoresAfter = exp.scoresAfter;
-  const providerCosts = exp.providerCosts ?? null;
 
   return (
     <tr>
-      <td colSpan={7} className="px-0 py-0">
+      <td colSpan={6} className="px-0 py-0">
         <div className="bg-secondary/10 border-t border-b border-primary/20 px-6 py-5 space-y-5 animate-fade-in">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex items-center gap-2 text-xs">
@@ -157,10 +129,6 @@ function ExpandedExperiment({ exp }: { exp: ExperimentRow }) {
               <span className="font-mono text-foreground text-[10px]">{exp.cycleId}</span>
             </div>
           </div>
-
-          {providerCosts && (
-            <ProviderCostBreakdown costs={providerCosts} total={exp.costUsd} />
-          )}
 
           {exp.changeDiff && exp.changeDiff.trim() !== "" && (
             <div>
@@ -445,11 +413,11 @@ export default function ExperimentLog() {
         <Card className="p-6 flex items-center gap-4">
           <div className="flex items-center gap-3">
             <div className="w-0.5 h-8 bg-amber-500 rounded-full" />
-            <Coins className="w-6 h-6 text-amber-500" />
+            <Cpu className="w-6 h-6 text-amber-500" />
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Total Dev Cost</p>
-            <p className="text-2xl font-bold font-display">{formatUsd(stats?.totalCostUsd || 0)}</p>
+            <p className="text-sm text-muted-foreground">Total Tokens</p>
+            <p className="text-2xl font-bold font-display">{(stats?.totalTokensConsumed || 0).toLocaleString()}</p>
           </div>
         </Card>
       </div>
@@ -520,15 +488,15 @@ export default function ExperimentLog() {
                     <th className="px-4 py-4 font-medium">Task</th>
                     <th className="px-4 py-4 font-medium">Mutation Description</th>
                     <th className="px-4 py-4 font-medium">Score Before → After</th>
-                    <th className="px-4 py-4 font-medium">Cost / Tokens</th>
+                    <th className="px-4 py-4 font-medium">Tokens</th>
                     <th className="px-4 py-4 font-medium text-right">Result</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/50">
                   {isLoading ? (
-                    <tr><td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">Loading log...</td></tr>
+                    <tr><td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">Loading log...</td></tr>
                   ) : experiments.length === 0 ? (
-                    <tr><td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">No experiments match your filters.</td></tr>
+                    <tr><td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">No experiments match your filters.</td></tr>
                   ) : (
                     experiments.map((exp) => {
                       const scoreBefore = exp.scoresBefore as Record<string, number> | null;
@@ -540,7 +508,7 @@ export default function ExperimentLog() {
                         ? Object.entries(scoresAfter).sort((a, b) => b[1] - a[1])[0]
                         : null;
                       const isExpanded = expandedIds.has(exp.id);
-                      const hasDetails = exp.changeDiff || exp.diagnosis || scoreBefore || scoresAfter || exp.providerCosts;
+                      const hasDetails = exp.changeDiff || exp.diagnosis || scoreBefore || scoresAfter;
 
                       return (
                         <React.Fragment key={exp.id}>
@@ -580,8 +548,7 @@ export default function ExperimentLog() {
                             </td>
                             <td className="px-4 py-4 whitespace-nowrap">
                               <div className="flex flex-col">
-                                <span className="text-amber-400 font-mono text-xs">{formatUsd(exp.costUsd)}</span>
-                                <span className="text-xs text-muted-foreground">{exp.tokensConsumed.toLocaleString()} tks</span>
+                                <span className="text-foreground font-mono text-xs">{exp.tokensConsumed.toLocaleString()} tks</span>
                                 {exp.wallClockSeconds != null && (
                                   <span className="text-xs text-muted-foreground">{exp.wallClockSeconds}s</span>
                                 )}
@@ -631,11 +598,10 @@ export default function ExperimentLog() {
       <DataSourceNote
         compact
         title="Evolution Methodology"
-        methodology="Each research cycle, the agent mutates its own prompt instructions (optimistic, pessimistic, or base-rate adjustments). Gemini generates the mutation; GPT-4o evaluates whether the mutated prompt produces better Brier scores than the current champion. Only mutations that improve calibration are retained. Retention rate measures the fraction of mutations accepted. Cost is computed from actual token usage at per-provider pricing."
+        methodology="Each research cycle, the agent mutates its own prompt instructions (optimistic, pessimistic, or base-rate adjustments). Gemini generates the mutation; GPT-4o evaluates whether the mutated prompt produces better Brier scores than the current champion. Only mutations that improve calibration are retained. Retention rate measures the fraction of mutations accepted."
         sources={[
           { label: "Mutation types", detail: "Optimistic bias, Pessimistic bias, Base-rate anchoring" },
           { label: "Evaluation metric", detail: "Brier score (quadratic proper scoring rule)" },
-          { label: "Cost accounting", detail: "Actual token usage × provider pricing (Anthropic, OpenAI, Gemini)" },
           { label: "Solution tree", detail: "Branch-and-bound exploration across deal architectures (balanced, nuclear-first, hormuz-first, humanitarian-first)" },
         ]}
         limitations={["Brier scores are computed against the model's own prior — not external ground truth outcomes."]}
