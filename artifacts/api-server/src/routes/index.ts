@@ -34,6 +34,7 @@ router.use(communityForecastsRouter);
 router.use(scenariosRouter);
 
 router.use("/proposals/submit", submitLimiter);
+router.use("/proposals/screen", submitLimiter);
 router.use(proposalSubmissionsRouter);
 
 router.use(subscribeRouter);
