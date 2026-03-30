@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { Card, PageHeader, Badge, Button } from "@/components/ui";
 import { Download, FileJson, FileText, Database, Globe, FlaskConical, DollarSign, Newspaper, Handshake } from "lucide-react";
 
@@ -28,7 +29,7 @@ const DATASETS: Dataset[] = [
   {
     id: "deals",
     name: "AI Peace Deals",
-    description: "All AI-generated peace deal proposals with 7-dimension scores, stakeholder verdicts, and red-team results.",
+    description: "All AI-generated peace deal proposals with 7-dimension scores, innovative provisions, stakeholder verdicts, and red-team results.",
     urlJson: `${API}/deals.json`,
     urlCsv: `${API}/deals.csv`,
     icon: <Handshake className="w-4 h-4" />,
@@ -103,7 +104,7 @@ export default function DataPortal() {
                 CC BY 4.0
               </a>. You are free to use, share, and adapt the data for any purpose with attribution.
               Data represents AI-generated research outputs — see the{" "}
-              <a href="/methodology" className="text-primary hover:underline">Methodology</a> page for accuracy caveats.
+              <Link to="/methodology" className="text-primary hover:underline">Methodology</Link> page for accuracy caveats.
             </p>
           </div>
         </div>
@@ -183,11 +184,11 @@ export default function DataPortal() {
         <p className="text-sm text-muted-foreground mb-3">
           All data is available via the public REST API. See the full API documentation for request formats and available parameters.
         </p>
-        <a href="/api-docs">
+        <Link to="/api-docs">
           <Button size="sm" variant="outline" className="gap-2">
             View API Documentation
           </Button>
-        </a>
+        </Link>
       </Card>
     </div>
   );

@@ -82,17 +82,34 @@ router.get("/downloads/deals.csv", async (req, res) => {
       .limit(200);
     const flat = data.map(d => {
       const s = d.scores as Record<string, number> | null;
+      const jsonCol = (v: unknown) => v != null ? JSON.stringify(v) : "";
       return {
         id: d.id,
+        cycleId: d.cycleId,
+        parentId: d.parentId ?? "",
         architecture: d.architecture,
         isCurrent: d.isCurrent,
         isPareto: d.isPareto,
         composite: s?.composite ?? "",
         feasibility: s?.feasibility ?? "",
         coherence: s?.coherence ?? "",
+        evidenceGrounding: s?.evidenceGrounding ?? "",
         domesticSellability: s?.domesticSellability ?? "",
+        regionalStability: s?.regionalStability ?? "",
+        implementability: s?.implementability ?? "",
         durability: s?.durability ?? "",
+        diagnosis: d.diagnosis ?? "",
         generatedBy: d.generatedBy,
+        tokensConsumed: d.tokensConsumed,
+        costUsd: d.costUsd,
+        terms: jsonCol(d.terms),
+        stakeholderEvaluations: jsonCol(d.stakeholderEvaluations),
+        redTeamResults: jsonCol(d.redTeamResults),
+        negotiatorResult: jsonCol(d.negotiatorResult),
+        brainstormInsights: jsonCol(d.brainstormInsights),
+        domesticEvaluations: jsonCol(d.domesticEvaluations),
+        domesticFramingStrategies: jsonCol(d.domesticFramingStrategies),
+        metaEvaluatorResult: jsonCol(d.metaEvaluatorResult),
         createdAt: d.createdAt.toISOString(),
       };
     });
