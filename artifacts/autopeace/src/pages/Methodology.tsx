@@ -1,13 +1,13 @@
 import React from "react";
 import { PageHeader, Card } from "@/components/ui";
-import { AlertTriangle, ExternalLink, ArrowRight, GitBranch, BarChart3, Shield, Scale, Brain, Zap, Target, Layers, RefreshCw } from "lucide-react";
+import { AlertTriangle, ExternalLink, ArrowRight, GitBranch, BarChart3, Shield, Scale, Brain, Zap, Target, Layers, RefreshCw, Users } from "lucide-react";
 
 export default function Methodology() {
   return (
     <div className="max-w-5xl mx-auto space-y-10 animate-fade-in pb-12">
       <PageHeader
         title="Methodology"
-        description="A comprehensive technical description of AutoPeace — a dual-loop autoresearch system for Bayesian conflict forecasting and autonomous peace deal optimization."
+        description="A comprehensive technical description of AutoPeace — a triple-loop autoresearch system for Bayesian conflict forecasting, autonomous peace deal optimization, and crowdsourced proposal evaluation."
       />
 
       <nav className="not-prose">
@@ -21,6 +21,7 @@ export default function Methodology() {
             <li><a href="#task-a" className="hover:text-primary transition-colors">Task A: Bayesian Conflict Forecasting</a></li>
             <li><a href="#hill-climbing" className="hover:text-primary transition-colors">Hill-Climbing Self-Improvement Loop</a></li>
             <li><a href="#task-b" className="hover:text-primary transition-colors">Task B: Autonomous Deal Optimization</a></li>
+            <li><a href="#task-c" className="hover:text-primary transition-colors">Task C: Crowdsourced Proposal Evaluation</a></li>
             <li><a href="#cba" className="hover:text-primary transition-colors">Cost-Benefit Analysis Modeling</a></li>
             <li><a href="#scoring" className="hover:text-primary transition-colors">Scoring &amp; Evaluation Framework</a></li>
             <li><a href="#pareto" className="hover:text-primary transition-colors">Pareto Frontier &amp; Solution Tree</a></li>
@@ -37,14 +38,15 @@ export default function Methodology() {
             <Brain className="w-6 h-6 text-primary" /> 1. Abstract &amp; Motivation
           </h2>
           <p>
-            AutoPeace is a dual-objective autoresearch system that performs two complementary tasks in a continuous loop:
+            AutoPeace is a triple-objective autoresearch system that performs three complementary tasks:
           </p>
           <ul>
             <li><strong>Task A — Bayesian Conflict Forecasting:</strong> Continuously updating probability distributions across eight mutually exclusive conflict outcome states for the Iran-US-Israel conflict complex, using multi-agent LLM debate and hill-climbing calibration optimization.</li>
-            <li><strong>Task B — Autonomous Peace Deal Optimization:</strong> Generating, evaluating, and iteratively refining concrete peace deal proposals through an 8-stage multi-agent pipeline that includes stakeholder modeling, adversarial red-teaming, domestic political analysis, negotiation simulation, and multi-model judicial scoring.</li>
+            <li><strong>Task B — Autonomous Peace Deal Optimization:</strong> Generating, evaluating, and iteratively refining AI-originated peace deal proposals through an 8-stage multi-agent pipeline that includes stakeholder modeling, adversarial red-teaming, domestic political analysis, negotiation simulation, and multi-model judicial scoring.</li>
+            <li><strong>Task C — Crowdsourced Proposal Evaluation:</strong> Accepting peace proposals from external sources — both community submissions and real-world proposals automatically extracted from news evidence — and subjecting them to the same rigorous 8-stage multi-agent evaluation pipeline used for AI-generated deals, enabling direct comparison across human and machine-originated proposals on identical scoring dimensions.</li>
           </ul>
           <p>
-            The system treats both forecasting accuracy and deal quality as optimization targets. Task A provides the probabilistic context that informs Task B, while Task B's deal evaluations feed diagnostic signals back into subsequent cycles. The core insight is that conflict forecasting alone is insufficient — actionable peace proposals require a separate optimization loop grounded in cost-benefit analysis, stakeholder game theory, and adversarial stress testing.
+            The system treats forecasting accuracy, AI-generated deal quality, and crowdsourced proposal evaluation as complementary optimization targets. Task A provides the probabilistic context that informs Task B. Task B's deal evaluations feed diagnostic signals back into subsequent cycles. Task C brings external proposals into the same evaluation framework, enabling the system to benchmark its own AI-generated deals against real-world diplomatic proposals and community ideas. The core insight is that conflict forecasting alone is insufficient — actionable peace proposals require a separate optimization loop grounded in cost-benefit analysis, stakeholder game theory, and adversarial stress testing, combined with an open channel for human-originated proposals to be evaluated on equal footing.
           </p>
         </Card>
 
@@ -319,15 +321,79 @@ export default function Methodology() {
           </p>
         </Card>
 
+        <Card className="p-8" id="task-c">
+          <h2 className="text-2xl font-bold font-display text-foreground mt-0 flex items-center gap-3">
+            <Users className="w-6 h-6 text-primary" /> 8. Task C: Crowdsourced Proposal Evaluation
+          </h2>
+          <p>
+            While Task B generates AI-originated proposals autonomously, Task C opens the system to external proposals from two distinct sources and subjects them to the same rigorous evaluation pipeline. This creates a common evaluation framework where AI-generated deals, real-world diplomatic proposals, and community-submitted ideas can be directly compared on identical scoring dimensions.
+          </p>
+
+          <h3 className="text-xl font-bold font-display text-foreground mt-6">8.1 Source 1: Automatic News Extraction</h3>
+          <p>
+            During each autoresearch cycle (Step 2 in the system architecture), the system scans newly ingested diplomatic evidence for mentions of concrete peace proposals from real-world actors. This is performed by a dedicated Proposal Extraction Agent (Anthropic Claude Sonnet) that:
+          </p>
+          <ul>
+            <li>Filters evidence items to only those classified as "diplomatic" and not yet processed</li>
+            <li>Scans up to 30 articles per batch for mentions of <strong>concrete proposals with actual policy substance</strong> — specific nuclear terms, sanctions conditions, timelines, etc.</li>
+            <li>Rejects vague diplomatic statements ("we are open to talks"), opinion columns, and proposals lacking sufficient detail</li>
+            <li>Requires each extracted proposal to be attributable to a specific real-world actor (government, international body, think tank) with a confidence score ≥ 0.6</li>
+            <li>Deduplicates against existing proposals using stable SHA-256 hashes and fuzzy name matching (≥3 shared significant words triggers duplicate detection)</li>
+          </ul>
+          <p>
+            Each extracted proposal is mapped to the standard 7-dimension deal terms structure (nuclear protocol, sanctions relief, Hormuz arrangements, humanitarian provisions, verification mechanism, timeline, sequencing) and any known stakeholder responses mentioned in the source articles are captured as initial evaluations. The proposal is then immediately run through the full 8-stage evaluation pipeline: stakeholder evaluation, domestic audience assessment, red-team stress testing, negotiator amendments, judge panel scoring, meta-evaluation, diagnosis generation, and "What Would It Take" analysis.
+          </p>
+
+          <h3 className="text-xl font-bold font-display text-foreground mt-6">8.2 Source 2: Community Submissions</h3>
+          <p>
+            The system provides a public submission form where anyone can submit a peace proposal for evaluation. Community submissions follow a moderated pipeline:
+          </p>
+          <div className="space-y-3 not-prose text-sm">
+            <div className="bg-card p-4 border border-border border-l-2 border-l-sky-500">
+              <h4 className="font-bold text-foreground mb-1">Step 1: Submission</h4>
+              <p className="text-muted-foreground">Users provide: submitter name (optional), source name and URL, a summary (minimum 50 characters), and a set of key-value term pairs describing specific policy provisions (e.g., "Uranium enrichment cap" → "3.67%"). The frontend validates completeness and URL format before submission.</p>
+            </div>
+            <div className="bg-card p-4 border border-border border-l-2 border-l-amber-500">
+              <h4 className="font-bold text-foreground mb-1">Step 2: Admin Review Queue</h4>
+              <p className="text-muted-foreground">Submissions enter a <code>pending</code> state in the admin review queue. Administrators can edit the summary and terms to standardize formatting before deciding. This moderation step prevents low-quality or spam submissions from consuming evaluation resources.</p>
+            </div>
+            <div className="bg-card p-4 border border-border border-l-2 border-l-emerald-500">
+              <h4 className="font-bold text-foreground mb-1">Step 3: Approval &amp; Evaluation</h4>
+              <p className="text-muted-foreground">Upon admin approval, the proposal is created in the proposals table with <code>source: "community"</code> and the full 8-stage evaluation pipeline is triggered asynchronously. The community proposal receives the same stakeholder evaluation, domestic audience analysis, red-team stress testing, negotiator amendments, 3-model judge panel scoring, meta-evaluation, diagnosis, and "What Would It Take" analysis as any AI-generated deal. Results are persisted and the proposal appears in the Proposal Arena alongside all other evaluated proposals.</p>
+            </div>
+          </div>
+
+          <h3 className="text-xl font-bold font-display text-foreground mt-6">8.3 Evaluation Parity</h3>
+          <p>
+            A critical design principle of Task C is <strong>evaluation parity</strong>: community-submitted and news-extracted proposals go through the identical evaluation pipeline as AI-generated deals from Task B. Specifically:
+          </p>
+          <ul>
+            <li>The same 8 core stakeholders (Iran, US, Israel, Saudi Arabia, IAEA, Russia, China, EU3) evaluate every proposal using identical profiles and red lines</li>
+            <li>The same 11 domestic audiences across 3 countries assess political sellability</li>
+            <li>The same adversarial red-team generates 5 attack scenarios per proposal</li>
+            <li>The same negotiator agent proposes amendments for rejecting stakeholders</li>
+            <li>The same 3-model judge panel (Anthropic, OpenAI, Gemini) scores on the same 7 dimensions with identical composite weighting</li>
+            <li>The same "What Would It Take" analysis computes concrete requirements for each rejecting stakeholder</li>
+          </ul>
+          <p>
+            This parity means every proposal in the system — whether generated by the AI, extracted from a Reuters article, or submitted by a graduate student — is scored on the same scale and can be directly compared in the Proposal Arena. The composite scores, stakeholder verdicts, and red-team survival rates are all directly comparable across origin types.
+          </p>
+
+          <h3 className="text-xl font-bold font-display text-foreground mt-6">8.4 The Autoresearch Feedback Loop</h3>
+          <p>
+            Task C proposals don't exist in isolation — they integrate into the broader autoresearch cycle. News-extracted proposals are discovered during evidence ingestion, meaning the system's awareness of real-world diplomatic proposals evolves alongside its evidence base. High-scoring community proposals provide benchmark targets for Task B's AI-generated deals, creating competitive pressure that drives the autonomous optimization loop toward more realistic and feasible proposals.
+          </p>
+        </Card>
+
         <Card className="p-8" id="cba">
           <h2 className="text-2xl font-bold font-display text-foreground mt-0 flex items-center gap-3">
-            <Scale className="w-6 h-6 text-primary" /> 8. Cost-Benefit Analysis Modeling
+            <Scale className="w-6 h-6 text-primary" /> 9. Cost-Benefit Analysis Modeling
           </h2>
           <p>
             The CBA framework is injected directly into the Proposal Agent's prompt context (Stage 1) and the Judge Panel's scoring prompt (Stage 6), ensuring that deal generation and evaluation are grounded in economic reality rather than pure diplomatic reasoning.
           </p>
 
-          <h3 className="text-xl font-bold font-display text-foreground mt-6">8.1 War vs. Peace Framework</h3>
+          <h3 className="text-xl font-bold font-display text-foreground mt-6">9.1 War vs. Peace Framework</h3>
           <p>
             The modeling approach treats war and peace as alternative states of the same system using consistent accounting rules. The delta (Δ) between states represents the "Peace Dividend" or "War Cost." Annual estimates used in prompts:
           </p>
@@ -338,7 +404,7 @@ export default function Methodology() {
             </div>
           </div>
 
-          <h3 className="text-xl font-bold font-display text-foreground mt-6">8.2 Economic Channels</h3>
+          <h3 className="text-xl font-bold font-display text-foreground mt-6">9.2 Economic Channels</h3>
           <p>Impacts are decomposed across specific channels with war cost / peace gain estimates (USD billions per year) provided to the LLM agents:</p>
           <div className="overflow-x-auto not-prose">
             <table className="w-full text-sm border-collapse">
@@ -362,7 +428,7 @@ export default function Methodology() {
             </table>
           </div>
 
-          <h3 className="text-xl font-bold font-display text-foreground mt-6">8.3 Stakeholder-Specific Incentives</h3>
+          <h3 className="text-xl font-bold font-display text-foreground mt-6">9.3 Stakeholder-Specific Incentives</h3>
           <p>
             The Proposal Agent is told which actors bear the highest costs and stand to gain the most from peace, ensuring deals are designed with realistic incentive structures:
           </p>
@@ -377,7 +443,7 @@ export default function Methodology() {
             This CBA context directs the LLM to design deals that "address the channels where the largest economic gains are achievable and ensure stakeholders who bear the highest costs have clear incentives to participate." The Judge Panel receives the same data, instructing it to "consider whether the deal terms adequately address these economic incentives when scoring regionalStability and feasibility."
           </p>
 
-          <h3 className="text-xl font-bold font-display text-foreground mt-6">8.4 Conceptual Framework: Three-Ledger Accounting</h3>
+          <h3 className="text-xl font-bold font-display text-foreground mt-6">9.4 Conceptual Framework: Three-Ledger Accounting</h3>
           <p>
             The CBA estimates injected into prompts are informed by a three-ledger conceptual framework (documented in the project's modeling guide) designed to avoid double-counting errors common in conflict economics. While the system does not computationally implement these ledgers as separate modules, the framework shapes how the aggregate figures are constructed:
           </p>
@@ -393,10 +459,10 @@ export default function Methodology() {
 
         <Card className="p-8" id="scoring">
           <h2 className="text-2xl font-bold font-display text-foreground mt-0 flex items-center gap-3">
-            <Shield className="w-6 h-6 text-primary" /> 9. Scoring &amp; Evaluation Framework
+            <Shield className="w-6 h-6 text-primary" /> 10. Scoring &amp; Evaluation Framework
           </h2>
 
-          <h3 className="text-xl font-bold font-display text-foreground mt-4">9.1 Task A Scoring (Forecast Calibration)</h3>
+          <h3 className="text-xl font-bold font-display text-foreground mt-4">10.1 Task A Scoring (Forecast Calibration)</h3>
           <p>
             Forecast quality is measured by Brier score, log score, and their composite, computed against backtest records from historical seed data. See Section 6.3 for the mathematical definitions and composite formula.
           </p>
@@ -404,7 +470,7 @@ export default function Methodology() {
             The codebase also includes a calibration curve utility that can bucket forecast-outcome pairs into 10 probability bins and compare predicted vs. observed frequencies. This is available for calibration analysis but is not automatically computed as part of the autoresearch cycle's runtime path.
           </p>
 
-          <h3 className="text-xl font-bold font-display text-foreground mt-6">9.2 Task B Scoring (Deal Quality)</h3>
+          <h3 className="text-xl font-bold font-display text-foreground mt-6">10.2 Task B Scoring (Deal Quality)</h3>
           <p>
             The Judge Panel (Stage 6) scores each deal on <strong>7 dimensions</strong>, each rated 0.0 to 1.0 with rationale:
           </p>
@@ -438,18 +504,18 @@ export default function Methodology() {
 
         <Card className="p-8" id="pareto">
           <h2 className="text-2xl font-bold font-display text-foreground mt-0 flex items-center gap-3">
-            <GitBranch className="w-6 h-6 text-primary" /> 10. Pareto Frontier &amp; Solution Tree
+            <GitBranch className="w-6 h-6 text-primary" /> 11. Pareto Frontier &amp; Solution Tree
           </h2>
           <p>
             Rather than simply tracking the "best" deal, AutoPeace maintains two complementary views of the solution space:
           </p>
 
-          <h3 className="text-xl font-bold font-display text-foreground mt-4">10.1 Pareto Frontier</h3>
+          <h3 className="text-xl font-bold font-display text-foreground mt-4">11.1 Pareto Frontier</h3>
           <p>
             The system maintains a set of <strong>non-dominated deals</strong> — the Pareto frontier. A deal is dominated (and removed from the frontier) if and only if another deal is equal or better on <em>all</em> 7 scoring dimensions AND strictly better on at least one. This means the frontier preserves deals with different trade-off profiles (e.g., a deal with high feasibility but lower durability coexists with a deal showing the opposite pattern).
           </p>
 
-          <h3 className="text-xl font-bold font-display text-foreground mt-6">10.2 Solution Tree</h3>
+          <h3 className="text-xl font-bold font-display text-foreground mt-6">11.2 Solution Tree</h3>
           <p>
             Every deal is recorded as a node in a tree structure. Each node stores:
           </p>
@@ -468,7 +534,7 @@ export default function Methodology() {
 
         <Card className="p-8" id="what-if">
           <h2 className="text-2xl font-bold font-display text-foreground mt-0 flex items-center gap-3">
-            <ArrowRight className="w-6 h-6 text-primary" /> 11. What-If Scenario Analysis
+            <ArrowRight className="w-6 h-6 text-primary" /> 12. What-If Scenario Analysis
           </h2>
           <p>
             After each forecasting cycle, the system generates counterfactual forecast variants for four predefined geopolitical scenarios:
@@ -486,7 +552,7 @@ export default function Methodology() {
 
         <Card className="p-8 border-amber-700/40 bg-amber-900/10" id="limitations">
           <h2 className="text-2xl font-bold font-display text-foreground mt-0 flex items-center gap-3">
-            <AlertTriangle className="w-6 h-6 text-amber-400" /> 12. Limitations &amp; Disclaimer
+            <AlertTriangle className="w-6 h-6 text-amber-400" /> 13. Limitations &amp; Disclaimer
           </h2>
           <ul className="space-y-2 text-sm text-muted-foreground mt-4 list-disc list-inside">
             <li>Forecasts are <strong>probabilistic estimates</strong> produced by AI models and are not verified ground truth. All probabilities should be interpreted with appropriate epistemic humility.</li>
