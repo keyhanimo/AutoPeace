@@ -96,15 +96,15 @@ const OUTCOME_LABELS: Record<string, string> = {
 };
 
 function OutcomeSparkbar({ forecasts }: { forecasts: Forecast[] }) {
-  const f90 = forecasts.find(f => f.timeHorizon === '90d');
-  if (!f90) return null;
-  const probs = Object.entries(f90.probabilities)
+  const f30 = forecasts.find(f => f.timeHorizon === '30d') ?? forecasts[0];
+  if (!f30) return null;
+  const probs = Object.entries(f30.probabilities)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5);
 
   return (
     <div className="space-y-2.5 w-full">
-      <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">90-Day Outcome Distribution</p>
+      <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">30-Day Outcome Distribution</p>
       {probs.map(([key, val]) => (
         <div key={key} className="flex items-center gap-3">
           <div className="w-40 shrink-0 text-xs text-muted-foreground capitalize">{OUTCOME_LABELS[key] ?? key.replace(/_/g, ' ')}</div>
@@ -222,7 +222,7 @@ export default function Home() {
                   <div className="text-[10px] text-muted-foreground text-center leading-tight uppercase tracking-wider font-bold">Peace<br/>Outlook</div>
                 </div>
               </div>
-              <span className="text-[10px] text-muted-foreground mt-1.5 uppercase tracking-widest font-bold">30d Horizon</span>
+              <span className="text-[10px] text-muted-foreground mt-1.5 uppercase tracking-widest font-bold">30-Day Horizon</span>
               <span className="text-[9px] text-muted-foreground/70 mt-0.5 text-center max-w-[120px] leading-tight">Sum of 4 peace-outcome probabilities</span>
             </div>
             <div className="w-px h-20 bg-border/50 hidden sm:block shrink-0" />
