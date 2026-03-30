@@ -514,6 +514,10 @@ Output a JSON object mapping stakeholder IDs to their verdict. Each verdict has:
     `- ${s.id}: ${s.name}. ${s.profile}`
   ).join("\n");
 
+  const innovativeContext = terms.innovativeProvisions?.length
+    ? `\nINNOVATIVE PROVISIONS (novel deal elements that create new value — factor these into each stakeholder's assessment):\n${terms.innovativeProvisions.map(p => `- ${p.title}: ${p.description}`).join("\n")}`
+    : "";
+
   const prompt = `Evaluate how these stakeholders would respond to this peace deal, considering both what they receive and what they are asked to commit:
 
 DEAL TERMS:
@@ -523,7 +527,7 @@ DEAL TERMS:
 - Humanitarian: ${terms.humanitarianProvisions}
 - Verification: ${terms.verificationMechanism}
 - Timeline: ${terms.timelineYears} years
-- Sequencing: ${terms.sequencing}
+- Sequencing: ${terms.sequencing}${innovativeContext}
 
 CORE STAKEHOLDERS (required + critical + influential — evaluate in detail):
 ${coreTierLines}
@@ -774,13 +778,17 @@ Output a JSON object with keys like "iran_supreme_leader", "us_congress", etc.`;
     audiences.map(a => ({ key: `${stakeholderId}_${a.replace(/\s+/g, "_").toLowerCase()}`, label: `${stakeholder} — ${a}` }))
   );
 
+  const innovativeContext = terms.innovativeProvisions?.length
+    ? `\nINNOVATIVE PROVISIONS (novel deal elements — consider how each audience would react to these):\n${terms.innovativeProvisions.map(p => `- ${p.title}: ${p.description}`).join("\n")}`
+    : "";
+
   const prompt = `Assess the domestic political sellability of this peace deal to these audiences:
 
 DEAL TERMS:
 - Nuclear: ${terms.nuclearProtocol}
 - Sanctions: ${terms.sanctionsRelief}
 - Sequencing: ${terms.sequencing}
-- Timeline: ${terms.timelineYears} years
+- Timeline: ${terms.timelineYears} years${innovativeContext}
 
 AUDIENCES:
 ${audienceList.map(a => `- ${a.key}: ${a.label}`).join("\n")}
@@ -813,10 +821,14 @@ export async function runRedTeam(
   const systemPrompt = `You are an adversarial red-team analyst trying to find fatal flaws in a peace deal.
 Generate 5 adversarial attacks that could collapse this deal. Output as JSON array.`;
 
+  const innovativeContext = terms.innovativeProvisions?.length
+    ? `\nINNOVATIVE PROVISIONS (also stress-test these novel elements):\n${terms.innovativeProvisions.map(p => `- ${p.title}: ${p.description}`).join("\n")}`
+    : "";
+
   const prompt = `Red-team this peace deal:
 Nuclear: ${terms.nuclearProtocol}
 Sanctions: ${terms.sanctionsRelief}
-Sequencing: ${terms.sequencing}
+Sequencing: ${terms.sequencing}${innovativeContext}
 
 Return JSON array: [{ "attack": "description", "severity": "low|medium|high|critical", "response": "how proponents respond", "survived": true|false }, ...]`;
 
@@ -893,6 +905,10 @@ Output JSON only.`;
     ? `\nSTAKEHOLDER COMMITMENTS (grand coalition):\n${Object.entries(terms.stakeholderCommitments).map(([id, c]) => `- ${id}: ${String(c).slice(0, 150)}`).join("\n")}`
     : "";
 
+  const innovativeBlock = terms.innovativeProvisions?.length
+    ? `\nINNOVATIVE PROVISIONS (novel mechanisms that may improve coherence, durability, or sellability scores):\n${terms.innovativeProvisions.map(p => `- ${p.title}: ${p.description}`).join("\n")}`
+    : "";
+
   const prompt = `Score this peace deal (0.0-1.0 per dimension) and explain each score:
 
 DEAL SUMMARY (post-negotiator amendments applied):
@@ -900,7 +916,7 @@ DEAL SUMMARY (post-negotiator amendments applied):
 - Sanctions: ${terms.sanctionsRelief.slice(0, 200)}
 - Timeline: ${terms.timelineYears} years
 - Sequencing: ${terms.sequencing.slice(0, 200)}
-${commitmentsBlock}
+${commitmentsBlock}${innovativeBlock}
 
 STAKEHOLDER ACCEPTANCE BY TIER:
 - REQUIRED (Iran + US): ${requiredTier.accept} accept, ${requiredTier.conditional} conditional, ${requiredTier.reject} reject — Iran: ${iranVerdict || "unknown"}, US: ${usVerdict || "unknown"}
