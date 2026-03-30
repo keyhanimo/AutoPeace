@@ -46,7 +46,7 @@ const CONFIG_DEFAULTS: Record<string, string> = {
   judgePanelAnthropicModel: "",
   judgePanelOpenaiModel: "",
   judgePanelGeminiModel: "",
-  submissionScreeningModel: "claude-sonnet-4-5-20241022",
+  submissionScreeningModel: "claude-sonnet-4-5",
 };
 
 async function getConfigMap(): Promise<Record<string, string>> {
@@ -79,7 +79,7 @@ function mapToResponse(cfg: Record<string, string>) {
     judgePanelAnthropicModel: cfg["judgePanelAnthropicModel"] ?? "",
     judgePanelOpenaiModel: cfg["judgePanelOpenaiModel"] ?? "",
     judgePanelGeminiModel: cfg["judgePanelGeminiModel"] ?? "",
-    submissionScreeningModel: cfg["submissionScreeningModel"] ?? "claude-sonnet-4-5-20241022",
+    submissionScreeningModel: cfg["submissionScreeningModel"] ?? "claude-sonnet-4-5",
   };
   // Include per-stage overrides if present
   for (let s = 1; s <= 8; s++) {

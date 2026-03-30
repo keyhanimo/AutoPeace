@@ -1,12 +1,12 @@
 import { db } from "@workspace/db";
 import { proposalSubmissionsTable, proposalsTable, adminConfigTable } from "@workspace/db/schema";
-import { eq, or, inArray } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 import { getAnthropic } from "./llm-router";
 import pino from "pino";
 
 const logger = pino({ name: "proposal-screening" });
 
-const DEFAULT_SCREENING_MODEL = "claude-sonnet-4-5-20241022";
+const DEFAULT_SCREENING_MODEL = "claude-sonnet-4-5";
 
 async function getScreeningModel(): Promise<string> {
   const rows = await db

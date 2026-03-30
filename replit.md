@@ -180,7 +180,7 @@ Before community proposals enter the admin review queue, an LLM screens them for
 
 - **Service**: `artifacts/api-server/src/services/proposal-screening.ts` — fetches existing proposal summaries from DB, calls Anthropic API to evaluate
 - **Endpoints**: `POST /api/proposals/screen` (standalone) and integrated into `POST /api/proposals/submit` (returns HTTP 422 with rejection reason)
-- **Admin config key**: `submissionScreeningModel` (default: `claude-sonnet-4-5-20241022`) — configurable in Admin Panel "Submission Screening" card
+- **Admin config key**: `submissionScreeningModel` (default: `claude-sonnet-4-5`) — configurable in Admin Panel "Submission Screening" card
 - **Frontend**: `SubmitProposal.tsx` shows "Screening Your Proposal…" loading state and rejection card with reason/dismiss; `AdminPanel.tsx` has screening model config
 - **Fail-open**: If the screening API is unavailable (network error), proposals pass through to human review
 

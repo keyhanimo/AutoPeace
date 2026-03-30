@@ -462,9 +462,9 @@ export default function AdminPanel() {
               <Input
                 value={(formData as Record<string, unknown>).submissionScreeningModel as string ?? ""}
                 onChange={e => setFormData({ ...formData, submissionScreeningModel: e.target.value })}
-                placeholder="claude-sonnet-4-5-20241022"
+                placeholder="claude-sonnet-4-5"
               />
-              <p className="text-[10px] text-muted-foreground">Default: claude-sonnet-4-5-20241022. This model evaluates community proposals for spam, duplicates, and seriousness before they reach the admin queue.</p>
+              <p className="text-[10px] text-muted-foreground">Default: claude-sonnet-4-5. This model evaluates community proposals for spam, duplicates, and seriousness before they reach the admin queue.</p>
             </div>
             <div className="mt-4 flex justify-end">
               <Button onClick={handleSaveConfig} disabled={updateConfig.isPending} className="gap-2">
