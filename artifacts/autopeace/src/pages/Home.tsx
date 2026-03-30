@@ -46,20 +46,20 @@ function AIvsHumanChart({ aiDeal, humanProposals }: { aiDeal: { scores: unknown;
   if (entries.length === 0) return null;
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {entries.map((entry, i) => (
-        <div key={i} className="space-y-1">
+        <div key={i} className="space-y-1.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 min-w-0">
-              {entry.isAI ? <Trophy className="w-3.5 h-3.5 text-blue-400 shrink-0" /> : <Users className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
-              <span className="text-xs font-semibold text-foreground truncate">{entry.name}</span>
+              {entry.isAI ? <Trophy className="w-4 h-4 text-blue-400 shrink-0" /> : <Users className="w-4 h-4 text-amber-400 shrink-0" />}
+              <span className="text-sm font-semibold text-foreground truncate">{entry.name}</span>
             </div>
             <div className="flex items-center gap-2 shrink-0 ml-2">
-              <span className={`text-[10px] font-semibold ${entry.label.color}`}>{entry.label.text}</span>
-              <span className="text-sm font-bold font-mono text-foreground">{entry.pct}%</span>
+              <span className={`text-xs font-semibold ${entry.label.color}`}>{entry.label.text}</span>
+              <span className="text-base font-bold font-mono text-foreground">{entry.pct}%</span>
             </div>
           </div>
-          <div className="h-5 bg-secondary/40 rounded-sm overflow-hidden relative">
+          <div className="h-6 bg-secondary/40 rounded-sm overflow-hidden relative">
             <motion.div
               className="h-full rounded-sm"
               style={{ backgroundColor: entry.color }}
@@ -140,12 +140,12 @@ function OutcomeSparkbar({ forecasts }: { forecasts: Forecast[] }) {
     .slice(0, 5);
 
   return (
-    <div className="space-y-1.5 w-full">
-      <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-2">90-Day Outcome Dist.</p>
+    <div className="space-y-2 w-full">
+      <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">90-Day Outcome Dist.</p>
       {probs.map(([key, val]) => (
         <div key={key} className="flex items-center gap-2">
-          <div className="w-20 shrink-0 text-[10px] text-muted-foreground truncate capitalize">{key.replace(/_/g, ' ')}</div>
-          <div className="flex-1 bg-secondary/50 h-1.5 overflow-hidden">
+          <div className="w-24 shrink-0 text-xs text-muted-foreground truncate capitalize">{key.replace(/_/g, ' ')}</div>
+          <div className="flex-1 bg-secondary/50 h-2 overflow-hidden">
             <motion.div
               className="h-full"
               style={{ backgroundColor: OUTCOME_COLORS[key] ?? '#94a3b8' }}
@@ -154,7 +154,7 @@ function OutcomeSparkbar({ forecasts }: { forecasts: Forecast[] }) {
               transition={{ duration: 1, ease: "easeOut" }}
             />
           </div>
-          <div className="w-8 text-right text-[10px] font-mono text-foreground shrink-0">{(val * 100).toFixed(0)}%</div>
+          <div className="w-9 text-right text-xs font-mono text-foreground shrink-0">{(val * 100).toFixed(0)}%</div>
         </div>
       ))}
     </div>
@@ -182,48 +182,48 @@ function CostOfWarSection() {
 
   return (
     <Card className="p-6 border-red-900/30 bg-gradient-to-br from-card to-red-950/10 rounded-sm">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
-          <div className="w-0.5 h-8 bg-red-500 rounded-full" />
+          <div className="w-0.5 h-10 bg-red-500 rounded-full" />
           <div>
-            <h2 className="text-base font-bold">Cost-Benefit Analysis</h2>
-            <p className="text-xs text-muted-foreground">War costs vs. peace benefits across stakeholders</p>
+            <h2 className="text-xl font-bold">Cost-Benefit Analysis</h2>
+            <p className="text-sm text-muted-foreground">War costs vs. peace benefits across stakeholders</p>
           </div>
         </div>
-        <div className="flex gap-4 text-right">
+        <div className="flex gap-6 text-right">
           <div>
-            <div className="text-xl font-display font-bold text-red-400">$450B</div>
-            <div className="text-[10px] text-muted-foreground uppercase tracking-widest">War Cost/yr</div>
+            <div className="text-2xl font-display font-bold text-red-400">$450B</div>
+            <div className="text-xs text-muted-foreground uppercase tracking-widest">War Cost/yr</div>
           </div>
           <div>
-            <div className="text-xl font-display font-bold text-emerald-400">$560B</div>
-            <div className="text-[10px] text-muted-foreground uppercase tracking-widest">Peace Gain/yr</div>
+            <div className="text-2xl font-display font-bold text-emerald-400">$560B</div>
+            <div className="text-xs text-muted-foreground uppercase tracking-widest">Peace Gain/yr</div>
           </div>
         </div>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
           {sorted.slice(0, 4).map(c => {
             const val = c.economic.totalUsd ?? 0;
             const pct = totalUsd > 0 ? (val / totalUsd) * 100 : 0;
             return (
-              <div key={c.id} className="flex items-center gap-2 text-xs">
-                <span className="w-28 shrink-0 text-muted-foreground truncate font-mono text-[10px]">{c.stakeholderId.replace(/-/g, ' ')}</span>
-                <div className="flex-1 bg-secondary/50 h-1.5 overflow-hidden">
+              <div key={c.id} className="flex items-center gap-3">
+                <span className="w-28 shrink-0 text-muted-foreground truncate font-mono text-xs capitalize">{c.stakeholderId.replace(/-/g, ' ')}</span>
+                <div className="flex-1 bg-secondary/50 h-3 overflow-hidden rounded-sm">
                   <motion.div
-                    className="h-full bg-red-500"
+                    className="h-full bg-red-500 rounded-sm"
                     initial={{ width: 0 }}
                     animate={{ width: `${pct.toFixed(1)}%` }}
                     transition={{ duration: 1, ease: "easeOut" }}
                   />
                 </div>
-                <span className="w-12 text-right font-mono text-foreground shrink-0">${(val / 1e9).toFixed(1)}B</span>
+                <span className="w-16 text-right font-mono text-sm font-semibold text-foreground shrink-0">${(val / 1e9).toFixed(1)}B</span>
               </div>
             );
           })}
         </div>
 
-      <p className="text-[10px] text-muted-foreground mt-4 italic border-t border-border/50 pt-3">
+      <p className="text-xs text-muted-foreground mt-5 italic border-t border-border/50 pt-3">
         A durable peace could swing the global economy by over <strong className="text-amber-400">$1T/yr</strong> — through trade normalization, energy risk reduction, shipping/insurance savings, and restored investment confidence.
       </p>
 
@@ -271,10 +271,10 @@ function StakeholderAcceptanceGrid({ evaluations }: {
   for (const [, ev] of entries) counts[ev.verdict as keyof typeof counts]++;
 
   return (
-    <div className="mt-4 pt-4 border-t border-border/30">
+    <div className="mt-5 pt-4 border-t border-border/30">
       <div className="flex items-center justify-between mb-3">
-        <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">Stakeholder Acceptance</span>
-        <div className="flex items-center gap-2 text-[10px]">
+        <span className="text-xs text-muted-foreground font-semibold uppercase tracking-widest">Stakeholder Acceptance</span>
+        <div className="flex items-center gap-2 text-xs">
           <span className="text-emerald-400">{counts.accept} accept</span>
           <span className="text-muted-foreground">·</span>
           <span className="text-amber-400">{counts.conditional} conditional</span>
@@ -282,7 +282,7 @@ function StakeholderAcceptanceGrid({ evaluations }: {
           <span className="text-red-400">{counts.reject} reject</span>
         </div>
       </div>
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap gap-2">
         {entries.map(([stakeholderId, ev]) => {
           const cfg = VERDICT_COLORS[ev.verdict] ?? VERDICT_COLORS.reject;
           const label = STAKEHOLDER_LABELS[stakeholderId.toLowerCase().replace(/-/g, '_')] ?? stakeholderId;
@@ -290,9 +290,9 @@ function StakeholderAcceptanceGrid({ evaluations }: {
             <div
               key={stakeholderId}
               title={ev.rationale ?? ev.verdict}
-              className={`flex items-center gap-1.5 px-2 py-1 rounded-full border text-[10px] font-semibold ${cfg.bg} ${cfg.text}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold ${cfg.bg} ${cfg.text}`}
             >
-              <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: cfg.dot }} />
+              <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: cfg.dot }} />
               {label}
             </div>
           );
@@ -322,16 +322,16 @@ function DealHeroSection() {
             <Handshake className="w-6 h-6 text-amber-400" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-2 mb-2">
-              <h2 className="text-lg font-bold">AI Autoresearch Champion</h2>
-              <Badge variant="outline" className="border-amber-700/40 text-amber-400 text-[10px] capitalize border-l-2">
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+              <h2 className="text-2xl font-bold font-display">AI Autoresearch Champion</h2>
+              <Badge variant="outline" className="border-amber-700/40 text-amber-400 text-xs capitalize border-l-2 px-2.5 py-1">
                 {deal.architecture} architecture
               </Badge>
-              <Badge variant="outline" className="border-cyan-700/40 text-cyan-400 text-[10px] border-l-2">
+              <Badge variant="outline" className="border-cyan-700/40 text-cyan-400 text-xs border-l-2 px-2.5 py-1">
                 Task B champion
               </Badge>
               {deal.isPareto && (
-                <Badge variant="outline" className="border-emerald-700/40 text-emerald-400 text-[10px] border-l-2">
+                <Badge variant="outline" className="border-emerald-700/40 text-emerald-400 text-xs border-l-2 px-2.5 py-1">
                   Pareto frontier
                 </Badge>
               )}
@@ -343,11 +343,11 @@ function DealHeroSection() {
                 { label: "Domestic", value: domestic, color: "text-purple-400" },
                 { label: "Durability", value: durability, color: "text-pink-400" },
               ].map(({ label, value, color }) => (
-                <div key={label} className="bg-secondary/30 rounded-sm p-2.5 text-center">
-                  <div className={`text-xl font-display font-bold ${color}`}>
+                <div key={label} className="bg-secondary/30 rounded-sm p-4 text-center">
+                  <div className={`text-3xl font-display font-bold ${color}`}>
                     {(value * 100).toFixed(0)}%
                   </div>
-                  <div className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-widest">{label}</div>
+                  <div className="text-xs text-muted-foreground mt-1 uppercase tracking-widest">{label}</div>
                 </div>
               ))}
             </div>
@@ -434,24 +434,24 @@ export default function Home() {
           <div className="space-y-5">
             <div className="bg-card/80 border border-border/50 rounded-sm p-5">
               <div className="mb-4">
-                <h3 className="text-sm font-bold uppercase tracking-wider">AI vs Human Proposals</h3>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Composite score — same 7-dimension evaluation by 3 independent AI judges</p>
+                <h3 className="text-base font-bold uppercase tracking-wider">AI vs Human Proposals</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">Composite score — same 7-dimension evaluation by 3 independent AI judges</p>
               </div>
               <AIvsHumanChart
                 aiDeal={currentDeal as { scores: unknown; architecture: string } | null}
                 humanProposals={humanProposals}
               />
               <div className="flex items-center gap-4 mt-4 pt-3 border-t border-border/30">
-                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <div className="w-2.5 h-2.5 rounded-sm bg-blue-500" />
                   AI-Generated
                 </div>
-                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <div className="w-2.5 h-2.5 rounded-sm bg-amber-500" />
                   Human Proposal
                 </div>
                 <div className="flex-1" />
-                <div className="text-[9px] text-muted-foreground/60">
+                <div className="text-xs text-muted-foreground/60">
                   Scored by Anthropic + OpenAI + Gemini
                 </div>
               </div>
@@ -478,10 +478,10 @@ export default function Home() {
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <div className="text-lg font-bold">{forecastLoading ? "--" : peaceProb.toFixed(0)}<span className="text-xs">%</span></div>
-                    <div className="text-[9px] text-muted-foreground text-center leading-tight uppercase tracking-wider font-bold">Peace<br/>Outlook</div>
+                    <div className="text-[11px] text-muted-foreground text-center leading-tight uppercase tracking-wider font-bold">Peace<br/>Outlook</div>
                   </div>
                 </div>
-                <span className="text-[10px] text-muted-foreground mt-1 uppercase tracking-widest font-bold">30d Horizon</span>
+                <span className="text-xs text-muted-foreground mt-1 uppercase tracking-widest font-bold">30d Horizon</span>
               </div>
               <div className="bg-card border border-border p-4 rounded-sm">
                 {forecastLoading ? <div className="animate-pulse text-xs text-muted-foreground">Loading...</div> : <OutcomeSparkbar forecasts={forecasts} />}
@@ -530,7 +530,7 @@ export default function Home() {
         </Card>
       </section>
 
-      <p className="text-[9px] text-muted-foreground/50 text-center -mt-2 italic">
+      <p className="text-xs text-muted-foreground/60 text-center -mt-2 italic">
         Pipeline metrics are computed from the autoresearch cycle log. Brier scores measure probabilistic calibration (0 = perfect forecast, 1 = worst). Retention rate reflects the fraction of prompt mutations that improved backtested accuracy.
       </p>
 
