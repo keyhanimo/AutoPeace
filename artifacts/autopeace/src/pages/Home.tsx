@@ -159,9 +159,14 @@ export default function Home() {
                 AutoPeace continuously generates and stress-tests peace proposals for the Iran conflict using a multi-agent AI pipeline — then scores them against real-world human proposals on the same 7 dimensions.
               </p>
               <div className="flex flex-wrap gap-2">
-                <Link to="/arena">
+                <Link to="/deals">
                   <Button size="sm" className="gap-1.5 rounded-sm">
-                    Proposal Arena <ArrowRight className="w-4 h-4" />
+                    Deal Dashboard <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </Link>
+                <Link to="/arena">
+                  <Button variant="outline" size="sm" className="bg-background/50 backdrop-blur-sm rounded-sm">
+                    Proposal Arena
                   </Button>
                 </Link>
                 <Link to="/methodology">
@@ -191,9 +196,6 @@ export default function Home() {
                   Human Proposal
                 </div>
                 <div className="flex-1" />
-                <div className="text-[11px] text-muted-foreground/60">
-                  Scored by Anthropic + OpenAI + Gemini
-                </div>
               </div>
             </div>
           </div>
