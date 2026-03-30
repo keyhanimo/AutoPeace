@@ -34,50 +34,44 @@ const ENDPOINTS: Endpoint[] = [
     tags: ["system"],
     example: `curl "${BASE}/api/healthz"`,
   },
+
   {
     method: "GET", path: "/api/forecasts", summary: "List probability forecasts for all scenarios and time horizons",
     tags: ["forecasts"],
-    params: [{ name: "limit", in: "query", description: "Max records to return (default 50)" }],
-    example: `curl "${BASE}/api/forecasts?limit=10"`,
+    params: [
+      { name: "limit", in: "query", description: "Max records to return (default 20, max 100)" },
+      { name: "offset", in: "query", description: "Number of records to skip for pagination" },
+      { name: "timeHorizon", in: "query", description: "Filter by time horizon: 30d, 90d, 180d, or 1y" },
+      { name: "cycleId", in: "query", description: "Filter by research cycle ID" },
+    ],
+    example: `curl "${BASE}/api/forecasts?timeHorizon=90d&limit=10"`,
   },
   {
-    method: "GET", path: "/api/forecasts/latest", summary: "Get the latest forecast snapshot",
+    method: "GET", path: "/api/forecasts/latest", summary: "Get the latest forecast snapshot for each time horizon",
     tags: ["forecasts"],
     example: `curl "${BASE}/api/forecasts/latest"`,
   },
   {
-    method: "GET", path: "/api/experiments", summary: "List red-team experiment mutations",
-    tags: ["experiments"],
-    example: `curl "${BASE}/api/experiments?limit=20"`,
+    method: "GET", path: "/api/forecasts/calibration/curve", summary: "Get calibration curve and Brier score statistics",
+    tags: ["forecasts"],
+    example: `curl "${BASE}/api/forecasts/calibration/curve"`,
   },
   {
-    method: "GET", path: "/api/costs", summary: "Get cost-of-war records",
-    tags: ["costs"],
-    example: `curl "${BASE}/api/costs"`,
+    method: "GET", path: "/api/forecasts/:id", summary: "Get a single forecast by ID",
+    tags: ["forecasts"],
+    params: [{ name: "id", in: "path", description: "Forecast UUID", required: true }],
+    example: `curl "${BASE}/api/forecasts/{id}"`,
   },
+
   {
-    method: "GET", path: "/api/evidence", summary: "List evidence corpus items with optional filters",
-    tags: ["evidence"],
+    method: "GET", path: "/api/deals", summary: "List all generated peace deals",
+    tags: ["deals"],
     params: [
-      { name: "limit", in: "query", description: "Max records (default 50, max 200)" },
-      { name: "type", in: "query", description: "Filter by evidence type: military, diplomatic, economic, humanitarian" },
+      { name: "limit", in: "query", description: "Max records to return (default 20, max 100)" },
+      { name: "offset", in: "query", description: "Number of records to skip for pagination" },
+      { name: "architecture", in: "query", description: "Filter by deal architecture type" },
     ],
-    example: `curl "${BASE}/api/evidence?type=diplomatic&limit=20"`,
-  },
-  {
-    method: "GET", path: "/api/changelog", summary: "Changelog entries from research cycles",
-    tags: ["changelog"],
-    example: `curl "${BASE}/api/changelog"`,
-  },
-  {
-    method: "GET", path: "/api/changelog.xml", summary: "RSS feed of changelog entries",
-    tags: ["changelog"],
-    example: `curl "${BASE}/api/changelog.xml"`,
-  },
-  {
-    method: "GET", path: "/api/stakeholders", summary: "List all conflict stakeholder profiles",
-    tags: ["stakeholders"],
-    example: `curl "${BASE}/api/stakeholders"`,
+    example: `curl "${BASE}/api/deals?limit=10"`,
   },
   {
     method: "GET", path: "/api/deals/current", summary: "Get the current best AI peace deal",
@@ -85,10 +79,146 @@ const ENDPOINTS: Endpoint[] = [
     example: `curl "${BASE}/api/deals/current"`,
   },
   {
-    method: "GET", path: "/api/deals", summary: "List all generated peace deals",
+    method: "GET", path: "/api/deals/pareto", summary: "Get all Pareto-optimal deals (not dominated on any scoring dimension)",
     tags: ["deals"],
-    example: `curl "${BASE}/api/deals?limit=10"`,
+    example: `curl "${BASE}/api/deals/pareto"`,
   },
+  {
+    method: "GET", path: "/api/deals/tree", summary: "Get the solution tree of explored deal architectures",
+    tags: ["deals"],
+    example: `curl "${BASE}/api/deals/tree"`,
+  },
+  {
+    method: "GET", path: "/api/deals/history", summary: "Get historical deal metadata (scores, architecture, cycle) without full terms",
+    tags: ["deals"],
+    params: [
+      { name: "limit", in: "query", description: "Max records (default 50, max 200)" },
+      { name: "offset", in: "query", description: "Number of records to skip for pagination" },
+    ],
+    example: `curl "${BASE}/api/deals/history?limit=20"`,
+  },
+  {
+    method: "GET", path: "/api/deals/robustness", summary: "Get red-team robustness statistics across recent deals",
+    tags: ["deals"],
+    params: [
+      { name: "n", in: "query", description: "Number of recent deals to sample (default 10, max 50)" },
+    ],
+    example: `curl "${BASE}/api/deals/robustness?n=10"`,
+  },
+  {
+    method: "GET", path: "/api/deals/compare", summary: "Side-by-side comparison of 2\u201310 deals across all scoring dimensions",
+    tags: ["deals"],
+    params: [
+      { name: "ids", in: "query", description: "Comma-separated deal IDs to compare (2\u201310)", required: true },
+    ],
+    example: `curl "${BASE}/api/deals/compare?ids=id1,id2,id3"`,
+  },
+  {
+    method: "GET", path: "/api/deals/:id", summary: "Get a single deal by ID",
+    tags: ["deals"],
+    params: [{ name: "id", in: "path", description: "Deal UUID", required: true }],
+    example: `curl "${BASE}/api/deals/{id}"`,
+  },
+  {
+    method: "GET", path: "/api/deals/:id/stakeholder-evals", summary: "Get stakeholder evaluations, domestic evaluations, and negotiator amendments for a deal",
+    tags: ["deals"],
+    params: [{ name: "id", in: "path", description: "Deal UUID", required: true }],
+    example: `curl "${BASE}/api/deals/{id}/stakeholder-evals"`,
+  },
+
+  {
+    method: "GET", path: "/api/stakeholders", summary: "List all conflict stakeholder profiles",
+    tags: ["stakeholders"],
+    params: [
+      { name: "role", in: "query", description: "Filter by stakeholder role" },
+    ],
+    example: `curl "${BASE}/api/stakeholders"`,
+  },
+  {
+    method: "GET", path: "/api/stakeholders/tiers", summary: "Get stakeholder registry grouped by influence tier (required, critical, influential, contextual)",
+    tags: ["stakeholders"],
+    example: `curl "${BASE}/api/stakeholders/tiers"`,
+  },
+  {
+    method: "GET", path: "/api/stakeholders/:id", summary: "Get a single stakeholder profile by ID",
+    tags: ["stakeholders"],
+    params: [{ name: "id", in: "path", description: "Stakeholder UUID", required: true }],
+    example: `curl "${BASE}/api/stakeholders/{id}"`,
+  },
+
+  {
+    method: "GET", path: "/api/costs", summary: "Get latest cost-of-war records (one per stakeholder)",
+    tags: ["costs"],
+    params: [
+      { name: "stakeholderId", in: "query", description: "Filter by stakeholder ID" },
+    ],
+    example: `curl "${BASE}/api/costs"`,
+  },
+  {
+    method: "GET", path: "/api/costs/:stakeholderId", summary: "Get cost-of-war record for a specific stakeholder",
+    tags: ["costs"],
+    params: [{ name: "stakeholderId", in: "path", description: "Stakeholder UUID", required: true }],
+    example: `curl "${BASE}/api/costs/{stakeholderId}"`,
+  },
+
+  {
+    method: "GET", path: "/api/evidence", summary: "List evidence corpus items with optional filters",
+    tags: ["evidence"],
+    params: [
+      { name: "limit", in: "query", description: "Max records (default 20, max 100)" },
+      { name: "offset", in: "query", description: "Number of records to skip for pagination" },
+      { name: "source", in: "query", description: "Filter by evidence source name" },
+      { name: "evidenceType", in: "query", description: "Filter by evidence type: military, diplomatic, economic, humanitarian" },
+      { name: "stakeholderId", in: "query", description: "Filter by stakeholder relevance" },
+    ],
+    example: `curl "${BASE}/api/evidence?evidenceType=diplomatic&limit=20"`,
+  },
+
+  {
+    method: "GET", path: "/api/experiments", summary: "List red-team experiment mutations",
+    tags: ["experiments"],
+    params: [
+      { name: "limit", in: "query", description: "Max records (default 20, max 100)" },
+      { name: "offset", in: "query", description: "Number of records to skip for pagination" },
+      { name: "task", in: "query", description: "Filter by experiment task type" },
+      { name: "cycleId", in: "query", description: "Filter by research cycle ID" },
+      { name: "retained", in: "query", description: "Filter by retained status (true/false)" },
+    ],
+    example: `curl "${BASE}/api/experiments?limit=20"`,
+  },
+  {
+    method: "GET", path: "/api/experiments/stats", summary: "Get aggregate experiment statistics (total, retention rate, cost, cycles run)",
+    tags: ["experiments"],
+    example: `curl "${BASE}/api/experiments/stats"`,
+  },
+
+  {
+    method: "GET", path: "/api/scenarios", summary: "List what-if scenario snapshots",
+    tags: ["scenarios"],
+    example: `curl "${BASE}/api/scenarios"`,
+  },
+
+  {
+    method: "GET", path: "/api/changelog", summary: "Changelog entries from research cycles",
+    tags: ["changelog"],
+    params: [
+      { name: "limit", in: "query", description: "Max records (default 20, max 100)" },
+      { name: "offset", in: "query", description: "Number of records to skip for pagination" },
+    ],
+    example: `curl "${BASE}/api/changelog"`,
+  },
+  {
+    method: "GET", path: "/api/changelog.xml", summary: "RSS feed of changelog entries (returns XML, not JSON)",
+    tags: ["changelog"],
+    example: `curl "${BASE}/api/changelog.xml"`,
+  },
+  {
+    method: "GET", path: "/api/changelog/:id", summary: "Get a single changelog entry by ID",
+    tags: ["changelog"],
+    params: [{ name: "id", in: "path", description: "Changelog entry UUID", required: true }],
+    example: `curl "${BASE}/api/changelog/{id}"`,
+  },
+
   {
     method: "GET", path: "/api/proposals", summary: "List all real-world proposals with scoring",
     tags: ["proposals"],
@@ -100,25 +230,19 @@ const ENDPOINTS: Endpoint[] = [
     example: `curl "${BASE}/api/proposals/arena"`,
   },
   {
-    method: "POST", path: "/api/proposals/submit", summary: "Submit a real-world proposal for community review",
-    tags: ["community"],
-    example: `curl -X POST "${BASE}/api/proposals/submit" \\
-  -H "Content-Type: application/json" \\
-  -d '{"sourceUrl":"https://example.com","sourceName":"Reuters","summary":"...","terms":{"enrichment":"5%"}}'`,
+    method: "GET", path: "/api/proposals/:id", summary: "Get a single proposal by ID",
+    tags: ["proposals"],
+    params: [{ name: "id", in: "path", description: "Proposal UUID", required: true }],
+    example: `curl "${BASE}/api/proposals/{id}"`,
   },
+
   {
     method: "GET", path: "/api/community-forecasts/aggregate", summary: "Get aggregated community probability forecast",
     tags: ["community"],
     params: [{ name: "timeHorizon", in: "query", description: "30d, 90d, 180d, or 1y" }],
     example: `curl "${BASE}/api/community-forecasts/aggregate?timeHorizon=90d"`,
   },
-  {
-    method: "POST", path: "/api/community-forecasts", summary: "Submit a community probability forecast",
-    tags: ["community"],
-    example: `curl -X POST "${BASE}/api/community-forecasts" \\
-  -H "Content-Type: application/json" \\
-  -d '{"sessionId":"abc","timeHorizon":"90d","estimates":{"agreement":20,"stalemate":35}}'`,
-  },
+
   {
     method: "GET", path: "/api/downloads/index", summary: "List all available data download endpoints",
     tags: ["downloads"],
@@ -139,9 +263,59 @@ const ENDPOINTS: Endpoint[] = [
     tags: ["downloads"],
     example: `curl -O "${BASE}/api/downloads/deals.json"`,
   },
+  {
+    method: "GET", path: "/api/downloads/deals.csv", summary: "Download all deals as CSV",
+    tags: ["downloads"],
+    example: `curl -O "${BASE}/api/downloads/deals.csv"`,
+  },
+  {
+    method: "GET", path: "/api/downloads/deals-pareto.json", summary: "Download Pareto frontier deals as JSON",
+    tags: ["downloads"],
+    example: `curl -O "${BASE}/api/downloads/deals-pareto.json"`,
+  },
+  {
+    method: "GET", path: "/api/downloads/stakeholders.json", summary: "Download all stakeholder profiles as JSON",
+    tags: ["downloads"],
+    example: `curl -O "${BASE}/api/downloads/stakeholders.json"`,
+  },
+  {
+    method: "GET", path: "/api/downloads/stakeholders.csv", summary: "Download all stakeholder profiles as CSV",
+    tags: ["downloads"],
+    example: `curl -O "${BASE}/api/downloads/stakeholders.csv"`,
+  },
+  {
+    method: "GET", path: "/api/downloads/evidence.json", summary: "Download evidence corpus as JSON",
+    tags: ["downloads"],
+    example: `curl -O "${BASE}/api/downloads/evidence.json"`,
+  },
+  {
+    method: "GET", path: "/api/downloads/evidence.csv", summary: "Download evidence corpus as CSV",
+    tags: ["downloads"],
+    example: `curl -O "${BASE}/api/downloads/evidence.csv"`,
+  },
+  {
+    method: "GET", path: "/api/downloads/costs.json", summary: "Download cost-of-war records as JSON",
+    tags: ["downloads"],
+    example: `curl -O "${BASE}/api/downloads/costs.json"`,
+  },
+  {
+    method: "GET", path: "/api/downloads/costs.csv", summary: "Download cost-of-war records as CSV",
+    tags: ["downloads"],
+    example: `curl -O "${BASE}/api/downloads/costs.csv"`,
+  },
+  {
+    method: "GET", path: "/api/downloads/experiments.json", summary: "Download experiment log as JSON",
+    tags: ["downloads"],
+    example: `curl -O "${BASE}/api/downloads/experiments.json"`,
+  },
+  {
+    method: "GET", path: "/api/downloads/experiments.csv", summary: "Download experiment log as CSV",
+    tags: ["downloads"],
+    example: `curl -O "${BASE}/api/downloads/experiments.csv"`,
+  },
 ];
 
-const ALL_TAGS = ["system", "forecasts", "experiments", "costs", "evidence", "changelog", "stakeholders", "deals", "proposals", "community", "downloads"];
+const ALL_TAGS = ["system", "forecasts", "deals", "stakeholders", "costs", "evidence", "experiments", "scenarios", "changelog", "proposals", "community", "downloads"];
 
 function CodeBlock({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);
@@ -272,7 +446,7 @@ export default function ApiDocs() {
           <div className="space-y-1">
             <p className="text-sm font-medium">Base URL</p>
             <code className="text-xs text-muted-foreground font-mono">{BASE}/api</code>
-            <p className="text-xs text-muted-foreground mt-1">All responses are JSON. Admin endpoints require <code className="text-[10px] bg-secondary/60 px-1 rounded">X-Admin-Key</code> header.</p>
+            <p className="text-xs text-muted-foreground mt-1">All responses are JSON except <code className="text-[10px] bg-secondary/60 px-1 rounded">/changelog.xml</code> which returns RSS/XML. Admin endpoints require <code className="text-[10px] bg-secondary/60 px-1 rounded">X-Admin-Key</code> header.</p>
           </div>
         </div>
       </Card>
