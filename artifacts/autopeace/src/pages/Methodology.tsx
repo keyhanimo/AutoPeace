@@ -1,12 +1,8 @@
 import React from "react";
-import { useListStakeholders } from "@workspace/api-client-react";
-import { PageHeader, Card, Badge } from "@/components/ui";
-import { Users, AlertTriangle, ExternalLink } from "lucide-react";
+import { PageHeader, Card } from "@/components/ui";
+import { AlertTriangle, ExternalLink } from "lucide-react";
 
 export default function Methodology() {
-  const { data: stakeholderRes, isLoading: stakeholdersLoading } = useListStakeholders();
-  const stakeholders = stakeholderRes?.data || [];
-
   return (
     <div className="max-w-5xl mx-auto space-y-10 animate-fade-in pb-12">
       <PageHeader
@@ -57,36 +53,6 @@ export default function Methodology() {
           <p>
             Forecast probabilities and Brier/log scores are persisted per cycle, enabling calibration trend tracking over time as the model improves.
           </p>
-        </Card>
-
-        <Card className="p-8">
-          <h2 className="text-2xl font-bold font-display text-foreground mt-0 flex items-center gap-3">
-            <Users className="w-7 h-7" /> Stakeholder Universe
-          </h2>
-          <p className="mb-6">
-            The cost-of-war model tracks {stakeholders.length > 0 ? stakeholders.length : '28'} stakeholders across multiple regional and global categories:
-          </p>
-
-          {stakeholdersLoading ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
-              {Array.from({ length: 20 }).map((_, i) => (
-                <div key={i} className="h-20 bg-card animate-pulse" />
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-              {stakeholders.map(s => (
-                <div key={s.id} className="bg-card border border-border p-3 flex flex-col items-center text-center gap-1 hover:border-primary/50 transition-colors">
-                  <span className="text-2xl">{s.flag || '🌍'}</span>
-                  <span className="text-xs font-semibold text-foreground truncate w-full">{s.name}</span>
-                  <Badge variant="outline" className="text-[9px] px-1 py-0 leading-4 capitalize truncate max-w-full">
-                    {s.role.replace(/_/g, ' ')}
-                  </Badge>
-                  <span className="text-[10px] text-muted-foreground">{s.region}</span>
-                </div>
-              ))}
-            </div>
-          )}
         </Card>
 
         <Card className="p-8 border-amber-700/40 bg-amber-900/10">

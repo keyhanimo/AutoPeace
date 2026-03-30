@@ -18,18 +18,6 @@ function getBaseUrl() {
   return window.location.origin + import.meta.env.BASE_URL.replace(/\/$/, "");
 }
 
-const STAKEHOLDER_ICONS: Record<string, string> = {
-  "us-government": "🇺🇸",
-  "iran-government": "🇮🇷",
-  "israel": "🇮🇱",
-  "saudi-arabia": "🇸🇦",
-  "hezbollah": "🕊️",
-  "iaea": "☢️",
-  "eu": "🇪🇺",
-  "russia": "🇷🇺",
-  "china": "🇨🇳",
-  "un": "🌐",
-};
 
 const OUTCOME_LABELS: Record<string, string> = {
   continued_conflict: "Continued Conflict",
@@ -93,8 +81,8 @@ function useScenarios() {
 }
 
 function StakeholderOverview({ stakeholder }: { stakeholder: Stakeholder }) {
-  const icon = STAKEHOLDER_ICONS[stakeholder.id] ?? "🏛️";
-  const toArr = (v: unknown): string[] => Array.isArray(v) ? v as string[] : [];
+  const icon = stakeholder.flag || "🏛️";
+  const toArr = (v: unknown): string[] => Array.isArray(v) ? v as string[] : typeof v === "string" && v.trim() ? v.split(/,\s*/).map(s => s.trim()).filter(Boolean) : [];
   const goals = toArr(stakeholder.goals);
   const redLines = toArr(stakeholder.redLines);
   const preferred = toArr(stakeholder.preferredOutcomes);
@@ -299,7 +287,7 @@ function ForecastLensSection({
   scenarios: WhatIfScenario[];
 }) {
   const { data: forecastsData, isLoading } = useGetLatestForecasts();
-  const preferred = Array.isArray(stakeholder.preferredOutcomes) ? stakeholder.preferredOutcomes as string[] : [];
+  const preferred = Array.isArray(stakeholder.preferredOutcomes) ? stakeholder.preferredOutcomes as string[] : typeof stakeholder.preferredOutcomes === "string" && (stakeholder.preferredOutcomes as string).trim() ? (stakeholder.preferredOutcomes as string).split(/,\s*/).map(s => s.trim()).filter(Boolean) : [];
 
   const latest = useMemo(() => {
     type FEntry = { id: string; timeHorizon: string; probabilities: Record<string, number> };
@@ -478,7 +466,7 @@ export default function StakeholderLens() {
           >
             {stakeholders.map(s => (
               <option key={s.id} value={s.id}>
-                {STAKEHOLDER_ICONS[s.id] ?? "🏛️"} {s.name}
+                {s.flag || "🏛️"} {s.name}
               </option>
             ))}
           </select>

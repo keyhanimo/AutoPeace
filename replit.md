@@ -51,7 +51,7 @@ artifacts-monorepo/
 
 ## Database Schema (9 tables)
 
-- **stakeholders** — 32 conflict actors (Iran, US, Israel, Houthis, IAEA, etc.) with flags/roles
+- **stakeholders** — 32 conflict actors with flags/roles/definitions. Categories: core_principal (3), gulf_state (6), regional_broker (8), external_power (8), global_bloc (3), international_org (1), internal_faction (2). Definitions for each actor (including aggregate blocs) are in the Stakeholders page frontend.
 - **cycles** — autoresearch run records (status, tokens, cost, timestamps)
 - **forecasts** — probability distributions across 8 outcome states per time horizon
 - **experiments** — red-team mutation log (Task A: Gemini red-team + GPT-4o eval)

@@ -616,7 +616,7 @@ export default function Home() {
             </div>
             <h3 className="text-xl font-bold mb-3 uppercase tracking-tight">Evidence Ingestion</h3>
             <p className="text-muted-foreground text-sm">
-              We continuously scrape ACLED, GDELT, and global news feeds, filtering for relevance to 28 key stakeholders in the Iran conflict theater.
+              We continuously scrape ACLED, GDELT, and global news feeds, filtering for relevance to 32 key stakeholders in the Iran conflict theater.
             </p>
           </Card>
           <Card className="p-8 relative rounded-sm">
