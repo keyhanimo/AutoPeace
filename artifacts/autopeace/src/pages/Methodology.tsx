@@ -1,24 +1,161 @@
 import React from "react";
 import { PageHeader, Card } from "@/components/ui";
-import { AlertTriangle, ExternalLink } from "lucide-react";
+import { AlertTriangle, ExternalLink, ArrowRight, GitBranch, BarChart3, Shield, Scale, Brain, Zap, Target, Layers, RefreshCw } from "lucide-react";
 
 export default function Methodology() {
   return (
     <div className="max-w-5xl mx-auto space-y-10 animate-fade-in pb-12">
       <PageHeader
         title="Methodology"
-        description="The mathematical and structural underpinnings of the AutoPeace forecasting engine."
+        description="A comprehensive technical description of AutoPeace — a dual-loop autoresearch system for Bayesian conflict forecasting and autonomous peace deal optimization."
       />
 
-      <div className="prose prose-invert prose-lg max-w-none text-muted-foreground space-y-6">
-        <Card className="p-8">
-          <h2 className="text-2xl font-bold font-display text-foreground mt-0">The Bayesian Forecasting Approach</h2>
+      <nav className="not-prose">
+        <Card className="p-6">
+          <h2 className="text-lg font-bold font-display text-foreground mb-4">Table of Contents</h2>
+          <ol className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-muted-foreground list-decimal list-inside">
+            <li><a href="#abstract" className="hover:text-primary transition-colors">Abstract &amp; Motivation</a></li>
+            <li><a href="#karpathy" className="hover:text-primary transition-colors">Relationship to Karpathy's Autoresearch</a></li>
+            <li><a href="#system-architecture" className="hover:text-primary transition-colors">System Architecture Overview</a></li>
+            <li><a href="#evidence-ingestion" className="hover:text-primary transition-colors">Evidence Ingestion Pipeline</a></li>
+            <li><a href="#task-a" className="hover:text-primary transition-colors">Task A: Bayesian Conflict Forecasting</a></li>
+            <li><a href="#hill-climbing" className="hover:text-primary transition-colors">Hill-Climbing Self-Improvement Loop</a></li>
+            <li><a href="#task-b" className="hover:text-primary transition-colors">Task B: Autonomous Deal Optimization</a></li>
+            <li><a href="#cba" className="hover:text-primary transition-colors">Cost-Benefit Analysis Modeling</a></li>
+            <li><a href="#scoring" className="hover:text-primary transition-colors">Scoring &amp; Evaluation Framework</a></li>
+            <li><a href="#pareto" className="hover:text-primary transition-colors">Pareto Frontier &amp; Solution Tree</a></li>
+            <li><a href="#what-if" className="hover:text-primary transition-colors">What-If Scenario Analysis</a></li>
+            <li><a href="#limitations" className="hover:text-primary transition-colors">Limitations &amp; Disclaimer</a></li>
+          </ol>
+        </Card>
+      </nav>
+
+      <div className="prose prose-invert prose-lg max-w-none text-muted-foreground space-y-8">
+
+        <Card className="p-8" id="abstract">
+          <h2 className="text-2xl font-bold font-display text-foreground mt-0 flex items-center gap-3">
+            <Brain className="w-6 h-6 text-primary" /> 1. Abstract &amp; Motivation
+          </h2>
           <p>
-            AutoPeace uses a dynamic, multi-agent LLM pipeline to continuously update probability distributions across eight distinct outcome scenarios. Rather than relying on static point-in-time analysis, the system ingests daily evidence (from ACLED, GDELT, and RSS feeds) and forces its agents to justify probability shifts.
+            AutoPeace is a dual-objective autoresearch system that performs two complementary tasks in a continuous loop:
           </p>
+          <ul>
+            <li><strong>Task A — Bayesian Conflict Forecasting:</strong> Continuously updating probability distributions across eight mutually exclusive conflict outcome states for the Iran-US-Israel conflict complex, using multi-agent LLM debate and hill-climbing calibration optimization.</li>
+            <li><strong>Task B — Autonomous Peace Deal Optimization:</strong> Generating, evaluating, and iteratively refining concrete peace deal proposals through an 8-stage multi-agent pipeline that includes stakeholder modeling, adversarial red-teaming, domestic political analysis, negotiation simulation, and multi-model judicial scoring.</li>
+          </ul>
           <p>
-            We utilize a rigid taxonomy of 8 mutually exclusive and collectively exhaustive (MECE) states:
+            The system treats both forecasting accuracy and deal quality as optimization targets. Task A provides the probabilistic context that informs Task B, while Task B's deal evaluations feed diagnostic signals back into subsequent cycles. The core insight is that conflict forecasting alone is insufficient — actionable peace proposals require a separate optimization loop grounded in cost-benefit analysis, stakeholder game theory, and adversarial stress testing.
           </p>
+        </Card>
+
+        <Card className="p-8" id="karpathy">
+          <h2 className="text-2xl font-bold font-display text-foreground mt-0 flex items-center gap-3">
+            <GitBranch className="w-6 h-6 text-primary" /> 2. Relationship to Karpathy's Autoresearch
+          </h2>
+          <p>
+            AutoPeace extends the paradigm articulated in Andrej Karpathy's autoresearch project — the idea that LLMs can be orchestrated to perform successive refinement of research artifacts within an automated loop, where the system "grades its own homework" using adversarial evaluation and measurable scoring functions. AutoPeace builds on this foundation in several specific ways:
+          </p>
+          <div className="space-y-4 not-prose text-sm">
+            <div className="bg-card p-4 border border-border">
+              <h4 className="font-bold text-foreground mb-1">Successive Refinement over State</h4>
+              <p className="text-muted-foreground">AutoPeace treats outputs as <em>state to be iteratively refined</em> across cycles, though the refinement mechanism differs by task. In Task A (forecasting), the system persists a "champion" probability distribution and applies adversarial mutations to it each cycle, promoting improvements — true hill-climbing over the probability vector. In Task B (deal optimization), the system generates a fresh proposal each cycle informed by the previous deal's failure diagnosis and current evidence, then compares its composite score to the current best deal, retaining whichever scores higher. Both loops embody the autoresearch principle: LLM output is not the final product — it is the starting point for automated improvement.</p>
+            </div>
+            <div className="bg-card p-4 border border-border">
+              <h4 className="font-bold text-foreground mb-1">LLM-as-Judge with Generation/Evaluation Independence</h4>
+              <p className="text-muted-foreground">In the deal optimization pipeline (Task B), AutoPeace enforces a strict architectural constraint: the model that <em>generates</em> a deal proposal must never be the same model that <em>evaluates</em> it. This is enforced at the code level — the system throws an error if <code>generationProvider</code> and <code>evaluationProvider</code> are the same LLM provider. In Task A, independence is achieved structurally: base forecasts are generated by Anthropic Claude, mutations by Gemini, and the adjudicator is OpenAI GPT-4o — separate providers at each stage by design, though not enforced by a runtime validation check.</p>
+            </div>
+            <div className="bg-card p-4 border border-border">
+              <h4 className="font-bold text-foreground mb-1">Adversarial Multi-Provider Debate</h4>
+              <p className="text-muted-foreground">Where Karpathy's autoresearch uses a single model with self-critique, AutoPeace distributes adversarial roles across three independent LLM providers (Anthropic Claude, OpenAI GPT-4o, Google Gemini). The Proposal Agent (Anthropic) generates, the Red-Team Agent (Gemini) attacks, and the Judge Panel (all three providers) scores independently. This cross-provider architecture ensures no single model's biases dominate.</p>
+            </div>
+            <div className="bg-card p-4 border border-border">
+              <h4 className="font-bold text-foreground mb-1">Measurable Scoring Functions</h4>
+              <p className="text-muted-foreground">AutoPeace defines concrete, computable scoring functions for both tasks. Task A uses Brier scores and log scores against historical backtest records. Task B uses a 7-dimension weighted composite score (feasibility, coherence, evidence grounding, domestic sellability, regional stability, implementability, durability). These replace subjective quality judgments with quantitative optimization targets.</p>
+            </div>
+            <div className="bg-card p-4 border border-border">
+              <h4 className="font-bold text-foreground mb-1">Self-Diagnosis and Feedback</h4>
+              <p className="text-muted-foreground">Each deal cycle produces a Diagnosis (Stage 8) explaining <em>why</em> a deal failed or underperformed. This diagnosis is injected as input to the <em>next</em> cycle's Proposal Agent, creating a closed feedback loop where the system learns from its own failures — a direct application of the autoresearch principle that iteration state should propagate forward.</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-8" id="system-architecture">
+          <h2 className="text-2xl font-bold font-display text-foreground mt-0 flex items-center gap-3">
+            <Layers className="w-6 h-6 text-primary" /> 3. System Architecture Overview
+          </h2>
+          <p>
+            The autoresearch loop runs on a configurable schedule (hourly, daily, weekly, or manual trigger). Each cycle executes the following stages sequentially:
+          </p>
+          <ol className="space-y-2 text-sm not-prose">
+            <li className="bg-card p-3 border border-border flex items-start gap-3">
+              <span className="bg-primary/20 text-primary font-mono text-xs px-2 py-1 shrink-0">Step 1</span>
+              <div><strong className="text-foreground">Evidence Ingestion</strong> — Ingest from RSS feeds, ACLED, and GDELT; filter for Iran-relevance; classify by type (military, diplomatic, economic, humanitarian, political).</div>
+            </li>
+            <li className="bg-card p-3 border border-border flex items-start gap-3">
+              <span className="bg-primary/20 text-primary font-mono text-xs px-2 py-1 shrink-0">Step 2</span>
+              <div><strong className="text-foreground">Proposal Extraction</strong> — Scan ingested evidence for real-world peace proposals mentioned in news; extract structured deal terms and run them through the full evaluation pipeline.</div>
+            </li>
+            <li className="bg-card p-3 border border-border flex items-start gap-3">
+              <span className="bg-primary/20 text-primary font-mono text-xs px-2 py-1 shrink-0">Step 3</span>
+              <div><strong className="text-foreground">Base Forecasting (Task A)</strong> — Generate probability distributions across 4 time horizons (30d, 90d, 180d, 1y) for 8 outcome states using Claude Sonnet.</div>
+            </li>
+            <li className="bg-card p-3 border border-border flex items-start gap-3">
+              <span className="bg-primary/20 text-primary font-mono text-xs px-2 py-1 shrink-0">Step 4</span>
+              <div><strong className="text-foreground">Hill-Climbing (Task A)</strong> — Apply 3 adversarial mutations to the 90-day forecast, score against backtest records, and promote improvements to champion state.</div>
+            </li>
+            <li className="bg-card p-3 border border-border flex items-start gap-3">
+              <span className="bg-primary/20 text-primary font-mono text-xs px-2 py-1 shrink-0">Step 5</span>
+              <div><strong className="text-foreground">What-If Scenarios</strong> — Compute counterfactual forecast variants for predefined geopolitical scenarios (sanctions lifted, military strikes, Hormuz closure, US withdrawal).</div>
+            </li>
+            <li className="bg-card p-3 border border-border flex items-start gap-3">
+              <span className="bg-primary/20 text-primary font-mono text-xs px-2 py-1 shrink-0">Step 6</span>
+              <div><strong className="text-foreground">Deal Optimization Trigger (Task B)</strong> — Trigger the 8-stage deal evaluation pipeline asynchronously. Task B runs as a separate async process that generates, tests, and scores a new peace deal proposal using the latest evidence and previous cycle's diagnosis. It manages its own persistence, Pareto frontier updates, and solution tree recording upon completion.</div>
+            </li>
+            <li className="bg-card p-3 border border-border flex items-start gap-3">
+              <span className="bg-primary/20 text-primary font-mono text-xs px-2 py-1 shrink-0">Step 7</span>
+              <div><strong className="text-foreground">Task A Persistence</strong> — Store forecast results, experiment outcomes, and champion state in the database. Generate a changelog entry summarizing the cycle's key findings.</div>
+            </li>
+          </ol>
+          <p className="text-sm mt-4">
+            Budget controls prevent runaway costs: each cycle checks cumulative spend against a configurable USD cap before proceeding. The scheduler also respects admin pause flags.
+          </p>
+        </Card>
+
+        <Card className="p-8" id="evidence-ingestion">
+          <h2 className="text-2xl font-bold font-display text-foreground mt-0 flex items-center gap-3">
+            <Zap className="w-6 h-6 text-primary" /> 4. Evidence Ingestion Pipeline
+          </h2>
+          <p>
+            The system ingests structured and unstructured data from three primary sources:
+          </p>
+          <div className="space-y-3 not-prose text-sm">
+            <div className="bg-card p-4 border border-border">
+              <h4 className="font-bold text-foreground mb-1">RSS Feeds</h4>
+              <p className="text-muted-foreground">Configurable set of news feeds (Al Jazeera, Reuters, AP News, BBC, etc.) parsed via the <code>rss-parser</code> library. Each item is keyword-filtered against a curated set of Iran-relevant terms (including: iran, tehran, nuclear, iaea, sanctions, irgc, hezbollah, hamas, houthi, strait of hormuz, jcpoa, enrichment, centrifuge, etc.).</p>
+            </div>
+            <div className="bg-card p-4 border border-border">
+              <h4 className="font-bold text-foreground mb-1">ACLED (Armed Conflict Location &amp; Event Data)</h4>
+              <p className="text-muted-foreground">Conflict event data covering battles, explosions, protests, and strategic developments. Events are filtered to the Iran-Israel-Gulf region and classified by event type.</p>
+            </div>
+            <div className="bg-card p-4 border border-border">
+              <h4 className="font-bold text-foreground mb-1">GDELT (Global Database of Events, Language, and Tone)</h4>
+              <p className="text-muted-foreground">High-frequency event data providing sentiment analysis and conflict intensity indicators. Filtered by Iran-related actor codes and themes.</p>
+            </div>
+          </div>
+          <p className="mt-4">
+            All evidence is deduplicated using stable SHA-256 hashes derived from source, URL, and publication timestamp. Each item is automatically classified into one of five evidence types: <strong>military</strong>, <strong>diplomatic</strong>, <strong>economic</strong>, <strong>humanitarian</strong>, or <strong>political</strong>. Evidence items are linked to the cycle and forecast they influenced, enabling full provenance tracking from raw data to probability output.
+          </p>
+        </Card>
+
+        <Card className="p-8" id="task-a">
+          <h2 className="text-2xl font-bold font-display text-foreground mt-0 flex items-center gap-3">
+            <BarChart3 className="w-6 h-6 text-primary" /> 5. Task A: Bayesian Conflict Forecasting
+          </h2>
+          <p>
+            The forecasting model produces probability distributions over eight mutually exclusive and collectively exhaustive (MECE) conflict outcome states across four time horizons. This is the system's "Task A" — the probabilistic assessment of where the conflict is heading.
+          </p>
+          <h3 className="text-xl font-bold font-display text-foreground mt-6">5.1 Outcome Taxonomy</h3>
+          <p>The system uses a rigid taxonomy of 8 MECE states. Probabilities across all states must sum to 1.0 and are automatically normalized if they don't:</p>
           <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm not-prose list-none p-0">
             <li className="bg-card p-3 border border-border border-l-2 border-l-red-500"><span className="text-red-500 font-bold">1. Continued Conflict:</span> Status quo friction without major escalation.</li>
             <li className="bg-card p-3 border border-border border-l-2 border-l-amber-500"><span className="text-amber-500 font-bold">2. Informal De-escalation:</span> Unspoken throttling of hostilities.</li>
@@ -29,46 +166,340 @@ export default function Methodology() {
             <li className="bg-card p-3 border border-border border-l-2 border-l-sky-500"><span className="text-sky-500 font-bold">7. Broad Settlement:</span> Comprehensive, enduring peace treaty.</li>
             <li className="bg-card p-3 border border-border border-l-2 border-l-red-800"><span className="text-red-800 font-bold">8. Major Escalation:</span> Severe expansion of kinetic theater.</li>
           </ul>
-        </Card>
 
-        <Card className="p-8">
-          <h2 className="text-2xl font-bold font-display text-foreground mt-0">Adversarial Agent Architecture</h2>
+          <h3 className="text-xl font-bold font-display text-foreground mt-6">5.2 Time Horizons</h3>
           <p>
-            To combat LLM hallucination and confirmation bias, AutoPeace employs a multi-provider adversarial debate mechanism:
+            Forecasts are generated independently for four time horizons: <strong>30 days</strong>, <strong>90 days</strong>, <strong>180 days</strong>, and <strong>1 year</strong>. Each horizon receives its own prompt with identical evidence but horizon-specific framing. The 90-day horizon serves as the primary optimization target for the hill-climbing loop.
           </p>
-          <ol>
-            <li><strong>Forecaster (Anthropic Claude Sonnet):</strong> Generates the initial probabilities and rationale based on raw evidence.</li>
-            <li><strong>Red-Teamer (Google Gemini 2.5 Flash):</strong> Actively attempts to find flaws, historical inaccuracies, or logical leaps in the Forecaster's output.</li>
-            <li><strong>Evaluator (OpenAI GPT-4o):</strong> Adjudicates the debate and produces the final, calibrated probabilities.</li>
-          </ol>
-        </Card>
 
-        <Card className="p-8">
-          <h2 className="text-2xl font-bold font-display text-foreground mt-0">Hill-Climbing Self-Improvement Loop</h2>
+          <h3 className="text-xl font-bold font-display text-foreground mt-6">5.3 Forecasting Model</h3>
           <p>
-            Each research cycle runs 3 adversarial mutations (optimistic peace analyst, hawkish strategic analyst, base-rate superforecaster).
-            Each mutation is scored against a composite of Brier score and log score computed across 30d/90d/180d backtest windows.
-            The GPT-4o evaluator adjudicates whether the challenger improves on the champion. If yes, the challenger becomes the new champion — true hill-climbing over prompt space.
+            Base forecasts are generated by Anthropic Claude Sonnet, prompted as a "Bayesian conflict forecasting model specializing in the Iran-US-Israel conflict complex." The model receives:
           </p>
+          <ul>
+            <li>The 30 most recent evidence items (with source, title, evidence type, publication date, and up to 300 characters of text per item)</li>
+            <li>The 8-state outcome taxonomy with instructions to produce a valid probability distribution summing to 1.0</li>
+            <li>A requirement to provide rationale and cite key evidence items for each forecast</li>
+          </ul>
           <p>
-            Forecast probabilities and Brier/log scores are persisted per cycle, enabling calibration trend tracking over time as the model improves.
+            All four time-horizon forecasts are processed in parallel with a concurrency limit of 2 and up to 2 retries per horizon. Raw LLM probability outputs are normalized to ensure they sum to exactly 1.0, with any missing states receiving zero probability before normalization.
           </p>
         </Card>
 
-        <Card className="p-8 border-amber-700/40 bg-amber-900/10">
+        <Card className="p-8" id="hill-climbing">
           <h2 className="text-2xl font-bold font-display text-foreground mt-0 flex items-center gap-3">
-            <AlertTriangle className="w-6 h-6 text-amber-400" /> Limitations & Disclaimer
+            <RefreshCw className="w-6 h-6 text-primary" /> 6. Hill-Climbing Self-Improvement Loop
+          </h2>
+          <p>
+            This is the core autoresearch mechanism for Task A. After base forecasts are generated, the system loads the persisted "champion" state (the best-performing 90-day distribution from any prior cycle) and attempts to improve it through adversarial mutation experiments.
+          </p>
+
+          <h3 className="text-xl font-bold font-display text-foreground mt-6">6.1 What Is Being Iterated On</h3>
+          <p>
+            The iteration target is the <strong>90-day probability distribution</strong> — the 8-dimensional vector of outcome probabilities. The champion state persists across cycles in the admin configuration store. Each cycle loads the previous champion (or uses the current base forecast if no champion exists), applies mutations, and promotes any improvement.
+          </p>
+
+          <h3 className="text-xl font-bold font-display text-foreground mt-6">6.2 Mutation Experiments (Experimentation Parameters)</h3>
+          <p>
+            Each cycle runs exactly <strong>3 adversarial mutation experiments</strong>, each representing a different analytical perspective:
+          </p>
+          <div className="space-y-3 not-prose text-sm">
+            <div className="bg-card p-4 border border-border border-l-2 border-l-emerald-500">
+              <h4 className="font-bold text-foreground mb-1">1. Red-Team Optimistic (Task A)</h4>
+              <p className="text-muted-foreground">An "optimistic peace analyst" challenges bearish forecasts by arguing for higher probability of peace outcomes using recent diplomatic signals. Generated by Gemini 2.5 Flash. Targets under-weighting of diplomatic progress.</p>
+            </div>
+            <div className="bg-card p-4 border border-border border-l-2 border-l-red-500">
+              <h4 className="font-bold text-foreground mb-1">2. Red-Team Pessimistic (Task B)</h4>
+              <p className="text-muted-foreground">A "hawkish strategic analyst" challenges optimistic forecasts by arguing for higher conflict risk using regional threat assessments and historical conflict patterns. Generated by Gemini 2.5 Flash. Targets naive optimism bias.</p>
+            </div>
+            <div className="bg-card p-4 border border-border border-l-2 border-l-sky-500">
+              <h4 className="font-bold text-foreground mb-1">3. Red-Team Base-Rate (Task A+B)</h4>
+              <p className="text-muted-foreground">A "superforecaster" applies historical conflict resolution base rates and regression-to-mean adjustments. Generated by Gemini 2.5 Flash. Targets anchoring bias and recency bias by forcing reversion toward base rates.</p>
+            </div>
+          </div>
+
+          <h3 className="text-xl font-bold font-display text-foreground mt-6">6.3 Evaluation Parameters (Scoring)</h3>
+          <p>Each mutation's output (a new 8-dimensional probability vector) is evaluated against the champion using two complementary scoring metrics:</p>
+          <div className="space-y-3 not-prose text-sm">
+            <div className="bg-card p-4 border border-border">
+              <h4 className="font-bold text-foreground mb-1">Brier Score</h4>
+              <p className="text-muted-foreground">The mean squared error between predicted probabilities and actual binary outcomes across all 8 states. Computed as: <code>Σ(pᵢ − oᵢ)² / N</code> where <code>pᵢ</code> is the predicted probability, <code>oᵢ</code> is the outcome indicator (1 if resolved, 0 otherwise), and N = 8. Lower is better. Rewards calibration — a well-calibrated forecaster assigns probabilities that match observed frequencies.</p>
+            </div>
+            <div className="bg-card p-4 border border-border">
+              <h4 className="font-bold text-foreground mb-1">Log Score</h4>
+              <p className="text-muted-foreground">The natural logarithm of the probability assigned to the resolved outcome: <code>ln(p_resolved)</code>. Severely penalizes confident wrong predictions — assigning 1% probability to something that happens yields a log score of −4.6, while assigning 50% yields only −0.69. Higher (less negative) is better.</p>
+            </div>
+            <div className="bg-card p-4 border border-border">
+              <h4 className="font-bold text-foreground mb-1">Composite Score</h4>
+              <p className="text-muted-foreground">The optimization target combining both metrics: <code>Composite = Brier − (Log × 0.1)</code>. Lower is better. The 0.1 weighting on the log score ensures that calibration (Brier) dominates but extreme misses (log) are still penalized.</p>
+            </div>
+          </div>
+          <p className="mt-4">
+            Backtesting uses historical forecasts from a seed cycle (<code>seed-historical-2024</code>) with known resolved outcomes. If no backtest records are available, the system falls back to scoring against "continued_conflict" as the resolved outcome.
+          </p>
+
+          <h3 className="text-xl font-bold font-display text-foreground mt-6">6.4 Champion Selection</h3>
+          <p>
+            After computing composite scores for both champion and challenger, a GPT-4o evaluator is called as the final arbiter. It receives both score sets and both probability distributions and returns a JSON verdict: <code>retain_challenger</code> or <code>retain_champion</code> with reasoning. If GPT-4o's response cannot be parsed, the system falls back to a pure numerical comparison. If the challenger wins, it replaces the champion and its rationale is appended with a note identifying which mutation was applied. The updated champion state is persisted to the admin configuration store for use in subsequent cycles.
+          </p>
+        </Card>
+
+        <Card className="p-8" id="task-b">
+          <h2 className="text-2xl font-bold font-display text-foreground mt-0 flex items-center gap-3">
+            <Target className="w-6 h-6 text-primary" /> 7. Task B: Autonomous Deal Optimization
+          </h2>
+          <p>
+            Task B is a separate autoresearch loop triggered asynchronously after each forecasting cycle completes. Unlike Task A's champion mutation approach, Task B generates a <strong>fresh proposal</strong> each cycle — informed by the latest evidence and the previous deal's failure diagnosis — then evaluates it through an <strong>8-stage multi-agent pipeline</strong> where different LLM providers are deliberately assigned to different stages to ensure adversarial independence. If the new deal scores higher than the current best, it replaces it.
+          </p>
+
+          <h3 className="text-xl font-bold font-display text-foreground mt-6">7.1 Deal Architecture Selection</h3>
+          <p>
+            Each cycle selects one of four deal architectures, which determine the primary sequencing and emphasis of the generated proposal:
+          </p>
+          <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm not-prose list-none p-0">
+            <li className="bg-card p-3 border border-border"><strong className="text-foreground">Balanced:</strong> Equal priority across nuclear, sanctions, and maritime dimensions.</li>
+            <li className="bg-card p-3 border border-border"><strong className="text-foreground">Nuclear-First:</strong> Comprehensive nuclear rollback as the prerequisite for any relief.</li>
+            <li className="bg-card p-3 border border-border"><strong className="text-foreground">Hormuz-First:</strong> Maritime security framework as the foundation enabling economic normalization.</li>
+            <li className="bg-card p-3 border border-border"><strong className="text-foreground">Humanitarian-First:</strong> Immediate humanitarian corridor as the trust-building prerequisite.</li>
+          </ul>
+          <p className="mt-4">
+            The system tracks a "stall counter" per architecture within the current branch of the solution tree — if 3 stalled child nodes accumulate for the same architecture under the current parent node, the system automatically branches to the next architecture. This prevents the optimization loop from getting stuck in local optima within a particular solution branch.
+          </p>
+
+          <h3 className="text-xl font-bold font-display text-foreground mt-6">7.2 The 8-Stage Pipeline</h3>
+          <p>
+            Each deal passes through the following stages. The default provider assignments enforce generation/evaluation independence:
+          </p>
+          <div className="space-y-3 not-prose text-sm">
+            <div className="bg-card p-4 border border-border border-l-2 border-l-violet-500">
+              <h4 className="font-bold text-foreground mb-1">Stage 1: Proposal Agent <span className="text-xs text-muted-foreground ml-2">(Anthropic Claude — generation role)</span></h4>
+              <p className="text-muted-foreground">Designs initial deal terms across 7 dimensions: nuclear protocol, sanctions relief, Hormuz arrangements, humanitarian provisions, verification mechanism, timeline, and sequencing. Receives the latest evidence summary, the previous cycle's failure diagnosis, the selected architecture focus, and hard CBA economic data (see Section 8). Outputs a structured JSON deal object.</p>
+            </div>
+            <div className="bg-card p-4 border border-border border-l-2 border-l-blue-500">
+              <h4 className="font-bold text-foreground mb-1">Stage 2: Stakeholder Evaluator <span className="text-xs text-muted-foreground ml-2">(OpenAI GPT-4o — evaluation role)</span></h4>
+              <p className="text-muted-foreground">Assesses how each of 8 core stakeholders (Iran, US, Israel, Saudi Arabia, IAEA, Russia, China, EU3) would respond to the proposed deal. Each stakeholder has a predefined profile with interests and red lines. The agent returns a verdict per stakeholder: <code>accept</code>, <code>conditional</code>, or <code>reject</code>, with rationale and specific red-line violations cited.</p>
+            </div>
+            <div className="bg-card p-4 border border-border border-l-2 border-l-blue-500">
+              <h4 className="font-bold text-foreground mb-1">Stage 3: Domestic Audience Agent <span className="text-xs text-muted-foreground ml-2">(OpenAI GPT-4o — evaluation role)</span></h4>
+              <p className="text-muted-foreground">Goes one level deeper than stakeholder evaluation by assessing domestic political sellability. Evaluates 11 domestic audiences across 3 key countries: Iran (Supreme Leader, IRGC, reformists, public), US (Congress, Pentagon, Israel lobby, public), and Israel (Knesset hardliners, security establishment, center-left coalition). Returns a verdict per audience: <code>sellable</code>, <code>difficult</code>, or <code>unsellable</code>.</p>
+            </div>
+            <div className="bg-card p-4 border border-border border-l-2 border-l-red-500">
+              <h4 className="font-bold text-foreground mb-1">Stage 4: Red-Team Agent <span className="text-xs text-muted-foreground ml-2">(Google Gemini — adversarial role)</span></h4>
+              <p className="text-muted-foreground">Generates 5 adversarial attack scenarios designed to expose fatal flaws in the deal. Each attack specifies: a concrete attack description, a severity level (low/medium/high/critical), how proponents would respond, and whether the deal survives the attack. Examples include IRGC sovereignty objections, Congressional blocking of sanctions relief, and pre-emptive Israeli strikes.</p>
+            </div>
+            <div className="bg-card p-4 border border-border border-l-2 border-l-violet-500">
+              <h4 className="font-bold text-foreground mb-1">Stage 5: Negotiator Agent <span className="text-xs text-muted-foreground ml-2">(Anthropic Claude — generation role)</span></h4>
+              <p className="text-muted-foreground">Analyzes all rejecting and conditional stakeholders from Stage 2 and proposes targeted amendments designed to bridge gaps <em>without losing existing supporters</em>. Outputs: specific proposed changes per stakeholder (with likelihood estimates), partial term revisions, and an overall negotiation strategy. The revised terms are applied before the Judge scores the deal.</p>
+            </div>
+            <div className="bg-card p-4 border border-border border-l-2 border-l-amber-500">
+              <h4 className="font-bold text-foreground mb-1">Stage 6: Judge Panel <span className="text-xs text-muted-foreground ml-2">(All 3 providers in parallel — judicial role)</span></h4>
+              <p className="text-muted-foreground">A "Supreme Court" of three independent LLM judges (Anthropic, OpenAI, Gemini) each score the deal on 7 dimensions with rationale. Scores are averaged across all providers. This multi-model scoring prevents any single model's biases from dominating the assessment. Details in Section 9.</p>
+            </div>
+            <div className="bg-card p-4 border border-border border-l-2 border-l-blue-500">
+              <h4 className="font-bold text-foreground mb-1">Stage 7: Meta-Evaluator <span className="text-xs text-muted-foreground ml-2">(OpenAI GPT-4o — meta-evaluation role)</span></h4>
+              <p className="text-muted-foreground">Distinct from the Judge: the Meta-Evaluator assesses the <em>quality of the pipeline's own reasoning process</em>, not the deal itself. Identifies blindspots in the analysis, rates overall pipeline quality (0-1), suggests which architecture to try next, and provides a confidence score in the outcome. This enables the system to self-diagnose reasoning failures.</p>
+            </div>
+            <div className="bg-card p-4 border border-border border-l-2 border-l-red-500">
+              <h4 className="font-bold text-foreground mb-1">Stage 8: Diagnosis Generator <span className="text-xs text-muted-foreground ml-2">(Google Gemini — adversarial/synthesis role)</span></h4>
+              <p className="text-muted-foreground">Produces a human-readable diagnosis of why the deal succeeded or faces difficulties. Focuses on which stakeholder objections and which structural weaknesses are most critical. This diagnosis is <strong>fed forward</strong> as input to the next cycle's Proposal Agent (Stage 1), closing the autoresearch feedback loop.</p>
+            </div>
+          </div>
+
+          <h3 className="text-xl font-bold font-display text-foreground mt-6">7.3 Model Configuration &amp; Independence Enforcement</h3>
+          <p>
+            The system uses a three-tier model resolution hierarchy with the highest specificity winning:
+          </p>
+          <ol className="text-sm">
+            <li><strong>Per-agent stage override</strong> (e.g., <code>stage4Provider = "gemini"</code>) — highest priority</li>
+            <li><strong>Per-role bucket</strong> (e.g., <code>adversarialProvider = "gemini"</code>) — applies to all stages with that role</li>
+            <li><strong>Legacy per-provider model</strong> (e.g., <code>geminiModel = "gemini-2.5-flash"</code>) — global fallback</li>
+          </ol>
+          <p>
+            A hard validation check ensures generation and evaluation providers are always different: <code>if (generationProvider === evaluationProvider) throw Error</code>. This is the system's core architectural invariant for preventing self-grading.
+          </p>
+        </Card>
+
+        <Card className="p-8" id="cba">
+          <h2 className="text-2xl font-bold font-display text-foreground mt-0 flex items-center gap-3">
+            <Scale className="w-6 h-6 text-primary" /> 8. Cost-Benefit Analysis Modeling
+          </h2>
+          <p>
+            The CBA framework is injected directly into the Proposal Agent's prompt context (Stage 1) and the Judge Panel's scoring prompt (Stage 6), ensuring that deal generation and evaluation are grounded in economic reality rather than pure diplomatic reasoning.
+          </p>
+
+          <h3 className="text-xl font-bold font-display text-foreground mt-6">8.1 War vs. Peace Framework</h3>
+          <p>
+            The modeling approach treats war and peace as alternative states of the same system using consistent accounting rules. The delta (Δ) between states represents the "Peace Dividend" or "War Cost." Annual estimates used in prompts:
+          </p>
+          <div className="not-prose text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <div className="bg-card p-3 border border-border"><strong className="text-foreground">Ongoing conflict cost:</strong> ~$450B/yr globally in GDP-equivalent losses</div>
+              <div className="bg-card p-3 border border-border"><strong className="text-foreground">Durable peace benefit:</strong> ~$560B/yr — a $1T/yr aggregate swing</div>
+            </div>
+          </div>
+
+          <h3 className="text-xl font-bold font-display text-foreground mt-6">8.2 Economic Channels</h3>
+          <p>Impacts are decomposed across specific channels with war cost / peace gain estimates (USD billions per year) provided to the LLM agents:</p>
+          <div className="overflow-x-auto not-prose">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left p-2 text-foreground">Channel</th>
+                  <th className="text-right p-2 text-foreground">War Cost</th>
+                  <th className="text-right p-2 text-foreground">Peace Gain</th>
+                </tr>
+              </thead>
+              <tbody className="text-muted-foreground">
+                <tr className="border-b border-border/50"><td className="p-2">Trade &amp; Sanctions</td><td className="text-right p-2">$75B</td><td className="text-right p-2">$122B</td></tr>
+                <tr className="border-b border-border/50"><td className="p-2">Energy Markets (incl. transfers)</td><td className="text-right p-2">$113B</td><td className="text-right p-2">$133B</td></tr>
+                <tr className="border-b border-border/50"><td className="p-2">Shipping &amp; Insurance</td><td className="text-right p-2">$55B</td><td className="text-right p-2">$69B</td></tr>
+                <tr className="border-b border-border/50"><td className="p-2">Finance &amp; Banking</td><td className="text-right p-2">$55B</td><td className="text-right p-2">$82B</td></tr>
+                <tr className="border-b border-border/50"><td className="p-2">Defense &amp; Security</td><td className="text-right p-2">$72B</td><td className="text-right p-2">$39B</td></tr>
+                <tr className="border-b border-border/50"><td className="p-2">Aviation &amp; Tourism</td><td className="text-right p-2">$30B</td><td className="text-right p-2">$45B</td></tr>
+                <tr className="border-b border-border/50"><td className="p-2">Humanitarian</td><td className="text-right p-2">$28B</td><td className="text-right p-2">$26B</td></tr>
+                <tr className="border-b border-border/50"><td className="p-2">Productivity &amp; FDI</td><td className="text-right p-2">$28B</td><td className="text-right p-2">$56B</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3 className="text-xl font-bold font-display text-foreground mt-6">8.3 Stakeholder-Specific Incentives</h3>
+          <p>
+            The Proposal Agent is told which actors bear the highest costs and stand to gain the most from peace, ensuring deals are designed with realistic incentive structures:
+          </p>
+          <div className="not-prose text-sm grid grid-cols-1 md:grid-cols-3 gap-2">
+            <div className="bg-card p-3 border border-border"><strong className="text-foreground">Iran:</strong> $87B cost → $142B peace benefit</div>
+            <div className="bg-card p-3 border border-border"><strong className="text-foreground">US:</strong> $52B cost → $38B peace benefit</div>
+            <div className="bg-card p-3 border border-border"><strong className="text-foreground">Israel:</strong> $43B cost → $35B peace benefit</div>
+            <div className="bg-card p-3 border border-border"><strong className="text-foreground">Europe:</strong> $42B cost → $55B peace benefit</div>
+            <div className="bg-card p-3 border border-border"><strong className="text-foreground">China:</strong> $35B cost → $48B peace benefit</div>
+          </div>
+          <p className="mt-4">
+            This CBA context directs the LLM to design deals that "address the channels where the largest economic gains are achievable and ensure stakeholders who bear the highest costs have clear incentives to participate." The Judge Panel receives the same data, instructing it to "consider whether the deal terms adequately address these economic incentives when scoring regionalStability and feasibility."
+          </p>
+
+          <h3 className="text-xl font-bold font-display text-foreground mt-6">8.4 Conceptual Framework: Three-Ledger Accounting</h3>
+          <p>
+            The CBA estimates injected into prompts are informed by a three-ledger conceptual framework (documented in the project's modeling guide) designed to avoid double-counting errors common in conflict economics. While the system does not computationally implement these ledgers as separate modules, the framework shapes how the aggregate figures are constructed:
+          </p>
+          <ol className="text-sm">
+            <li><strong>Real Resource Losses/Gains:</strong> Physical destruction, lost production, productivity changes — genuine deadweight costs.</li>
+            <li><strong>Transfers and Redistribution:</strong> Commodity price shifts (e.g., oil price spikes) that help exporters but hurt importers — zero-sum at the global level.</li>
+            <li><strong>Risk and Option Value:</strong> Changes in sovereign spreads, insurance premiums, and strategic leverage — including Iran's "Wartime Rents" (the value of selective-access tolls and deterrence leverage that peace would eliminate).</li>
+          </ol>
+          <p className="mt-2">
+            The third ledger is conceptually critical: it prevents naive overestimation of peace benefits by recognizing that some actors (particularly Iran) derive strategic value from the conflict status quo that a peace deal must compensate for. These considerations are embedded in the prompt context rather than as separate computational modules.
+          </p>
+        </Card>
+
+        <Card className="p-8" id="scoring">
+          <h2 className="text-2xl font-bold font-display text-foreground mt-0 flex items-center gap-3">
+            <Shield className="w-6 h-6 text-primary" /> 9. Scoring &amp; Evaluation Framework
+          </h2>
+
+          <h3 className="text-xl font-bold font-display text-foreground mt-4">9.1 Task A Scoring (Forecast Calibration)</h3>
+          <p>
+            Forecast quality is measured by Brier score, log score, and their composite, computed against backtest records from historical seed data. See Section 6.3 for the mathematical definitions and composite formula.
+          </p>
+          <p>
+            The codebase also includes a calibration curve utility that can bucket forecast-outcome pairs into 10 probability bins and compare predicted vs. observed frequencies. This is available for calibration analysis but is not automatically computed as part of the autoresearch cycle's runtime path.
+          </p>
+
+          <h3 className="text-xl font-bold font-display text-foreground mt-6">9.2 Task B Scoring (Deal Quality)</h3>
+          <p>
+            The Judge Panel (Stage 6) scores each deal on <strong>7 dimensions</strong>, each rated 0.0 to 1.0 with rationale:
+          </p>
+          <div className="overflow-x-auto not-prose">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left p-2 text-foreground">Dimension</th>
+                  <th className="text-right p-2 text-foreground">Weight</th>
+                  <th className="text-left p-2 text-foreground">Description</th>
+                </tr>
+              </thead>
+              <tbody className="text-muted-foreground">
+                <tr className="border-b border-border/50"><td className="p-2 font-medium text-foreground">Feasibility</td><td className="text-right p-2">20%</td><td className="p-2">Can this deal realistically be negotiated and signed?</td></tr>
+                <tr className="border-b border-border/50"><td className="p-2 font-medium text-foreground">Coherence</td><td className="text-right p-2">15%</td><td className="p-2">Do the terms form a logically consistent, non-contradictory package?</td></tr>
+                <tr className="border-b border-border/50"><td className="p-2 font-medium text-foreground">Evidence Grounding</td><td className="text-right p-2">10%</td><td className="p-2">Are the terms responsive to current geopolitical reality?</td></tr>
+                <tr className="border-b border-border/50"><td className="p-2 font-medium text-foreground">Domestic Sellability</td><td className="text-right p-2">20%</td><td className="p-2">Could domestic political audiences in key states accept this?</td></tr>
+                <tr className="border-b border-border/50"><td className="p-2 font-medium text-foreground">Regional Stability</td><td className="text-right p-2">15%</td><td className="p-2">Does this deal reduce regional conflict risk and address economic incentives?</td></tr>
+                <tr className="border-b border-border/50"><td className="p-2 font-medium text-foreground">Implementability</td><td className="text-right p-2">10%</td><td className="p-2">Can the terms be practically implemented and sequenced?</td></tr>
+                <tr className="border-b border-border/50"><td className="p-2 font-medium text-foreground">Durability</td><td className="text-right p-2">10%</td><td className="p-2">Will this deal hold under stress and changing political conditions?</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-4">
+            The <strong>composite score</strong> is the weighted sum: <code>Composite = Σ(dimensionᵢ × weightᵢ)</code>. This is the primary optimization target for the deal autoresearch loop. A deal scoring below 0.35 composite is marked as "stalled," which increments the stall counter for that architecture.
+          </p>
+          <p>
+            Each judge provides per-dimension rationale, which is merged across providers using pipe-delimited concatenation for full transparency into each model's reasoning.
+          </p>
+        </Card>
+
+        <Card className="p-8" id="pareto">
+          <h2 className="text-2xl font-bold font-display text-foreground mt-0 flex items-center gap-3">
+            <GitBranch className="w-6 h-6 text-primary" /> 10. Pareto Frontier &amp; Solution Tree
+          </h2>
+          <p>
+            Rather than simply tracking the "best" deal, AutoPeace maintains two complementary views of the solution space:
+          </p>
+
+          <h3 className="text-xl font-bold font-display text-foreground mt-4">10.1 Pareto Frontier</h3>
+          <p>
+            The system maintains a set of <strong>non-dominated deals</strong> — the Pareto frontier. A deal is dominated (and removed from the frontier) if and only if another deal is equal or better on <em>all</em> 7 scoring dimensions AND strictly better on at least one. This means the frontier preserves deals with different trade-off profiles (e.g., a deal with high feasibility but lower durability coexists with a deal showing the opposite pattern).
+          </p>
+
+          <h3 className="text-xl font-bold font-display text-foreground mt-6">10.2 Solution Tree</h3>
+          <p>
+            Every deal is recorded as a node in a tree structure. Each node stores:
+          </p>
+          <ul className="text-sm">
+            <li>Parent node (the deal it was derived from)</li>
+            <li>Architecture used (balanced, nuclear-first, hormuz-first, humanitarian-first)</li>
+            <li>Depth in the tree (number of iterations from root)</li>
+            <li>Whether it's stalled (composite &lt; 0.35)</li>
+            <li>Whether it's the best in its branch</li>
+            <li>Composite score</li>
+          </ul>
+          <p>
+            When the stall count for an architecture under the current parent node reaches the threshold of 3, the system automatically branches to a different architecture. This creates a tree where different branches explore fundamentally different negotiation strategies, preventing the optimization from getting trapped in a single approach.
+          </p>
+        </Card>
+
+        <Card className="p-8" id="what-if">
+          <h2 className="text-2xl font-bold font-display text-foreground mt-0 flex items-center gap-3">
+            <ArrowRight className="w-6 h-6 text-primary" /> 11. What-If Scenario Analysis
+          </h2>
+          <p>
+            After each forecasting cycle, the system generates counterfactual forecast variants for four predefined geopolitical scenarios:
+          </p>
+          <div className="space-y-2 not-prose text-sm">
+            <div className="bg-card p-3 border border-border"><strong className="text-foreground">Sanctions Lifted:</strong> Western sanctions on Iran fully removed as part of a phased deal. Trigger: Full JCPOA-plus agreement with verified enrichment rollback.</div>
+            <div className="bg-card p-3 border border-border"><strong className="text-foreground">Military Strikes:</strong> Israeli or US military strikes on Iranian nuclear facilities. Trigger: Iran crosses 90% enrichment threshold or credible weapon assembly detected.</div>
+            <div className="bg-card p-3 border border-border"><strong className="text-foreground">Hormuz Closure:</strong> Iran closes the Strait of Hormuz disrupting global energy supply. Trigger: US or Israeli military action or crushing sanction escalation.</div>
+            <div className="bg-card p-3 border border-border"><strong className="text-foreground">US Withdrawal:</strong> United States significantly reduces military presence in the Middle East. Trigger: Domestic political shift, budget crisis, or grand strategy reorientation.</div>
+          </div>
+          <p className="mt-4">
+            Each scenario is evaluated by re-running the forecasting model with the scenario injected as context alongside current evidence and the base 90-day forecast. The model must explain how the scenario causally shifts each outcome probability. These counterfactuals serve as sensitivity analysis — revealing which external events would most dramatically alter the conflict trajectory.
+          </p>
+        </Card>
+
+        <Card className="p-8 border-amber-700/40 bg-amber-900/10" id="limitations">
+          <h2 className="text-2xl font-bold font-display text-foreground mt-0 flex items-center gap-3">
+            <AlertTriangle className="w-6 h-6 text-amber-400" /> 12. Limitations &amp; Disclaimer
           </h2>
           <ul className="space-y-2 text-sm text-muted-foreground mt-4 list-disc list-inside">
-            <li>Forecasts are <strong>probabilistic estimates</strong> produced by AI models and are not verified ground truth.</li>
-            <li>Evidence is sourced from public RSS feeds, GDELT, and ACLED — all subject to reporting lag, bias, and incompleteness.</li>
-            <li>LLM forecasters (Anthropic Claude, Gemini, GPT-4o) may exhibit hallucination, anchoring bias, or training cutoff limitations.</li>
-            <li>The hill-climbing loop optimizes for Brier score on historical seeds, which may not reflect future accuracy.</li>
-            <li>Forecasts should <strong>never</strong> be used as the sole basis for policy, investment, or personal safety decisions.</li>
-            <li>Calibration backtesting uses a limited seed corpus of historical forecasts — results should be interpreted with caution.</li>
+            <li>Forecasts are <strong>probabilistic estimates</strong> produced by AI models and are not verified ground truth. All probabilities should be interpreted with appropriate epistemic humility.</li>
+            <li>Evidence is sourced from public RSS feeds, GDELT, and ACLED — all subject to reporting lag, bias, and incompleteness. Classified intelligence, private diplomatic channels, and real-time military data are not available to the system.</li>
+            <li>LLM forecasters (Anthropic Claude, Gemini, GPT-4o) may exhibit hallucination, anchoring bias, or training cutoff limitations. The adversarial multi-provider architecture mitigates but cannot eliminate these risks.</li>
+            <li>The hill-climbing loop optimizes for Brier score on historical seeds, which may not reflect future accuracy. The seed corpus is limited and may not represent the full distribution of possible outcomes.</li>
+            <li>CBA figures are estimates derived from publicly available economic models and should be treated as order-of-magnitude guides rather than precise values.</li>
+            <li>Deal proposals are generated by language models and have not been vetted by real negotiators, diplomats, or subject-matter experts. They represent computationally plausible frameworks, not actionable policy recommendations.</li>
+            <li>The generation/evaluation independence constraint reduces but does not eliminate bias — models from different providers may share training data, alignment approaches, or systematic blindspots.</li>
+            <li>Forecasts and deals should <strong>never</strong> be used as the sole basis for policy, investment, or personal safety decisions.</li>
           </ul>
           <p className="text-xs text-amber-300/70 mt-4 italic">
-            This platform is provided for research and educational purposes only. The authors make no warranties regarding accuracy or completeness.
+            This platform is provided for research and educational purposes only. The authors make no warranties regarding accuracy or completeness. AutoPeace is an experiment in applying autoresearch methodology to conflict analysis — it demonstrates what is technically possible, not what should be directly operationalized.
           </p>
         </Card>
 
