@@ -59,7 +59,7 @@ function StakeholderBar({ evals }: { evals: Record<string, StakeholderVerdict> }
 
   return (
     <div className="space-y-1">
-      <div className="flex text-[10px] gap-3">
+      <div className="flex text-xs gap-3">
         <span className="text-emerald-400">{accepts} accept</span>
         <span className="text-amber-400">{conditionals} conditional</span>
         <span className="text-red-400">{rejects} reject</span>
@@ -115,10 +115,10 @@ function ProposalCard({
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-1">
             <h3 className="text-base font-bold truncate">{proposal.name}</h3>
-            <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">
+            <Badge variant="outline" className="text-xs border-primary/30 text-primary">
               {proposal.source}
             </Badge>
-            <Badge variant="outline" className="text-[10px]">
+            <Badge variant="outline" className="text-xs">
               by {proposal.submittedBy}
             </Badge>
           </div>
@@ -162,7 +162,7 @@ function ProposalCard({
                     ].map(({ label, key }) => (
                       terms[key] ? (
                         <div key={key} className="border-b border-border/20 pb-1.5 last:border-0">
-                          <span className="text-[10px] text-primary font-semibold uppercase tracking-wider block">{label}</span>
+                          <span className="text-xs text-primary font-semibold uppercase tracking-wider block">{label}</span>
                           <span className="text-muted-foreground">
                             {key === "timelineYears" ? `${terms[key]} years` : String(terms[key]).slice(0, 300)}
                           </span>
@@ -171,9 +171,9 @@ function ProposalCard({
                     ))}
                     {Boolean(terms.stakeholderCommitments && typeof terms.stakeholderCommitments === "object" && Object.keys(terms.stakeholderCommitments as Record<string, unknown>).length > 0) && (
                       <div className="border-t border-border/30 pt-2 mt-2">
-                        <span className="text-[10px] text-cyan-400 font-semibold uppercase tracking-wider block mb-1.5">Coalition Commitments</span>
+                        <span className="text-xs text-cyan-400 font-semibold uppercase tracking-wider block mb-1.5">Coalition Commitments</span>
                         {Object.entries(terms.stakeholderCommitments as Record<string, string>).map(([id, commitment]) => (
-                          <div key={id} className="flex gap-1.5 text-[11px] mb-1">
+                          <div key={id} className="flex gap-1.5 text-xs mb-1">
                             <span className="text-primary font-semibold capitalize shrink-0">{id.replace(/_/g, " ")}:</span>
                             <span className="text-muted-foreground">{String(commitment).slice(0, 200)}</span>
                           </div>
@@ -182,11 +182,11 @@ function ProposalCard({
                     )}
                     {Boolean(Array.isArray((terms as Record<string, unknown>).innovativeProvisions) && ((terms as Record<string, unknown>).innovativeProvisions as unknown[]).length > 0) && (
                       <div className="border-t border-border/30 pt-2 mt-2">
-                        <span className="text-[10px] text-violet-400 font-semibold uppercase tracking-wider block mb-1.5">Innovative Provisions</span>
+                        <span className="text-xs text-violet-400 font-semibold uppercase tracking-wider block mb-1.5">Innovative Provisions</span>
                         {((terms as Record<string, unknown>).innovativeProvisions as Array<{ title: string; description: string; rationale: string }>).map((prov, idx) => (
                           <div key={idx} className="p-2 rounded border border-violet-800/20 bg-violet-950/10 mb-1.5">
-                            <span className="text-[11px] font-bold text-violet-300">{prov.title}</span>
-                            <p className="text-[10px] text-muted-foreground">{prov.description.slice(0, 200)}</p>
+                            <span className="text-xs font-bold text-violet-300">{prov.title}</span>
+                            <p className="text-xs text-muted-foreground">{prov.description.slice(0, 200)}</p>
                           </div>
                         ))}
                       </div>
@@ -247,7 +247,7 @@ function ProposalCard({
                               <span className="font-mono font-bold capitalize truncate">{id.replace(/[_-]/g, " ")}</span>
                               <span className={`text-[7px] px-1 py-0.5 rounded border ${tier.color} font-semibold shrink-0 ml-auto`}>{tier.label}</span>
                             </div>
-                            <p className={`text-[10px] text-muted-foreground ${expanded ? "" : "line-clamp-2"}`}>{ev.rationale}</p>
+                            <p className={`text-xs text-muted-foreground ${expanded ? "" : "line-clamp-2"}`}>{ev.rationale}</p>
                           </button>
                         );
                       })}
@@ -327,10 +327,10 @@ function AiDealCard({
           <div className="flex flex-wrap items-center gap-2 mb-1">
             <Globe className="w-4 h-4 text-primary" />
             <h3 className="text-base font-bold">Current AI Champion Deal</h3>
-            <Badge variant="outline" className="text-[10px] border-primary/40 text-primary capitalize">
+            <Badge variant="outline" className="text-xs border-primary/40 text-primary capitalize">
               {deal.architecture}
             </Badge>
-            <Badge variant="outline" className="text-[10px]">
+            <Badge variant="outline" className="text-xs">
               by {deal.generatedBy}
             </Badge>
           </div>
@@ -376,7 +376,7 @@ function AiDealCard({
                     ].map(({ label, key }) => (
                       terms[key] ? (
                         <div key={key} className="border-b border-border/20 pb-1.5 last:border-0">
-                          <span className="text-[10px] text-primary font-semibold uppercase tracking-wider block">{label}</span>
+                          <span className="text-xs text-primary font-semibold uppercase tracking-wider block">{label}</span>
                           <span className="text-muted-foreground">
                             {key === "timelineYears" ? `${terms[key]} years` : String(terms[key]).slice(0, 300)}
                           </span>
@@ -385,9 +385,9 @@ function AiDealCard({
                     ))}
                     {Boolean(terms.stakeholderCommitments && typeof terms.stakeholderCommitments === "object" && Object.keys(terms.stakeholderCommitments as Record<string, unknown>).length > 0) && (
                       <div className="border-t border-border/30 pt-2 mt-2">
-                        <span className="text-[10px] text-cyan-400 font-semibold uppercase tracking-wider block mb-1.5">Coalition Commitments</span>
+                        <span className="text-xs text-cyan-400 font-semibold uppercase tracking-wider block mb-1.5">Coalition Commitments</span>
                         {Object.entries(terms.stakeholderCommitments as Record<string, string>).map(([id, commitment]) => (
-                          <div key={id} className="flex gap-1.5 text-[11px] mb-1">
+                          <div key={id} className="flex gap-1.5 text-xs mb-1">
                             <span className="text-primary font-semibold capitalize shrink-0">{id.replace(/_/g, " ")}:</span>
                             <span className="text-muted-foreground">{String(commitment).slice(0, 200)}</span>
                           </div>
@@ -445,7 +445,7 @@ function AiDealCard({
                               <span className="font-mono font-bold capitalize truncate">{id.replace(/[_-]/g, " ")}</span>
                               <span className={`text-[7px] px-1 py-0.5 rounded border ${tier.color} font-semibold shrink-0 ml-auto`}>{tier.label}</span>
                             </div>
-                            <p className={`text-[10px] text-muted-foreground ${expanded ? "" : "line-clamp-2"}`}>{ev.rationale}</p>
+                            <p className={`text-xs text-muted-foreground ${expanded ? "" : "line-clamp-2"}`}>{ev.rationale}</p>
                           </button>
                         );
                       })}
@@ -467,9 +467,9 @@ function AiDealCard({
                         <div key={key} className={`p-2.5 rounded-lg border text-xs ${color}`}>
                           <div className="flex items-center justify-between mb-1">
                             <span className="font-medium text-foreground">{audience}</span>
-                            <span className={`text-[10px] font-bold capitalize ${color.split(" ")[0]}`}>{verdict}</span>
+                            <span className={`text-xs font-bold capitalize ${color.split(" ")[0]}`}>{verdict}</span>
                           </div>
-                          <p className="text-[10px] text-muted-foreground">{rationale}</p>
+                          <p className="text-xs text-muted-foreground">{rationale}</p>
                         </div>
                       );
                     })}
@@ -484,7 +484,7 @@ function AiDealCard({
                     {innovativeProvisions.map((prov, idx) => (
                       <div key={idx} className="p-2.5 rounded-lg border border-violet-800/20 bg-violet-950/10 text-xs">
                         <span className="font-bold text-violet-300">{prov.title}</span>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">{prov.description.slice(0, 200)}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{prov.description.slice(0, 200)}</p>
                       </div>
                     ))}
                   </div>
@@ -498,10 +498,10 @@ function AiDealCard({
                     {Object.entries(domesticFraming).map(([key, strategy]) => (
                       <div key={key} className="p-2.5 rounded-lg border border-emerald-800/30 bg-emerald-950/10 text-xs">
                         <span className="font-medium text-emerald-300">{strategy.audience}</span>
-                        <p className="text-[10px] text-foreground mt-0.5 italic">"{strategy.framingNarrative}"</p>
+                        <p className="text-xs text-foreground mt-0.5 italic">"{strategy.framingNarrative}"</p>
                         <div className="mt-1 space-y-0.5">
                           {strategy.keyTalkingPoints.map((pt: string, i: number) => (
-                            <div key={i} className="flex gap-1.5 text-[10px] text-muted-foreground">
+                            <div key={i} className="flex gap-1.5 text-xs text-muted-foreground">
                               <span className="text-emerald-500 shrink-0">•</span><span>{pt}</span>
                             </div>
                           ))}
@@ -520,13 +520,13 @@ function AiDealCard({
                     {brainstormInsights.historicalAnalogies?.map((a, i) => (
                       <div key={i} className="p-2 rounded border border-violet-800/20 bg-violet-950/10 text-xs">
                         <span className="font-bold text-violet-300">{a.dealName}</span>
-                        <p className="text-[10px] text-muted-foreground">{a.relevantLesson}</p>
+                        <p className="text-xs text-muted-foreground">{a.relevantLesson}</p>
                       </div>
                     ))}
                     {brainstormInsights.crossIssueLinkages?.map((l, i) => (
                       <div key={`l-${i}`} className="p-2 rounded border border-violet-800/20 bg-violet-950/10 text-xs">
                         <p className="text-muted-foreground">{l.linkage}</p>
-                        <span className="text-[10px] text-violet-400/60">Benefits: {l.stakeholdersHelped.join(", ")}</span>
+                        <span className="text-xs text-violet-300">Benefits: {l.stakeholdersHelped.join(", ")}</span>
                       </div>
                     ))}
                   </div>
@@ -552,7 +552,7 @@ function AiDealCard({
                             {r.survived ? "Survived" : "Failed"}
                           </span>
                         </div>
-                        {r.response && <p className="text-[10px] text-muted-foreground">{r.response}</p>}
+                        {r.response && <p className="text-xs text-muted-foreground">{r.response}</p>}
                       </div>
                     ))}
                   </div>
@@ -655,7 +655,7 @@ function GapAnalysis({ proposals, aiDeal }: { proposals: Proposal[]; aiDeal: Dea
         Green = above 85%, yellow = 45-85%, red = below 45%.
       </p>
       <div className="overflow-x-auto">
-        <table className="w-full text-[10px]">
+        <table className="w-full text-xs">
           <thead>
             <tr>
               <th className="text-left py-2 pr-3 text-muted-foreground font-medium min-w-[100px]">Proposal</th>

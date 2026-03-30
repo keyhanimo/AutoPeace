@@ -203,7 +203,7 @@ function EndpointCard({ ep }: { ep: Endpoint }) {
                       <div key={p.name} className="flex items-start gap-2 text-xs">
                         <code className="text-[10px] bg-secondary/50 px-1.5 py-0.5 rounded font-mono shrink-0">{p.name}</code>
                         <span className="text-[10px] text-muted-foreground capitalize">{p.in}</span>
-                        <span className="text-[10px] text-foreground/70">{p.description}</span>
+                        <span className="text-xs text-foreground/90">{p.description}</span>
                       </div>
                     ))}
                   </div>

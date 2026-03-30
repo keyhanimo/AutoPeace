@@ -524,22 +524,22 @@ function GlobalSummaryCards() {
     <div className="space-y-3">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="p-5 border-l-4 border-l-red-500">
-          <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mb-1">Annual Conflict Cost</div>
+          <div className="text-xs text-muted-foreground font-semibold uppercase tracking-widest mb-1">Annual Conflict Cost</div>
           <div className="text-2xl font-bold font-mono text-red-400">{fmtB(GLOBAL_WAR_COST_B)}</div>
           <div className="text-xs text-muted-foreground mt-1">GDP-equivalent loss vs. pre-conflict baseline</div>
         </Card>
         <Card className="p-5 border-l-4 border-l-emerald-500">
-          <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mb-1">Annual Peace Gain</div>
+          <div className="text-xs text-muted-foreground font-semibold uppercase tracking-widest mb-1">Annual Peace Gain</div>
           <div className="text-2xl font-bold font-mono text-emerald-400">{fmtB(GLOBAL_PEACE_BENEFIT_B)}</div>
           <div className="text-xs text-muted-foreground mt-1">Net gain transitioning from conflict to peace</div>
         </Card>
         <Card className="p-5 border-l-4 border-l-blue-500">
-          <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mb-1">Of which: Peace Dividend</div>
+          <div className="text-xs text-muted-foreground font-semibold uppercase tracking-widest mb-1">Of which: Peace Dividend</div>
           <div className="text-2xl font-bold font-mono text-blue-400">{fmtB(GLOBAL_PEACE_DIVIDEND_B)}</div>
           <div className="text-xs text-muted-foreground mt-1">New economic activity above pre-conflict level</div>
         </Card>
         <Card className="p-5 border-l-4 border-l-purple-500">
-          <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mb-1">5-Year Value of Peace</div>
+          <div className="text-xs text-muted-foreground font-semibold uppercase tracking-widest mb-1">5-Year Value of Peace</div>
           <div className="text-2xl font-bold font-mono text-purple-400">{fmtB(GLOBAL_NET_SWING_B * 5)}</div>
           <div className="text-xs text-muted-foreground mt-1">Cumulative peace gain over 5 years</div>
         </Card>
@@ -606,15 +606,15 @@ function ChannelCards() {
             </div>
             <div className="space-y-2">
               <div className="flex justify-between items-baseline">
-                <span className="text-[10px] text-muted-foreground uppercase">War Cost</span>
+                <span className="text-xs text-muted-foreground uppercase">War Cost</span>
                 <span className="text-sm font-bold font-mono text-red-400">{fmtB(ch.warCost)}</span>
               </div>
               <div className="flex justify-between items-baseline">
-                <span className="text-[10px] text-muted-foreground uppercase">Peace Gain</span>
+                <span className="text-xs text-muted-foreground uppercase">Peace Gain</span>
                 <span className="text-sm font-bold font-mono text-emerald-400">{fmtB(ch.peaceBenefit)}</span>
               </div>
               <div className="h-px bg-border/50 my-1" />
-              <p className="text-[10px] text-muted-foreground leading-relaxed">{ch.description}</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">{ch.description}</p>
             </div>
           </Card>
         );
@@ -701,7 +701,7 @@ function StakeholderRadarChart({ stakeholder }: { stakeholder: StakeholderCBA })
         </ResponsiveContainer>
       </div>
       {hasNegative && (
-        <p className="text-[10px] text-muted-foreground/70 text-center mt-1 italic">
+        <p className="text-xs text-muted-foreground text-center mt-1 italic">
           Negative values (windfalls/losses) are clamped to zero in this chart — see channel breakdown for full values.
         </p>
       )}
@@ -718,21 +718,21 @@ function StakeholderRow({ s, isExpanded, onToggle }: { s: StakeholderCBA; isExpa
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h3 className="text-base font-bold text-foreground truncate">{s.name}</h3>
-              <Badge variant="outline" className="text-[10px] shrink-0">{s.region}</Badge>
+              <Badge variant="outline" className="text-xs shrink-0">{s.region}</Badge>
             </div>
             <div className="text-xs text-muted-foreground mt-0.5">GDP: {fmtB(s.gdpB)} | War cost as % GDP: {s.warCostPctGdp.toFixed(1)}%</div>
           </div>
           <div className="hidden sm:flex items-center gap-6 shrink-0">
             <div className="text-right">
-              <div className="text-[10px] text-muted-foreground uppercase">War Cost</div>
+              <div className="text-xs text-muted-foreground uppercase">War Cost</div>
               <div className="text-sm font-bold font-mono text-red-400">{fmtB(s.warCostB)}/yr</div>
             </div>
             <div className="text-right">
-              <div className="text-[10px] text-muted-foreground uppercase">Peace Gain</div>
+              <div className="text-xs text-muted-foreground uppercase">Peace Gain</div>
               <div className="text-sm font-bold font-mono text-emerald-400">{fmtB(s.peaceBenefitB)}/yr</div>
             </div>
             <div className="text-right">
-              <div className="text-[10px] text-muted-foreground uppercase">War→Peace Gain</div>
+              <div className="text-xs text-muted-foreground uppercase">War→Peace Gain</div>
               <div className="text-sm font-bold font-mono text-amber-400">{fmtB(s.peaceBenefitB)}/yr</div>
             </div>
           </div>
@@ -742,15 +742,15 @@ function StakeholderRow({ s, isExpanded, onToggle }: { s: StakeholderCBA; isExpa
         </div>
         <div className="sm:hidden grid grid-cols-3 gap-2 mt-3">
           <div>
-            <div className="text-[10px] text-muted-foreground uppercase">War Cost</div>
+            <div className="text-xs text-muted-foreground uppercase">War Cost</div>
             <div className="text-sm font-bold font-mono text-red-400">{fmtB(s.warCostB)}/yr</div>
           </div>
           <div>
-            <div className="text-[10px] text-muted-foreground uppercase">Peace Gain</div>
+            <div className="text-xs text-muted-foreground uppercase">Peace Gain</div>
             <div className="text-sm font-bold font-mono text-emerald-400">{fmtB(s.peaceBenefitB)}/yr</div>
           </div>
           <div>
-            <div className="text-[10px] text-muted-foreground uppercase">War→Peace Gain</div>
+            <div className="text-xs text-muted-foreground uppercase">War→Peace Gain</div>
             <div className="text-sm font-bold font-mono text-amber-400">{fmtB(s.peaceBenefitB)}/yr</div>
           </div>
         </div>
@@ -799,7 +799,7 @@ function StakeholderRow({ s, isExpanded, onToggle }: { s: StakeholderCBA; isExpa
                       );
                     })}
                   </div>
-                  <div className="mt-3 text-[10px] text-muted-foreground italic">
+                  <div className="mt-3 text-xs text-muted-foreground italic">
                     Negative war costs (e.g. energy for exporters) indicate windfall transfers, not efficiency gains.
                   </div>
                 </div>
@@ -818,7 +818,7 @@ function StakeholderRow({ s, isExpanded, onToggle }: { s: StakeholderCBA; isExpa
               </div>
               <div className="mt-4 border-t border-border/40 pt-4">
                 <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Analysis</h4>
-                <p className="text-xs text-foreground/75 leading-relaxed">{s.narrative}</p>
+                <p className="text-xs text-foreground/90 leading-relaxed">{s.narrative}</p>
               </div>
             </div>
           </motion.div>
@@ -903,7 +903,7 @@ function MethodologyNote() {
           <BookOpen className="w-3.5 h-3.5 text-primary" />
           Economic Data Sources & Limitations
         </h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[10px] text-muted-foreground leading-relaxed">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-muted-foreground leading-relaxed">
           <div>
             <p className="mb-1.5"><strong className="text-foreground">Economic channel estimates</strong> are modeled using the war-peace alternative states framework: each stakeholder's war cost and peace benefit are estimated per channel using public data from IMF Article IV reports, World Bank commodity outlooks, UNCTAD trade data, IEA energy reports, Lloyd's shipping indices, and published academic estimates of sanctions costs.</p>
             <p><strong className="text-foreground">GDP figures</strong> use IMF World Economic Outlook (2024) nominal GDP estimates.</p>

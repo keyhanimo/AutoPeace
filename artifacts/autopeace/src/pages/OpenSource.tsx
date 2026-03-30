@@ -80,7 +80,7 @@ function NewsletterSignup() {
         <Mail className="w-3.5 h-3.5" />
         {status === "submitting" ? "Subscribing…" : "Subscribe to research updates"}
       </button>
-      <p className="text-[10px] text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         Receive a digest each time a new analysis cycle completes. No spam — unsubscribe anytime via <code>DELETE /api/subscribe</code>.
       </p>
     </form>
@@ -219,7 +219,7 @@ export default function OpenSource() {
             { step: "5", text: "Open a pull request with a clear description of your change" },
           ].map(item => (
             <li key={item.step} className="flex items-start gap-3">
-              <span className="w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">{item.step}</span>
+              <span className="w-5 h-5 rounded-full bg-primary/20 text-primary text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">{item.step}</span>
               <span>{item.text}</span>
             </li>
           ))}

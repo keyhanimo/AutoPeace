@@ -42,21 +42,21 @@ export function DataSourceNote({
       <div className={`border border-border/40 rounded-sm bg-card/30 ${className}`}>
         <button
           onClick={() => setExpanded(v => !v)}
-          className="w-full flex items-center justify-between px-3 py-2 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+          className="w-full flex items-center justify-between px-3 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
           <span className="flex items-center gap-1.5">
-            <BookOpen className="w-3 h-3 text-primary/60" />
+            <BookOpen className="w-3 h-3 text-primary/80" />
             <span className="font-medium">{title}</span>
           </span>
           {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
         </button>
         {expanded && (
           <div className="px-3 pb-3 space-y-2 border-t border-border/30">
-            <p className="text-[10px] text-muted-foreground leading-relaxed mt-2">{methodology}</p>
+            <p className="text-xs text-muted-foreground leading-relaxed mt-2">{methodology}</p>
             {sources.length > 0 && (
               <div className="flex flex-wrap gap-x-3 gap-y-0.5">
                 {sources.map((s, i) => (
-                  <span key={i} className="text-[9px] text-primary/70">
+                  <span key={i} className="text-xs text-primary/90">
                     {s.detail ? `${s.label}: ${s.detail}` : s.label}
                   </span>
                 ))}
@@ -64,14 +64,14 @@ export function DataSourceNote({
             )}
             {limitations && limitations.length > 0 && (
               <div className="flex items-start gap-1 mt-1">
-                <AlertTriangle className="w-2.5 h-2.5 text-amber-500/60 mt-0.5 shrink-0" />
-                <p className="text-[9px] text-muted-foreground/70 leading-relaxed">
+                <AlertTriangle className="w-2.5 h-2.5 text-amber-500/80 mt-0.5 shrink-0" />
+                <p className="text-xs text-muted-foreground leading-relaxed">
                   {limitations.join(" ")}
                 </p>
               </div>
             )}
             {formattedDate && (
-              <div className="flex items-center gap-1 text-[9px] text-muted-foreground/50">
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Clock className="w-2.5 h-2.5" />
                 <span>Last updated: {formattedDate}</span>
                 {updateFrequency && <span className="ml-1">({updateFrequency})</span>}
@@ -86,19 +86,19 @@ export function DataSourceNote({
   return (
     <div className={`border border-border/40 rounded-sm bg-card/30 p-4 space-y-3 ${className}`}>
       <div className="flex items-center gap-2 mb-2">
-        <BookOpen className="w-4 h-4 text-primary/60" />
+        <BookOpen className="w-4 h-4 text-primary/80" />
         <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</h4>
       </div>
 
-      <p className="text-[11px] text-muted-foreground leading-relaxed">{methodology}</p>
+      <p className="text-xs text-muted-foreground leading-relaxed">{methodology}</p>
 
       {sources.length > 0 && (
         <div className="space-y-1">
-          <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Sources</span>
+          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Sources</span>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-0.5">
             {sources.map((s, i) => (
-              <div key={i} className="text-[10px] text-primary/70 flex items-start gap-1">
-                <span className="text-primary/40 mt-0.5 shrink-0">•</span>
+              <div key={i} className="text-xs text-primary/90 flex items-start gap-1">
+                <span className="text-primary/70 mt-0.5 shrink-0">•</span>
                 <span>{s.detail ? <><strong>{s.label}:</strong> {s.detail}</> : s.label}</span>
               </div>
             ))}
@@ -108,22 +108,22 @@ export function DataSourceNote({
 
       {confidenceNote && (
         <div className="flex items-start gap-1.5 px-3 py-2 bg-primary/5 border border-primary/10 rounded-sm">
-          <Info className="w-3 h-3 text-primary/60 mt-0.5 shrink-0" />
-          <p className="text-[10px] text-primary/80 leading-relaxed">{confidenceNote}</p>
+          <Info className="w-3 h-3 text-primary/80 mt-0.5 shrink-0" />
+          <p className="text-xs text-primary leading-relaxed">{confidenceNote}</p>
         </div>
       )}
 
       {limitations && limitations.length > 0 && (
         <div className="flex items-start gap-1.5 px-3 py-2 bg-amber-950/20 border border-amber-800/20 rounded-sm">
-          <AlertTriangle className="w-3 h-3 text-amber-500/60 mt-0.5 shrink-0" />
-          <div className="text-[10px] text-muted-foreground/80 leading-relaxed space-y-0.5">
+          <AlertTriangle className="w-3 h-3 text-amber-500/80 mt-0.5 shrink-0" />
+          <div className="text-xs text-muted-foreground leading-relaxed space-y-0.5">
             {limitations.map((l, i) => <p key={i}>{l}</p>)}
           </div>
         </div>
       )}
 
       {(formattedDate || updateFrequency) && (
-        <div className="flex items-center gap-3 text-[10px] text-muted-foreground/60 pt-1 border-t border-border/20">
+        <div className="flex items-center gap-3 text-xs text-muted-foreground pt-1 border-t border-border/20">
           {formattedDate && (
             <span className="flex items-center gap-1">
               <Clock className="w-2.5 h-2.5" />
@@ -165,9 +165,9 @@ export function DataFreshness({
   else if (diffHrs > 12) freshness = "aging";
 
   const freshnessColors = {
-    fresh: "text-emerald-400/60",
-    aging: "text-amber-400/60",
-    stale: "text-red-400/60",
+    fresh: "text-emerald-400",
+    aging: "text-amber-400",
+    stale: "text-red-400",
   };
 
   const relativeTime = diffHrs < 1
@@ -177,10 +177,10 @@ export function DataFreshness({
       : `${Math.round(diffHrs / 24)}d ago`;
 
   return (
-    <span className={`inline-flex items-center gap-1 text-[10px] ${freshnessColors[freshness]} ${className}`}>
+    <span className={`inline-flex items-center gap-1 text-xs ${freshnessColors[freshness]} ${className}`}>
       <Clock className="w-2.5 h-2.5" />
       <span>{label} updated {relativeTime}</span>
-      {updateFrequency && <span className="text-muted-foreground/40">({updateFrequency})</span>}
+      {updateFrequency && <span className="text-muted-foreground">({updateFrequency})</span>}
     </span>
   );
 }

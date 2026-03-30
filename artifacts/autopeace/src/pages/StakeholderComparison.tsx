@@ -174,27 +174,27 @@ export default function StakeholderComparison() {
                     {s.flag && <span className="text-2xl" aria-hidden="true">{s.flag}</span>}
                     <div>
                       <h3 className="text-sm font-bold">{s.name}</h3>
-                      <p className="text-[10px] text-muted-foreground capitalize">{s.role}</p>
+                      <p className="text-xs text-muted-foreground capitalize">{s.role}</p>
                     </div>
                   </div>
 
                   <div>
-                    <div className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Deal Verdict</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Deal Verdict</div>
                     {verdict ? (
                       <>
                         <VerdictBadge verdict={verdict.verdict} />
-                        <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed line-clamp-3">{verdict.rationale}</p>
+                        <p className="text-xs text-muted-foreground mt-1 leading-relaxed line-clamp-3">{verdict.rationale}</p>
                         {verdict.conditions && verdict.conditions.length > 0 && (
                           <div className="mt-1.5 space-y-0.5">
                             {verdict.conditions.slice(0, 2).map((c, i) => (
-                              <p key={i} className="text-[10px] text-amber-400/80">• {c}</p>
+                              <p key={i} className="text-xs text-amber-400">• {c}</p>
                             ))}
                           </div>
                         )}
                         {verdict.redLineViolations && verdict.redLineViolations.length > 0 && (
                           <div className="mt-1.5 space-y-0.5">
                             {verdict.redLineViolations.slice(0, 2).map((r, i) => (
-                              <p key={i} className="text-[10px] text-red-400/80">✗ {r}</p>
+                              <p key={i} className="text-xs text-red-400">✗ {r}</p>
                             ))}
                           </div>
                         )}
@@ -205,26 +205,26 @@ export default function StakeholderComparison() {
                   </div>
 
                   <div>
-                    <div className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Goals</div>
-                    <p className="text-[10px] text-foreground leading-relaxed line-clamp-3">
+                    <div className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Goals</div>
+                    <p className="text-xs text-foreground leading-relaxed line-clamp-3">
                       {s.goals || <span className="text-muted-foreground">—</span>}
                     </p>
                   </div>
 
                   {s.redLines && (
                     <div>
-                      <div className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Red Lines</div>
-                      <p className="text-[10px] text-red-400/80 leading-relaxed line-clamp-2">{s.redLines}</p>
+                      <div className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Red Lines</div>
+                      <p className="text-xs text-red-400 leading-relaxed line-clamp-2">{s.redLines}</p>
                     </div>
                   )}
 
                   {domestic.length > 0 && (
                     <div>
-                      <div className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Domestic Sellability</div>
+                      <div className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Domestic Sellability</div>
                       {domestic.map((d, i) => (
                         <div key={i} className="flex items-center gap-1 mt-0.5">
                           <VerdictBadge verdict={d.verdict === "sellable" ? "accept" : d.verdict === "unsellable" ? "reject" : "conditional"} />
-                          <span className="text-[10px] text-muted-foreground">{d.audience}</span>
+                          <span className="text-xs text-muted-foreground">{d.audience}</span>
                         </div>
                       ))}
                     </div>
@@ -235,7 +235,7 @@ export default function StakeholderComparison() {
                     if (!costs) return null;
                     return (
                       <div>
-                        <div className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1 flex items-center gap-1">
+                        <div className="text-xs text-muted-foreground uppercase tracking-widest mb-1 flex items-center gap-1">
                           <DollarSign className="w-2.5 h-2.5" /> Cost of Conflict
                         </div>
                         <div className="grid grid-cols-3 gap-1">
@@ -246,7 +246,7 @@ export default function StakeholderComparison() {
                           ].map(({ label, value }) => (
                             <div key={label} className="text-center bg-secondary/30 rounded p-1">
                               <div className="text-[9px] text-muted-foreground">{label}</div>
-                              <div className="text-[10px] font-mono text-amber-400/80">{value}</div>
+                              <div className="text-xs font-mono text-amber-400">{value}</div>
                             </div>
                           ))}
                         </div>
@@ -256,7 +256,7 @@ export default function StakeholderComparison() {
 
                   {dealScores && (
                     <div>
-                      <div className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Deal Score Dimensions</div>
+                      <div className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Deal Score Dimensions</div>
                       <div className="space-y-1">
                         {[
                           { key: "feasibility", label: "Feasibility" },
@@ -355,7 +355,7 @@ export default function StakeholderComparison() {
                     {selectedStakeholders.map(s => {
                       const costs = getCostsForStakeholder(s.id);
                       return (
-                        <td key={s.id} className="text-center py-2 px-2 font-mono text-xs text-amber-400/80">
+                        <td key={s.id} className="text-center py-2 px-2 font-mono text-xs text-amber-400">
                           {costs ? formatCostTotal(costs.economic) : "—"}
                         </td>
                       );
@@ -366,7 +366,7 @@ export default function StakeholderComparison() {
                     {selectedStakeholders.map(s => {
                       const costs = getCostsForStakeholder(s.id);
                       return (
-                        <td key={s.id} className="text-center py-2 px-2 font-mono text-xs text-amber-400/80">
+                        <td key={s.id} className="text-center py-2 px-2 font-mono text-xs text-amber-400">
                           {costs ? formatCostTotal(costs.humanitarian) : "—"}
                         </td>
                       );

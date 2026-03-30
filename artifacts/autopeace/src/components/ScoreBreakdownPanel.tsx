@@ -61,7 +61,7 @@ export function ScoreBreakdownPanel({
         )}
       </div>
 
-      <p className="text-[10px] text-muted-foreground mb-3">
+      <p className="text-xs text-muted-foreground mb-3">
         {hasPanel
           ? `Scored by ${panel.length} independent LLM judges. Final scores are the arithmetic mean across all models. Click a model tab to see its individual scores and rationale.`
           : "Scored by a single LLM judge."}
@@ -70,7 +70,7 @@ export function ScoreBreakdownPanel({
       {showPrompt && scores.judgePrompt && (
         <div className="mb-4 p-3 bg-secondary/30 border border-border/50 rounded-sm overflow-auto max-h-48">
           <p className="text-[9px] font-bold text-primary uppercase tracking-wider mb-2">Judge Prompt (sent to all {panel.length} LLMs)</p>
-          <pre className="text-[10px] text-muted-foreground whitespace-pre-wrap font-mono leading-relaxed">{scores.judgePrompt}</pre>
+          <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono leading-relaxed">{scores.judgePrompt}</pre>
         </div>
       )}
 
@@ -78,7 +78,7 @@ export function ScoreBreakdownPanel({
         <div className="flex flex-wrap gap-1.5 mb-4">
           <button
             onClick={() => setActiveJudge("averaged")}
-            className={`px-2.5 py-1 text-[10px] font-bold rounded-sm border transition-colors ${
+            className={`px-2.5 py-1 text-xs font-bold rounded-sm border transition-colors ${
               activeJudge === "averaged"
                 ? "bg-primary/10 border-primary/50 text-primary"
                 : "border-border/40 text-muted-foreground hover:border-border hover:text-foreground"
@@ -92,7 +92,7 @@ export function ScoreBreakdownPanel({
               <button
                 key={entry.provider}
                 onClick={() => setActiveJudge(entry.provider)}
-                className={`px-2.5 py-1 text-[10px] font-bold rounded-sm border transition-colors ${
+                className={`px-2.5 py-1 text-xs font-bold rounded-sm border transition-colors ${
                   activeJudge === entry.provider
                     ? "bg-primary/10 border-primary/50 text-primary"
                     : "border-border/40 text-muted-foreground hover:border-border hover:text-foreground"
@@ -143,9 +143,9 @@ export function ScoreBreakdownPanel({
                 </div>
               )}
               {rationale ? (
-                <p className="text-[10px] text-muted-foreground leading-relaxed">{rationale}</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">{rationale}</p>
               ) : (
-                <p className="text-[10px] text-muted-foreground/50 italic">{d.description}</p>
+                <p className="text-xs text-muted-foreground italic">{d.description}</p>
               )}
             </div>
           );

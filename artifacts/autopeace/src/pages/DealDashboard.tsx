@@ -49,14 +49,14 @@ function ScoreCard({ dimension, score }: { dimension: typeof SCORE_DIMENSIONS[nu
       <div className="flex items-center gap-2 mb-1">
         <span style={{ color: dimension.color }}>{dimension.icon}</span>
         <span className="text-sm font-medium">{dimension.label}</span>
-        <span className="text-[9px] text-muted-foreground/60 font-mono ml-auto">{(dimension.weight * 100)}%w</span>
+        <span className="text-xs text-muted-foreground font-mono ml-auto">{(dimension.weight * 100)}%w</span>
       </div>
-      <p className="text-[10px] text-muted-foreground mb-2">{dimension.description}</p>
+      <p className="text-xs text-muted-foreground mb-2">{dimension.description}</p>
       <div className="flex items-end justify-between">
         <div className={`text-2xl font-display font-bold ${scoreColor(score)}`}>
           {(score * 100).toFixed(0)}%
         </div>
-        <span className={`text-[10px] font-medium ${scoreColor(score)}`}>{scoreLabel(score)}</span>
+        <span className={`text-xs font-medium ${scoreColor(score)}`}>{scoreLabel(score)}</span>
       </div>
       <div className="mt-2 bg-secondary/50 rounded h-1.5 overflow-hidden">
         <motion.div
@@ -131,14 +131,14 @@ function StakeholderMap({ evaluations, lensId }: { evaluations: Record<string, {
         <span className="flex items-center gap-1 text-emerald-400"><CheckCircle2 className="w-3 h-3" /> {accepts} Accept</span>
         <span className="flex items-center gap-1 text-amber-400"><AlertTriangle className="w-3 h-3" /> {conditionals} Conditional</span>
         <span className="flex items-center gap-1 text-red-400"><XCircle className="w-3 h-3" /> {rejects} Reject</span>
-        <span className="ml-auto text-[10px] text-muted-foreground">{entries.length} stakeholders evaluated</span>
+        <span className="ml-auto text-xs text-muted-foreground">{entries.length} stakeholders evaluated</span>
         {lensId && (
-          <span className="flex items-center gap-1 text-primary text-[10px] font-semibold border border-primary/30 rounded px-2 py-0.5">
+          <span className="flex items-center gap-1 text-primary text-xs font-semibold border border-primary/30 rounded px-2 py-0.5">
             Lens: {lensId.replace(/-/g, " ")}
           </span>
         )}
       </div>
-      <p className="text-[10px] text-muted-foreground -mt-2">
+      <p className="text-xs text-muted-foreground -mt-2">
         Tier labels: <span className="text-red-300">Required</span> = deal-breaker if rejected · <span className="text-orange-300">Critical</span> = near-fatal · <span className="text-blue-300">Influential</span> = affects durability · <span className="text-gray-400">Contextual</span> = regional impact
       </p>
       {lensId && displayedEntries.length === 0 && (
@@ -164,7 +164,7 @@ function StakeholderMap({ evaluations, lensId }: { evaluations: Record<string, {
                 <span className="font-mono font-bold capitalize truncate text-xs">{id.replace(/[_-]/g, " ")}</span>
                 <span className={`text-[7px] px-1 py-0.5 rounded border ${tier.color} font-semibold shrink-0 ml-auto`}>{tier.label}</span>
               </div>
-              <p className={`text-[10px] text-muted-foreground ${expanded ? "" : "line-clamp-2"}`}>{evaluation.rationale}</p>
+              <p className={`text-xs text-muted-foreground ${expanded ? "" : "line-clamp-2"}`}>{evaluation.rationale}</p>
             </button>
           );
         })}
@@ -198,15 +198,15 @@ function SolutionTreeView({ nodes }: { nodes: Array<{ id: string; architecture: 
                 key={node.id}
                 className={`p-2 rounded-lg border text-xs min-w-[120px] ${node.isStalled ? "border-red-800/40 bg-red-950/10 opacity-60" : node.isBestInBranch ? "border-emerald-600/50 bg-emerald-950/20" : "border-border bg-card"}`}
               >
-                <div className="font-mono font-bold capitalize text-[10px]" style={{ color: ARCHITECTURE_COLORS[node.architecture] ?? "#94a3b8" }}>
+                <div className="font-mono font-bold capitalize text-xs" style={{ color: ARCHITECTURE_COLORS[node.architecture] ?? "#94a3b8" }}>
                   {node.architecture}
                 </div>
                 <div className="text-foreground mt-0.5">{node.branchLabel}</div>
                 {node.compositeScore && (
-                  <div className="text-muted-foreground text-[10px] mt-1">Score: {node.compositeScore}</div>
+                  <div className="text-muted-foreground text-xs mt-1">Score: {node.compositeScore}</div>
                 )}
-                {node.isStalled && <div className="text-red-400 text-[10px]">⚠ Stalled</div>}
-                {node.isBestInBranch && <div className="text-emerald-400 text-[10px]">★ Best</div>}
+                {node.isStalled && <div className="text-red-400 text-xs">⚠ Stalled</div>}
+                {node.isBestInBranch && <div className="text-emerald-400 text-xs">★ Best</div>}
               </div>
             ))}
           </div>
@@ -279,7 +279,7 @@ function DealWhatIfPanel(_props: { currentDealName?: string }) {
                 <div>
                   <h4 className="text-sm font-bold text-foreground">{scenario.name}</h4>
                   <p className="text-xs text-muted-foreground">{scenario.description}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5"><span className="font-semibold">Trigger:</span> {scenario.triggerCondition}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5"><span className="font-semibold">Trigger:</span> {scenario.triggerCondition}</p>
                 </div>
               </div>
 
@@ -294,13 +294,13 @@ function DealWhatIfPanel(_props: { currentDealName?: string }) {
                       >
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate">{impact.proposalName}</p>
-                          <p className="text-[10px] text-muted-foreground">{impact.favorabilityNote}</p>
+                          <p className="text-xs text-muted-foreground">{impact.favorabilityNote}</p>
                         </div>
                         <div className="text-right shrink-0 ml-3">
                           <p className={`font-bold ${impact.viabilityDelta > 0 ? "text-green-500" : impact.viabilityDelta < 0 ? "text-red-500" : "text-muted-foreground"}`}>
                             {impact.viabilityDelta > 0 ? "+" : ""}{(impact.viabilityDelta * 100).toFixed(0)}pp
                           </p>
-                          <p className="text-[10px] text-muted-foreground">{(impact.projectedComposite * 100).toFixed(0)}% projected</p>
+                          <p className="text-xs text-muted-foreground">{(impact.projectedComposite * 100).toFixed(0)}% projected</p>
                         </div>
                       </div>
                     ))}
@@ -363,7 +363,7 @@ function DealDetailView({ deal, isHistorical }: { deal: Deal; isHistorical?: boo
       <div className="grid lg:grid-cols-2 gap-6">
         <Card className="p-6">
           <h3 className="text-lg font-bold mb-2">Score Radar</h3>
-          <p className="text-[10px] text-muted-foreground mb-3">
+          <p className="text-xs text-muted-foreground mb-3">
             Visual comparison of all 7 scoring dimensions. The composite score ({scores ? ((scores.composite ?? 0) * 100).toFixed(0) : "—"}%) is a weighted average.
           </p>
           <div className="h-56">
@@ -418,9 +418,9 @@ function DealDetailView({ deal, isHistorical }: { deal: Deal; isHistorical?: boo
                     <div key={idx} className="p-3 rounded-lg border border-violet-800/30 bg-violet-950/10">
                       <span className="text-xs font-bold text-violet-300 block mb-1">{prov.title}</span>
                       <p className="text-xs text-muted-foreground mb-1">{prov.description}</p>
-                      <p className="text-[10px] text-violet-400/70 italic">{prov.rationale}</p>
+                      <p className="text-xs text-violet-300 italic">{prov.rationale}</p>
                       {prov.historicalPrecedent && (
-                        <p className="text-[10px] text-muted-foreground/50 mt-1">Precedent: {prov.historicalPrecedent}</p>
+                        <p className="text-xs text-muted-foreground mt-1">Precedent: {prov.historicalPrecedent}</p>
                       )}
                     </div>
                   ))}
@@ -450,7 +450,7 @@ function DealDetailView({ deal, isHistorical }: { deal: Deal; isHistorical?: boo
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div>
             <h3 className="text-lg font-bold">Stakeholder Acceptance Map</h3>
-            <p className="text-[10px] text-muted-foreground mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               Each stakeholder's verdict on the deal. AI simulates responses based on documented positions, red lines, and the specific commitments each party must make.
             </p>
           </div>
@@ -460,7 +460,7 @@ function DealDetailView({ deal, isHistorical }: { deal: Deal; isHistorical?: boo
 
       <Card className="p-6">
         <h3 className="text-lg font-bold mb-2">Domestic Sellability</h3>
-        <p className="text-[10px] text-muted-foreground mb-4">
+        <p className="text-xs text-muted-foreground mb-4">
           Can key domestic audiences in Iran, the US, and Israel be convinced to support this deal? Evaluates political feasibility within each country.
         </p>
         <div className="space-y-3">
@@ -489,7 +489,7 @@ function DealDetailView({ deal, isHistorical }: { deal: Deal; isHistorical?: boo
       {Object.keys(domesticFraming).length > 0 && (
         <Card className="p-6 border-emerald-800/30 bg-emerald-950/5">
           <h3 className="text-lg font-bold mb-2">AI Creative Framing Strategies</h3>
-          <p className="text-[10px] text-muted-foreground mb-4">
+          <p className="text-xs text-muted-foreground mb-4">
             For each difficult domestic audience, the AI generates creative narratives and talking points to make the deal sellable — transforming perceived concessions into perceived victories.
           </p>
           <div className="space-y-4">
@@ -506,9 +506,9 @@ function DealDetailView({ deal, isHistorical }: { deal: Deal; isHistorical?: boo
                   ))}
                 </div>
                 {strategy.historicalAnalogy && (
-                  <p className="text-[10px] text-emerald-400/60 italic">Historical analogy: {strategy.historicalAnalogy}</p>
+                  <p className="text-xs text-emerald-400 italic">Historical analogy: {strategy.historicalAnalogy}</p>
                 )}
-                <p className="text-[10px] text-amber-400/60 mt-1">Risk: {strategy.riskOfBackfire}</p>
+                <p className="text-xs text-amber-400 mt-1">Risk: {strategy.riskOfBackfire}</p>
               </div>
             ))}
           </div>
@@ -518,7 +518,7 @@ function DealDetailView({ deal, isHistorical }: { deal: Deal; isHistorical?: boo
       {brainstormInsights && (
         <Card className="p-6 border-violet-800/30 bg-violet-950/5">
           <h3 className="text-lg font-bold mb-2">AI Innovation Brainstorm</h3>
-          <p className="text-[10px] text-muted-foreground mb-4">
+          <p className="text-xs text-muted-foreground mb-4">
             Before designing this deal, the AI conducted an extended creative brainstorm — mining historical peace deals for applicable lessons, identifying cross-issue linkages between stakeholders, and exploring unconventional approaches.
           </p>
 
@@ -529,8 +529,8 @@ function DealDetailView({ deal, isHistorical }: { deal: Deal; isHistorical?: boo
                 {brainstormInsights.historicalAnalogies.map((a, i) => (
                   <div key={i} className="p-2 rounded border border-violet-800/20 bg-violet-950/10">
                     <span className="text-xs font-bold text-violet-300">{a.dealName}</span>
-                    <p className="text-[10px] text-muted-foreground">{a.relevantLesson}</p>
-                    <p className="text-[10px] text-violet-400/60 italic">{a.applicability}</p>
+                    <p className="text-xs text-muted-foreground">{a.relevantLesson}</p>
+                    <p className="text-xs text-violet-300 italic">{a.applicability}</p>
                   </div>
                 ))}
               </div>
@@ -544,7 +544,7 @@ function DealDetailView({ deal, isHistorical }: { deal: Deal; isHistorical?: boo
                 {brainstormInsights.crossIssueLinkages.map((l, i) => (
                   <div key={i} className="p-2 rounded border border-violet-800/20 bg-violet-950/10">
                     <p className="text-xs text-muted-foreground">{l.linkage}</p>
-                    <span className="text-[10px] text-violet-400/60">Benefits: {l.stakeholdersHelped.join(", ")}</span>
+                    <span className="text-xs text-violet-300">Benefits: {l.stakeholdersHelped.join(", ")}</span>
                   </div>
                 ))}
               </div>
@@ -578,7 +578,7 @@ function DealDetailView({ deal, isHistorical }: { deal: Deal; isHistorical?: boo
             </span>
           )}
         </div>
-        <p className="text-[10px] text-muted-foreground mb-4">
+        <p className="text-xs text-muted-foreground mb-4">
           Adversarial AI generates attack scenarios (geopolitical crises, defections, verification failures) and tests whether the deal's structure can withstand them.
         </p>
 
@@ -612,7 +612,7 @@ function DealDetailView({ deal, isHistorical }: { deal: Deal; isHistorical?: boo
                       <div key={i} className={`p-3 rounded-lg border text-xs ${r.survived ? "border-emerald-800/40 bg-emerald-950/10" : "border-red-800/40 bg-red-950/10"}`}>
                         <div className="flex items-start justify-between gap-2 mb-1">
                           <p className="text-foreground flex-1 font-medium">{r.attack}</p>
-                          <span className={`font-bold shrink-0 text-[10px] px-2 py-0.5 rounded ${r.survived ? "bg-emerald-900/50 text-emerald-400" : "bg-red-900/50 text-red-400"}`}>
+                          <span className={`font-bold shrink-0 text-xs px-2 py-0.5 rounded ${r.survived ? "bg-emerald-900/50 text-emerald-400" : "bg-red-900/50 text-red-400"}`}>
                             {r.survived ? "Survived" : "Failed"}
                           </span>
                         </div>
@@ -714,7 +714,7 @@ export default function DealDashboard() {
             {scores ? `${((scores.composite ?? 0) * 100).toFixed(0)}%` : "—"}
           </div>
           <div className="text-xs text-muted-foreground mt-1">Composite Score</div>
-          <div className={`text-[10px] ${scoreColor(scores?.composite ?? 0)}`}>{scores ? scoreLabel(scores.composite ?? 0) : ""}</div>
+          <div className={`text-xs ${scoreColor(scores?.composite ?? 0)}`}>{scores ? scoreLabel(scores.composite ?? 0) : ""}</div>
         </Card>
         <Card className="p-4 text-center">
           <div className="text-3xl font-display font-bold text-emerald-400">

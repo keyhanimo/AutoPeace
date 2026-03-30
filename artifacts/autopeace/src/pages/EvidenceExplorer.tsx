@@ -56,15 +56,15 @@ function EvidenceCard({ item }: { item: EvidenceItem }) {
               {TYPE_ICONS[item.evidenceType]} <span className="ml-1 capitalize">{item.evidenceType}</span>
             </Badge>
             {item.source && (
-              <span className="text-[10px] text-muted-foreground">{item.source}</span>
+              <span className="text-xs text-muted-foreground">{item.source}</span>
             )}
             {item.publishedAt && (
-              <span className="text-[10px] text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 {new Date(item.publishedAt).toLocaleDateString()}
               </span>
             )}
             {shortCycleId && (
-              <span className="text-[10px] text-amber-500/70 font-mono" title={`Research cycle: ${item.influencedCycleId}`}>
+              <span className="text-xs text-amber-500 font-mono" title={`Research cycle: ${item.influencedCycleId}`}>
                 cycle·{shortCycleId}
               </span>
             )}
@@ -94,7 +94,7 @@ function EvidenceCard({ item }: { item: EvidenceItem }) {
           <div className="flex items-center gap-2 mt-1">
             <button
               onClick={() => setExpanded(v => !v)}
-              className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
               aria-label={expanded ? "Collapse details" : "Expand details"}
             >
               {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
@@ -105,7 +105,7 @@ function EvidenceCard({ item }: { item: EvidenceItem }) {
                 href={item.sourceUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[10px] text-primary hover:underline flex items-center gap-1"
+                className="text-xs text-primary hover:underline flex items-center gap-1"
                 aria-label="Open original source in new tab"
               >
                 <ExternalLink className="w-3 h-3" /> Source
