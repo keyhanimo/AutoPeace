@@ -792,17 +792,18 @@ export default function ForecastDashboard() {
                 )}
               </Card>
 
-              <Card className="p-6 flex-1 bg-gradient-to-br from-card to-secondary/50">
-                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-primary" />
-                  Strategic Rationale
-                </h3>
-                <div className="prose prose-sm prose-invert max-w-none text-muted-foreground leading-relaxed h-[200px] overflow-y-auto pr-2 text-xs">
-                  {activeForecast.rationale || "No rationale provided by the model."}
-                </div>
-              </Card>
             </div>
           </div>
+
+          <Card className="p-8 bg-gradient-to-br from-card via-card to-primary/5 border-primary/10">
+            <h3 className="text-xl font-display font-bold mb-5 flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-primary" />
+              Strategic Rationale
+            </h3>
+            <div className="prose prose-sm prose-invert max-w-none text-muted-foreground leading-relaxed text-sm whitespace-pre-line">
+              {activeForecast.rationale || "No rationale provided by the model."}
+            </div>
+          </Card>
 
           <div className="grid lg:grid-cols-2 gap-6">
             <WhatIfPanel allForecasts={latestRes?.data ?? []} />
