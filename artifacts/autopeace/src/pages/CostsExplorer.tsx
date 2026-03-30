@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
-  Treemap,
+  Treemap, ReferenceLine,
 } from "recharts";
 
 function fmtB(v: number): string {
@@ -697,8 +697,10 @@ function StakeholderWaterfallChart({ stakeholders }: { stakeholders: Stakeholder
     name: s.flag + " " + (s.name.length > 12 ? s.name.slice(0, 11) + "…" : s.name),
     warCost: -s.warCostB,
     peaceBenefit: s.peaceBenefitB,
-    netSwing: s.netSwingB,
   }));
+
+  const maxAbsVal = Math.max(...data.flatMap(d => [Math.abs(d.warCost), d.peaceBenefit]));
+  const domainMax = Math.ceil(maxAbsVal / 10) * 10 + 15;
 
   return (
     <Card className="p-6">
@@ -706,24 +708,37 @@ function StakeholderWaterfallChart({ stakeholders }: { stakeholders: Stakeholder
         <Scale className="w-4 h-4 text-primary" />
         Stakeholder Impact Comparison
       </h3>
-      <p className="text-xs text-muted-foreground mb-4">Top 12 stakeholders by total war-to-peace swing (USD billions/year).</p>
-      <div className="h-80">
+      <p className="text-xs text-muted-foreground mb-1">Top 12 stakeholders by total war-to-peace swing (USD billions/year).</p>
+      <p className="text-xs text-muted-foreground mb-4">
+        Each stakeholder shows two bars: <span className="text-red-400 font-medium">← war cost (left)</span> and <span className="text-emerald-400 font-medium">peace benefit (right) →</span>, both measured from the center zero line.
+      </p>
+      <div className="h-[480px]">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }} layout="vertical" barGap={1}>
+          <BarChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 24 }} layout="vertical" barGap={3} barCategoryGap="25%">
             <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={false} />
-            <XAxis type="number" tick={{ fontSize: 10, fill: '#94a3b8' }} label={{ value: 'USD Billions', position: 'insideBottom', style: { fontSize: 10, fill: '#94a3b8' }, offset: -2 }} />
-            <YAxis dataKey="name" type="category" tick={{ fontSize: 10, fill: '#94a3b8' }} width={120} />
+            <XAxis
+              type="number"
+              domain={[-domainMax, domainMax]}
+              tick={{ fontSize: 10, fill: '#94a3b8' }}
+              tickFormatter={v => `$${Math.abs(v)}B`}
+              label={{ value: '← War Cost (USD B/yr) | Peace Benefit (USD B/yr) →', position: 'insideBottom', style: { fontSize: 10, fill: '#64748b' }, offset: -14 }}
+            />
+            <YAxis dataKey="name" type="category" tick={{ fontSize: 10, fill: '#94a3b8' }} width={130} />
             <Tooltip
               contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', fontSize: '11px', color: '#f8fafc' }}
               formatter={(v: number, name: string) => {
-                if (name === 'warCost') return [`$${Math.abs(v).toFixed(1)}B`, 'War Cost'];
-                if (name === 'peaceBenefit') return [`$${v.toFixed(1)}B`, 'Peace Benefit'];
-                return [`$${v.toFixed(1)}B`, 'Net Swing'];
+                if (name === 'warCost') return [`$${Math.abs(v).toFixed(1)}B/yr`, 'War Cost'];
+                if (name === 'peaceBenefit') return [`$${v.toFixed(1)}B/yr`, 'Peace Benefit'];
+                return [`$${Math.abs(v).toFixed(1)}B`, name];
               }}
             />
-            <Legend formatter={(v: string) => v === 'warCost' ? 'War Cost' : 'Peace Benefit'} wrapperStyle={{ fontSize: 11 }} />
-            <Bar dataKey="warCost" fill="#ef4444" radius={[2, 2, 2, 2]} stackId="stack" />
-            <Bar dataKey="peaceBenefit" fill="#10b981" radius={[2, 2, 2, 2]} stackId="stack" />
+            <Legend
+              formatter={(v: string) => v === 'warCost' ? 'War Cost' : 'Peace Benefit'}
+              wrapperStyle={{ fontSize: 11 }}
+            />
+            <ReferenceLine x={0} stroke="#475569" strokeWidth={1.5} />
+            <Bar dataKey="warCost" name="warCost" fill="#ef4444" radius={[0, 2, 2, 0]} barSize={10} />
+            <Bar dataKey="peaceBenefit" name="peaceBenefit" fill="#10b981" radius={[0, 2, 2, 0]} barSize={10} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -732,23 +747,33 @@ function StakeholderWaterfallChart({ stakeholders }: { stakeholders: Stakeholder
 }
 
 function StakeholderRadarChart({ stakeholder }: { stakeholder: StakeholderCBA }) {
+  const hasNegative = CHANNELS.some(ch =>
+    stakeholder.channels[ch.id].warCost < 0 || stakeholder.channels[ch.id].peaceBenefit < 0
+  );
   const data = CHANNELS.map(ch => ({
     channel: ch.label.split(" & ")[0].split(" (")[0],
-    warCost: stakeholder.channels[ch.id].warCost,
-    peaceBenefit: stakeholder.channels[ch.id].peaceBenefit,
+    warCost: Math.max(0, stakeholder.channels[ch.id].warCost),
+    peaceBenefit: Math.max(0, stakeholder.channels[ch.id].peaceBenefit),
   }));
 
   return (
-    <div className="h-64 w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <RadarChart data={data} outerRadius="70%">
-          <PolarGrid stroke="#1e293b" />
-          <PolarAngleAxis dataKey="channel" tick={{ fontSize: 9, fill: '#94a3b8' }} />
-          <PolarRadiusAxis tick={{ fontSize: 8, fill: '#64748b' }} />
-          <Radar name="War Cost" dataKey="warCost" stroke="#ef4444" fill="#ef4444" fillOpacity={0.2} />
-          <Radar name="Peace Benefit" dataKey="peaceBenefit" stroke="#10b981" fill="#10b981" fillOpacity={0.2} />
-        </RadarChart>
-      </ResponsiveContainer>
+    <div>
+      <div className="h-64 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <RadarChart data={data} outerRadius="70%">
+            <PolarGrid stroke="#1e293b" />
+            <PolarAngleAxis dataKey="channel" tick={{ fontSize: 9, fill: '#94a3b8' }} />
+            <PolarRadiusAxis tick={{ fontSize: 8, fill: '#64748b' }} />
+            <Radar name="War Cost" dataKey="warCost" stroke="#ef4444" fill="#ef4444" fillOpacity={0.2} />
+            <Radar name="Peace Benefit" dataKey="peaceBenefit" stroke="#10b981" fill="#10b981" fillOpacity={0.2} />
+          </RadarChart>
+        </ResponsiveContainer>
+      </div>
+      {hasNegative && (
+        <p className="text-[10px] text-muted-foreground/70 text-center mt-1 italic">
+          Negative values (windfalls/losses) are clamped to zero in this chart — see channel breakdown for full values.
+        </p>
+      )}
     </div>
   );
 }
@@ -833,8 +858,12 @@ function StakeholderRow({ s, isExpanded, onToggle }: { s: StakeholderCBA; isExpa
                               />
                             </div>
                           </div>
-                          <span className="w-14 text-right font-mono text-red-400">{vals.warCost < 0 ? '+' : '-'}{fmtB(Math.abs(vals.warCost))}</span>
-                          <span className="w-14 text-right font-mono text-emerald-400">+{fmtB(Math.abs(vals.peaceBenefit))}</span>
+                          <span className={`w-14 text-right font-mono ${vals.warCost < 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {vals.warCost < 0 ? '+' : '−'}{fmtB(Math.abs(vals.warCost))}
+                          </span>
+                          <span className={`w-14 text-right font-mono ${vals.peaceBenefit < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                            {vals.peaceBenefit < 0 ? '−' : '+'}{fmtB(Math.abs(vals.peaceBenefit))}
+                          </span>
                         </div>
                       );
                     })}
