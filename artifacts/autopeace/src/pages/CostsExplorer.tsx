@@ -247,6 +247,31 @@ const STAKEHOLDERS: StakeholderCBA[] = [
     humanitarianDateRange: "N/A",
   },
   {
+    id: "russia", name: "Russia", flag: "🇷🇺", region: "Major External", gdpB: 2240,
+    warCostB: 4.0, peaceBenefitB: 3.0, netSwingB: 3.0, warCostPctGdp: 0.18,
+    channels: {
+      trade: { warCost: -2.0, peaceBenefit: 0.5 },
+      energy: { warCost: -12.0, peaceBenefit: 2.0 },
+      shipping: { warCost: 0.5, peaceBenefit: 0.5 },
+      finance: { warCost: 0.5, peaceBenefit: 0.5 },
+      aviation: { warCost: 1.0, peaceBenefit: 0.5 },
+      security: { warCost: -3.0, peaceBenefit: 1.0 },
+      humanitarian: { warCost: 0.0, peaceBenefit: 0.0 },
+      productivity: { warCost: 2.0, peaceBenefit: 2.0 },
+    },
+    keyFacts: [
+      "Major oil/gas exporter — Iranian oil sanctions sustain global price floor, worth ~$12–15B/year in Russia's favor",
+      "Iran supplied Russia with 3,700+ Shahed-136/238 drones for use in Ukraine; peace likely ends this supply chain",
+      "Built and operates Iran's Bushehr nuclear plant — gives Russia leverage in JCPOA diplomacy",
+      "Shares Western sanctions adversity with Iran; coordinates on sanctions evasion and dollar alternatives",
+    ],
+    displaced: 0, casualties: 0,
+    iranAttributionPct: 5,
+    humanitarianAttribution: "No direct conflict displacement or fatalities in Russia attributable to the Iran conflict complex. Russia is primarily an economic and strategic beneficiary of Iran tensions.",
+    humanitarianSources: ["UNHCR Global Trends (2024)"],
+    humanitarianDateRange: "N/A",
+  },
+  {
     id: "ukraine", name: "Ukraine", flag: "🇺🇦", region: "Major External", gdpB: 179,
     warCostB: 18.0, peaceBenefitB: 14.0, netSwingB: 14.0, warCostPctGdp: 10.1,
     channels: {
