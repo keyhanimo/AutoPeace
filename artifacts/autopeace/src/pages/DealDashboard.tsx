@@ -59,6 +59,20 @@ function ScoreCard({ dimension, score }: { dimension: typeof SCORE_DIMENSIONS[nu
   );
 }
 
+const ACCEPTANCE_TIERS: Record<string, { label: string; color: string }> = {
+  iran: { label: "Required", color: "text-red-300 bg-red-950/40 border-red-800/50" },
+  us: { label: "Required", color: "text-red-300 bg-red-950/40 border-red-800/50" },
+  israel: { label: "Critical", color: "text-orange-300 bg-orange-950/40 border-orange-800/50" },
+  saudi_arabia: { label: "Influential", color: "text-blue-300 bg-blue-950/40 border-blue-800/50" },
+  iaea: { label: "Influential", color: "text-blue-300 bg-blue-950/40 border-blue-800/50" },
+  russia: { label: "Influential", color: "text-blue-300 bg-blue-950/40 border-blue-800/50" },
+  china: { label: "Influential", color: "text-blue-300 bg-blue-950/40 border-blue-800/50" },
+  eu3: { label: "Influential", color: "text-blue-300 bg-blue-950/40 border-blue-800/50" },
+};
+const getStakeholderTier = (id: string) => ACCEPTANCE_TIERS[id] ?? { label: "Contextual", color: "text-gray-400 bg-gray-950/40 border-gray-700/50" };
+
+const TIER_ORDER: Record<string, number> = { Required: 0, Critical: 1, Influential: 2, Contextual: 3 };
+
 function StakeholderMap({ evaluations, lensId }: { evaluations: Record<string, { verdict: string; rationale: string }>; lensId?: string }) {
   const [selected, setSelected] = useState<string | null>(null);
 
@@ -67,16 +81,23 @@ function StakeholderMap({ evaluations, lensId }: { evaluations: Record<string, {
   const conditionals = entries.filter(([, e]) => e.verdict === "conditional").length;
   const rejects = entries.filter(([, e]) => e.verdict === "reject").length;
 
-  const displayedEntries = lensId ? entries.filter(([id]) => id === lensId) : entries;
+  const displayedEntries = lensId
+    ? entries.filter(([id]) => id === lensId)
+    : [...entries].sort((a, b) => {
+        const ta = TIER_ORDER[getStakeholderTier(a[0]).label] ?? 3;
+        const tb = TIER_ORDER[getStakeholderTier(b[0]).label] ?? 3;
+        return ta - tb;
+      });
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-4 text-xs">
+      <div className="flex gap-4 text-xs flex-wrap">
         <span className="flex items-center gap-1 text-emerald-400"><CheckCircle2 className="w-3 h-3" /> {accepts} Accept</span>
         <span className="flex items-center gap-1 text-amber-400"><AlertTriangle className="w-3 h-3" /> {conditionals} Conditional</span>
         <span className="flex items-center gap-1 text-red-400"><XCircle className="w-3 h-3" /> {rejects} Reject</span>
+        <span className="ml-auto text-[10px] text-muted-foreground">{entries.length} stakeholders evaluated</span>
         {lensId && (
-          <span className="ml-auto flex items-center gap-1 text-primary text-[10px] font-semibold border border-primary/30 rounded px-2 py-0.5">
+          <span className="flex items-center gap-1 text-primary text-[10px] font-semibold border border-primary/30 rounded px-2 py-0.5">
             Lens: {lensId.replace(/-/g, " ")}
           </span>
         )}
@@ -88,6 +109,7 @@ function StakeholderMap({ evaluations, lensId }: { evaluations: Record<string, {
         {displayedEntries.map(([id, evaluation]) => {
           const isSelected = selected === id;
           const isLens = lensId === id;
+          const tier = getStakeholderTier(id);
           const color = evaluation.verdict === "accept" ? "border-emerald-500/50 bg-emerald-950/20" :
             evaluation.verdict === "reject" ? "border-red-500/50 bg-red-950/20" :
               "border-amber-500/50 bg-amber-950/20";
@@ -100,7 +122,10 @@ function StakeholderMap({ evaluations, lensId }: { evaluations: Record<string, {
               onClick={() => setSelected(isSelected ? null : id)}
               className={`p-3 rounded-lg border text-left transition-all ${color} ${isSelected || isLens ? "ring-1 ring-primary" : ""}`}
             >
-              <div className="text-xs font-mono font-bold capitalize text-foreground truncate">{id.replace(/-/g, " ")}</div>
+              <div className="flex items-center justify-between gap-1">
+                <div className="text-xs font-mono font-bold capitalize text-foreground truncate">{id.replace(/[_-]/g, " ")}</div>
+                <span className={`text-[8px] px-1 py-0.5 rounded border ${tier.color} font-semibold shrink-0`}>{tier.label}</span>
+              </div>
               <div className={`text-[10px] ${textColor} font-medium capitalize mt-1`}>{evaluation.verdict}</div>
             </button>
           );

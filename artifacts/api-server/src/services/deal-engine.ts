@@ -336,16 +336,75 @@ function getDefaultTerms(architecture: Architecture): DealTerms {
   return base;
 }
 
-const CORE_STAKEHOLDERS = [
-  { id: "iran", name: "Iran", profile: "Seeks sanctions relief, nuclear recognition, no regime change threat. Red lines: denuclearization, regime change, loss of deterrence." },
-  { id: "us", name: "United States", profile: "Seeks verifiable denuclearization, regional security. Red lines: nuclear weapons capability, Hormuz blockade." },
-  { id: "israel", name: "Israel", profile: "Opposes any deal that leaves Iran with enrichment capacity. Red line: any path to Iranian nuclear weapon." },
-  { id: "saudi_arabia", name: "Saudi Arabia", profile: "Seeks regional security guarantees, economic normalization. Concerned about Iranian influence in Yemen, Lebanon." },
-  { id: "iaea", name: "IAEA", profile: "Supports verification mechanisms, snap inspections, continuous monitoring." },
-  { id: "russia", name: "Russia", profile: "Supports Iranian sovereignty, opposes Western-led sanctions." },
-  { id: "china", name: "China", profile: "Values economic ties with Iran, opposes sanctions, supports negotiated solution." },
-  { id: "eu3", name: "EU (France/UK/Germany)", profile: "Strong verification advocate, supports phased sanctions relief, regional stability." },
+type AcceptanceTier = "required" | "critical" | "influential" | "contextual";
+
+type StakeholderEntry = {
+  id: string;
+  name: string;
+  profile: string;
+  tier: AcceptanceTier;
+};
+
+const STAKEHOLDER_REGISTRY: StakeholderEntry[] = [
+  { id: "iran", name: "Iran", tier: "required",
+    profile: "Seeks sanctions relief, nuclear recognition, no regime change threat. Red lines: denuclearization, regime change, loss of deterrence." },
+  { id: "us", name: "United States", tier: "required",
+    profile: "Seeks verifiable denuclearization, regional security. Red lines: nuclear weapons capability, Hormuz blockade." },
+
+  { id: "israel", name: "Israel", tier: "critical",
+    profile: "Opposes any deal that leaves Iran with enrichment capacity. Red line: any path to Iranian nuclear weapon. Borderline make-or-break — can undermine implementation unilaterally." },
+
+  { id: "saudi_arabia", name: "Saudi Arabia", tier: "influential",
+    profile: "Seeks regional security guarantees, economic normalization. Concerned about Iranian influence in Yemen, Lebanon." },
+  { id: "iaea", name: "IAEA", tier: "influential",
+    profile: "Verification authority. Supports snap inspections, continuous monitoring. Essential for implementation but not a party to the deal." },
+  { id: "russia", name: "Russia", tier: "influential",
+    profile: "UNSC veto holder. Supports Iranian sovereignty, opposes Western-led sanctions. Can block/enable at UN level." },
+  { id: "china", name: "China", tier: "influential",
+    profile: "Major Iranian trade partner. Values economic ties, opposes sanctions, supports negotiated solution. BRI interests." },
+  { id: "eu3", name: "EU (France/UK/Germany)", tier: "influential",
+    profile: "Strong verification advocate, supports phased sanctions relief, key economic/trade mechanisms." },
+
+  { id: "uae", name: "United Arab Emirates", tier: "contextual",
+    profile: "Trade hub stability, neutrality preservation, significant Iranian trade volumes. Strait of Hormuz exposure." },
+  { id: "qatar", name: "Qatar", tier: "contextual",
+    profile: "Mediation role, shared gas field with Iran. Multi-directional diplomacy, potential deal broker." },
+  { id: "oman", name: "Oman", tier: "contextual",
+    profile: "Traditional neutral facilitator, Strait of Hormuz geography. Back-channel specialist." },
+  { id: "turkey", name: "Turkey", tier: "contextual",
+    profile: "NATO member with Iranian economic relations. Regional power seeking mediator role. Kurdish issue linkage." },
+  { id: "iraq", name: "Iraq", tier: "contextual",
+    profile: "Caught between Iran/US. PMF-Iranian ties, US troop presence. Avoids becoming battleground." },
+  { id: "egypt", name: "Egypt", tier: "contextual",
+    profile: "Regional stability, Gaza ceasefire, canal revenues. Pragmatic broker." },
+  { id: "india", name: "India", tier: "contextual",
+    profile: "Energy security (Iranian oil), Chabahar port access. Balancing US and Iran." },
+  { id: "japan", name: "Japan", tier: "contextual",
+    profile: "Strait of Hormuz oil dependency, constitutional pacifism. Quiet mediator." },
+  { id: "south_korea", name: "South Korea", tier: "contextual",
+    profile: "Frozen Iranian assets leverage, energy security. US-aligned but economically exposed." },
+  { id: "jordan", name: "Jordan", tier: "contextual",
+    profile: "Palestinian linkage, US support dependency. Regional stability buffer." },
+  { id: "pakistan", name: "Pakistan", tier: "contextual",
+    profile: "Iran border, economic corridor interests. Islamic solidarity framework." },
+  { id: "ukraine", name: "Ukraine", tier: "contextual",
+    profile: "Wants to cut Iran-Russia military supply chain (Shahed drones). Active war with Russia shapes priorities." },
+  { id: "global_north", name: "Global North Bloc", tier: "contextual",
+    profile: "Rules-based order, non-proliferation norms, energy price stability." },
+  { id: "global_south_energy_importers", name: "Global South Energy Importers", tier: "contextual",
+    profile: "Low energy prices, food security. Oil spike above $120/bbl is red line." },
+  { id: "global_south_energy_exporters", name: "Global South Energy Exporters", tier: "contextual",
+    profile: "OPEC+ cohesion, elevated oil prices. Controlled conflict may serve their interests." },
 ];
+
+function getStakeholdersByTier(...tiers: AcceptanceTier[]): StakeholderEntry[] {
+  return STAKEHOLDER_REGISTRY.filter(s => tiers.includes(s.tier));
+}
+
+const REQUIRED_STAKEHOLDERS = getStakeholdersByTier("required");
+const CRITICAL_STAKEHOLDERS = getStakeholdersByTier("critical");
+const CORE_STAKEHOLDERS = getStakeholdersByTier("required", "critical", "influential");
+const ALL_EVALUATED_STAKEHOLDERS = STAKEHOLDER_REGISTRY;
 
 const DOMESTIC_AUDIENCES: Record<string, { stakeholder: string; audiences: string[] }> = {
   "iran": { stakeholder: "Iran", audiences: ["Supreme Leader", "IRGC", "reformists", "public"] },
@@ -382,15 +441,18 @@ The ongoing conflict costs the world ~$450B/yr in GDP-equivalent losses. A durab
 Most affected: Iran ($87B cost, $142B peace benefit), US ($52B/$38B), Israel ($43B/$35B), Europe ($42B/$55B), China ($35B/$48B).
 Your deal should address the channels where the largest economic gains are achievable and ensure stakeholders who bear the highest costs have clear incentives to participate.
 
-STAKEHOLDERS WHO MUST COMMIT (grand coalition):
-- Iran: primary party, seeks sanctions relief and security
-- US: primary party, seeks denuclearization and stability
-- Israel: security guarantor, nuclear red lines
-- Saudi Arabia: regional power, Yemen/Gulf interests, economic normalization potential
-- EU (France/UK/Germany): economic leverage, trade mechanisms, verification support
-- Russia: UNSC veto holder, Iranian ally, sanctions enforcement role
-- China: major Iranian trade partner, economic leverage, BRI interests
-- IAEA: verification authority, technical monitoring
+STAKEHOLDER ACCEPTANCE TIERS:
+REQUIRED (deal cannot proceed without their acceptance):
+${REQUIRED_STAKEHOLDERS.map(s => `- ${s.id}: ${s.name}. ${s.profile}`).join("\n")}
+
+CRITICAL (borderline make-or-break — rejection severely undermines viability):
+${CRITICAL_STAKEHOLDERS.map(s => `- ${s.id}: ${s.name}. ${s.profile}`).join("\n")}
+
+INFLUENTIAL (important for durability/implementation but not gatekeepers):
+${getStakeholdersByTier("influential").map(s => `- ${s.id}: ${s.name}. ${s.profile}`).join("\n")}
+
+CONTEXTUAL (affected parties whose support strengthens the deal):
+${getStakeholdersByTier("contextual").map(s => `- ${s.id}: ${s.name}`).join(", ")}
 
 Generate a peace deal JSON with these exact keys:
 {
@@ -403,28 +465,21 @@ Generate a peace deal JSON with these exact keys:
   "sequencing": "string describing step-by-step sequencing",
   "additionalClauses": ["array", "of", "additional", "terms"],
   "stakeholderCommitments": {
-    "iran": "specific binding commitments Iran makes",
-    "us": "specific binding commitments the US makes",
-    "israel": "specific binding commitments Israel makes",
-    "saudi_arabia": "specific binding commitments Saudi Arabia makes",
-    "eu3": "specific binding commitments EU3 makes",
-    "russia": "specific binding commitments Russia makes",
-    "china": "specific binding commitments China makes",
-    "iaea": "specific binding commitments the IAEA makes"
+${CORE_STAKEHOLDERS.map(s => `    "${s.id}": "specific binding commitments ${s.name} makes"`).join(",\n")}
   }
 }
 
-IMPORTANT: Every stakeholder MUST have concrete, specific commitments. Vague statements like "supports the deal" are insufficient. Each commitment should specify what the stakeholder will DO, PROVIDE, or GUARANTEE.`;
+IMPORTANT: Iran and the US are the two REQUIRED parties — without both accepting, no deal is implementable. Israel is CRITICAL — its rejection would severely undermine any deal. Other stakeholders (influential tier) matter for durability and implementation but are not absolute gatekeepers.
+Every stakeholder MUST have concrete, specific commitments. Vague statements like "supports the deal" are insufficient. Each commitment should specify what the stakeholder will DO, PROVIDE, or GUARANTEE.`;
 
   const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 1, "generation", modelConfig);
   const terms = parseLLMJson<DealTerms>(content, getDefaultTerms(architecture));
 
-  const requiredStakeholders = ["iran", "us", "israel", "saudi_arabia", "eu3", "russia", "china", "iaea"];
   const sc = terms.stakeholderCommitments || {};
   const defaults = getDefaultTerms(architecture).stakeholderCommitments || {};
-  for (const sid of requiredStakeholders) {
-    if (!sc[sid] || sc[sid].trim().length < 10) {
-      sc[sid] = defaults[sid] || `Participates in grand coalition framework with binding obligations`;
+  for (const s of CORE_STAKEHOLDERS) {
+    if (!sc[s.id] || sc[s.id].trim().length < 10) {
+      sc[s.id] = defaults[s.id] || `Participates in grand coalition framework with binding obligations`;
     }
   }
   terms.stakeholderCommitments = sc;
@@ -434,22 +489,37 @@ IMPORTANT: Every stakeholder MUST have concrete, specific commitments. Vague sta
 
 /**
  * STAKEHOLDER EVALUATION AGENT (OpenAI) — evaluation role
- * Assesses each core stakeholder's acceptance of the deal.
+ * Evaluates ALL stakeholders in a tiered system:
+ * - Required (Iran, US): must accept for deal to be implementable
+ * - Critical (Israel): borderline make-or-break
+ * - Influential: important for durability but not gatekeepers
+ * - Contextual: broader affected parties
  */
 export async function evaluateStakeholders(
   terms: DealTerms,
   modelConfig: ModelConfig = DEFAULT_MODELS,
 ): Promise<{ evaluations: Record<string, StakeholderVerdict>; tokens: number }> {
   const systemPrompt = `You are a geopolitical analyst evaluating how stakeholders will respond to a peace proposal.
-Each stakeholder has specific commitments they are asked to make. Evaluate whether they would accept given what they must commit AND what they receive in return.
+Each stakeholder has a specific acceptance tier that determines their importance:
+- REQUIRED: Iran and US must BOTH accept for the deal to be implementable at all
+- CRITICAL: Israel's rejection would severely undermine the deal but is not an absolute veto
+- INFLUENTIAL: Important for durability and implementation but not gatekeepers
+- CONTEXTUAL: Affected parties whose support strengthens the deal
+
+Evaluate whether each would accept given what they must commit AND what they receive in return.
 Output a JSON object mapping stakeholder IDs to their verdict. Each verdict has:
 { "verdict": "accept"|"conditional"|"reject", "rationale": "string", "redLineViolations": [], "conditions": [] }`;
 
   const commitments = terms.stakeholderCommitments ?? {};
-  const stakeholderLines = CORE_STAKEHOLDERS.map(s => {
+
+  const coreTierLines = CORE_STAKEHOLDERS.map(s => {
     const commitment = commitments[s.id];
-    return `- ${s.id}: ${s.name}. Profile: ${s.profile}${commitment ? `\n  THEIR COMMITMENTS: ${commitment}` : ""}`;
+    return `- ${s.id} [${s.tier.toUpperCase()}]: ${s.name}. ${s.profile}${commitment ? `\n  THEIR COMMITMENTS: ${commitment}` : ""}`;
   }).join("\n");
+
+  const contextualLines = getStakeholdersByTier("contextual").map(s =>
+    `- ${s.id}: ${s.name}. ${s.profile}`
+  ).join("\n");
 
   const prompt = `Evaluate how these stakeholders would respond to this peace deal, considering both what they receive and what they are asked to commit:
 
@@ -462,27 +532,44 @@ DEAL TERMS:
 - Timeline: ${terms.timelineYears} years
 - Sequencing: ${terms.sequencing}
 
-STAKEHOLDERS TO EVALUATE (with their required commitments):
-${stakeholderLines}
+CORE STAKEHOLDERS (required + critical + influential — evaluate in detail):
+${coreTierLines}
 
-For each stakeholder, consider: (1) Does what they receive justify what they must commit? (2) Do their commitments violate any red lines? (3) Is the grand coalition structure — where ALL parties commit — more likely to produce a stable outcome than a deal with fewer committed parties?
+CONTEXTUAL STAKEHOLDERS (evaluate with a brief verdict — their opinions matter but are not make-or-break):
+${contextualLines}
 
-Return JSON: { "iran": { verdict, rationale, redLineViolations, conditions }, "us": {...}, ... }`;
+ACCEPTANCE HIERARCHY:
+- Iran AND US must BOTH accept for the deal to be implementable. If either rejects, the deal fails.
+- Israel's acceptance is borderline essential — rejection severely damages feasibility.
+- Other stakeholders' reactions affect durability and regional stability but do not veto the deal.
+
+For each stakeholder, consider: (1) Does what they receive justify what they must commit? (2) Do their commitments violate any red lines? (3) For contextual stakeholders, focus on whether the deal creates winners/losers among them.
+
+Return JSON with ALL stakeholder IDs: { "iran": { verdict, rationale, redLineViolations, conditions }, "us": {...}, "uae": {...}, ... }`;
 
   const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 2, "evaluation", modelConfig);
 
   const fallback: Record<string, StakeholderVerdict> = {};
-  for (const s of CORE_STAKEHOLDERS) {
+  for (const s of ALL_EVALUATED_STAKEHOLDERS) {
     fallback[s.id] = {
       verdict: "conditional",
       rationale: `${s.name} has reservations but sees potential for negotiation.`,
       redLineViolations: [],
-      conditions: ["Further clarification needed on verification"],
+      conditions: ["Further clarification needed"],
     };
   }
 
   const parsed = parseLLMJson<Record<string, StakeholderVerdict>>(content, fallback);
-  return { evaluations: parsed, tokens };
+
+  const normalized: Record<string, StakeholderVerdict> = { ...fallback, ...parsed };
+  for (const s of ALL_EVALUATED_STAKEHOLDERS) {
+    const e = normalized[s.id];
+    if (!e || !e.verdict || !["accept", "conditional", "reject"].includes(e.verdict)) {
+      normalized[s.id] = fallback[s.id]!;
+    }
+  }
+
+  return { evaluations: normalized, tokens };
 }
 
 /**
@@ -522,6 +609,14 @@ export async function runNegotiator(
 Your role: given stakeholder objections, propose specific, realistic amendments that could bring rejecting/conditional parties toward acceptance WITHOUT losing other parties' support.
 Output JSON only.`;
 
+  const tierOf = (id: string) => STAKEHOLDER_REGISTRY.find(s => s.id === id)?.tier ?? "contextual";
+  const priorityLabel = (id: string) => {
+    const t = tierOf(id);
+    if (t === "required") return "[REQUIRED — must fix]";
+    if (t === "critical") return "[CRITICAL — high priority]";
+    return `[${t}]`;
+  };
+
   const prompt = `Negotiate amendments for this Iran peace deal:
 
 CURRENT TERMS SUMMARY:
@@ -529,11 +624,13 @@ CURRENT TERMS SUMMARY:
 - Sanctions: ${terms.sanctionsRelief.slice(0, 150)}
 - Sequencing: ${terms.sequencing.slice(0, 150)}
 
-REJECTING STAKEHOLDERS:
-${rejecters.map(r => `- ${r.id}: Red lines violated: ${r.redLineViolations.join(", ")}. Conditions for acceptance: ${r.conditions.join(", ")}`).join("\n")}
+REJECTING STAKEHOLDERS (prioritized by acceptance tier):
+${rejecters.map(r => `- ${r.id} ${priorityLabel(r.id)}: Red lines violated: ${r.redLineViolations.join(", ")}. Conditions for acceptance: ${r.conditions.join(", ")}`).join("\n")}
 
 CONDITIONAL STAKEHOLDERS:
-${conditionals.map(c => `- ${c.id}: Conditions: ${c.conditions.join(", ")}`).join("\n")}
+${conditionals.map(c => `- ${c.id} ${priorityLabel(c.id)}: Conditions: ${c.conditions.join(", ")}`).join("\n")}
+
+PRIORITY: Iran and US rejection is a DEAL-BREAKER — amendments MUST address their concerns first. Israel rejection is near-fatal — high priority. Other stakeholders matter for durability but are not gatekeepers.
 
 Return JSON:
 {
@@ -641,9 +738,34 @@ export async function judgeAndScore(
   domesticEvaluations: Record<string, DomesticVerdict>,
   modelConfig: ModelConfig = DEFAULT_MODELS,
 ): Promise<{ scores: DealScores; tokens: number }> {
-  const acceptCount = Object.values(stakeholderEvaluations).filter(e => e.verdict === "accept").length;
-  const rejectCount = Object.values(stakeholderEvaluations).filter(e => e.verdict === "reject").length;
+  const getVerdict = (id: string) => stakeholderEvaluations[id]?.verdict;
+  const iranVerdict = getVerdict("iran");
+  const usVerdict = getVerdict("us");
+  const israelVerdict = getVerdict("israel");
+
+  const requiredAccept = iranVerdict !== "reject" && usVerdict !== "reject";
+  const israelAccepts = israelVerdict !== "reject";
+
+  const tierCounts = (tier: AcceptanceTier) => {
+    const ids = getStakeholdersByTier(tier).map(s => s.id);
+    const evals = ids.map(id => stakeholderEvaluations[id]).filter(Boolean);
+    return {
+      accept: evals.filter(e => e.verdict === "accept").length,
+      conditional: evals.filter(e => e.verdict === "conditional").length,
+      reject: evals.filter(e => e.verdict === "reject").length,
+      total: evals.length,
+    };
+  };
+
+  const requiredTier = tierCounts("required");
+  const criticalTier = tierCounts("critical");
+  const influentialTier = tierCounts("influential");
+  const contextualTier = tierCounts("contextual");
+
+  const totalAccept = Object.values(stakeholderEvaluations).filter(e => e.verdict === "accept").length;
+  const totalReject = Object.values(stakeholderEvaluations).filter(e => e.verdict === "reject").length;
   const totalStakeholders = Object.keys(stakeholderEvaluations).length || 1;
+
   const survivedCount = redTeamResults.filter(r => r.survived).length;
   const totalRedTeam = redTeamResults.length || 1;
 
@@ -668,13 +790,21 @@ DEAL SUMMARY (post-negotiator amendments applied):
 - Sequencing: ${terms.sequencing.slice(0, 200)}
 ${commitmentsBlock}
 
-STAKEHOLDER RESULTS: ${acceptCount}/${totalStakeholders} accept, ${rejectCount} reject
+STAKEHOLDER ACCEPTANCE BY TIER:
+- REQUIRED (Iran + US): ${requiredTier.accept} accept, ${requiredTier.conditional} conditional, ${requiredTier.reject} reject — Iran: ${iranVerdict || "unknown"}, US: ${usVerdict || "unknown"}
+  ${!requiredAccept ? "*** DEAL-BREAKER: A required party rejects. Score feasibility very low (0.1-0.2). ***" : ""}
+- CRITICAL (Israel): ${israelVerdict || "unknown"}
+  ${!israelAccepts ? "*** Israel rejects — severely undermines viability. Penalize feasibility and durability. ***" : ""}
+- INFLUENTIAL: ${influentialTier.accept} accept, ${influentialTier.conditional} conditional, ${influentialTier.reject} reject out of ${influentialTier.total}
+- CONTEXTUAL: ${contextualTier.accept} accept, ${contextualTier.conditional} conditional, ${contextualTier.reject} reject out of ${contextualTier.total}
+- OVERALL: ${totalAccept}/${totalStakeholders} accept, ${totalReject} reject
+
 RED-TEAM SURVIVAL: ${survivedCount}/${totalRedTeam} attacks survived
 DOMESTIC SELLABILITY: ${domesticSellable}/${domesticTotal} sellable, ${domesticUnsellable} unsellable
 
-ECONOMIC CONTEXT: This conflict costs ~$450B/yr globally. A durable peace could yield ~$560B/yr in benefits — a $1T/yr swing. The largest economic channels are energy markets, trade/sanctions, and finance/banking. Consider whether the deal terms adequately address these economic incentives when scoring regionalStability and feasibility.
+ECONOMIC CONTEXT: This conflict costs ~$450B/yr globally. A durable peace could yield ~$560B/yr in benefits — a $1T/yr swing. The largest economic channels are energy markets, trade/sanctions, and finance/banking.
 
-COALITION STABILITY: Consider whether the deal forms a stable grand coalition — are ALL stakeholders given enough incentive to stay committed? Could any subset of parties benefit from defecting? Score feasibility and durability higher when the coalition structure makes defection costly for all parties.
+ACCEPTANCE HIERARCHY: Iran and the US are the two REQUIRED parties — both must accept for ANY deal to be implementable. Israel is CRITICAL — its rejection doesn't automatically kill the deal but severely damages feasibility. Other stakeholders (influential + contextual) affect durability and regional stability but are not veto holders.
 
 Return JSON with scores and rationale for each dimension:
 {
@@ -693,7 +823,7 @@ Return JSON with scores and rationale for each dimension:
     { provider: "gemini", model: modelConfig.judgePanelGeminiModel ?? modelConfig.geminiModel },
   ];
 
-  const acceptRate = acceptCount / totalStakeholders;
+  const acceptRate = totalAccept / totalStakeholders;
   const redTeamSurvival = survivedCount / totalRedTeam;
   const baseScore = 0.3 + acceptRate * 0.3 + redTeamSurvival * 0.2;
 
@@ -781,6 +911,17 @@ Return JSON with scores and rationale for each dimension:
     judgePrompt: `[SYSTEM]\n${systemPrompt}\n\n[USER]\n${prompt}`,
   };
 
+  if (!requiredAccept) {
+    scores.feasibility = Math.min(scores.feasibility, 0.15);
+    scores.implementability = Math.min(scores.implementability, 0.20);
+    scores.durability = Math.min(scores.durability, 0.15);
+  }
+  if (!israelAccepts) {
+    scores.feasibility = Math.min(scores.feasibility, 0.35);
+    scores.durability = Math.min(scores.durability, 0.30);
+    scores.regionalStability = Math.min(scores.regionalStability, 0.35);
+  }
+
   scores.composite = (
     scores.feasibility * 0.2 +
     scores.coherence * 0.15 +
@@ -858,9 +999,10 @@ export async function generateDiagnosis(
   scores: DealScores,
   modelConfig: ModelConfig = DEFAULT_MODELS,
 ): Promise<{ diagnosis: string; tokens: number }> {
-  const rejecters = Object.entries(stakeholderEvaluations)
-    .filter(([, e]) => e.verdict === "reject")
-    .map(([id, e]) => `${id}: ${e.rationale}`);
+  const rejecterEntries = Object.entries(stakeholderEvaluations).filter(([, e]) => e.verdict === "reject");
+  const rejecters = rejecterEntries.map(([id, e]) => `${id}: ${e.rationale}`);
+  const requiredRejecters = rejecterEntries.filter(([id]) => ["iran", "us"].includes(id)).map(([id]) => id);
+  const criticalRejecters = rejecterEntries.filter(([id]) => id === "israel").map(([id]) => id);
 
   const failures = redTeamResults.filter(r => !r.survived)
     .map(r => r.attack);
@@ -872,12 +1014,20 @@ export async function generateDiagnosis(
     };
   }
 
+  const tierWarning = requiredRejecters.length > 0
+    ? `\nCRITICAL: ${requiredRejecters.join(" and ")} (REQUIRED tier) reject — deal is NOT implementable without their acceptance.`
+    : criticalRejecters.length > 0
+    ? `\nWARNING: Israel (CRITICAL tier) rejects — deal viability is severely undermined.`
+    : "";
+
   const prompt = `Write a 2-3 sentence diagnosis of why this peace deal is facing difficulties:
 
-Key rejectors: ${rejecters.slice(0, 3).join("; ")}
+Key rejectors: ${rejecters.slice(0, 5).join("; ")}
 Failed red-team stress tests: ${failures.slice(0, 3).join("; ")}
 Lowest scoring dimension: ${Object.entries(scores).filter(([k]) => k !== "composite").sort((a, b) => (a[1] as number) - (b[1] as number))[0]?.[0]}
+${tierWarning}
 
+ACCEPTANCE HIERARCHY: Iran + US acceptance is REQUIRED (deal-breaker if either rejects). Israel is CRITICAL (near-fatal). Others are influential but not gatekeepers.
 Be specific about which stakeholder objections and which structural weakness are most critical to fix.`;
 
   const { content, tokens } = await callLLMForStage(prompt, "You are a strategic conflict analyst. Provide a concise diagnosis paragraph. No JSON.", 8, "adversarial", modelConfig);
@@ -1016,6 +1166,7 @@ export async function runFullEvaluation(
 }
 
 export const DEAL_ARCHITECTURES = ARCHITECTURES;
+export { STAKEHOLDER_REGISTRY, type AcceptanceTier, type StakeholderEntry };
 
 export function isDominatedOnAllDimensions(
   a: DealScores,

@@ -4,6 +4,7 @@ import { stakeholdersTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
 import { GetStakeholderResponse, ListStakeholdersResponse } from "@workspace/api-zod";
 import { sendValidated } from "../lib/validate-response";
+import { STAKEHOLDER_REGISTRY } from "../services/deal-engine";
 
 const router = Router();
 
@@ -20,6 +21,16 @@ router.get("/stakeholders", async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }
+});
+
+router.get("/stakeholders/tiers", (_req, res) => {
+  const tiers = {
+    required: STAKEHOLDER_REGISTRY.filter(s => s.tier === "required"),
+    critical: STAKEHOLDER_REGISTRY.filter(s => s.tier === "critical"),
+    influential: STAKEHOLDER_REGISTRY.filter(s => s.tier === "influential"),
+    contextual: STAKEHOLDER_REGISTRY.filter(s => s.tier === "contextual"),
+  };
+  res.json(tiers);
 });
 
 router.get("/stakeholders/:id", async (req, res) => {

@@ -176,16 +176,24 @@ Auto-scans ingested diplomatic evidence items for real-world peace proposals usi
 ## Phase 2 — Deal Engine (Task B)
 
 8-stage multi-agent pipeline (`deal-engine.ts`) with **grand coalition** cooperative game theory framing:
-1. **Proposal Agent** (generation role) — designs deal terms per architecture; generates binding `stakeholderCommitments` for all 8 parties (Iran, US, Israel, Saudi Arabia, EU3, Russia, China, IAEA)
-2. **Stakeholder Evaluator** (evaluation role) — assesses 8 core stakeholder verdicts, considering each party's own commitments
+1. **Proposal Agent** (generation role) — designs deal terms per architecture; generates binding `stakeholderCommitments` for all 8 core parties
+2. **Stakeholder Evaluator** (evaluation role) — assesses **23 stakeholders across 4 tiers** with normalized output (missing stakeholders get conditional fallback)
 3. **Domestic Audiences** (evaluation role) — Iran/US/Israel domestic political sellability
 4. **Red-Team Agent** (adversarial role) — 5 attack scenarios, severity + survival
-5. **Negotiator Agent** (generation role) — targeted amendments for rejectors
-6. **Judge Agent** (evaluation role) — 7-dimension scoring (0–1 each) with coalition stability evaluation
+5. **Negotiator Agent** (generation role) — targeted amendments for rejectors with tier priority labels
+6. **Judge Agent** (evaluation role) — 7-dimension scoring (0–1 each) with tier-aware acceptance hierarchy and coalition stability evaluation
 7. **Meta-Evaluator** (evaluation role) — pipeline reasoning quality + next architecture suggestion
-8. **Diagnosis Generator** (adversarial role) — plain-language explanation of failure
+8. **Diagnosis Generator** (adversarial role) — tier-aware diagnosis with required/critical rejection warnings
 
-**Grand Coalition**: `DealTerms.stakeholderCommitments` (optional `Record<string, string>`) stores binding commitments from each stakeholder. Validated post-generation to ensure all 8 parties have concrete commitments (auto-fills from defaults if LLM omits any). Displayed in Deal Dashboard and Proposal Arena frontend.
+**Tiered Stakeholder Acceptance System** (`STAKEHOLDER_REGISTRY` in deal-engine.ts):
+- **Required** (Iran, US) — both must accept for deal to be implementable; rejection caps feasibility at 0.15
+- **Critical** (Israel) — rejection severely undermines viability; caps feasibility at 0.35
+- **Influential** (Saudi Arabia, EU3, Russia, China, IAEA) — affects durability but not gatekeepers
+- **Contextual** (UAE, Qatar, Turkey, Iraq, Egypt, India, Japan, South Korea, Jordan, Pakistan, Ukraine, Oman, Global North, Global South Energy Exporters, Global South Energy Importers) — affects regional stability
+
+**Grand Coalition**: `DealTerms.stakeholderCommitments` (optional `Record<string, string>`) stores binding commitments from each stakeholder. Validated post-generation to ensure all 8 core parties have concrete commitments (auto-fills from defaults if LLM omits any). Displayed in Deal Dashboard and Proposal Arena frontend.
+
+**API**: `GET /api/stakeholders/tiers` returns the full tier registry grouped by tier level.
 
 **Per-role provider config**: generation/evaluation/adversarial each have independent `{provider, model}` settings stored in `admin_config` key-value store. `validateModelConfig()` enforces `generationProvider !== evaluationProvider` at runtime.
 
