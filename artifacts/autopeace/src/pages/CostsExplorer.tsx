@@ -200,6 +200,22 @@ const STAKEHOLDERS: StakeholderCBA[] = [
     displaced: 0, casualties: 0,
   },
   {
+    id: "ukraine", name: "Ukraine", flag: "🇺🇦", region: "Major External", gdpB: 179,
+    warCostB: 18.0, peaceBenefitB: 14.0, netSwingB: 32.0, warCostPctGdp: 10.1,
+    channels: {
+      trade: { warCost: 2.0, peaceBenefit: 2.5 },
+      energy: { warCost: 4.0, peaceBenefit: 3.0 },
+      shipping: { warCost: 1.5, peaceBenefit: 1.5 },
+      finance: { warCost: 2.5, peaceBenefit: 2.0 },
+      aviation: { warCost: 1.0, peaceBenefit: 1.0 },
+      security: { warCost: 5.0, peaceBenefit: 2.0 },
+      humanitarian: { warCost: 1.0, peaceBenefit: 1.0 },
+      productivity: { warCost: 1.0, peaceBenefit: 1.0 },
+    },
+    keyFacts: ["Iran supplies Russia with Shahed drones used against Ukrainian infrastructure", "Iran peace could reduce Russia's military supply chain leverage", "Energy infrastructure 40%+ damaged — higher global energy prices compound burden", "Grain exports disrupted, compounding global food insecurity"],
+    displaced: 6500000, casualties: 50000,
+  },
+  {
     id: "iraq", name: "Iraq", flag: "🇮🇶", region: "Regional Spillover", gdpB: 264,
     warCostB: 12.0, peaceBenefitB: 15.0, netSwingB: 27.0, warCostPctGdp: 4.5,
     channels: {
