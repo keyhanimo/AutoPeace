@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { db } from "@workspace/db";
-import { dealsTable, solutionTreeTable, adminConfigTable, pipelineEvolutionTable } from "@workspace/db/schema";
+import { dealsTable, solutionTreeTable, adminConfigTable, pipelineEvolutionTable, changelogEntriesTable } from "@workspace/db/schema";
 import { desc, eq, isNull, and } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import {
@@ -370,6 +370,38 @@ async function runDealCycleAsync(cycleId: string): Promise<void> {
           overrideKeys: Object.keys(newOverrides),
         }, "Pipeline will use evolved prompts in next cycle");
       }
+    }
+
+    const prevComposite = currentBest?.scores ? ((currentBest.scores as DealScores).composite ?? 0) : 0;
+    const dealHeadline = isBetterThanCurrent
+      ? `New best deal: ${(compositeScore * 100).toFixed(0)}% composite (${chosenArch}, +${((compositeScore - prevComposite) * 100).toFixed(0)}pp)`
+      : `Deal cycle: ${(compositeScore * 100).toFixed(0)}% composite (${chosenArch}, did not beat current ${(prevComposite * 100).toFixed(0)}%)`;
+
+    const scoreDelta: Record<string, number> = {};
+    for (const [k, v] of Object.entries(evaluated.scores)) {
+      if (typeof v === "number") scoreDelta[k] = v;
+    }
+
+    const dealNotes = [
+      `Architecture: ${chosenArch}`,
+      `Composite score: ${(compositeScore * 100).toFixed(1)}%`,
+      isBetterThanCurrent ? `Improved from ${(prevComposite * 100).toFixed(1)}% → ${(compositeScore * 100).toFixed(1)}%` : `Current best remains at ${(prevComposite * 100).toFixed(1)}%`,
+      evaluated.diagnosis ? `Diagnosis: ${evaluated.diagnosis.slice(0, 300)}` : null,
+    ].filter(Boolean).join(". ");
+
+    try {
+      await db.insert(changelogEntriesTable).values({
+        id: randomUUID(),
+        cycleId,
+        headline: dealHeadline,
+        scoreDelta,
+        keyEvidence: [],
+        experimentsTried: 0,
+        experimentsRetained: isBetterThanCurrent ? 1 : 0,
+        notes: dealNotes,
+      });
+    } catch (changelogErr) {
+      logger.warn({ err: changelogErr, cycleId }, "Failed to insert deal changelog entry");
     }
 
     logger.info({
