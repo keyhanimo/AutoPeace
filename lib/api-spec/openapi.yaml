@@ -2351,6 +2351,11 @@ components:
           type: array
           items:
             type: string
+        stakeholderCommitments:
+          type: object
+          additionalProperties:
+            type: string
+          description: Binding commitments from each stakeholder in the grand coalition
 
     DealScores:
       type: object

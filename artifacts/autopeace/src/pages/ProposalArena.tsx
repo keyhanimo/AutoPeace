@@ -171,6 +171,17 @@ function ProposalCard({
                         </div>
                       ) : null
                     ))}
+                    {Boolean(terms.stakeholderCommitments && typeof terms.stakeholderCommitments === "object" && Object.keys(terms.stakeholderCommitments as Record<string, unknown>).length > 0) && (
+                      <div className="border-t border-border/30 pt-2 mt-2">
+                        <span className="text-[10px] text-cyan-400 font-semibold uppercase tracking-wider block mb-1.5">Coalition Commitments</span>
+                        {Object.entries(terms.stakeholderCommitments as Record<string, string>).map(([id, commitment]) => (
+                          <div key={id} className="flex gap-1.5 text-[11px] mb-1">
+                            <span className="text-primary font-semibold capitalize shrink-0">{id.replace(/_/g, " ")}:</span>
+                            <span className="text-muted-foreground">{String(commitment).slice(0, 200)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 

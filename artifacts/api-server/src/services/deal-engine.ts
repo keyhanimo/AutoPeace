@@ -10,6 +10,7 @@ export type DealTerms = {
   timelineYears: number;
   sequencing: string;
   additionalClauses: string[];
+  stakeholderCommitments?: Record<string, string>;
 };
 
 export type JudgePanelEntry = {
@@ -309,6 +310,16 @@ function getDefaultTerms(architecture: Architecture): DealTerms {
     timelineYears: 5,
     sequencing: "Simultaneous first steps: Iran caps enrichment, US lifts secondary sanctions on oil",
     additionalClauses: ["Regional security consultations with GCC", "Prisoner exchange as confidence building measure"],
+    stakeholderCommitments: {
+      iran: "Cap enrichment at 3.67%, allow IAEA inspections, reduce regional proxy support",
+      us: "Lift secondary sanctions in phases, provide security assurances, normalize diplomatic channels",
+      israel: "Accept verified enrichment limits, participate in regional security framework",
+      saudi_arabia: "Support economic normalization, de-escalate Yemen conflict, open trade corridors",
+      eu3: "Provide economic incentives package, guarantee trade mechanisms (INSTEX successor)",
+      russia: "Support UNSC resolution endorsement, contribute to verification framework",
+      china: "Maintain economic engagement transparency, support sanctions relief timeline",
+      iaea: "Implement enhanced verification protocol, provide continuous monitoring reports",
+    },
   };
 
   if (architecture === "nuclear-first") {
@@ -352,9 +363,11 @@ export async function generateProposal(
   architecture: Architecture = "balanced",
   modelConfig: ModelConfig = DEFAULT_MODELS,
 ): Promise<{ terms: DealTerms; tokens: number }> {
-  const systemPrompt = `You are an expert peace negotiator and conflict resolution specialist.
-Your task is to design a detailed, realistic peace deal framework for the Iran-US conflict.
+  const systemPrompt = `You are an expert peace negotiator and conflict resolution specialist trained in cooperative game theory.
+Your task is to design a detailed, realistic peace deal framework for the Iran-US-Israel conflict complex.
 Architecture focus: ${architecture}.
+CRITICAL PRINCIPLE: Stable peace outcomes often require a GRAND COALITION — binding commitments from ALL relevant stakeholders, not just the primary parties. A deal that only specifies what Iran, the US, and Israel must do will likely fail because secondary stakeholders (EU, Russia, China, Saudi Arabia, IAEA) hold veto power, spoiler potential, or economic leverage that can make or break implementation.
+Design commitments for every stakeholder that give each party a concrete stake in the deal's success.
 Output valid JSON only, no prose.`;
 
   const prompt = `Based on current evidence:
@@ -369,6 +382,16 @@ The ongoing conflict costs the world ~$450B/yr in GDP-equivalent losses. A durab
 Most affected: Iran ($87B cost, $142B peace benefit), US ($52B/$38B), Israel ($43B/$35B), Europe ($42B/$55B), China ($35B/$48B).
 Your deal should address the channels where the largest economic gains are achievable and ensure stakeholders who bear the highest costs have clear incentives to participate.
 
+STAKEHOLDERS WHO MUST COMMIT (grand coalition):
+- Iran: primary party, seeks sanctions relief and security
+- US: primary party, seeks denuclearization and stability
+- Israel: security guarantor, nuclear red lines
+- Saudi Arabia: regional power, Yemen/Gulf interests, economic normalization potential
+- EU (France/UK/Germany): economic leverage, trade mechanisms, verification support
+- Russia: UNSC veto holder, Iranian ally, sanctions enforcement role
+- China: major Iranian trade partner, economic leverage, BRI interests
+- IAEA: verification authority, technical monitoring
+
 Generate a peace deal JSON with these exact keys:
 {
   "nuclearProtocol": "string describing nuclear terms",
@@ -378,11 +401,34 @@ Generate a peace deal JSON with these exact keys:
   "verificationMechanism": "string describing verification",
   "timelineYears": number,
   "sequencing": "string describing step-by-step sequencing",
-  "additionalClauses": ["array", "of", "additional", "terms"]
-}`;
+  "additionalClauses": ["array", "of", "additional", "terms"],
+  "stakeholderCommitments": {
+    "iran": "specific binding commitments Iran makes",
+    "us": "specific binding commitments the US makes",
+    "israel": "specific binding commitments Israel makes",
+    "saudi_arabia": "specific binding commitments Saudi Arabia makes",
+    "eu3": "specific binding commitments EU3 makes",
+    "russia": "specific binding commitments Russia makes",
+    "china": "specific binding commitments China makes",
+    "iaea": "specific binding commitments the IAEA makes"
+  }
+}
+
+IMPORTANT: Every stakeholder MUST have concrete, specific commitments. Vague statements like "supports the deal" are insufficient. Each commitment should specify what the stakeholder will DO, PROVIDE, or GUARANTEE.`;
 
   const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 1, "generation", modelConfig);
   const terms = parseLLMJson<DealTerms>(content, getDefaultTerms(architecture));
+
+  const requiredStakeholders = ["iran", "us", "israel", "saudi_arabia", "eu3", "russia", "china", "iaea"];
+  const sc = terms.stakeholderCommitments || {};
+  const defaults = getDefaultTerms(architecture).stakeholderCommitments || {};
+  for (const sid of requiredStakeholders) {
+    if (!sc[sid] || sc[sid].trim().length < 10) {
+      sc[sid] = defaults[sid] || `Participates in grand coalition framework with binding obligations`;
+    }
+  }
+  terms.stakeholderCommitments = sc;
+
   return { terms, tokens };
 }
 
@@ -395,10 +441,17 @@ export async function evaluateStakeholders(
   modelConfig: ModelConfig = DEFAULT_MODELS,
 ): Promise<{ evaluations: Record<string, StakeholderVerdict>; tokens: number }> {
   const systemPrompt = `You are a geopolitical analyst evaluating how stakeholders will respond to a peace proposal.
+Each stakeholder has specific commitments they are asked to make. Evaluate whether they would accept given what they must commit AND what they receive in return.
 Output a JSON object mapping stakeholder IDs to their verdict. Each verdict has:
 { "verdict": "accept"|"conditional"|"reject", "rationale": "string", "redLineViolations": [], "conditions": [] }`;
 
-  const prompt = `Evaluate how these stakeholders would respond to this peace deal:
+  const commitments = terms.stakeholderCommitments ?? {};
+  const stakeholderLines = CORE_STAKEHOLDERS.map(s => {
+    const commitment = commitments[s.id];
+    return `- ${s.id}: ${s.name}. Profile: ${s.profile}${commitment ? `\n  THEIR COMMITMENTS: ${commitment}` : ""}`;
+  }).join("\n");
+
+  const prompt = `Evaluate how these stakeholders would respond to this peace deal, considering both what they receive and what they are asked to commit:
 
 DEAL TERMS:
 - Nuclear: ${terms.nuclearProtocol}
@@ -409,8 +462,10 @@ DEAL TERMS:
 - Timeline: ${terms.timelineYears} years
 - Sequencing: ${terms.sequencing}
 
-STAKEHOLDERS TO EVALUATE:
-${CORE_STAKEHOLDERS.map(s => `- ${s.id}: ${s.name}. Profile: ${s.profile}`).join("\n")}
+STAKEHOLDERS TO EVALUATE (with their required commitments):
+${stakeholderLines}
+
+For each stakeholder, consider: (1) Does what they receive justify what they must commit? (2) Do their commitments violate any red lines? (3) Is the grand coalition structure — where ALL parties commit — more likely to produce a stable outcome than a deal with fewer committed parties?
 
 Return JSON: { "iran": { verdict, rationale, redLineViolations, conditions }, "us": {...}, ... }`;
 
@@ -600,6 +655,10 @@ export async function judgeAndScore(
 For each dimension, provide a score AND a 1-2 sentence rationale explaining the key factors behind the score.
 Output JSON only.`;
 
+  const commitmentsBlock = terms.stakeholderCommitments
+    ? `\nSTAKEHOLDER COMMITMENTS (grand coalition):\n${Object.entries(terms.stakeholderCommitments).map(([id, c]) => `- ${id}: ${String(c).slice(0, 150)}`).join("\n")}`
+    : "";
+
   const prompt = `Score this peace deal (0.0-1.0 per dimension) and explain each score:
 
 DEAL SUMMARY (post-negotiator amendments applied):
@@ -607,12 +666,15 @@ DEAL SUMMARY (post-negotiator amendments applied):
 - Sanctions: ${terms.sanctionsRelief.slice(0, 200)}
 - Timeline: ${terms.timelineYears} years
 - Sequencing: ${terms.sequencing.slice(0, 200)}
+${commitmentsBlock}
 
 STAKEHOLDER RESULTS: ${acceptCount}/${totalStakeholders} accept, ${rejectCount} reject
 RED-TEAM SURVIVAL: ${survivedCount}/${totalRedTeam} attacks survived
 DOMESTIC SELLABILITY: ${domesticSellable}/${domesticTotal} sellable, ${domesticUnsellable} unsellable
 
 ECONOMIC CONTEXT: This conflict costs ~$450B/yr globally. A durable peace could yield ~$560B/yr in benefits — a $1T/yr swing. The largest economic channels are energy markets, trade/sanctions, and finance/banking. Consider whether the deal terms adequately address these economic incentives when scoring regionalStability and feasibility.
+
+COALITION STABILITY: Consider whether the deal forms a stable grand coalition — are ALL stakeholders given enough incentive to stay committed? Could any subset of parties benefit from defecting? Score feasibility and durability higher when the coalition structure makes defection costly for all parties.
 
 Return JSON with scores and rationale for each dimension:
 {

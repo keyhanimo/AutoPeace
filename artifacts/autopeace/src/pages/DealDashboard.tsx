@@ -440,6 +440,19 @@ export default function DealDashboard() {
                     </span>
                   </div>
                 ))}
+                {Boolean(terms.stakeholderCommitments && typeof terms.stakeholderCommitments === "object" && Object.keys(terms.stakeholderCommitments as Record<string, unknown>).length > 0) && (
+                  <div className="border-t border-border/50 pt-3 mt-3">
+                    <span className="text-xs text-cyan-400 font-semibold uppercase tracking-wider block mb-2">Grand Coalition Commitments</span>
+                    <div className="space-y-1.5">
+                      {Object.entries(terms.stakeholderCommitments as Record<string, string>).map(([id, commitment]) => (
+                        <div key={id} className="flex gap-2 text-xs">
+                          <span className="text-primary font-semibold capitalize shrink-0 w-24">{id.replace(/_/g, " ")}</span>
+                          <span className="text-muted-foreground">{String(commitment).slice(0, 200)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </Card>
           </div>

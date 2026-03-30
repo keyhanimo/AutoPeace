@@ -75,6 +75,7 @@ type ExtractedProposal = {
     timelineYears: number;
     sequencing: string;
     additionalClauses: string[];
+    stakeholderCommitments?: Record<string, string>;
   };
   knownResponses: Record<string, string>;
   confidence: number;
@@ -112,7 +113,10 @@ For each genuine proposal found, return:
         "verificationMechanism": "Verification and monitoring provisions",
         "timelineYears": 5,
         "sequencing": "How steps would be ordered",
-        "additionalClauses": ["Other notable provisions"]
+        "additionalClauses": ["Other notable provisions"],
+        "stakeholderCommitments": {
+          "actor_id": "What this actor commits to do (only include actors with explicit commitments mentioned)"
+        }
       },
       "knownResponses": {
         "actor_name": "Their known reaction (if mentioned in articles)"
@@ -220,6 +224,7 @@ export async function extractProposalsFromEvidence(cycleId?: string): Promise<nu
         timelineYears: proposal.terms?.timelineYears || 5,
         sequencing: proposal.terms?.sequencing || "",
         additionalClauses: proposal.terms?.additionalClauses || [],
+        stakeholderCommitments: proposal.terms?.stakeholderCommitments || undefined,
       };
 
       const initialEvals = Object.fromEntries(

@@ -686,6 +686,7 @@ export const ListDealsResponse = zod.object({
         timelineYears: zod.number().optional(),
         sequencing: zod.string().optional(),
         additionalClauses: zod.array(zod.string()).optional(),
+        stakeholderCommitments: zod.record(zod.string(), zod.string()).optional(),
       }),
       scores: zod
         .object({
@@ -750,6 +751,7 @@ export const GetCurrentDealResponse = zod.object({
     timelineYears: zod.number().optional(),
     sequencing: zod.string().optional(),
     additionalClauses: zod.array(zod.string()).optional(),
+    stakeholderCommitments: zod.record(zod.string(), zod.string()).optional(),
   }),
   scores: zod
     .object({
@@ -811,6 +813,7 @@ export const GetParetoDealsResponse = zod.object({
         timelineYears: zod.number().optional(),
         sequencing: zod.string().optional(),
         additionalClauses: zod.array(zod.string()).optional(),
+        stakeholderCommitments: zod.record(zod.string(), zod.string()).optional(),
       }),
       scores: zod
         .object({
@@ -1040,6 +1043,7 @@ export const GetDealResponse = zod.object({
     timelineYears: zod.number().optional(),
     sequencing: zod.string().optional(),
     additionalClauses: zod.array(zod.string()).optional(),
+    stakeholderCommitments: zod.record(zod.string(), zod.string()).optional(),
   }),
   scores: zod
     .object({
@@ -1096,6 +1100,7 @@ export const ListProposalsResponse = zod.object({
         timelineYears: zod.number().optional(),
         sequencing: zod.string().optional(),
         additionalClauses: zod.array(zod.string()).optional(),
+        stakeholderCommitments: zod.record(zod.string(), zod.string()).optional(),
       }),
       scores: zod
         .object({
@@ -1147,6 +1152,7 @@ export const CreateProposalBody = zod.object({
     timelineYears: zod.number().optional(),
     sequencing: zod.string().optional(),
     additionalClauses: zod.array(zod.string()).optional(),
+    stakeholderCommitments: zod.record(zod.string(), zod.string()).optional(),
   }),
 });
 
@@ -1169,6 +1175,7 @@ export const GetProposalArenaResponse = zod.object({
         timelineYears: zod.number().optional(),
         sequencing: zod.string().optional(),
         additionalClauses: zod.array(zod.string()).optional(),
+        stakeholderCommitments: zod.record(zod.string(), zod.string()).optional(),
       }),
       scores: zod
         .object({
@@ -1222,6 +1229,7 @@ export const GetProposalArenaResponse = zod.object({
         timelineYears: zod.number().optional(),
         sequencing: zod.string().optional(),
         additionalClauses: zod.array(zod.string()).optional(),
+        stakeholderCommitments: zod.record(zod.string(), zod.string()).optional(),
       }),
       scores: zod
         .object({
@@ -1284,6 +1292,7 @@ export const GetProposalResponse = zod.object({
     timelineYears: zod.number().optional(),
     sequencing: zod.string().optional(),
     additionalClauses: zod.array(zod.string()).optional(),
+    stakeholderCommitments: zod.record(zod.string(), zod.string()).optional(),
   }),
   scores: zod
     .object({
@@ -1338,6 +1347,7 @@ export const EvaluateProposalResponse = zod.object({
       timelineYears: zod.number().optional(),
       sequencing: zod.string().optional(),
       additionalClauses: zod.array(zod.string()).optional(),
+      stakeholderCommitments: zod.record(zod.string(), zod.string()).optional(),
     }),
     scores: zod
       .object({

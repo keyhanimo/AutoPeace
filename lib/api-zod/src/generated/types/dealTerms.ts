@@ -15,4 +15,5 @@ export interface DealTerms {
   timelineYears?: number;
   sequencing?: string;
   additionalClauses?: string[];
+  stakeholderCommitments?: Record<string, string>;
 }
