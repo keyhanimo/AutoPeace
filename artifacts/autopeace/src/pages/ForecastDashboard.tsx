@@ -324,40 +324,78 @@ function CalibrationScorecard({ forecasts }: { forecasts: Forecast[] }) {
 
   return (
     <Card className="p-6">
-      <h3 className="text-lg font-bold mb-2 flex items-center gap-2">
-        <Target className="w-4 h-4 text-primary" />
-        Calibration Scorecard
-      </h3>
-      <div className="grid grid-cols-3 gap-3 mb-4">
-        <div className="text-center">
+      <div className="mb-4">
+        <h3 className="text-lg font-bold flex items-center gap-2 mb-1">
+          <Target className="w-4 h-4 text-primary" />
+          Calibration Scorecard
+        </h3>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          The <span className="text-foreground font-medium">Brier score</span> measures how accurate the AI's probability forecasts are.{" "}
+          <span className="text-emerald-400 font-medium">Lower is better</span> — 0 means perfect, 0.25 means no better than random guessing, 1 means worst possible. The chart below tracks Brier score across the last 10 research cycles.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3 mb-5">
+        <div className="text-center bg-secondary/20 rounded-sm p-3">
           <div className="text-xl font-bold font-mono text-blue-400">{lastBrier?.toFixed(3) ?? "—"}</div>
-          <div className="text-[10px] text-muted-foreground">Latest Brier</div>
+          <div className="text-xs text-muted-foreground mt-0.5">Latest Brier</div>
         </div>
-        <div className="text-center">
+        <div className="text-center bg-secondary/20 rounded-sm p-3">
           <div className="text-xl font-bold font-mono text-purple-400">{avgBrier?.toFixed(3) ?? "—"}</div>
-          <div className="text-[10px] text-muted-foreground">Avg Brier</div>
+          <div className="text-xs text-muted-foreground mt-0.5">Avg Brier (last 10)</div>
         </div>
-        <div className="text-center">
+        <div className="text-center bg-secondary/20 rounded-sm p-3">
           <div className={`text-xl font-bold font-mono ${trend != null ? (trend < 0 ? "text-emerald-400" : "text-red-400") : "text-muted-foreground"}`}>
             {trend != null ? (trend < 0 ? "↓ " : "↑ ") + Math.abs(trend).toFixed(3) : "—"}
           </div>
-          <div className="text-[10px] text-muted-foreground">Trend</div>
+          <div className="text-xs text-muted-foreground mt-0.5">
+            {trend != null ? (trend < 0 ? "Improving" : "Worsening") : "Trend"}
+          </div>
         </div>
       </div>
+
       {data.length >= 2 ? (
-        <div className="h-24">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data}>
-              <XAxis dataKey="cycle" hide />
-              <YAxis domain={['auto', 'auto']} hide />
-              <Tooltip
-                contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '6px', fontSize: '11px', color: '#f8fafc' }}
-                formatter={(v: number) => [v.toFixed(4), 'Brier']}
-              />
-              <Line type="monotone" dataKey="brier" stroke="#0284c7" strokeWidth={2} dot={false} />
-              <ReferenceLine y={0.25} stroke="#475569" strokeDasharray="3 3" />
-            </LineChart>
-          </ResponsiveContainer>
+        <div>
+          <div className="h-44">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={data} margin={{ top: 4, right: 12, left: 4, bottom: 20 }}>
+                <XAxis
+                  dataKey="cycle"
+                  tick={{ fontSize: 10, fill: "#64748b" }}
+                  label={{ value: "Research Cycle", position: "insideBottom", offset: -12, fontSize: 11, fill: "#64748b" }}
+                />
+                <YAxis
+                  domain={['auto', 'auto']}
+                  tick={{ fontSize: 10, fill: "#64748b" }}
+                  tickFormatter={(v: number) => v.toFixed(2)}
+                  width={42}
+                  label={{ value: "Brier Score", angle: -90, position: "insideLeft", offset: 14, fontSize: 11, fill: "#64748b" }}
+                />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '6px', fontSize: '11px', color: '#f8fafc' }}
+                  formatter={(v: number) => [v.toFixed(4), 'Brier Score']}
+                  labelFormatter={(label: string) => `Cycle ${label}`}
+                />
+                <ReferenceLine
+                  y={0.25}
+                  stroke="#475569"
+                  strokeDasharray="4 3"
+                  label={{ value: "Random baseline (0.25)", position: "insideTopRight", fontSize: 9, fill: "#64748b", dy: -4 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="brier"
+                  stroke="#0284c7"
+                  strokeWidth={2}
+                  dot={{ r: 3, fill: "#0284c7", strokeWidth: 0 }}
+                  activeDot={{ r: 5 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          <p className="text-xs text-muted-foreground/60 text-center mt-1">
+            Dashed line = random-guess baseline — scores below it indicate genuine predictive signal
+          </p>
         </div>
       ) : (
         <p className="text-xs text-muted-foreground text-center">Run more cycles for calibration trend</p>
