@@ -225,6 +225,12 @@ async function loadStakeholderRegistryFromDB(): Promise<StakeholderEntry[]> {
   return STAKEHOLDER_REGISTRY;
 }
 
+async function ensureRegistryLoaded(): Promise<void> {
+  if (STAKEHOLDER_REGISTRY.length === 0) {
+    await loadStakeholderRegistryFromDB();
+  }
+}
+
 function getStakeholdersByTier(...tiers: AcceptanceTier[]): StakeholderEntry[] {
   return STAKEHOLDER_REGISTRY.filter(s => tiers.includes(s.tier));
 }
@@ -258,6 +264,7 @@ export async function runInnovationBrainstorm(
   modelConfig: ModelConfig = DEFAULT_MODELS,
   pipelineOverrides: Record<string, string> = {},
 ): Promise<{ insights: BrainstormInsights; tokens: number }> {
+  await ensureRegistryLoaded();
   const overridePrompt = pipelineOverrides["brainstorm_system"] || "";
   const overrideUser = pipelineOverrides["brainstorm_user"] || "";
 
@@ -345,6 +352,7 @@ export async function generateProposal(
   brainstormInsights: BrainstormInsights | null = null,
   pipelineOverrides: Record<string, string> = {},
 ): Promise<{ terms: DealTerms; tokens: number }> {
+  await ensureRegistryLoaded();
   const overridePrompt = pipelineOverrides["proposal_system"] || "";
   const overrideUser = pipelineOverrides["proposal_user"] || "";
 
@@ -464,6 +472,7 @@ export async function evaluateStakeholders(
   terms: DealTerms,
   modelConfig: ModelConfig = DEFAULT_MODELS,
 ): Promise<{ evaluations: Record<string, StakeholderVerdict>; tokens: number }> {
+  await ensureRegistryLoaded();
   const systemPrompt = `You are a geopolitical analyst evaluating how stakeholders will respond to a peace proposal.
 Each stakeholder has a specific acceptance tier that determines their importance:
 - REQUIRED: Iran and US must BOTH accept for the deal to be implementable at all
@@ -637,6 +646,7 @@ export async function runNegotiator(
   modelConfig: ModelConfig = DEFAULT_MODELS,
   pipelineOverrides: Record<string, string> = {},
 ): Promise<{ result: NegotiatorResult & { creativeTradeoffs?: CreativeTradeoff[] }; tokens: number }> {
+  await ensureRegistryLoaded();
   const overridePrompt = pipelineOverrides["negotiator_system"] || "";
 
   const rejecters = Object.entries(stakeholderEvaluations)
