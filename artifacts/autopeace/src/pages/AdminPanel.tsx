@@ -58,7 +58,7 @@ export default function AdminPanel() {
       return res.json() as Promise<CycleStatusData>;
     },
     enabled: !!adminKey,
-    refetchInterval: 2000,
+    refetchInterval: (query) => (query.state.data?.isRunning ? 5000 : 30000),
   });
 
   type DealCycle = {

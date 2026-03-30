@@ -10,7 +10,9 @@ app.set("trust proxy", 1);
 
 const QUIET_ROUTES = new Set([
   "/api/admin/cycle-status",
+  "/api/status",
   "/api/health",
+  "/api/healthz",
   "/api/admin/config",
 ]);
 

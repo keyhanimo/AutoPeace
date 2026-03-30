@@ -5,6 +5,7 @@ import {
   HelpCircle, Shield, ChevronRight, Handshake, Users, Swords,
   Search, GitCompare, Send, Database, Code2, Eye,
 } from "lucide-react";
+import { CycleStatusIndicator } from "./CycleStatusIndicator";
 
 type NavGroup = {
   label: string;
@@ -106,10 +107,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className="p-4 border-t border-border/50">
-          <div className="bg-secondary/30 border border-border/30 p-3">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">Status</p>
-            <p className="text-xs font-medium text-foreground mt-0.5">Updated continuously</p>
-          </div>
+          <CycleStatusIndicator />
         </div>
       </aside>
 
