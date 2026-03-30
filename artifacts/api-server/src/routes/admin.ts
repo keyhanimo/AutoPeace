@@ -15,8 +15,6 @@ import {
 
 const router = Router();
 
-router.use(adminAuth);
-
 const STAGE_META: { stage: number; name: string; role: "generation" | "evaluation" | "adversarial" }[] = [
   { stage: 1, name: "Proposal Agent",       role: "generation" },
   { stage: 2, name: "Stakeholder Evaluator", role: "evaluation" },
@@ -140,6 +138,8 @@ router.get("/admin/config", async (_req, res) => {
     res.status(500).json({ error: String(err) });
   }
 });
+
+router.use(adminAuth);
 
 router.post("/admin/config", async (req, res) => {
   const parsed = UpdateAdminConfigBody.safeParse(req.body);
