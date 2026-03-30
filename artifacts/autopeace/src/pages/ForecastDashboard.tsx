@@ -9,7 +9,7 @@ import { Card, PageHeader, Badge } from "@/components/ui";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
   RadarChart, PolarGrid, PolarAngleAxis, Radar,
-  LineChart, Line, Legend, ReferenceLine, ScatterChart, Scatter, CartesianGrid,
+  LineChart, Line, Legend, ScatterChart, Scatter, CartesianGrid,
 } from "recharts";
 import { AlertCircle, Clock, CheckCircle2, FileText, Target, TrendingUp, BarChart2, Users, Zap, Send } from "lucide-react";
 import { DataSourceNote, DataFreshness } from "@/components/DataSourceNote";
@@ -376,12 +376,6 @@ function CalibrationScorecard({ forecasts }: { forecasts: Forecast[] }) {
                   formatter={(v: number) => [v.toFixed(4), 'Brier Score']}
                   labelFormatter={(label: string) => `Cycle ${label}`}
                 />
-                <ReferenceLine
-                  y={0.25}
-                  stroke="#475569"
-                  strokeDasharray="4 3"
-                  label={{ value: "Random baseline (0.25)", position: "insideTopRight", fontSize: 9, fill: "#64748b", dy: -4 }}
-                />
                 <Line
                   type="monotone"
                   dataKey="brier"
@@ -393,9 +387,17 @@ function CalibrationScorecard({ forecasts }: { forecasts: Forecast[] }) {
               </LineChart>
             </ResponsiveContainer>
           </div>
-          <p className="text-xs text-muted-foreground/60 text-center mt-1">
-            Dashed line = random-guess baseline — scores below it indicate genuine predictive signal
-          </p>
+          {lastBrier != null && (
+            <div className="flex items-center justify-center gap-2 mt-2 px-3 py-2 rounded-sm bg-emerald-950/30 border border-emerald-800/20">
+              <span className="text-emerald-400 text-sm font-bold">✓</span>
+              <p className="text-xs text-muted-foreground">
+                Current score <span className="text-blue-400 font-mono font-semibold">{lastBrier.toFixed(3)}</span> is{" "}
+                <span className="text-emerald-400 font-semibold">{((1 - lastBrier / 0.25) * 100).toFixed(0)}% below</span>{" "}
+                the random-guess baseline of{" "}
+                <span className="text-foreground font-mono">0.250</span> — indicating genuine predictive signal.
+              </p>
+            </div>
+          )}
         </div>
       ) : (
         <p className="text-xs text-muted-foreground text-center">Run more cycles for calibration trend</p>
