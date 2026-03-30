@@ -16,9 +16,9 @@ async function getModelConfig(): Promise<ModelConfig> {
   try {
     const rows = await db.select().from(adminConfigTable);
     const cfg = Object.fromEntries(rows.map(r => [r.key, r.value]));
-    const anthropicModel = cfg["anthropicModel"] ?? "claude-sonnet-4-5";
-    const openaiModel = cfg["openaiModel"] ?? "gpt-4o";
-    const geminiModel = cfg["geminiModel"] ?? "gemini-2.5-flash";
+    const anthropicModel = cfg["anthropicModel"] ?? "claude-opus-4-6";
+    const openaiModel = cfg["openaiModel"] ?? "gpt-5.2";
+    const geminiModel = cfg["geminiModel"] ?? "gemini-3.1-pro-preview";
     const base: ModelConfig = {
       anthropicModel,
       openaiModel,
@@ -39,15 +39,15 @@ async function getModelConfig(): Promise<ModelConfig> {
     return base;
   } catch {
     return {
-      anthropicModel: "claude-sonnet-4-5",
-      openaiModel: "gpt-4o",
-      geminiModel: "gemini-2.5-flash",
+      anthropicModel: "claude-opus-4-6",
+      openaiModel: "gpt-5.2",
+      geminiModel: "gemini-3.1-pro-preview",
       generationProvider: "anthropic",
-      generationModel: "claude-sonnet-4-5",
+      generationModel: "claude-opus-4-6",
       evaluationProvider: "openai",
-      evaluationModel: "gpt-4o",
+      evaluationModel: "gpt-5.2",
       adversarialProvider: "gemini",
-      adversarialModel: "gemini-2.5-flash",
+      adversarialModel: "gemini-3.1-pro-preview",
     };
   }
 }

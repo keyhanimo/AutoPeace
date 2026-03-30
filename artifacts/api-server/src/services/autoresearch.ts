@@ -318,7 +318,7 @@ async function runHillClimbing(
       const probsStr = JSON.stringify(champion.probabilities, null, 2);
       const promptText = mutation.prompt(probsStr, champion.rationale);
 
-      const geminiModel = await getConfigValue("geminiModel", "gemini-2.5-flash");
+      const geminiModel = await getConfigValue("geminiModel", "gemini-3.1-pro-preview");
       const ai = await getGemini();
       const geminiResult = await ai.models.generateContent({
         model: geminiModel,
@@ -340,7 +340,7 @@ async function runHillClimbing(
 
       const mutantScore = computeCompositeScore(mutantProbs, backtestRecords);
 
-      const openaiModel = await getConfigValue("openaiModel", "gpt-4o");
+      const openaiModel = await getConfigValue("openaiModel", "gpt-5.2");
       const openai = await getOpenAI();
       const evalResponse = await openai.chat.completions.create({
         model: openaiModel,

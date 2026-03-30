@@ -63,17 +63,17 @@ function extractProbs(forecast: Record<string, unknown>): Record<string, number>
 async function getDefaultModelConfig(): Promise<ModelConfig> {
   const cfg = await db.select().from(adminConfigTable);
   const map = Object.fromEntries(cfg.map(r => [r.key, r.value]));
-  const openaiModel = map["openaiModel"] ?? "gpt-4o";
+  const openaiModel = map["openaiModel"] ?? "gpt-5.2";
   return {
-    anthropicModel: map["anthropicModel"] ?? "claude-sonnet-4-5",
+    anthropicModel: map["anthropicModel"] ?? "claude-opus-4-6",
     openaiModel,
-    geminiModel: map["geminiModel"] ?? "gemini-2.5-pro",
+    geminiModel: map["geminiModel"] ?? "gemini-3.1-pro-preview",
     generationProvider: (map["generationProvider"] ?? "anthropic") as "anthropic" | "openai" | "gemini",
-    generationModel: map["generationModel"] ?? "claude-sonnet-4-5",
+    generationModel: map["generationModel"] ?? "claude-opus-4-6",
     evaluationProvider: (map["evaluationProvider"] ?? "openai") as "anthropic" | "openai" | "gemini",
     evaluationModel: map["evaluationModel"] ?? openaiModel,
     adversarialProvider: (map["adversarialProvider"] ?? "anthropic") as "anthropic" | "openai" | "gemini",
-    adversarialModel: map["adversarialModel"] ?? "claude-sonnet-4-5",
+    adversarialModel: map["adversarialModel"] ?? "claude-opus-4-6",
     judgePanelAnthropicModel: map["judgePanelAnthropicModel"] || undefined,
     judgePanelOpenaiModel: map["judgePanelOpenaiModel"] || undefined,
     judgePanelGeminiModel: map["judgePanelGeminiModel"] || undefined,

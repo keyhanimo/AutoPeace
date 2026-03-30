@@ -183,15 +183,15 @@ const ARCHITECTURES = ["balanced", "nuclear-first", "hormuz-first", "humanitaria
 type Architecture = typeof ARCHITECTURES[number];
 
 const DEFAULT_MODELS: ModelConfig = {
-  anthropicModel: "claude-sonnet-4-5",
-  openaiModel: "gpt-4o",
-  geminiModel: "gemini-2.5-flash",
+  anthropicModel: "claude-opus-4-6",
+  openaiModel: "gpt-5.2",
+  geminiModel: "gemini-3.1-pro-preview",
   generationProvider: "anthropic",
-  generationModel: "claude-sonnet-4-5",
+  generationModel: "claude-opus-4-6",
   evaluationProvider: "openai",
-  evaluationModel: "gpt-4o",
+  evaluationModel: "gpt-5.2",
   adversarialProvider: "gemini",
-  adversarialModel: "gemini-2.5-flash",
+  adversarialModel: "gemini-3.1-pro-preview",
 };
 
 let _openai: import("openai").OpenAI | null = null;
@@ -235,8 +235,7 @@ async function callOpenAI(
         { role: "system", content: systemPrompt },
         { role: "user", content: prompt },
       ],
-      temperature: 0.7,
-      max_tokens: maxTokens,
+      max_completion_tokens: maxTokens,
     });
     return {
       content: resp.choices[0]?.message?.content ?? "{}",

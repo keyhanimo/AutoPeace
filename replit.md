@@ -2,7 +2,7 @@
 
 ## Overview
 
-AutoPeace is an AI-powered conflict forecasting and peace research platform for the Iran conflict complex. It uses a live autoresearch loop driven by Anthropic (Claude), OpenAI (GPT-4o), and Google Gemini to continuously generate Bayesian probability forecasts across 8 conflict outcome states.
+AutoPeace is an AI-powered conflict forecasting and peace research platform for the Iran conflict complex. It uses a live autoresearch loop driven by Anthropic (Claude Opus 4.6), OpenAI (GPT-5.2), and Google Gemini (3.1 Pro) to continuously generate Bayesian probability forecasts across 8 conflict outcome states.
 
 pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
 
@@ -91,9 +91,9 @@ Run migrations: `pnpm --filter @workspace/db run push`
 
 Each cycle (triggered manually or by cron):
 1. **Evidence ingestion** — RSS feeds (Reuters, AP, Guardian, BBC, Al Jazeera) filtered by Iran keywords
-2. **Forecasting** — Claude claude-sonnet-4-5 generates probabilities for 4 time horizons (30d, 90d, 180d, 1y)
-3. **Red-team** — Gemini gemini-2.5-flash challenges the 90d forecast
-4. **Evaluation** — GPT-4o evaluates and retains/discards the mutation
+2. **Forecasting** — Claude claude-opus-4-6 generates probabilities for 4 time horizons (30d, 90d, 180d, 1y)
+3. **Red-team** — Gemini gemini-3.1-pro-preview challenges the 90d forecast
+4. **Evaluation** — GPT-5.2 evaluates and retains/discards the mutation
 5. **Changelog** — auto-headline generated from 90d probability leader
 
 Scheduler: hourly cron check, runs at UTC 6am daily by default.

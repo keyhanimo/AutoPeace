@@ -112,7 +112,7 @@ You assess probabilities for 8 mutually exclusive conflict outcome states over d
 Your forecasts are based on systematic evidence review and calibrated uncertainty quantification.
 Always respond with valid JSON in a code block.`;
 
-  const model = process.env["ANTHROPIC_MODEL"] || "claude-sonnet-4-5";
+  const model = process.env["ANTHROPIC_MODEL"] || "claude-opus-4-6";
 
   const tasks = TIME_HORIZONS.map(horizon => ({
     key: horizon,
@@ -215,7 +215,7 @@ You re-assess outcome probabilities under specific hypothetical scenarios using 
 Always respond with valid JSON in a code block.`;
 
   const { anthropic } = await getAnthropicClient();
-  const model = process.env["ANTHROPIC_MODEL"] || "claude-sonnet-4-5";
+  const model = process.env["ANTHROPIC_MODEL"] || "claude-opus-4-6";
 
   const msg = await anthropic.messages.create({
     model,

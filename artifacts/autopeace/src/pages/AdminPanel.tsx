@@ -414,27 +414,27 @@ export default function AdminPanel() {
                 <Input
                   value={formData.judgePanelAnthropicModel ?? ""}
                   onChange={e => setFormData({ ...formData, judgePanelAnthropicModel: e.target.value })}
-                  placeholder={formData.anthropicModel || "claude-sonnet-4-5"}
+                  placeholder={formData.anthropicModel || "claude-opus-4-6"}
                 />
-                <p className="text-[10px] text-muted-foreground">Fallback: {formData.anthropicModel || "claude-sonnet-4-5"}</p>
+                <p className="text-[10px] text-muted-foreground">Fallback: {formData.anthropicModel || "claude-opus-4-6"}</p>
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-emerald-400">OpenAI Judge</label>
                 <Input
                   value={formData.judgePanelOpenaiModel ?? ""}
                   onChange={e => setFormData({ ...formData, judgePanelOpenaiModel: e.target.value })}
-                  placeholder={formData.openaiModel || "gpt-4o"}
+                  placeholder={formData.openaiModel || "gpt-5.2"}
                 />
-                <p className="text-[10px] text-muted-foreground">Fallback: {formData.openaiModel || "gpt-4o"}</p>
+                <p className="text-[10px] text-muted-foreground">Fallback: {formData.openaiModel || "gpt-5.2"}</p>
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-blue-400">Gemini Judge</label>
                 <Input
                   value={formData.judgePanelGeminiModel ?? ""}
                   onChange={e => setFormData({ ...formData, judgePanelGeminiModel: e.target.value })}
-                  placeholder={formData.geminiModel || "gemini-2.5-flash"}
+                  placeholder={formData.geminiModel || "gemini-3.1-pro-preview"}
                 />
-                <p className="text-[10px] text-muted-foreground">Fallback: {formData.geminiModel || "gemini-2.5-flash"}</p>
+                <p className="text-[10px] text-muted-foreground">Fallback: {formData.geminiModel || "gemini-3.1-pro-preview"}</p>
               </div>
             </div>
             <div className="mt-4 flex justify-end">
@@ -476,7 +476,7 @@ export default function AdminPanel() {
                       <Input
                         value={modelVal}
                         onChange={e => setFormData({ ...formData, [modelKey]: e.target.value })}
-                        placeholder={role === "generation" ? "claude-sonnet-4-5" : role === "evaluation" ? "gpt-4o" : "gemini-2.5-flash"}
+                        placeholder={role === "generation" ? "claude-opus-4-6" : role === "evaluation" ? "gpt-5.2" : "gemini-3.1-pro-preview"}
                       />
                     </div>
                   </div>
@@ -542,7 +542,7 @@ export default function AdminPanel() {
                         <td className="py-1.5">
                           <input
                             className="w-36 h-7 rounded-lg border border-border bg-background/50 px-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
-                            placeholder="e.g. gpt-4o"
+                            placeholder="e.g. gpt-5.2"
                             value={modelVal}
                             onChange={e => setFormData(f => ({ ...f, [modelKey]: e.target.value || undefined }))}
                           />

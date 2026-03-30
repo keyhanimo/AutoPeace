@@ -322,7 +322,7 @@ export default function Methodology() {
           <ol className="text-sm">
             <li><strong>Per-agent stage override</strong> (e.g., <code>stage4Provider = "gemini"</code>) — highest priority</li>
             <li><strong>Per-role bucket</strong> (e.g., <code>adversarialProvider = "gemini"</code>) — applies to all stages with that role</li>
-            <li><strong>Legacy per-provider model</strong> (e.g., <code>geminiModel = "gemini-2.5-flash"</code>) — global fallback</li>
+            <li><strong>Legacy per-provider model</strong> (e.g., <code>geminiModel = "gemini-3.1-pro-preview"</code>) — global fallback</li>
           </ol>
           <p>
             A hard validation check ensures generation and evaluation providers are always different: <code>if (generationProvider === evaluationProvider) throw Error</code>. This is the system's core architectural invariant for preventing self-grading.

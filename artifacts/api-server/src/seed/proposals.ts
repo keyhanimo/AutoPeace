@@ -13,9 +13,9 @@ async function getSeedModelConfig(): Promise<ModelConfig> {
   try {
     const rows = await db.select().from(adminConfigTable);
     const cfg = Object.fromEntries(rows.map(r => [r.key, r.value]));
-    const anthropicModel = cfg["anthropicModel"] ?? "claude-sonnet-4-5";
-    const openaiModel = cfg["openaiModel"] ?? "gpt-4o";
-    const geminiModel = cfg["geminiModel"] ?? "gemini-2.5-flash";
+    const anthropicModel = cfg["anthropicModel"] ?? "claude-opus-4-6";
+    const openaiModel = cfg["openaiModel"] ?? "gpt-5.2";
+    const geminiModel = cfg["geminiModel"] ?? "gemini-3.1-pro-preview";
     return {
       anthropicModel,
       openaiModel,
@@ -29,10 +29,10 @@ async function getSeedModelConfig(): Promise<ModelConfig> {
     };
   } catch {
     return {
-      anthropicModel: "claude-sonnet-4-5", openaiModel: "gpt-4o", geminiModel: "gemini-2.5-flash",
-      generationProvider: "anthropic", generationModel: "claude-sonnet-4-5",
-      evaluationProvider: "openai", evaluationModel: "gpt-4o",
-      adversarialProvider: "gemini", adversarialModel: "gemini-2.5-flash",
+      anthropicModel: "claude-opus-4-6", openaiModel: "gpt-5.2", geminiModel: "gemini-3.1-pro-preview",
+      generationProvider: "anthropic", generationModel: "claude-opus-4-6",
+      evaluationProvider: "openai", evaluationModel: "gpt-5.2",
+      adversarialProvider: "gemini", adversarialModel: "gemini-3.1-pro-preview",
     };
   }
 }
