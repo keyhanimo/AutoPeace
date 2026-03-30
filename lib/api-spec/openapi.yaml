@@ -1974,6 +1974,10 @@ components:
           type: string
         communicationStyle:
           type: string
+        tier:
+          type: string
+        profileSummary:
+          type: string
         createdAt:
           type: string
           format: date-time
@@ -1991,6 +1995,8 @@ components:
         - preferredOutcomes
         - constraints
         - communicationStyle
+        - tier
+        - profileSummary
         - createdAt
         - updatedAt
 
