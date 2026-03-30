@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Crosshair, Cpu, TrendingDown, Gauge, DollarSign, Handshake, Swords } from "lucide-react";
-import { useGetExperimentStats, useGetLatestForecasts, useListCosts, useGetCurrentDeal, useListChangelog, type Forecast, type DealScores } from "@workspace/api-client-react";
+import { ArrowRight, Crosshair, Cpu, TrendingDown, Gauge, Handshake, Swords, Trophy, Users } from "lucide-react";
+import { useGetExperimentStats, useGetLatestForecasts, useListCosts, useGetCurrentDeal, useListProposals, type Forecast, type DealScores, type Proposal } from "@workspace/api-client-react";
 import { Card, Button, Badge } from "@/components/ui";
-import { DataSourceNote, DataFreshness } from "@/components/DataSourceNote";
+import { DataSourceNote } from "@/components/DataSourceNote";
 
 const OUTCOME_COLORS: Record<string, string> = {
   continued_conflict: '#ef4444',
@@ -17,140 +17,59 @@ const OUTCOME_COLORS: Record<string, string> = {
   broad_settlement: '#0284c7',
 };
 
-const CONFLICT_NODES = [
-  { id: "us", label: "US", x: 18, y: 34, r: 10, color: "#3b82f6" },
-  { id: "iran", label: "Iran", x: 58, y: 42, r: 12, color: "#ef4444" },
-  { id: "israel", label: "Israel", x: 53, y: 40, r: 7, color: "#a855f7" },
-  { id: "ksa", label: "KSA", x: 56, y: 47, r: 7, color: "#f59e0b" },
-  { id: "russia", label: "Russia", x: 66, y: 25, r: 8, color: "#64748b" },
-  { id: "china", label: "China", x: 78, y: 35, r: 9, color: "#f97316" },
-  { id: "eu", label: "EU", x: 50, y: 28, r: 7, color: "#6366f1" },
-  { id: "hezbollah", label: "Hizbullah", x: 52, y: 38, r: 5, color: "#84cc16" },
-];
 
-const CONFLICT_EDGES = [
-  { from: "us", to: "iran", tension: 0.9, color: "#ef4444" },
-  { from: "israel", to: "iran", tension: 0.95, color: "#ef4444" },
-  { from: "iran", to: "hezbollah", tension: 0.4, color: "#84cc16" },
-  { from: "us", to: "israel", tension: 0.15, color: "#3b82f6" },
-  { from: "russia", to: "iran", tension: 0.2, color: "#64748b" },
-  { from: "china", to: "iran", tension: 0.25, color: "#f97316" },
-];
-
-const ACCEPTANCE_COLORS: Record<string, string> = {
-  accept: "#10b981",
-  conditional: "#f59e0b",
-  reject: "#ef4444",
-};
-
-function ConflictMap({
-  selectedId, onSelect,
-  acceptanceMap,
-}: {
-  selectedId: string | null;
-  onSelect: (id: string) => void;
-  acceptanceMap?: Record<string, string>;
-}) {
-  const hasAcceptance = acceptanceMap && Object.keys(acceptanceMap).length > 0;
-  return (
-    <div className="relative w-full overflow-hidden border border-border/50 bg-card/50 aspect-[2/1] rounded-sm">
-      <svg viewBox="0 0 100 60" className="w-full h-full" style={{ minHeight: 180 }}>
-        <defs>
-          <radialGradient id="map-bg" cx="50%" cy="50%" r="70%">
-            <stop offset="0%" stopColor="#1e293b" stopOpacity="0.8" />
-            <stop offset="100%" stopColor="#0f172a" stopOpacity="1" />
-          </radialGradient>
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="0.8" result="coloredBlur" />
-            <feMerge><feMergeNode in="coloredBlur" /><feMergeNode in="SourceGraphic" /></feMerge>
-          </filter>
-        </defs>
-        <rect width="100" height="60" fill="url(#map-bg)" />
-
-        {CONFLICT_EDGES.map((edge, i) => {
-          const from = CONFLICT_NODES.find(n => n.id === edge.from);
-          const to = CONFLICT_NODES.find(n => n.id === edge.to);
-          if (!from || !to) return null;
-          return (
-            <line
-              key={i}
-              x1={from.x} y1={from.y}
-              x2={to.x} y2={to.y}
-              stroke={edge.color}
-              strokeWidth={edge.tension * 0.8}
-              strokeOpacity={0.3 + edge.tension * 0.3}
-              strokeDasharray={edge.tension > 0.7 ? "none" : "0.5 0.5"}
-            />
-          );
-        })}
-
-        {CONFLICT_NODES.map(node => {
-          const isSelected = selectedId === node.id;
-          const verdict = acceptanceMap?.[node.id] ?? acceptanceMap?.[node.id.replace(/-/g, '_')];
-          const nodeColor = hasAcceptance && verdict ? (ACCEPTANCE_COLORS[verdict] ?? node.color) : node.color;
-          return (
-            <g key={node.id} onClick={() => onSelect(node.id)} style={{ cursor: "pointer" }}>
-              <circle cx={node.x} cy={node.y} r={node.r * 1.8} fill={nodeColor} fillOpacity={isSelected ? 0.25 : 0.1} filter="url(#glow)" />
-              <circle cx={node.x} cy={node.y} r={node.r * 0.5} fill={nodeColor} fillOpacity={isSelected ? 1 : 0.8} />
-              {isSelected && <circle cx={node.x} cy={node.y} r={node.r * 0.7} fill="none" stroke={nodeColor} strokeWidth={0.5} />}
-              {(isSelected || node.r >= 9) && (
-                <text x={node.x} y={node.y + node.r + 3.5} textAnchor="middle"
-                  fill={isSelected ? "white" : "#94a3b8"} fontSize="2.2" fontWeight={isSelected ? "bold" : "normal"}
-                  style={{ pointerEvents: "none" }}>
-                  {node.label}
-                </text>
-              )}
-            </g>
-          );
-        })}
-      </svg>
-      <div className="absolute bottom-2 left-3 text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">
-        {hasAcceptance ? "Deal Acceptance States" : "Conflict Network"}
-      </div>
-      {hasAcceptance && (
-        <div className="absolute bottom-2 right-3 flex items-center gap-2">
-          {[["accept", "#10b981", "Accept"], ["conditional", "#f59e0b", "Cond."], ["reject", "#ef4444", "Reject"]].map(([, color, label]) => (
-            <div key={label} className="flex items-center gap-1 text-[8px] text-muted-foreground">
-              <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color as string }} />
-              {label}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+function scoreLabel(score: number) {
+  if (score >= 0.65) return { text: "Viable", color: "text-emerald-400" };
+  if (score >= 0.45) return { text: "Marginal", color: "text-amber-400" };
+  return { text: "Weak", color: "text-red-400" };
 }
 
-function DealComparisonStrip({ deal }: { deal: { scores: unknown; stakeholderEvaluations: unknown; architecture: string } }) {
-  const scores = deal.scores as DealScores | null;
-  const evals = (deal.stakeholderEvaluations ?? {}) as Record<string, { verdict: string }>;
+function AIvsHumanChart({ aiDeal, humanProposals }: { aiDeal: { scores: unknown; architecture: string } | null; humanProposals: Proposal[] }) {
+  const aiComposite = aiDeal ? ((aiDeal.scores as DealScores | null)?.composite ?? 0) : 0;
+  const aiPct = Math.round(aiComposite * 100);
+  const aiLabel = scoreLabel(aiComposite);
 
-  const usVerdict = evals["united_states"] ?? evals["us"];
-  const iranVerdict = evals["iran"];
+  const entries: { name: string; score: number; pct: number; color: string; isAI: boolean; label: ReturnType<typeof scoreLabel> }[] = [];
 
-  const verdictBadge = (v: string | undefined) => {
-    if (!v) return <span className="text-[10px] text-muted-foreground">—</span>;
-    const colors = { accept: "text-emerald-400", conditional: "text-amber-400", reject: "text-red-400" };
-    return <span className={`text-[10px] font-bold capitalize ${colors[v as keyof typeof colors] ?? "text-foreground"}`}>{v}</span>;
-  };
+  for (const p of humanProposals.slice(0, 2)) {
+    const s = (p.scores as DealScores | null)?.composite ?? 0;
+    const pct = Math.round(s * 100);
+    entries.push({ name: p.name ?? "Human Proposal", score: s, pct, color: "#f59e0b", isAI: false, label: scoreLabel(s) });
+  }
+
+  if (aiDeal) {
+    entries.push({ name: "AI Autoresearch Champion", score: aiComposite, pct: aiPct, color: "#3b82f6", isAI: true, label: aiLabel });
+  }
+
+  entries.sort((a, b) => a.score - b.score);
+
+  if (entries.length === 0) return null;
 
   return (
-    <div className="grid grid-cols-3 gap-2 mt-3">
-      <div className="bg-secondary/30 rounded-sm p-3 text-center border-l-2 border-l-amber-500">
-        <div className="text-[9px] text-muted-foreground uppercase tracking-widest mb-1 font-bold">AI Deal Score</div>
-        <div className="text-xl font-display font-bold text-amber-400">{((scores?.composite ?? 0) * 100).toFixed(0)}%</div>
-        <div className="text-[9px] text-muted-foreground capitalize mt-0.5">{deal.architecture}</div>
-      </div>
-      <div className="bg-secondary/30 rounded-sm p-3 text-center border-l-2 border-l-blue-500">
-        <div className="text-[9px] text-muted-foreground uppercase tracking-widest mb-1 font-bold">🇺🇸 US Position</div>
-        {verdictBadge(usVerdict?.verdict)}
-        <div className="text-[9px] text-muted-foreground mt-0.5">Stakeholder eval</div>
-      </div>
-      <div className="bg-secondary/30 rounded-sm p-3 text-center border-l-2 border-l-red-500">
-        <div className="text-[9px] text-muted-foreground uppercase tracking-widest mb-1 font-bold">🇮🇷 Iran Position</div>
-        {verdictBadge(iranVerdict?.verdict)}
-        <div className="text-[9px] text-muted-foreground mt-0.5">Stakeholder eval</div>
-      </div>
+    <div className="space-y-2">
+      {entries.map((entry, i) => (
+        <div key={i} className="space-y-1">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 min-w-0">
+              {entry.isAI ? <Trophy className="w-3.5 h-3.5 text-blue-400 shrink-0" /> : <Users className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
+              <span className="text-xs font-semibold text-foreground truncate">{entry.name}</span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0 ml-2">
+              <span className={`text-[10px] font-semibold ${entry.label.color}`}>{entry.label.text}</span>
+              <span className="text-sm font-bold font-mono text-foreground">{entry.pct}%</span>
+            </div>
+          </div>
+          <div className="h-5 bg-secondary/40 rounded-sm overflow-hidden relative">
+            <motion.div
+              className="h-full rounded-sm"
+              style={{ backgroundColor: entry.color }}
+              initial={{ width: 0 }}
+              animate={{ width: `${(entry.pct / 100) * 100}%` }}
+              transition={{ duration: 1.2, delay: i * 0.15, ease: "easeOut" }}
+            />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -469,19 +388,15 @@ export default function Home() {
   const { data: stats, isLoading: statsLoading } = useGetExperimentStats();
   const { data: latestRes, isLoading: forecastLoading } = useGetLatestForecasts();
   const { data: currentDeal } = useGetCurrentDeal();
-  const [selectedNode, setSelectedNode] = useState<string | null>("iran");
-
+  const { data: proposalsRes } = useListProposals();
   const forecasts = latestRes?.data || [];
   const peaceProb = calculatePeaceProbability(forecasts);
 
-  const stakeholderEvals = (currentDeal?.stakeholderEvaluations ?? {}) as Record<string, { verdict: string }>;
-  const acceptanceMap: Record<string, string> = Object.fromEntries(
-    Object.entries(stakeholderEvals).map(([k, v]) => [k.replace(/_/g, '-'), v.verdict])
-  );
-
-  const radius = 120;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (peaceProb / 100) * circumference;
+  const allProposals = (proposalsRes?.data ?? []) as Proposal[];
+  const humanProposals = allProposals
+    .filter(p => p.source !== "ai" && p.scores)
+    .sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime())
+    .slice(0, 2);
 
   return (
     <div className="space-y-10 animate-fade-in pb-12">
@@ -496,16 +411,16 @@ export default function Home() {
               Live AI Geopolitical Analysis
             </Badge>
             <h1 className="text-4xl md:text-5xl font-bold font-display leading-tight">
-              Forecasting <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-orange-400">Peace & Conflict</span> in Real-Time.
+              Can AI Design a <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-primary">Better Peace Deal</span> Than Humans?
             </h1>
             <p className="text-lg text-muted-foreground max-w-xl">
-              AutoPeace uses continuous multi-agent LLM loops to analyze thousands of data points, forecasting outcomes for the Iran conflict with calibrated probabilistic precision. Its autoresearch mechanism mutates and scores its own prompt instructions each cycle — retaining only what improves accuracy.
+              AutoPeace continuously generates and stress-tests peace proposals for the Iran conflict using a multi-agent AI pipeline — then scores them against real-world human proposals on the same 7 dimensions. See how they compare.
             </p>
             <LiveTicker />
             <div className="flex flex-wrap gap-4 pt-2">
-              <Link to="/forecasts">
+              <Link to="/arena">
                 <Button size="lg" className="w-full sm:w-auto gap-2 rounded-sm">
-                  View Latest Forecasts <ArrowRight className="w-5 h-5" />
+                  Compare in Proposal Arena <ArrowRight className="w-5 h-5" />
                 </Button>
               </Link>
               <Link to="/methodology">
@@ -516,11 +431,35 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="space-y-4">
-            <ConflictMap selectedId={selectedNode} onSelect={setSelectedNode} acceptanceMap={acceptanceMap} />
-            {currentDeal && (
-              <DealComparisonStrip deal={currentDeal as { scores: unknown; stakeholderEvaluations: unknown; architecture: string }} />
-            )}
+          <div className="space-y-5">
+            <div className="bg-card/80 border border-border/50 rounded-sm p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-sm font-bold uppercase tracking-wider">AI vs Human Proposals</h3>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Composite score — same 7-dimension evaluation by 3 independent AI judges</p>
+                </div>
+                <Link to="/arena" className="text-[10px] text-primary hover:underline underline-offset-2 shrink-0">Full Arena →</Link>
+              </div>
+              <AIvsHumanChart
+                aiDeal={currentDeal as { scores: unknown; architecture: string } | null}
+                humanProposals={humanProposals}
+              />
+              <div className="flex items-center gap-4 mt-4 pt-3 border-t border-border/30">
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                  <div className="w-2.5 h-2.5 rounded-sm bg-blue-500" />
+                  AI-Generated
+                </div>
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                  <div className="w-2.5 h-2.5 rounded-sm bg-amber-500" />
+                  Human Proposal
+                </div>
+                <div className="flex-1" />
+                <div className="text-[9px] text-muted-foreground/60">
+                  Scored by Anthropic + OpenAI + Gemini
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-card border border-border p-4 flex flex-col items-center rounded-sm">
                 <div className="relative w-24 h-24">
@@ -546,11 +485,9 @@ export default function Home() {
                   </div>
                 </div>
                 <span className="text-[10px] text-muted-foreground mt-1 uppercase tracking-widest font-bold">30d Horizon</span>
-                <span className="text-[8px] text-muted-foreground/50 mt-0.5 block">Bayesian posterior, multi-model consensus</span>
               </div>
               <div className="bg-card border border-border p-4 rounded-sm">
                 {forecastLoading ? <div className="animate-pulse text-xs text-muted-foreground">Loading...</div> : <OutcomeSparkbar forecasts={forecasts} />}
-                <p className="text-[8px] text-muted-foreground/50 mt-2 leading-relaxed">Probabilities across 8 MECE outcome states. Updated each research cycle via Claude + Gemini red-team + GPT-4o evaluation.</p>
               </div>
             </div>
           </div>
