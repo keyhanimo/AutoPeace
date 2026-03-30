@@ -101,21 +101,21 @@ function WhatIfPanel({ allForecasts }: { allForecasts: Forecast[] }) {
       )}
       {activeScenario ? (
         <div>
-          <div className="flex items-center gap-3 mb-3 text-[10px] text-muted-foreground">
-            <span className="flex items-center gap-1"><span className="w-3 h-2 bg-slate-500/60 rounded-sm inline-block" />90d Baseline</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-2 bg-primary/70 rounded-sm inline-block" />Scenario</span>
-            <Badge variant="outline" className="ml-auto border-primary/40 text-primary text-[9px]">{activeScenario.name}</Badge>
+          <div className="flex items-center gap-3 mb-3 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm inline-block" style={{ backgroundColor: "#475569" }} />90d Baseline</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm inline-block" style={{ backgroundColor: "#f59e0b" }} />Scenario</span>
+            <Badge variant="outline" className="ml-auto border-primary/40 text-primary text-xs">{activeScenario.name}</Badge>
           </div>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={chartData} margin={{ top: 0, right: 4, left: 0, bottom: 0 }}>
-              <XAxis dataKey="name" tick={{ fontSize: 9, fill: "#94a3b8" }} />
-              <YAxis tickFormatter={v => `${v}%`} tick={{ fontSize: 9, fill: "#94a3b8" }} width={32} />
+              <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#94a3b8" }} />
+              <YAxis tickFormatter={v => `${v}%`} tick={{ fontSize: 10, fill: "#94a3b8" }} width={32} />
               <Tooltip
                 contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', fontSize: 11 }}
                 formatter={(v: number, name: string) => [`${v}%`, name === "base" ? "90d Baseline" : "Scenario"]}
               />
-              <Bar dataKey="base" fill="#475569" opacity={0.5} radius={[2, 2, 0, 0]} name="base" />
-              <Bar dataKey="scenario" fill="#6366f1" radius={[2, 2, 0, 0]} name="scenario" />
+              <Bar dataKey="base" fill="#475569" opacity={0.6} radius={[2, 2, 0, 0]} name="base" />
+              <Bar dataKey="scenario" fill="#f59e0b" radius={[2, 2, 0, 0]} name="scenario" />
             </BarChart>
           </ResponsiveContainer>
           <div className="mt-4">
