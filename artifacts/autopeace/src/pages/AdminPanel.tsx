@@ -406,7 +406,7 @@ export default function AdminPanel() {
               <Zap className="w-5 h-5 text-amber-400" /> 3-Model Judge Panel
             </h3>
             <p className="text-xs text-muted-foreground mb-4">
-              The judge panel runs all 3 providers in parallel when scoring proposals. Leave blank to use the base model for each provider (shown as placeholder). Set a custom model to override just for scoring.
+              The judge panel runs all 3 providers in parallel when scoring deals. Leave blank to use the base model for each provider (shown as placeholder). Set a custom model to override just for scoring.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">

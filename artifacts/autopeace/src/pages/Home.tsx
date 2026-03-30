@@ -404,9 +404,12 @@ function DealHeroSection() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2 mb-2">
-              <h2 className="text-lg font-bold">Latest AI-Designed Peace Deal</h2>
+              <h2 className="text-lg font-bold">AI Autoresearch Champion</h2>
               <Badge variant="outline" className="border-amber-700/40 text-amber-400 text-[10px] capitalize border-l-2">
                 {deal.architecture} architecture
+              </Badge>
+              <Badge variant="outline" className="border-cyan-700/40 text-cyan-400 text-[10px] border-l-2">
+                Task B champion
               </Badge>
               {deal.isPareto && (
                 <Badge variant="outline" className="border-emerald-700/40 text-emerald-400 text-[10px] border-l-2">
