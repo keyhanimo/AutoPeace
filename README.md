@@ -6,6 +6,9 @@
   <p align="center">
     Automated research loops that generate Bayesian conflict forecasts and optimized peace deal proposals for the Iran–US–Israel conflict complex.
   </p>
+  <p align="center">
+    Developed by <strong>Mohammad Keyhani</strong>
+  </p>
 </p>
 
 ---
