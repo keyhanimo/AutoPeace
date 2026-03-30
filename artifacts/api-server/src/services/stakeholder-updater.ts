@@ -1,9 +1,18 @@
 import { db } from "@workspace/db";
 import { stakeholdersTable, evidenceItemsTable } from "@workspace/db/schema";
-import { eq, desc, gt } from "drizzle-orm";
+import { eq, desc, inArray } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { callLLM } from "./llm-router";
 import { getModelConfig } from "./llm-router";
+
+const PIPELINE_STAKEHOLDER_IDS = [
+  "iran", "us", "israel",
+  "saudi_arabia", "iaea", "russia", "china", "eu3",
+  "uae", "qatar", "oman", "turkey", "iraq", "egypt",
+  "india", "japan", "south_korea", "jordan", "pakistan",
+  "ukraine", "global_north", "global_south_energy_importers",
+  "global_south_energy_exporters",
+];
 
 type StakeholderUpdate = {
   id: string;
@@ -38,31 +47,48 @@ function parseLLMJson<T>(text: string, fallback: T): T {
 
 export async function updateStakeholderProfilesFromEvidence(
   cycleId: string,
-  lookbackHours: number = 48,
 ): Promise<{ updated: number; skipped: number }> {
-  const cutoff = new Date(Date.now() - lookbackHours * 60 * 60 * 1000);
-
-  const recentEvidence = await db.select()
+  const cycleEvidence = await db.select()
     .from(evidenceItemsTable)
-    .where(gt(evidenceItemsTable.ingestedAt, cutoff))
+    .where(eq(evidenceItemsTable.influencedCycleId, cycleId))
     .orderBy(desc(evidenceItemsTable.ingestedAt))
-    .limit(50);
+    .limit(80);
 
-  if (recentEvidence.length === 0) {
-    logger.info({ cycleId }, "No recent evidence for stakeholder update");
+  if (cycleEvidence.length === 0) {
+    logger.info({ cycleId }, "No cycle evidence for stakeholder update");
     return { updated: 0, skipped: 0 };
   }
 
   const stakeholders = await db.select().from(stakeholdersTable);
   const stakeholderMap = new Map(stakeholders.map(s => [s.id, s]));
 
-  const evidenceSummary = recentEvidence
-    .map(e => `[${e.source}] ${e.title}: ${(e.text ?? "").slice(0, 300)}`)
+  const relevanceMap = new Map<string, string[]>();
+  for (const ev of cycleEvidence) {
+    const relevance = ev.stakeholderRelevance as string[] | null;
+    if (relevance && Array.isArray(relevance)) {
+      for (const stakeholderId of relevance) {
+        if (!relevanceMap.has(stakeholderId)) {
+          relevanceMap.set(stakeholderId, []);
+        }
+        relevanceMap.get(stakeholderId)!.push(
+          `[${ev.source}] ${ev.title}: ${(ev.text ?? "").slice(0, 200)}`
+        );
+      }
+    }
+  }
+
+  const generalEvidence = cycleEvidence
+    .map(e => `[${e.source}] ${e.title}: ${(e.text ?? "").slice(0, 200)}`)
     .join("\n\n");
 
   const stakeholderSummary = stakeholders
-    .filter(s => ["required", "critical", "influential"].includes(s.tier))
-    .map(s => `- ${s.id} (${s.name}): Goals: ${s.goals.slice(0, 150)}. Red lines: ${s.redLines.slice(0, 150)}. Constraints: ${s.constraints.slice(0, 150)}. Profile: ${s.profileSummary.slice(0, 150)}`)
+    .map(s => {
+      const relevantEvidence = relevanceMap.get(s.id);
+      const evidenceSection = relevantEvidence
+        ? `\n  DIRECTLY RELEVANT EVIDENCE (${relevantEvidence.length} items):\n  ${relevantEvidence.slice(0, 5).join("\n  ")}`
+        : "";
+      return `- ${s.id} [${s.tier}] (${s.name}): Goals: ${s.goals.slice(0, 120)}. Red lines: ${s.redLines.slice(0, 120)}. Profile: ${s.profileSummary.slice(0, 120)}${evidenceSection}`;
+    })
     .join("\n");
 
   const modelConfig = await getModelConfig();
@@ -71,16 +97,18 @@ export async function updateStakeholderProfilesFromEvidence(
 Only propose updates when the evidence clearly shows a MATERIAL CHANGE in a stakeholder's position, goals, constraints, or red lines.
 Do NOT update profiles for minor news or restatements of known positions.
 Each update must cite the specific evidence that justifies the change.
+You may update ANY stakeholder — core parties, regional actors, or contextual blocs — if the evidence warrants it.
 Output valid JSON only.`;
 
-  const prompt = `RECENT EVIDENCE (last ${lookbackHours} hours):
-${evidenceSummary.slice(0, 6000)}
+  const prompt = `CYCLE EVIDENCE (${cycleEvidence.length} items from cycle ${cycleId}):
+${generalEvidence.slice(0, 5000)}
 
-CURRENT STAKEHOLDER PROFILES (required/critical/influential only):
-${stakeholderSummary}
+ALL STAKEHOLDER PROFILES (with directly relevant evidence tagged per stakeholder):
+${stakeholderSummary.slice(0, 6000)}
 
-Based on this evidence, identify any stakeholders whose profiles need updating.
+Based on this cycle's evidence, identify any stakeholders whose profiles need updating.
 Only update when there is CLEAR evidence of a material shift in position, new demands, changed constraints, or new strategic behavior.
+Pay special attention to stakeholders with DIRECTLY RELEVANT EVIDENCE tagged above.
 
 Return a JSON array of updates (empty array if no updates needed):
 [{
@@ -131,6 +159,8 @@ Return a JSON array of updates (empty array if no updates needed):
     updated++;
   }
 
-  logger.info({ cycleId, updated, skipped, evidenceCount: recentEvidence.length }, "Stakeholder profile update complete");
+  logger.info({ cycleId, updated, skipped, evidenceCount: cycleEvidence.length, relevantStakeholders: relevanceMap.size }, "Stakeholder profile update complete");
   return { updated, skipped };
 }
+
+export { PIPELINE_STAKEHOLDER_IDS };

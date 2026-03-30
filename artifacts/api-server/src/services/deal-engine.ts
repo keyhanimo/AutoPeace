@@ -14,6 +14,8 @@ import {
 } from "./llm-router";
 import { db } from "@workspace/db";
 import { stakeholdersTable } from "@workspace/db/schema";
+import { inArray } from "drizzle-orm";
+import { PIPELINE_STAKEHOLDER_IDS } from "./stakeholder-updater";
 
 export type InnovativeProvision = {
   title: string;
@@ -210,7 +212,8 @@ type StakeholderEntry = {
 let STAKEHOLDER_REGISTRY: StakeholderEntry[] = [];
 
 async function loadStakeholderRegistryFromDB(): Promise<StakeholderEntry[]> {
-  const rows = await db.select().from(stakeholdersTable);
+  const rows = await db.select().from(stakeholdersTable)
+    .where(inArray(stakeholdersTable.id, PIPELINE_STAKEHOLDER_IDS));
   const validTiers: AcceptanceTier[] = ["required", "critical", "influential", "contextual"];
   STAKEHOLDER_REGISTRY = rows.map(r => ({
     id: r.id,
