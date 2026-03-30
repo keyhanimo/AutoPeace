@@ -144,6 +144,42 @@ function WhatIfPanel({ allForecasts }: { allForecasts: Forecast[] }) {
   );
 }
 
+const HORIZON_LABELS: Record<string, string> = {
+  "30d": "30 days",
+  "90d": "90 days",
+  "180d": "180 days",
+  "1y": "1 year",
+};
+
+function horizonDeadline(h: string): string {
+  const days = h === "30d" ? 30 : h === "90d" ? 90 : h === "180d" ? 180 : 365;
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+const LS_KEY = "cf_submitted";
+
+function getSubmittedHorizons(): Record<string, number> {
+  try {
+    return JSON.parse(localStorage.getItem(LS_KEY) ?? "{}");
+  } catch {
+    return {};
+  }
+}
+
+function markSubmitted(horizon: string) {
+  const existing = getSubmittedHorizons();
+  existing[horizon] = Date.now();
+  localStorage.setItem(LS_KEY, JSON.stringify(existing));
+}
+
+function isAlreadySubmitted(horizon: string): boolean {
+  const ts = getSubmittedHorizons()[horizon];
+  if (!ts) return false;
+  return Date.now() - ts < 24 * 60 * 60 * 1000;
+}
+
 function CommunityForecastPanel({ activeForecast }: { activeForecast: Forecast }) {
   const [horizon, setHorizon] = useState<"30d" | "90d" | "180d" | "1y">("90d");
   const [tab, setTab] = useState<"results" | "submit">("results");
@@ -152,6 +188,7 @@ function CommunityForecastPanel({ activeForecast }: { activeForecast: Forecast }
   );
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
   const [sessionId] = useState(() => crypto.randomUUID());
+  const [alreadySubmitted, setAlreadySubmitted] = useState(() => isAlreadySubmitted("90d"));
 
   const { data, isLoading, refetch } = useGetCommunityForecastAggregate({ timeHorizon: horizon });
   const { mutateAsync, isPending } = useSubmitCommunityForecast();
@@ -179,6 +216,8 @@ function CommunityForecastPanel({ activeForecast }: { activeForecast: Forecast }
     if (Math.abs(remainder) > 0.5) return;
     try {
       await mutateAsync({ data: { sessionId, timeHorizon: horizon, estimates } });
+      markSubmitted(horizon);
+      setAlreadySubmitted(true);
       setSubmitStatus("success");
       void refetch();
       setTimeout(() => { setSubmitStatus("idle"); setTab("results"); }, 2500);
@@ -198,7 +237,7 @@ function CommunityForecastPanel({ activeForecast }: { activeForecast: Forecast }
           {(["30d", "90d", "180d", "1y"] as const).map(h => (
             <button
               key={h}
-              onClick={() => setHorizon(h)}
+              onClick={() => { setHorizon(h); setAlreadySubmitted(isAlreadySubmitted(h)); }}
               aria-pressed={horizon === h}
               className={`px-2 py-0.5 rounded text-[10px] font-mono border transition-all ${
                 horizon === h ? "border-primary/40 bg-primary/10 text-primary" : "border-border/30 text-muted-foreground hover:border-border"
@@ -251,6 +290,13 @@ function CommunityForecastPanel({ activeForecast }: { activeForecast: Forecast }
             <button onClick={() => setTab("submit")} className="text-xs text-primary hover:underline">Be the first to submit →</button>
           </div>
         )
+      ) : alreadySubmitted ? (
+        <div className="h-36 flex flex-col items-center justify-center gap-2 text-center px-4">
+          <CheckCircle2 className="w-7 h-7 text-emerald-400" />
+          <p className="text-sm font-medium text-emerald-400">Already submitted for {HORIZON_LABELS[horizon]}</p>
+          <p className="text-[11px] text-muted-foreground">You can update your {horizon} view tomorrow. Switch to a different time horizon to submit another forecast now.</p>
+          <button onClick={() => setTab("results")} className="text-xs text-primary hover:underline mt-1">View results →</button>
+        </div>
       ) : submitStatus === "success" ? (
         <div className="h-32 flex flex-col items-center justify-center gap-2 text-emerald-400">
           <CheckCircle2 className="w-8 h-8" />
@@ -258,6 +304,13 @@ function CommunityForecastPanel({ activeForecast }: { activeForecast: Forecast }
         </div>
       ) : (
         <div className="space-y-2">
+          <div className="mb-3 px-3 py-2 rounded-md bg-secondary/40 border border-border/30">
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              You are forecasting the <span className="text-foreground font-medium">{HORIZON_LABELS[horizon]} outlook</span> — i.e., what the most likely conflict state will be by approximately{" "}
+              <span className="text-foreground font-medium">{horizonDeadline(horizon)}</span>.
+              One submission per person per time horizon per day.
+            </p>
+          </div>
           <div className={`flex items-center justify-between mb-2 text-xs ${Math.abs(remainder) <= 0.5 ? "text-emerald-400" : "text-amber-400"}`}>
             <span>Allocate probability across 8 outcomes</span>
             <span className="font-mono font-bold">{total.toFixed(1)}% / 100%</span>

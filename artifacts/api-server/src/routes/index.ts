@@ -29,6 +29,7 @@ router.use(changelogRouter);
 router.use(stakeholdersRouter);
 router.use(dealsRouter);
 router.use(proposalsRouter);
+router.use("/community-forecasts", submitLimiter);
 router.use(communityForecastsRouter);
 router.use(scenariosRouter);
 

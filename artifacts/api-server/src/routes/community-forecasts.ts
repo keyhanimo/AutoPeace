@@ -1,7 +1,8 @@
 import { Router } from "express";
+import type { Request } from "express";
 import { db } from "@workspace/db";
 import { communityForecastsTable } from "@workspace/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, gte } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 const router = Router();
@@ -16,6 +17,17 @@ const OUTCOMES = [
   "regional_framework",
   "broad_settlement",
 ];
+
+const COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
+function extractIp(req: Request): string {
+  const forwarded = req.headers["x-forwarded-for"];
+  if (forwarded) {
+    const first = Array.isArray(forwarded) ? forwarded[0] : forwarded.split(",")[0];
+    return (first ?? "").trim();
+  }
+  return req.socket?.remoteAddress ?? req.ip ?? "unknown";
+}
 
 router.post("/community-forecasts", async (req, res) => {
   try {
@@ -60,12 +72,38 @@ router.post("/community-forecasts", async (req, res) => {
       return;
     }
 
+    const ip = extractIp(req);
+    const cutoff = new Date(Date.now() - COOLDOWN_MS);
+
+    if (ip && ip !== "unknown") {
+      const existing = await db
+        .select({ id: communityForecastsTable.id })
+        .from(communityForecastsTable)
+        .where(
+          and(
+            eq(communityForecastsTable.ipAddress, ip),
+            eq(communityForecastsTable.timeHorizon, timeHorizon),
+            gte(communityForecastsTable.submittedAt, cutoff)
+          )
+        )
+        .limit(1);
+
+      if (existing.length > 0) {
+        res.status(429).json({
+          error: "duplicate",
+          message: "You have already submitted a forecast for this time horizon in the last 24 hours. Please come back tomorrow to update your view.",
+        });
+        return;
+      }
+    }
+
     const id = randomUUID();
     await db.insert(communityForecastsTable).values({
       id,
       sessionId,
       timeHorizon,
       estimates,
+      ipAddress: ip,
     });
 
     res.json({ id, message: "Forecast submitted successfully" });

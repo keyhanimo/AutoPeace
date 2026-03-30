@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, jsonb, real } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -7,6 +7,7 @@ export const communityForecastsTable = pgTable("community_forecasts", {
   sessionId: text("session_id").notNull(),
   timeHorizon: text("time_horizon").notNull(),
   estimates: jsonb("estimates").notNull().$type<Record<string, number>>(),
+  ipAddress: text("ip_address"),
   submittedAt: timestamp("submitted_at").notNull().defaultNow(),
 });
 
