@@ -642,7 +642,7 @@ function ChannelCards() {
 function StakeholderWaterfallChart({ stakeholders }: { stakeholders: StakeholderCBA[] }) {
   const sorted = [...stakeholders].sort((a, b) => b.peaceBenefitB - a.peaceBenefitB).slice(0, 10);
   const data = sorted.map(s => ({
-    name: s.flag + " " + (s.name.length > 12 ? s.name.slice(0, 11) + "…" : s.name),
+    name: s.flag + " " + s.name,
     warCost: -s.warCostB,
     peaceBenefit: s.peaceBenefitB,
   }));
@@ -670,7 +670,7 @@ function StakeholderWaterfallChart({ stakeholders }: { stakeholders: Stakeholder
               tick={{ fontSize: 10, fill: '#94a3b8' }}
               tickFormatter={v => `$${Math.abs(v)}B`}
             />
-            <YAxis dataKey="name" type="category" tick={{ fontSize: 10, fill: '#94a3b8' }} width={170} />
+            <YAxis dataKey="name" type="category" tick={{ fontSize: 10, fill: '#94a3b8' }} width={200} />
             <Tooltip
               contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', fontSize: '11px', color: '#f8fafc' }}
               formatter={(v: number, name: string) => {
