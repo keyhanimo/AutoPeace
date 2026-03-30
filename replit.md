@@ -107,7 +107,7 @@ Scheduler: hourly cron check, runs at UTC 6am daily by default.
 | `/stakeholders` | Stakeholder Gallery — expandable stakeholder profile cards |
 | `/stakeholders/compare` | Stakeholder Comparison — multi-select comparison tool (up to 4) |
 | `/evidence` | Evidence Explorer — searchable, filterable corpus browser (54+ items) |
-| `/costs` | Cost Explorer — economic/human cost data by actor |
+| `/costs` | Cost-Benefit Analysis — war costs vs peace benefits by channel and stakeholder, channel decomposition charts, treemap, radar charts, methodology framework |
 | `/experiments` | Evolution Log — mutation table with result badges |
 | `/submit` | Submit Proposal — public form for community proposal submissions |
 | `/data` | Data Portal — JSON/CSV downloads for all 6 research datasets + RSS |

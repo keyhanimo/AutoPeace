@@ -19,7 +19,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/deals", label: "Deal Dashboard", icon: Handshake },
       { href: "/arena", label: "Proposal Arena", icon: Swords },
       { href: "/forecasts", label: "Forecasts", icon: BarChart2 },
-      { href: "/costs", label: "Cost Explorer", icon: DollarSign },
+      { href: "/costs", label: "Cost-Benefit Analysis", icon: DollarSign },
     ],
   },
   {
