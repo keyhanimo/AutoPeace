@@ -3,7 +3,7 @@ import type { DealScores } from "@workspace/api-client-react";
 import { Code, Brain } from "lucide-react";
 
 export const SCORE_DIMENSIONS: { key: keyof DealScores; label: string; color: string; weight: number; description: string }[] = [
-  { key: "feasibility", label: "Feasibility", color: "#10b981", weight: 0.20, description: "Likelihood the deal gets signed by all parties" },
+  { key: "feasibility", label: "Feasibility", color: "#10b981", weight: 0.20, description: "Likelihood the deal gets signed by all required parties" },
   { key: "coherence", label: "Coherence", color: "#0284c7", weight: 0.15, description: "Internal consistency of the terms — do they contradict each other?" },
   { key: "evidenceGrounding", label: "Evidence", color: "#f59e0b", weight: 0.10, description: "How well the terms reflect documented evidence and real-world constraints" },
   { key: "domesticSellability", label: "Domestic", color: "#8b5cf6", weight: 0.20, description: "Can leaders sell this deal domestically? (US Congress, Iran IRGC, etc.)" },

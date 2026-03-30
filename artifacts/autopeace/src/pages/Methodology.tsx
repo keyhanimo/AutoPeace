@@ -279,7 +279,7 @@ export default function Methodology() {
             </div>
             <div className="bg-card p-4 border border-border border-l-2 border-l-blue-500">
               <h4 className="font-bold text-foreground mb-1">Stage 2: Stakeholder Evaluator <span className="text-xs text-muted-foreground ml-2">(OpenAI GPT-4o — evaluation role)</span></h4>
-              <p className="text-muted-foreground">Assesses how each of 8 core stakeholders (Iran, US, Israel, Saudi Arabia, IAEA, Russia, China, EU3) would respond to the proposed deal. Each stakeholder has a predefined profile with interests and red lines. The agent returns a verdict per stakeholder: <code>accept</code>, <code>conditional</code>, or <code>reject</code>, with rationale and specific red-line violations cited.</p>
+              <p className="text-muted-foreground">Assesses how each of <strong>23 stakeholders across 4 acceptance tiers</strong> would respond to the proposed deal. <strong>Required tier</strong> (Iran, US) — both must accept for the deal to be implementable; rejection caps the feasibility score at 0.15. <strong>Critical tier</strong> (Israel) — rejection caps feasibility at 0.35. <strong>Influential tier</strong> (Saudi Arabia, IAEA, Russia, China, EU3) — affects deal durability and regional stability scores. <strong>Contextual tier</strong> (UAE, Qatar, Oman, Turkey, Iraq, Egypt, India, Japan, South Korea, Jordan, Pakistan, Ukraine, Global North Bloc, Global South Energy Importers, Global South Energy Exporters) — affects regional stability assessment. Each stakeholder has a predefined profile with interests and red lines. The agent returns a verdict per stakeholder: <code>accept</code>, <code>conditional</code>, or <code>reject</code>, with rationale and specific red-line violations cited.</p>
             </div>
             <div className="bg-card p-4 border border-border border-l-2 border-l-blue-500">
               <h4 className="font-bold text-foreground mb-1">Stage 3: Domestic Audience Agent <span className="text-xs text-muted-foreground ml-2">(OpenAI GPT-4o — evaluation role)</span></h4>
@@ -368,7 +368,7 @@ export default function Methodology() {
             A critical design principle of Task C is <strong>evaluation parity</strong>: community-submitted and news-extracted proposals go through the identical evaluation pipeline as AI-generated deals from Task B. Specifically:
           </p>
           <ul>
-            <li>The same 8 core stakeholders (Iran, US, Israel, Saudi Arabia, IAEA, Russia, China, EU3) evaluate every proposal using identical profiles and red lines</li>
+            <li>The same 23 stakeholders across 4 acceptance tiers (Required: Iran, US; Critical: Israel; Influential: Saudi Arabia, IAEA, Russia, China, EU3; Contextual: 15 regional and global actors) evaluate every proposal using identical profiles, red lines, and tier-based feasibility caps</li>
             <li>The same 11 domestic audiences across 3 countries assess political sellability</li>
             <li>The same adversarial red-team generates 5 attack scenarios per proposal</li>
             <li>The same negotiator agent proposes amendments for rejecting stakeholders</li>
@@ -472,7 +472,7 @@ export default function Methodology() {
 
           <h3 className="text-xl font-bold font-display text-foreground mt-6">10.2 Task B &amp; C Scoring (Deal &amp; Proposal Quality)</h3>
           <p>
-            Deal and proposal evaluation is fundamentally forward-looking — it does not use historical backtesting. Instead, quality is assessed through <strong>multi-agent LLM stakeholder simulations</strong> (8 stakeholders, 11 domestic audiences, adversarial red-teaming) grounded in <strong>cost-benefit economic modeling</strong>. The Judge Panel (Stage 6) synthesizes these simulation results and scores each deal on <strong>7 dimensions</strong>, each rated 0.0 to 1.0 with rationale:
+            Deal and proposal evaluation is fundamentally forward-looking — it does not use historical backtesting. Instead, quality is assessed through <strong>multi-agent LLM stakeholder simulations</strong> (23 stakeholders across 4 acceptance tiers, 11 domestic audiences, adversarial red-teaming) grounded in <strong>cost-benefit economic modeling</strong>. The Judge Panel (Stage 6) synthesizes these simulation results and scores each deal on <strong>7 dimensions</strong>, each rated 0.0 to 1.0 with rationale:
           </p>
           <div className="overflow-x-auto not-prose">
             <table className="w-full text-sm border-collapse">
@@ -484,7 +484,7 @@ export default function Methodology() {
                 </tr>
               </thead>
               <tbody className="text-muted-foreground">
-                <tr className="border-b border-border/50"><td className="p-2 font-medium text-foreground">Feasibility</td><td className="text-right p-2">20%</td><td className="p-2">Can this deal realistically be negotiated and signed?</td></tr>
+                <tr className="border-b border-border/50"><td className="p-2 font-medium text-foreground">Feasibility</td><td className="text-right p-2">20%</td><td className="p-2">Likelihood the deal gets signed by all required parties. Capped at 15% if a Required-tier stakeholder rejects; capped at 35% if the Critical-tier stakeholder rejects.</td></tr>
                 <tr className="border-b border-border/50"><td className="p-2 font-medium text-foreground">Coherence</td><td className="text-right p-2">15%</td><td className="p-2">Do the terms form a logically consistent, non-contradictory package?</td></tr>
                 <tr className="border-b border-border/50"><td className="p-2 font-medium text-foreground">Evidence Grounding</td><td className="text-right p-2">10%</td><td className="p-2">Are the terms responsive to current geopolitical reality?</td></tr>
                 <tr className="border-b border-border/50"><td className="p-2 font-medium text-foreground">Domestic Sellability</td><td className="text-right p-2">20%</td><td className="p-2">Could domestic political audiences in key states accept this?</td></tr>
@@ -495,10 +495,13 @@ export default function Methodology() {
             </table>
           </div>
           <p className="mt-4">
-            The <strong>composite score</strong> is the weighted sum: <code>Composite = Σ(dimensionᵢ × weightᵢ)</code>. This is the primary optimization target for the deal autoresearch loop. A deal scoring below 0.35 composite is marked as "stalled," which increments the stall counter for that architecture.
+            The <strong>composite score</strong> is the weighted sum: <code>Composite = Σ(dimensionᵢ × weightᵢ)</code>. This is the primary optimization target for the deal autoresearch loop. Scores are classified into three quality tiers: <strong className="text-emerald-400">Viable</strong> (≥65%), <strong className="text-amber-400">Marginal</strong> (45% to &lt;65%), and <strong className="text-red-400">Weak</strong> (&lt;45%). A deal scoring below 35% composite is marked as "stalled," which increments the stall counter for that architecture.
           </p>
           <p>
-            Each judge provides per-dimension rationale, which is merged across providers using pipe-delimited concatenation for full transparency into each model's reasoning.
+            <strong>Tier-based feasibility caps</strong> enforce the acceptance hierarchy: if a Required-tier stakeholder (Iran or US) rejects the deal, feasibility is capped at 15%. If the Critical-tier stakeholder (Israel) rejects, feasibility is capped at 35%. These hard caps severely penalize deals that lack buy-in from the most essential parties, making it extremely difficult to achieve a Viable composite score without Required and Critical tier acceptance.
+          </p>
+          <p>
+            Each judge provides per-dimension rationale, which is merged across providers using pipe-delimited concatenation for full transparency into each model's reasoning. The Deal Dashboard and Proposal Arena both display per-dimension scores with individual model tabs, allowing users to compare how each LLM judge scored each dimension independently.
           </p>
         </Card>
 
