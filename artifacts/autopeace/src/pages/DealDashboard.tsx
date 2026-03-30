@@ -374,7 +374,7 @@ function DealDetailView({ deal, isHistorical }: { deal: Deal; isHistorical?: boo
               <div key={key} className="border-b border-border/30 pb-2 last:border-0">
                 <span className="text-xs text-primary font-semibold uppercase tracking-wider block">{label}</span>
                 <span className="text-xs text-muted-foreground">
-                  {key === "timelineYears" ? `${terms[key] ?? "?"} years` : String(terms[key] ?? "—").slice(0, 200)}
+                  {key === "timelineYears" ? `${terms[key] ?? "?"} years` : String(terms[key] ?? "—")}
                 </span>
               </div>
             ))}
@@ -385,7 +385,7 @@ function DealDetailView({ deal, isHistorical }: { deal: Deal; isHistorical?: boo
                   {Object.entries(terms.stakeholderCommitments as Record<string, string>).map(([id, commitment]) => (
                     <div key={id} className="flex gap-2 text-xs">
                       <span className="text-primary font-semibold capitalize shrink-0 w-24">{id.replace(/_/g, " ")}</span>
-                      <span className="text-muted-foreground">{String(commitment).slice(0, 200)}</span>
+                      <span className="text-muted-foreground">{String(commitment)}</span>
                     </div>
                   ))}
                 </div>
