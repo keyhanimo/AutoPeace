@@ -16,7 +16,6 @@ import {
   ExternalLink, ChevronDown, ChevronUp, Globe, Target,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { DataSourceNote } from "@/components/DataSourceNote";
 import { ScoreBreakdownPanel, SCORE_DIMENSIONS, type ExtendedScores } from "@/components/ScoreBreakdownPanel";
 
 const VERDICT_COLORS: Record<string, string> = {
@@ -770,21 +769,6 @@ export default function ProposalArena() {
             ))}
           </div>
         )}
-
-        <DataSourceNote
-          title="Proposal Evaluation Methodology"
-          methodology="Each proposal is evaluated by a 3-model judge panel (Anthropic Claude, OpenAI GPT-4o, Google Gemini) scoring 7 dimensions independently. The composite score is a weighted average: Feasibility (20%), Domestic Sellability (20%), Coherence (15%), Regional Stability (15%), Evidence Grounding (10%), Implementability (10%), Durability (10%). Stakeholder verdicts are simulated using a tiered acceptance system: Iran and US are Required (deal-breaker), Israel is Critical (near-fatal), and others are Influential or Contextual."
-          sources={[
-            { label: "Judge panel", detail: "3 independent LLM providers score each dimension independently; final score = arithmetic mean" },
-            { label: "Stakeholder profiles", detail: "Goals, red lines, and constraints from academic/policy sources for 23 stakeholders" },
-            { label: "Scoring weights", detail: "Calibrated to prioritize political feasibility and domestic sellability" },
-          ]}
-          confidenceNote="Multi-model scoring reduces single-model bias. Standard deviation across judges measures inter-model agreement — high deviation flags contentious dimensions."
-          limitations={[
-            "AI-simulated evaluations — not validated against real diplomatic negotiation outcomes.",
-            "Proposals from external sources are evaluated with the same pipeline as AI-generated deals.",
-          ]}
-        />
       </div>
     </div>
   );
