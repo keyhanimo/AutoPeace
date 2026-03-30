@@ -885,6 +885,7 @@ export async function judgeAndScore(
   const domesticTotal = Object.keys(domesticEvaluations).length || 1;
 
   const systemPrompt = `You are a panel of senior diplomats and conflict resolution experts scoring a peace deal on seven dimensions from 0.0 to 1.0.
+Use the FULL range of each scale. A deal that is creative and well-structured can still score 0.6-0.8 on coherence, evidence grounding, or implementability even if political acceptance is low. Score each dimension INDEPENDENTLY based on its own criteria — do not let a weakness in one dimension drag down unrelated dimensions.
 For each dimension, provide a score AND a 1-2 sentence rationale explaining the key factors behind the score.
 Output JSON only.`;
 
@@ -907,9 +908,9 @@ ${commitmentsBlock}${innovativeBlock}
 
 STAKEHOLDER ACCEPTANCE BY TIER:
 - REQUIRED (Iran + US): ${requiredTier.accept} accept, ${requiredTier.conditional} conditional, ${requiredTier.reject} reject — Iran: ${iranVerdict || "unknown"}, US: ${usVerdict || "unknown"}
-  ${!requiredAccept ? "*** DEAL-BREAKER: A required party rejects. Score feasibility very low (0.1-0.2). ***" : ""}
+  ${!requiredAccept ? "Note: A required party rejects this deal. Factor this into feasibility, but score other dimensions on their own merits." : ""}
 - CRITICAL (Israel): ${israelVerdict || "unknown"}
-  ${!israelAccepts ? "*** Israel rejects — severely undermines viability. Penalize feasibility and durability. ***" : ""}
+  ${!israelAccepts ? "Note: Israel rejects — this is a significant obstacle but not an absolute veto. Factor proportionally." : ""}
 - INFLUENTIAL: ${influentialTier.accept} accept, ${influentialTier.conditional} conditional, ${influentialTier.reject} reject out of ${influentialTier.total}
 - CONTEXTUAL: ${contextualTier.accept} accept, ${contextualTier.conditional} conditional, ${contextualTier.reject} reject out of ${contextualTier.total}
 - OVERALL: ${totalAccept}/${totalStakeholders} accept, ${totalReject} reject
@@ -1027,25 +1028,32 @@ Return JSON with scores and rationale for each dimension:
   };
 
   if (!requiredAccept) {
-    scores.feasibility = Math.min(scores.feasibility, 0.15);
-    scores.implementability = Math.min(scores.implementability, 0.20);
-    scores.durability = Math.min(scores.durability, 0.15);
+    scores.feasibility *= 0.40;
+    scores.implementability *= 0.45;
+    scores.durability *= 0.40;
   }
   if (!israelAccepts) {
-    scores.feasibility = Math.min(scores.feasibility, 0.35);
-    scores.durability = Math.min(scores.durability, 0.30);
-    scores.regionalStability = Math.min(scores.regionalStability, 0.35);
+    scores.feasibility *= 0.60;
+    scores.durability *= 0.55;
+    scores.regionalStability *= 0.60;
   }
 
   scores.composite = (
-    scores.feasibility * 0.2 +
+    scores.feasibility * 0.15 +
     scores.coherence * 0.15 +
-    scores.evidenceGrounding * 0.1 +
-    scores.domesticSellability * 0.2 +
-    scores.regionalStability * 0.15 +
-    scores.implementability * 0.1 +
-    scores.durability * 0.1
+    scores.evidenceGrounding * 0.12 +
+    scores.domesticSellability * 0.15 +
+    scores.regionalStability * 0.13 +
+    scores.implementability * 0.15 +
+    scores.durability * 0.15
   );
+
+  if (!requiredAccept) {
+    scores.composite *= 0.80;
+  }
+  if (!israelAccepts) {
+    scores.composite *= 0.90;
+  }
 
   return { scores, tokens: totalTokens };
 }
