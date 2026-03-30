@@ -192,25 +192,30 @@ export default function SubmitProposal() {
               <Plus className="w-3 h-3" /> Add term
             </button>
           </div>
-          <p className="text-xs text-muted-foreground">Key-value pairs describing the proposal's specific terms (e.g. "Uranium enrichment level" → "5%").</p>
+          <p className="text-xs text-muted-foreground">List the specific terms of the proposal. Each term has a topic and its specification.</p>
           <div className="space-y-2">
+            <div className="flex gap-2 px-1">
+              <span className="flex-1 text-[10px] uppercase tracking-wider text-muted-foreground/70">Topic</span>
+              <span className="flex-1 text-[10px] uppercase tracking-wider text-muted-foreground/70">Specification</span>
+              <span className="w-8" />
+            </div>
             {terms.map((t, i) => (
               <div key={i} className="flex gap-2 items-start" role="group" aria-label={`Term ${i + 1}`}>
                 <input
                   type="text"
                   value={t.key}
                   onChange={e => setTerm(i, "key", e.target.value)}
-                  placeholder="Term (e.g. Enrichment cap)"
+                  placeholder="e.g. Uranium enrichment cap"
                   className="flex-1 px-2.5 py-1.5 rounded-lg bg-secondary/50 border border-border/50 text-xs focus:outline-none focus:ring-1 focus:ring-primary/50"
-                  aria-label={`Term ${i + 1} name`}
+                  aria-label={`Term ${i + 1} topic`}
                 />
                 <input
                   type="text"
                   value={t.value}
                   onChange={e => setTerm(i, "value", e.target.value)}
-                  placeholder="Value (e.g. 5%)"
+                  placeholder="e.g. Limited to 3.67% LEU"
                   className="flex-1 px-2.5 py-1.5 rounded-lg bg-secondary/50 border border-border/50 text-xs focus:outline-none focus:ring-1 focus:ring-primary/50"
-                  aria-label={`Term ${i + 1} value`}
+                  aria-label={`Term ${i + 1} specification`}
                 />
                 {terms.length > 1 && (
                   <button
