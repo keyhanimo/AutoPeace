@@ -1,6 +1,7 @@
 import { db } from "@workspace/db";
 import { stakeholdersTable, evidenceItemsTable } from "@workspace/db/schema";
-import { eq, desc, inArray } from "drizzle-orm";
+import { desc, isNull } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { callLLM } from "./llm-router";
 import { getModelConfig } from "./llm-router";
@@ -50,7 +51,7 @@ export async function updateStakeholderProfilesFromEvidence(
 ): Promise<{ updated: number; skipped: number }> {
   const cycleEvidence = await db.select()
     .from(evidenceItemsTable)
-    .where(eq(evidenceItemsTable.influencedCycleId, cycleId))
+    .where(isNull(evidenceItemsTable.influencedCycleId))
     .orderBy(desc(evidenceItemsTable.ingestedAt))
     .limit(80);
 
