@@ -15,6 +15,7 @@ async function statusPayload(s: CycleStatus) {
     isRunning: s.isRunning,
     cycleId: s.cycleId,
     stage: s.stage,
+    dealSubStage: s.dealSubStage,
     stageStartedAt: s.stageStartedAt,
     cycleStartedAt: s.cycleStartedAt,
     stagesCompleted: s.stagesCompleted,

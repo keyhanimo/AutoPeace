@@ -13,6 +13,19 @@ const STAGE_LABELS: Record<string, string> = {
   failed: "Failed",
 };
 
+const DEAL_SUB_LABELS: Record<string, string> = {
+  brainstorm: "Brainstorming",
+  proposal: "Drafting deal",
+  stakeholders: "Stakeholder eval",
+  domestic: "Domestic audience",
+  framing: "Narrative framing",
+  redteam: "Red-teaming",
+  negotiator: "Negotiating",
+  judge: "Scoring",
+  meta_eval: "Meta-evaluation",
+  diagnosis: "Diagnosing",
+};
+
 const PIPELINE_STAGES = [
   "evidence_ingestion",
   "proposal_extraction",
@@ -22,10 +35,24 @@ const PIPELINE_STAGES = [
   "deal_engine",
 ];
 
+const DEAL_SUB_STAGES = [
+  "brainstorm",
+  "proposal",
+  "stakeholders",
+  "domestic",
+  "framing",
+  "redteam",
+  "negotiator",
+  "judge",
+  "meta_eval",
+  "diagnosis",
+];
+
 type StatusData = {
   isRunning: boolean;
   cycleId: string | null;
   stage: string | null;
+  dealSubStage: string | null;
   stageStartedAt: number | null;
   cycleStartedAt: number | null;
   stagesCompleted: string[];
@@ -114,7 +141,7 @@ export function CycleStatusIndicator() {
     );
   }
 
-  const { isRunning, stage, stagesCompleted, nextRunAt } = data;
+  const { isRunning, stage, stagesCompleted, nextRunAt, dealSubStage } = data;
 
   if (!isRunning && stage !== "completed" && stage !== "failed") {
     if (nextRunAt !== null) {
@@ -186,9 +213,25 @@ export function CycleStatusIndicator() {
   }
 
   const completedSet = new Set(stagesCompleted);
-  const progress = Math.round((completedSet.size / PIPELINE_STAGES.length) * 100);
+  const isDealStage = stage === "deal_engine";
+
+  const totalSteps = PIPELINE_STAGES.length - 1 + DEAL_SUB_STAGES.length;
+  let completedSteps = 0;
+  for (const s of PIPELINE_STAGES) {
+    if (s === "deal_engine") break;
+    if (completedSet.has(s)) completedSteps++;
+  }
+  if (isDealStage && dealSubStage) {
+    const subIdx = DEAL_SUB_STAGES.indexOf(dealSubStage);
+    if (subIdx > 0) completedSteps += subIdx;
+  }
+  const progress = Math.round((completedSteps / totalSteps) * 100);
 
   const elapsed = data.cycleStartedAt ? now - data.cycleStartedAt : 0;
+
+  const currentLabel = isDealStage && dealSubStage
+    ? DEAL_SUB_LABELS[dealSubStage] ?? dealSubStage
+    : STAGE_LABELS[stage ?? ""] ?? stage ?? "Running";
 
   return (
     <div className="bg-primary/5 border border-primary/20 p-3 space-y-2">
@@ -203,12 +246,13 @@ export function CycleStatusIndicator() {
           <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
         </span>
         <p className="text-xs text-foreground font-medium truncate">
-          {STAGE_LABELS[stage ?? ""] ?? stage ?? "Running"}
+          {currentLabel}
         </p>
       </div>
 
       <div className="flex gap-0.5">
         {PIPELINE_STAGES.map((s) => {
+          if (s === "deal_engine") return null;
           const done = completedSet.has(s);
           const active = s === stage;
           return (
@@ -227,8 +271,37 @@ export function CycleStatusIndicator() {
         })}
       </div>
 
+      {(isDealStage || completedSet.has("deal_engine")) && (
+        <>
+          <p className="text-[9px] text-muted-foreground/70 uppercase tracking-wider font-semibold mt-1">Deal Engine</p>
+          <div className="flex gap-0.5">
+            {DEAL_SUB_STAGES.map((sub) => {
+              const subIdx = DEAL_SUB_STAGES.indexOf(sub);
+              const activeIdx = dealSubStage ? DEAL_SUB_STAGES.indexOf(dealSubStage) : -1;
+              const done = isDealStage ? subIdx < activeIdx : completedSet.has("deal_engine");
+              const active = isDealStage && sub === dealSubStage;
+              return (
+                <div
+                  key={sub}
+                  className={`h-1 flex-1 rounded-full transition-colors ${
+                    done
+                      ? "bg-amber-500"
+                      : active
+                        ? "bg-amber-500/50 animate-pulse"
+                        : "bg-muted-foreground/15"
+                  }`}
+                  title={DEAL_SUB_LABELS[sub] ?? sub}
+                />
+              );
+            })}
+          </div>
+        </>
+      )}
+
       <p className="text-[9px] text-muted-foreground">
-        {progress}% · Stage {completedSet.size + 1} of {PIPELINE_STAGES.length}
+        {progress}%{isDealStage && dealSubStage
+          ? ` · Deal ${DEAL_SUB_STAGES.indexOf(dealSubStage) + 1}/${DEAL_SUB_STAGES.length}`
+          : ""}
       </p>
     </div>
   );

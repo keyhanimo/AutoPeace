@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { EventEmitter } from "node:events";
 import { db } from "@workspace/db";
 import {
   cyclesTable,
@@ -11,6 +10,18 @@ import {
 } from "@workspace/db/schema";
 import { desc, eq, isNull } from "drizzle-orm";
 import { logger } from "../lib/logger";
+import {
+  setStage,
+  setRunningCycleId,
+  setCycleStartedAt,
+  resetCycleState,
+  setLastCycleError,
+  getCycleStatus,
+  cycleEvents,
+  type CycleStatus,
+  type CycleStage,
+  type DealSubStage,
+} from "../lib/cycle-status";
 import { generateForecasts, getRecentForecastsForBacktest, type GeneratedForecast } from "./forecasting";
 import { ingestAllSources } from "./evidence-ingestion";
 import { extractProposalsFromEvidence } from "./proposal-extractor";
@@ -31,62 +42,11 @@ function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promi
   ]);
 }
 
-let runningCycleId: string | null = null;
-
-export type CycleStage =
-  | "starting"
-  | "evidence_ingestion"
-  | "proposal_extraction"
-  | "forecasting"
-  | "red_team"
-  | "hill_climbing"
-  | "deal_engine"
-  | "changelog"
-  | "completed"
-  | "failed";
-
-export interface CycleStatus {
-  isRunning: boolean;
-  cycleId: string | null;
-  stage: CycleStage | null;
-  stageStartedAt: number | null;
-  cycleStartedAt: number | null;
-  stagesCompleted: string[];
-  lastError: string | null;
-}
-
-let currentStage: CycleStage | null = null;
-let stageStartedAt: number | null = null;
-let cycleStartedAt: number | null = null;
-let stagesCompleted: string[] = [];
-let lastCycleError: string | null = null;
-
-export const cycleEvents = new EventEmitter();
-cycleEvents.setMaxListeners(100);
-
-function setStage(stage: CycleStage) {
-  if (currentStage && currentStage !== "starting" && currentStage !== "failed" && currentStage !== "completed") {
-    stagesCompleted.push(currentStage);
-  }
-  currentStage = stage;
-  stageStartedAt = Date.now();
-  cycleEvents.emit("change", getCycleStatus());
-}
-
-export function getCycleStatus(): CycleStatus {
-  return {
-    isRunning: runningCycleId !== null,
-    cycleId: runningCycleId,
-    stage: currentStage,
-    stageStartedAt,
-    cycleStartedAt,
-    stagesCompleted: [...stagesCompleted],
-    lastError: lastCycleError,
-  };
-}
+export { getCycleStatus, cycleEvents } from "../lib/cycle-status";
+export type { CycleStatus, CycleStage, DealSubStage } from "../lib/cycle-status";
 
 export function isRunning() {
-  return runningCycleId !== null;
+  return getCycleStatus().isRunning;
 }
 
 export async function getNextRunAt(): Promise<number | null> {
@@ -131,15 +91,14 @@ export async function getNextRunAt(): Promise<number | null> {
 }
 
 export async function runCycleNow(): Promise<string> {
-  if (runningCycleId) return runningCycleId;
+  const current = getCycleStatus();
+  if (current.isRunning && current.cycleId) return current.cycleId;
 
   const cycleId = randomUUID();
-  runningCycleId = cycleId;
-  currentStage = "starting";
-  stageStartedAt = Date.now();
-  cycleStartedAt = Date.now();
-  stagesCompleted = [];
-  lastCycleError = null;
+  setRunningCycleId(cycleId);
+  setCycleStartedAt(Date.now());
+  resetCycleState();
+  setStage("starting");
 
   await db.insert(cyclesTable).values({
     id: cycleId,
@@ -166,7 +125,7 @@ async function runCycleAsync(cycleId: string): Promise<void> {
       logger.info({ cycleId }, "Cycle paused by admin config");
       await db.update(cyclesTable).set({ status: "completed", completedAt: new Date() }).where(eq(cyclesTable.id, cycleId));
       setStage("completed");
-      runningCycleId = null;
+      setRunningCycleId(null);
       return;
     }
 
@@ -287,7 +246,7 @@ async function runCycleAsync(cycleId: string): Promise<void> {
     setStage("completed");
   } catch (err) {
     logger.error({ err, cycleId }, "Autoresearch cycle error");
-    lastCycleError = String(err);
+    setLastCycleError(String(err));
     setStage("failed");
     await db.update(cyclesTable).set({
       status: "failed",
@@ -295,7 +254,7 @@ async function runCycleAsync(cycleId: string): Promise<void> {
       errorMessage: String(err),
     }).where(eq(cyclesTable.id, cycleId));
   } finally {
-    runningCycleId = null;
+    setRunningCycleId(null);
     cycleEvents.emit("change", getCycleStatus());
   }
 }
@@ -515,7 +474,7 @@ export async function startScheduler(): Promise<void> {
     const isPaused = await getConfigValue("isPaused", "false");
 
     if (isPaused === "true") return;
-    if (runningCycleId) return;
+    if (getCycleStatus().isRunning) return;
 
     const now = new Date();
     const hour = now.getUTCHours();

@@ -10,6 +10,7 @@ import {
   type DealScores,
   type MetaEvaluatorResult,
 } from "./deal-engine";
+import { setDealSubStage, type DealSubStage } from "../lib/cycle-status";
 import { getModelConfig } from "./llm-router";
 import { ingestAllSources } from "./evidence-ingestion";
 
@@ -292,7 +293,7 @@ async function runDealCycleAsync(cycleId: string): Promise<void> {
     }, "Using pipeline configuration");
 
     const modelConfig = await getModelConfig();
-    const evaluated = await runFullEvaluation(evidenceSummary, previousDiagnosis, chosenArch, modelConfig, pipelineOverrides);
+    const evaluated = await runFullEvaluation(evidenceSummary, previousDiagnosis, chosenArch, modelConfig, pipelineOverrides, setDealSubStage);
 
     const dealId = randomUUID();
     const isBetterThanCurrent = !currentBest?.scores ||
