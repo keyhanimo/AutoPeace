@@ -3,7 +3,7 @@ import { useState } from "react";
 import {
   Menu, X, Activity, BarChart2, DollarSign, FlaskConical, BookOpen,
   HelpCircle, Shield, ChevronRight, Handshake, Users, Swords,
-  Search, GitCompare, Send, Database, Code2, Eye,
+  Search, GitCompare, Send, Database, Code2, Eye, MoreHorizontal,
 } from "lucide-react";
 import { CycleStatusIndicator } from "./CycleStatusIndicator";
 
@@ -53,12 +53,21 @@ const NAV_GROUPS: NavGroup[] = [
 
 const ALL_NAV_ITEMS = NAV_GROUPS.flatMap(g => g.items);
 
+const BOTTOM_TABS = [
+  { href: "/", label: "Home", icon: Activity, exact: true },
+  { href: "/deals", label: "Deals", icon: Handshake },
+  { href: "/forecasts", label: "Forecasts", icon: BarChart2 },
+  { href: "/stakeholders", label: "Actors", icon: Users, exact: true },
+];
+
 export function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const isActive = (href: string, exact?: boolean) =>
     location.pathname === href || (!exact && href !== "/" && location.pathname.startsWith(href));
+
+  const isBottomTabActive = BOTTOM_TABS.some(t => isActive(t.href, t.exact));
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -119,7 +128,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </Link>
         <button
           onClick={() => setMobileOpen(v => !v)}
-          className="p-2 text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
+          className="p-2 text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors rounded-md"
           aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"}
           aria-expanded={mobileOpen}
         >
@@ -131,41 +140,75 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {mobileOpen && (
         <div className="lg:hidden fixed inset-0 z-40" role="dialog" aria-modal="true" aria-label="Navigation menu">
           <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
-          <nav className="absolute top-14 left-0 right-0 bg-card border-b border-border/50 p-3 space-y-3 max-h-[80vh] overflow-y-auto">
-            {NAV_GROUPS.map(group => (
-              <div key={group.label}>
-                <p className="text-[9px] font-semibold text-muted-foreground/60 uppercase tracking-widest px-3 mb-1">{group.label}</p>
-                <div className="space-y-0.5">
-                  {group.items.map(({ href, label, icon: Icon, exact }) => {
-                    const active = isActive(href, exact);
-                    return (
-                      <Link
-                        key={href}
-                        to={href}
-                        onClick={() => setMobileOpen(false)}
-                        className={`flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-colors relative
-                          ${active ? "text-primary bg-primary/5" : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"}`}
-                        aria-current={active ? "page" : undefined}
-                      >
-                        {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-r" />}
-                        <Icon className="w-4 h-4 flex-shrink-0" />
-                        {label}
-                      </Link>
-                    );
-                  })}
+          <nav className="absolute top-14 left-0 right-0 bottom-0 bg-card overflow-y-auto">
+            <div className="p-3 space-y-3 pb-24">
+              {NAV_GROUPS.map(group => (
+                <div key={group.label}>
+                  <p className="text-[9px] font-semibold text-muted-foreground/60 uppercase tracking-widest px-3 mb-1">{group.label}</p>
+                  <div className="space-y-0.5">
+                    {group.items.map(({ href, label, icon: Icon, exact }) => {
+                      const active = isActive(href, exact);
+                      return (
+                        <Link
+                          key={href}
+                          to={href}
+                          onClick={() => setMobileOpen(false)}
+                          className={`flex items-center gap-3 px-3 py-3 text-sm font-medium transition-colors relative
+                            ${active ? "text-primary bg-primary/5" : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"}`}
+                          aria-current={active ? "page" : undefined}
+                        >
+                          {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-r" />}
+                          <Icon className="w-4 h-4 flex-shrink-0" />
+                          {label}
+                        </Link>
+                      );
+                    })}
+                  </div>
                 </div>
+              ))}
+
+              <div className="px-3 pt-2">
+                <CycleStatusIndicator />
               </div>
-            ))}
+            </div>
           </nav>
         </div>
       )}
 
+      {/* Mobile Bottom Tab Bar */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-card/95 backdrop-blur-md border-t border-border/50 z-50 flex items-stretch safe-bottom" aria-label="Quick navigation">
+        {BOTTOM_TABS.map(({ href, label, icon: Icon, exact }) => {
+          const active = isActive(href, exact);
+          return (
+            <Link
+              key={href}
+              to={href}
+              className={`flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors
+                ${active ? "text-primary" : "text-muted-foreground"}`}
+              aria-current={active ? "page" : undefined}
+            >
+              <Icon className={`w-5 h-5 ${active ? "text-primary" : ""}`} />
+              <span>{label}</span>
+            </Link>
+          );
+        })}
+        <button
+          onClick={() => setMobileOpen(v => !v)}
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors
+            ${mobileOpen || !isBottomTabActive ? "text-primary" : "text-muted-foreground"}`}
+          aria-label="More navigation options"
+        >
+          <MoreHorizontal className="w-5 h-5" />
+          <span>More</span>
+        </button>
+      </nav>
+
       {/* Main Content */}
       <main className="flex-1 lg:ml-60 min-h-screen flex flex-col">
-        <div className="flex-1 px-4 py-6 lg:px-8 lg:py-8 pt-6 lg:pt-6 max-w-6xl mx-auto w-full">
+        <div className="flex-1 px-4 py-6 lg:px-8 lg:py-8 pt-20 lg:pt-6 pb-24 lg:pb-6 max-w-6xl mx-auto w-full">
           {children}
         </div>
-        <footer className="lg:ml-0 border-t border-border/30 px-6 py-4 text-xs text-muted-foreground flex flex-wrap gap-4 items-center justify-between bg-card/30">
+        <footer className="hidden lg:flex lg:ml-0 border-t border-border/30 px-6 py-4 text-xs text-muted-foreground flex-wrap gap-4 items-center justify-between bg-card/30">
           <span>AutoPeace — AI-powered conflict research · For educational and research use only</span>
           <div className="flex gap-4">
             <Link to="/methodology" className="hover:text-primary transition-colors">Methodology</Link>
