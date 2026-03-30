@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { experimentsTable, cyclesTable } from "@workspace/db/schema";
-import { eq, desc, and, count, sum } from "drizzle-orm";
+import { experimentsTable, cyclesTable, forecastsTable } from "@workspace/db/schema";
+import { eq, desc, and, count, sum, isNotNull } from "drizzle-orm";
 import { ListExperimentsResponse, GetExperimentStatsResponse } from "@workspace/api-zod";
 import { sendValidated } from "../lib/validate-response";
 
@@ -52,6 +52,12 @@ router.get("/experiments/stats", async (_req, res) => {
     const [cyclesRun] = await db.select({ count: count() }).from(cyclesTable)
       .where(eq(cyclesTable.status, "completed"));
 
+    const [latestBrier] = await db.select({ brierScore: forecastsTable.brierScore })
+      .from(forecastsTable)
+      .where(isNotNull(forecastsTable.brierScore))
+      .orderBy(desc(forecastsTable.createdAt))
+      .limit(1);
+
     const total = allStats?.total ?? 0;
     const retained = retainedStats?.retained ?? 0;
 
@@ -61,7 +67,7 @@ router.get("/experiments/stats", async (_req, res) => {
       retentionRate: total > 0 ? retained / total : 0,
       totalCostUsd: 0,
       totalTokensConsumed: Number(allStats?.totalTokens ?? 0),
-      latestBrierScore: null,
+      latestBrierScore: latestBrier?.brierScore ?? null,
       cyclesRun: cyclesRun?.count ?? 0,
     });
   } catch (err) {
