@@ -221,6 +221,11 @@ async function loadStakeholderRegistryFromDB(): Promise<StakeholderEntry[]> {
     profile: r.profileSummary || r.goals,
     tier: (validTiers.includes(r.tier as AcceptanceTier) ? r.tier : "contextual") as AcceptanceTier,
   }));
+  const loadedIds = new Set(rows.map(r => r.id));
+  const missingIds = PIPELINE_STAKEHOLDER_IDS.filter(id => !loadedIds.has(id));
+  if (missingIds.length > 0) {
+    logger.warn({ missingIds, expected: PIPELINE_STAKEHOLDER_IDS.length, loaded: rows.length }, "Stakeholder registry missing expected IDs");
+  }
   logger.info({ count: STAKEHOLDER_REGISTRY.length }, "Loaded stakeholder registry from DB");
   return STAKEHOLDER_REGISTRY;
 }
