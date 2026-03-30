@@ -350,7 +350,7 @@ export default function AdminPanel() {
                   <option value="weekly">Weekly — run Mondays at 6:00 AM UTC</option>
                   <option value="manual">Manual Only — no automatic updates</option>
                 </select>
-                <p className="text-[10px] text-muted-foreground leading-relaxed">Controls how often the autoresearch pipeline runs: ingests new evidence from RSS/ACLED/GDELT, updates forecasts via multi-model pipeline, and refreshes deal evaluations. All data on the platform updates with each cycle.</p>
+                <p className="text-[10px] text-muted-foreground leading-relaxed">Controls how often the full autoresearch pipeline runs: ingests new evidence from RSS/ACLED/GDELT, updates forecasts via multi-model pipeline, optimizes deal proposals via the deal engine, and refreshes what-if scenarios. All data on the platform updates with each cycle.</p>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-muted-foreground">Budget Cap (USD)</label>

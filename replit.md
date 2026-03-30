@@ -132,7 +132,8 @@ All 10 data-displaying pages have peer-reviewed academic-standard sourcing:
 - Hourly cron scheduler reads cadence from admin config (`getConfigValue("cadence", "daily")`)
 - Cadence options: hourly (every tick), daily (06:00 UTC), weekly (Monday 06:00 UTC), manual (no auto-run)
 - Admin panel dropdown (`AdminPanel.tsx`) shows descriptive labels with helper text explaining the pipeline
-- Pipeline: RSS/ACLED/GDELT ingestion → multi-model forecasting → deal evaluation refresh
+- Full pipeline per cycle: RSS/ACLED/GDELT ingestion → proposal extraction → multi-model forecasting → hill-climbing optimization → what-if scenarios → **deal engine optimization** (generates & evaluates new deal via solution tree, updates Pareto frontier)
+- Deal cycle runs as final step of each autoresearch cycle (non-critical — if it fails, forecasts are still saved)
 
 ## Phase 3 — Interactive Explorer & Community
 

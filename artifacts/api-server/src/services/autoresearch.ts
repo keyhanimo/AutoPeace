@@ -14,6 +14,7 @@ import { computeAndStoreWhatIfScenarios } from "./what-if-scenarios";
 import { generateForecasts, getRecentForecastsForBacktest, type GeneratedForecast } from "./forecasting";
 import { ingestAllSources } from "./evidence-ingestion";
 import { extractProposalsFromEvidence } from "./proposal-extractor";
+import { runDealCycleNow, isDealCycleRunning } from "./deal-autoresearch";
 import {
   parseLLMJson,
   computeBrierScore,
@@ -199,6 +200,18 @@ async function runCycleAsync(cycleId: string): Promise<void> {
       logger.info({ cycleId }, "What-if scenario variants updated");
     } catch (scenarioErr) {
       logger.warn({ err: scenarioErr }, "What-if scenario update failed (non-critical)");
+    }
+
+    try {
+      if (isDealCycleRunning()) {
+        logger.info({ cycleId }, "Deal cycle already running — skipping deal optimization this cycle");
+      } else {
+        logger.info({ cycleId }, "Starting deal optimization as part of autoresearch cycle");
+        const dealCycleId = await runDealCycleNow();
+        logger.info({ cycleId, dealCycleId }, "Deal optimization triggered successfully");
+      }
+    } catch (dealErr) {
+      logger.warn({ err: dealErr, cycleId }, "Deal optimization failed (non-critical — forecasts still updated)");
     }
   } catch (err) {
     logger.error({ err, cycleId }, "Autoresearch cycle error");
