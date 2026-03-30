@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { useGetCurrentDeal, useGetParetoDeals, useListDeals, useGetSolutionTree, type Deal, type DealScores } from "@workspace/api-client-react";
+import { useGetCurrentDeal, useGetParetoDeals, useListDeals, type Deal, type DealScores } from "@workspace/api-client-react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, PageHeader, Badge } from "@/components/ui";
 import {
@@ -173,48 +173,6 @@ function StakeholderMap({ evaluations, lensId }: { evaluations: Record<string, {
   );
 }
 
-function SolutionTreeView({ nodes }: { nodes: Array<{ id: string; architecture: string; depth: number; isStalled: boolean; isBestInBranch: boolean; compositeScore?: string | null; branchLabel: string }> }) {
-  const byDepth = useMemo(() => {
-    const groups: Record<number, typeof nodes> = {};
-    for (const n of nodes) {
-      if (!groups[n.depth]) groups[n.depth] = [];
-      groups[n.depth]!.push(n);
-    }
-    return groups;
-  }, [nodes]);
-
-  if (nodes.length === 0) {
-    return <p className="text-xs text-muted-foreground text-center py-8">No solution tree nodes yet. Run a deal cycle to start exploring.</p>;
-  }
-
-  return (
-    <div className="space-y-4 overflow-x-auto">
-      {Object.entries(byDepth).map(([depth, depthNodes]) => (
-        <div key={depth} className="flex gap-2 items-start">
-          <div className="w-8 text-xs text-muted-foreground shrink-0 text-right pt-2">L{depth}</div>
-          <div className="flex gap-2 flex-wrap flex-1">
-            {depthNodes.map(node => (
-              <div
-                key={node.id}
-                className={`p-2 rounded-lg border text-xs min-w-[120px] ${node.isStalled ? "border-red-800/40 bg-red-950/10 opacity-60" : node.isBestInBranch ? "border-emerald-600/50 bg-emerald-950/20" : "border-border bg-card"}`}
-              >
-                <div className="font-mono font-bold capitalize text-xs" style={{ color: ARCHITECTURE_COLORS[node.architecture] ?? "#94a3b8" }}>
-                  {node.architecture}
-                </div>
-                <div className="text-foreground mt-0.5">{node.branchLabel}</div>
-                {node.compositeScore && (
-                  <div className="text-muted-foreground text-xs mt-1">Score: {node.compositeScore}</div>
-                )}
-                {node.isStalled && <div className="text-red-400 text-xs">⚠ Stalled</div>}
-                {node.isBestInBranch && <div className="text-emerald-400 text-xs">★ Best</div>}
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 type WhatIfImpact = {
   proposalId: string;
@@ -634,9 +592,7 @@ export default function DealDashboard() {
   const { data: currentDeal, isLoading: currentLoading, isError: currentError } = useGetCurrentDeal();
   const { data: paretoRes } = useGetParetoDeals();
   const { data: historyRes } = useListDeals({ limit: 30 });
-  const { data: treeRes } = useGetSolutionTree();
-
-  const [activeTab, setActiveTab] = useState<"current" | "comparison" | "pareto" | "tree" | "history">("current");
+  const [activeTab, setActiveTab] = useState<"current" | "comparison" | "pareto" | "history">("current");
   const [selectedHistoryDeal, setSelectedHistoryDeal] = useState<Deal | null>(null);
 
   const scores = currentDeal?.scores as DealScores | null ?? null;
@@ -659,13 +615,11 @@ export default function DealDashboard() {
   }, [historyDeals]);
 
   const paretoDeals = paretoRes?.data ?? [];
-  const treeNodes = treeRes?.nodes ?? [];
 
   const TABS = [
     { key: "current", label: "Current Champion" },
     { key: "comparison", label: "Comparison" },
     { key: "pareto", label: "Pareto" },
-    { key: "tree", label: "Solution Tree" },
     { key: "history", label: "History" },
   ] as const;
 
@@ -886,18 +840,6 @@ export default function DealDashboard() {
             )}
           </Card>
         </div>
-      )}
-
-      {activeTab === "tree" && (
-        <Card className="p-6">
-          <h3 className="text-lg font-bold mb-2 flex items-center gap-2">
-            <GitBranch className="w-4 h-4 text-primary" /> Solution Tree Explorer
-          </h3>
-          <p className="text-xs text-muted-foreground mb-4">
-            Each deal cycle explores a branch of the solution space. Levels show iterative refinement depth. Green = best score in that branch, red = stalled (no improvement possible).
-          </p>
-          <SolutionTreeView nodes={treeNodes} />
-        </Card>
       )}
 
       {activeTab === "history" && (
