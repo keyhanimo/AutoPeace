@@ -85,8 +85,21 @@ const getStakeholderTier = (id: string) => ACCEPTANCE_TIERS[id] ?? { label: "Con
 
 const TIER_ORDER: Record<string, number> = { Required: 0, Critical: 1, Influential: 2, Contextual: 3 };
 
+const VERDICT_ICONS: Record<string, React.ReactNode> = {
+  accept: <CheckCircle2 className="w-3 h-3 shrink-0" />,
+  conditional: <AlertTriangle className="w-3 h-3 shrink-0" />,
+  reject: <XCircle className="w-3 h-3 shrink-0" />,
+};
+
+const VERDICT_COLORS: Record<string, string> = {
+  accept: "text-emerald-400 border-emerald-500/50 bg-emerald-950/20",
+  conditional: "text-amber-400 border-amber-500/50 bg-amber-950/20",
+  reject: "text-red-400 border-red-500/50 bg-red-950/20",
+};
+
 function StakeholderMap({ evaluations, lensId }: { evaluations: Record<string, { verdict: string; rationale: string }>; lensId?: string }) {
-  const [selected, setSelected] = useState<string | null>(null);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   const entries = Object.entries(evaluations);
   const accepts = entries.filter(([, e]) => e.verdict === "accept").length;
@@ -100,6 +113,17 @@ function StakeholderMap({ evaluations, lensId }: { evaluations: Record<string, {
         const tb = TIER_ORDER[getStakeholderTier(b[0]).label] ?? 3;
         return ta - tb;
       });
+
+  const isExpanded = (id: string) => expandedIds.has(id) || hoveredId === id;
+
+  const toggleExpanded = (id: string) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   return (
     <div className="space-y-4">
@@ -122,36 +146,29 @@ function StakeholderMap({ evaluations, lensId }: { evaluations: Record<string, {
       )}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
         {displayedEntries.map(([id, evaluation]) => {
-          const isSelected = selected === id;
           const isLens = lensId === id;
           const tier = getStakeholderTier(id);
-          const color = evaluation.verdict === "accept" ? "border-emerald-500/50 bg-emerald-950/20" :
-            evaluation.verdict === "reject" ? "border-red-500/50 bg-red-950/20" :
-              "border-amber-500/50 bg-amber-950/20";
-          const textColor = evaluation.verdict === "accept" ? "text-emerald-400" :
-            evaluation.verdict === "reject" ? "text-red-400" : "text-amber-400";
+          const cardColor = VERDICT_COLORS[evaluation.verdict] ?? "text-muted-foreground border-border bg-card";
+          const expanded = isExpanded(id);
 
           return (
             <button
               key={id}
-              onClick={() => setSelected(isSelected ? null : id)}
-              className={`p-3 rounded-lg border text-left transition-all ${color} ${isSelected || isLens ? "ring-1 ring-primary" : ""}`}
+              onClick={() => toggleExpanded(id)}
+              onMouseEnter={() => setHoveredId(id)}
+              onMouseLeave={() => setHoveredId(null)}
+              className={`p-2 rounded-lg border text-left transition-all cursor-pointer ${cardColor} ${isLens ? "ring-1 ring-primary" : ""}`}
             >
-              <div className="flex items-center justify-between gap-1">
-                <div className="text-xs font-mono font-bold capitalize text-foreground truncate">{id.replace(/[_-]/g, " ")}</div>
-                <span className={`text-[8px] px-1 py-0.5 rounded border ${tier.color} font-semibold shrink-0`}>{tier.label}</span>
+              <div className="flex items-center gap-1 mb-1">
+                {VERDICT_ICONS[evaluation.verdict]}
+                <span className="font-mono font-bold capitalize truncate text-xs">{id.replace(/[_-]/g, " ")}</span>
+                <span className={`text-[7px] px-1 py-0.5 rounded border ${tier.color} font-semibold shrink-0 ml-auto`}>{tier.label}</span>
               </div>
-              <div className={`text-[10px] ${textColor} font-medium capitalize mt-1`}>{evaluation.verdict}</div>
+              <p className={`text-[10px] text-muted-foreground ${expanded ? "" : "line-clamp-2"}`}>{evaluation.rationale}</p>
             </button>
           );
         })}
       </div>
-      {(selected ?? lensId) && evaluations[(selected ?? lensId)!] && (
-        <Card className="p-4 border-primary/30">
-          <h4 className="text-sm font-bold capitalize mb-2">{(selected ?? lensId)!.replace(/[_-]/g, " ")}</h4>
-          <p className="text-xs text-muted-foreground">{evaluations[(selected ?? lensId)!]?.rationale}</p>
-        </Card>
-      )}
     </div>
   );
 }

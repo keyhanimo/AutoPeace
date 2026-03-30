@@ -95,6 +95,10 @@ function ProposalCard({
   const terms = proposal.terms as Record<string, unknown>;
   const knownResponses = (proposal.knownResponses ?? {}) as Record<string, string>;
   const whatWouldItTake = (proposal.whatWouldItTake ?? []) as Array<{ dimension: string; currentGap: string; requiredChange: string; feasibility: string }>;
+  const [expandedReactionIds, setExpandedReactionIds] = useState<Set<string>>(new Set());
+  const [hoveredReactionId, setHoveredReactionId] = useState<string | null>(null);
+  const isReactionExpanded = (id: string) => expandedReactionIds.has(id) || hoveredReactionId === id;
+  const toggleReaction = (id: string) => setExpandedReactionIds(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
 
   const radarData = SCORE_DIMENSIONS.map(d => ({
     dimension: d.label,
@@ -229,18 +233,22 @@ function ProposalCard({
                       .sort((a, b) => (TIER_ORDER[getStakeholderTier(a[0]).label] ?? 3) - (TIER_ORDER[getStakeholderTier(b[0]).label] ?? 3))
                       .map(([id, ev]) => {
                         const tier = getStakeholderTier(id);
+                        const expanded = isReactionExpanded(id);
                         return (
-                          <div
+                          <button
                             key={id}
-                            className={`p-2 rounded-lg border text-xs ${VERDICT_COLORS[ev.verdict] ?? ""}`}
+                            onClick={() => toggleReaction(id)}
+                            onMouseEnter={() => setHoveredReactionId(id)}
+                            onMouseLeave={() => setHoveredReactionId(null)}
+                            className={`p-2 rounded-lg border text-xs text-left cursor-pointer transition-all ${VERDICT_COLORS[ev.verdict] ?? ""}`}
                           >
                             <div className="flex items-center gap-1 mb-1">
                               {VERDICT_ICONS[ev.verdict]}
                               <span className="font-mono font-bold capitalize truncate">{id.replace(/[_-]/g, " ")}</span>
                               <span className={`text-[7px] px-1 py-0.5 rounded border ${tier.color} font-semibold shrink-0 ml-auto`}>{tier.label}</span>
                             </div>
-                            <p className="text-[10px] text-muted-foreground line-clamp-2">{ev.rationale}</p>
-                          </div>
+                            <p className={`text-[10px] text-muted-foreground ${expanded ? "" : "line-clamp-2"}`}>{ev.rationale}</p>
+                          </button>
                         );
                       })}
                   </div>
@@ -304,6 +312,10 @@ function AiDealCard({
   const domesticFraming = ((deal as Record<string, unknown>).domesticFramingStrategies ?? {}) as Record<string, { audience: string; framingNarrative: string; keyTalkingPoints: string[]; historicalAnalogy?: string; riskOfBackfire: string }>;
   const brainstormInsights = (deal as Record<string, unknown>).brainstormInsights as { historicalAnalogies: Array<{ dealName: string; relevantLesson: string; applicability: string }>; creativeProvisions: Array<{ idea: string; rationale: string; noveltyLevel: string }>; crossIssueLinkages: Array<{ linkage: string; stakeholdersHelped: string[] }>; unconventionalApproaches: string[] } | null;
   const innovativeProvisions = Array.isArray(terms.innovativeProvisions) ? terms.innovativeProvisions as Array<{ title: string; description: string; rationale: string }> : [];
+  const [expandedReactionIds, setExpandedReactionIds] = useState<Set<string>>(new Set());
+  const [hoveredReactionId, setHoveredReactionId] = useState<string | null>(null);
+  const isReactionExpanded = (id: string) => expandedReactionIds.has(id) || hoveredReactionId === id;
+  const toggleReaction = (id: string) => setExpandedReactionIds(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
 
   return (
     <Card className="overflow-hidden border-primary/30">
@@ -419,18 +431,22 @@ function AiDealCard({
                       .sort((a, b) => (TIER_ORDER[getStakeholderTier(a[0]).label] ?? 3) - (TIER_ORDER[getStakeholderTier(b[0]).label] ?? 3))
                       .map(([id, ev]) => {
                         const tier = getStakeholderTier(id);
+                        const expanded = isReactionExpanded(id);
                         return (
-                          <div
+                          <button
                             key={id}
-                            className={`p-2 rounded-lg border text-xs ${VERDICT_COLORS[ev.verdict] ?? ""}`}
+                            onClick={() => toggleReaction(id)}
+                            onMouseEnter={() => setHoveredReactionId(id)}
+                            onMouseLeave={() => setHoveredReactionId(null)}
+                            className={`p-2 rounded-lg border text-xs text-left cursor-pointer transition-all ${VERDICT_COLORS[ev.verdict] ?? ""}`}
                           >
                             <div className="flex items-center gap-1 mb-1">
                               {VERDICT_ICONS[ev.verdict]}
                               <span className="font-mono font-bold capitalize truncate">{id.replace(/[_-]/g, " ")}</span>
                               <span className={`text-[7px] px-1 py-0.5 rounded border ${tier.color} font-semibold shrink-0 ml-auto`}>{tier.label}</span>
                             </div>
-                            <p className="text-[10px] text-muted-foreground line-clamp-2">{ev.rationale}</p>
-                          </div>
+                            <p className={`text-[10px] text-muted-foreground ${expanded ? "" : "line-clamp-2"}`}>{ev.rationale}</p>
+                          </button>
                         );
                       })}
                   </div>
