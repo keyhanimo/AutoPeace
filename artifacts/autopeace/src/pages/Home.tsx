@@ -287,46 +287,6 @@ export default function Home() {
         </Card>
       </section>
 
-      <p className="text-xs text-muted-foreground/60 text-center -mt-2 italic">
-        Pipeline metrics are computed from the autoresearch cycle log. Brier scores measure probabilistic calibration (0 = perfect forecast, 1 = worst). Retention rate reflects the fraction of prompt mutations that improved backtested accuracy.
-      </p>
-
-      <section>
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold font-display uppercase tracking-tight">Intelligence Pipeline</h2>
-          <p className="text-muted-foreground mt-1">How AutoPeace turns global noise into calibrated signal.</p>
-        </div>
-        <div className="grid md:grid-cols-3 gap-6 relative">
-          <div className="hidden md:block absolute top-12 left-[10%] right-[10%] h-px bg-gradient-to-r from-border via-primary/50 to-border" />
-          <Card className="p-8 relative rounded-sm">
-            <div className="w-10 h-10 border border-primary flex items-center justify-center mb-6 bg-primary/5">
-              <span className="font-bold text-lg text-primary font-mono">1</span>
-            </div>
-            <h3 className="text-xl font-bold mb-3 uppercase tracking-tight">Evidence Ingestion</h3>
-            <p className="text-muted-foreground text-sm">
-              We continuously scrape ACLED, GDELT, and global news feeds, filtering for relevance to 32 key stakeholders in the Iran conflict theater.
-            </p>
-          </Card>
-          <Card className="p-8 relative rounded-sm">
-            <div className="w-10 h-10 border border-primary flex items-center justify-center mb-6 bg-primary/5">
-              <span className="font-bold text-lg text-primary font-mono">2</span>
-            </div>
-            <h3 className="text-xl font-bold mb-3 uppercase tracking-tight">Cross-Model Red Teaming</h3>
-            <p className="text-muted-foreground text-sm">
-              Anthropic generates initial Bayesian forecasts. Gemini aggressively critiques them. OpenAI evaluates the critique. The forecast updates.
-            </p>
-          </Card>
-          <Card className="p-8 relative rounded-sm">
-            <div className="w-10 h-10 border border-primary flex items-center justify-center mb-6 bg-primary/5">
-              <span className="font-bold text-lg text-primary font-mono">3</span>
-            </div>
-            <h3 className="text-xl font-bold mb-3 uppercase tracking-tight">Evolution & Scoring</h3>
-            <p className="text-muted-foreground text-sm">
-              The agent mutates its own prompt instructions. If a mutated prompt produces better backtested Brier scores, the new prompt is retained forever.
-            </p>
-          </Card>
-        </div>
-      </section>
     </div>
   );
 }
