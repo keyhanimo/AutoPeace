@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from "react";
 import { useGetCurrentDeal, useGetParetoDeals, useListDeals, type Deal, type DealScores } from "@workspace/api-client-react";
-import { useQuery } from "@tanstack/react-query";
 import { Card, PageHeader, Badge } from "@/components/ui";
 import {
   RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer, Tooltip,
@@ -8,8 +7,8 @@ import {
 } from "recharts";
 import { AlertCircle, Shield, Zap, Globe, Heart, TrendingUp, CheckCircle2, XCircle, AlertTriangle, GitBranch } from "lucide-react";
 import { motion } from "framer-motion";
-import { DataSourceNote } from "@/components/DataSourceNote";
 import { ScoreBreakdownPanel, type ExtendedScores } from "@/components/ScoreBreakdownPanel";
+
 function getBaseUrl() {
   return window.location.origin + import.meta.env.BASE_URL.replace(/\/$/, "");
 }
@@ -174,103 +173,6 @@ function StakeholderMap({ evaluations, lensId }: { evaluations: Record<string, {
 }
 
 
-type WhatIfImpact = {
-  proposalId: string;
-  proposalName: string;
-  viabilityDelta: number;
-  projectedComposite: number;
-  favorabilityNote: string;
-};
-
-type WhatIfScenario = {
-  id: string;
-  name: string;
-  description: string;
-  triggerCondition: string;
-  proposalImpacts?: WhatIfImpact[];
-};
-
-function DealWhatIfPanel(_props: { currentDealName?: string }) {
-  const { data, isLoading } = useQuery<{ data: WhatIfScenario[] }>({
-    queryKey: ["scenarios"],
-    queryFn: async () => {
-      const res = await fetch(`${getBaseUrl()}/api/scenarios`);
-      if (!res.ok) throw new Error("Failed");
-      return res.json();
-    },
-    staleTime: 60_000,
-  });
-
-  const scenarios = data?.data ?? [];
-
-  if (isLoading) {
-    return (
-      <Card className="p-5">
-        <div className="h-4 bg-muted rounded animate-pulse w-48 mb-3" />
-        <div className="space-y-2">
-          {[1, 2, 3].map(i => <div key={i} className="h-3 bg-muted rounded animate-pulse" />)}
-        </div>
-      </Card>
-    );
-  }
-
-  if (scenarios.length === 0) return null;
-
-  return (
-    <Card className="p-5 space-y-4">
-      <div>
-        <h3 className="font-semibold text-sm flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 text-amber-500" />
-          Scenario Analysis: Deal Viability Impact
-        </h3>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          How hypothetical geopolitical shifts would affect each proposal's viability score. Delta shows change in composite score (percentage points).
-        </p>
-      </div>
-
-      <div className="space-y-4">
-        {scenarios.map(scenario => {
-          const impacts = scenario.proposalImpacts ?? [];
-          return (
-            <div key={scenario.id} className="border border-border/40 rounded-lg p-4 space-y-2">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <h4 className="text-sm font-bold text-foreground">{scenario.name}</h4>
-                  <p className="text-xs text-muted-foreground">{scenario.description}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5"><span className="font-semibold">Trigger:</span> {scenario.triggerCondition}</p>
-                </div>
-              </div>
-
-              {impacts.length > 0 && (
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-2">
-                  {impacts
-                    .sort((a, b) => b.viabilityDelta - a.viabilityDelta)
-                    .map(impact => (
-                      <div
-                        key={impact.proposalId}
-                        className="flex items-center justify-between p-2 rounded border border-border/40 text-xs"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{impact.proposalName}</p>
-                          <p className="text-xs text-muted-foreground">{impact.favorabilityNote}</p>
-                        </div>
-                        <div className="text-right shrink-0 ml-3">
-                          <p className={`font-bold ${impact.viabilityDelta > 0 ? "text-green-500" : impact.viabilityDelta < 0 ? "text-red-500" : "text-muted-foreground"}`}>
-                            {impact.viabilityDelta > 0 ? "+" : ""}{(impact.viabilityDelta * 100).toFixed(0)}pp
-                          </p>
-                          <p className="text-xs text-muted-foreground">{(impact.projectedComposite * 100).toFixed(0)}% projected</p>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </Card>
-  );
-}
 
 function DealDetailView({ deal, isHistorical }: { deal: Deal; isHistorical?: boolean }) {
   const scores = deal.scores as ExtendedScores | null;
@@ -931,26 +833,6 @@ export default function DealDashboard() {
         </div>
       )}
 
-      <DealWhatIfPanel currentDealName={currentDeal.id} />
-
-      <DataSourceNote
-        title="Deal Engine Methodology & Sources"
-        methodology="Deals are generated by an 8-stage multi-agent pipeline: (1) Proposal Agent generates deal terms with binding commitments, (2) Stakeholder Evaluator assesses 23 actors across 4 tiers (Required/Critical/Influential/Contextual), (3) Domestic Audiences evaluates political sellability in Iran/US/Israel, (4) Red-Team Agent simulates attack scenarios at varying severity, (5) Negotiator proposes targeted amendments for rejectors, (6) Judge Panel (3 independent LLMs) scores 7 dimensions, (7) Meta-Evaluator reviews pipeline reasoning, (8) Diagnosis Generator explains deal weaknesses. Composite score = weighted average: Feasibility 20% + Domestic 20% + Coherence 15% + Regional 15% + Evidence 10% + Implementability 10% + Durability 10%. Scores above 65% = Viable, 45-65% = Marginal, below 45% = Weak."
-        sources={[
-          { label: "Generation", detail: "Anthropic Claude (deal design + negotiation)" },
-          { label: "Evaluation", detail: "OpenAI GPT-4o (stakeholder verdicts + scoring)" },
-          { label: "Adversarial", detail: "Google Gemini (red-team attacks + diagnosis)" },
-          { label: "Judge panel", detail: "All 3 models score independently; final = arithmetic mean" },
-        ]}
-        confidenceNote="Multi-model scoring reduces single-model bias. Standard deviation across judges flags contentious dimensions. Tiered acceptance hierarchy ensures Iran+US rejection is treated as deal-breaking."
-        limitations={[
-          "AI-simulated negotiations — no ground-truth diplomatic data validates these scores.",
-          "Stakeholder acceptance is modeled from documented positions and red lines, not direct consultation.",
-          "Red-team scenarios are adversarial thought experiments, not intelligence assessments.",
-        ]}
-        lastUpdated={currentDeal.createdAt}
-        updateFrequency="Each deal cycle (triggered manually or by scheduler)"
-      />
     </div>
   );
 }
