@@ -8,9 +8,21 @@ const app: Express = express();
 
 app.set("trust proxy", 1);
 
+const QUIET_ROUTES = new Set([
+  "/api/admin/cycle-status",
+  "/api/health",
+  "/api/admin/config",
+]);
+
 app.use(
   pinoHttp({
     logger,
+    autoLogging: {
+      ignore(req) {
+        const url = (req.url ?? "").split("?")[0];
+        return QUIET_ROUTES.has(url);
+      },
+    },
     serializers: {
       req(req) {
         return {
