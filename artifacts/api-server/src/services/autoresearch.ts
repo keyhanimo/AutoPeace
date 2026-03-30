@@ -24,6 +24,13 @@ import {
 } from "./scoring";
 import { callLLM, getModelConfig, getConfigValue } from "./llm-router";
 
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error(message)), ms)),
+  ]);
+}
+
 let runningCycleId: string | null = null;
 
 export type CycleStage =
@@ -223,10 +230,10 @@ async function runCycleAsync(cycleId: string): Promise<void> {
 
     setStage("what_if_scenarios");
     try {
-      await computeAndStoreWhatIfScenarios(cycleId);
+      await withTimeout(computeAndStoreWhatIfScenarios(cycleId), 120_000, "What-if scenario computation timed out after 2 minutes");
       logger.info({ cycleId }, "What-if scenario variants updated");
     } catch (scenarioErr) {
-      logger.warn({ err: scenarioErr }, "What-if scenario update failed (non-critical)");
+      logger.warn({ err: scenarioErr, cycleId }, "What-if scenario update failed (non-critical)");
     }
 
     setStage("deal_engine");
@@ -235,7 +242,7 @@ async function runCycleAsync(cycleId: string): Promise<void> {
         logger.info({ cycleId }, "Deal cycle already running — skipping deal optimization this cycle");
       } else {
         logger.info({ cycleId }, "Starting deal optimization as part of autoresearch cycle");
-        const dealCycleId = await runDealCycleNow();
+        const dealCycleId = await withTimeout(runDealCycleNow(), 300_000, "Deal engine timed out after 5 minutes");
         logger.info({ cycleId, dealCycleId }, "Deal optimization triggered successfully");
       }
     } catch (dealErr) {
