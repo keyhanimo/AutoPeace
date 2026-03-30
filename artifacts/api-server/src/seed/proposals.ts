@@ -1,41 +1,13 @@
 import { db } from "@workspace/db";
-import { proposalsTable, adminConfigTable } from "@workspace/db/schema";
+import { proposalsTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import {
   evaluateStakeholders,
   judgeAndScore,
   computeWhatWouldItTake,
-  type ModelConfig,
 } from "../services/deal-engine";
-
-async function getSeedModelConfig(): Promise<ModelConfig> {
-  try {
-    const rows = await db.select().from(adminConfigTable);
-    const cfg = Object.fromEntries(rows.map(r => [r.key, r.value]));
-    const anthropicModel = cfg["anthropicModel"] ?? "claude-opus-4-6";
-    const openaiModel = cfg["openaiModel"] ?? "gpt-5.2";
-    const geminiModel = cfg["geminiModel"] ?? "gemini-3.1-pro-preview";
-    return {
-      anthropicModel,
-      openaiModel,
-      geminiModel,
-      generationProvider: (cfg["generationProvider"] ?? "anthropic") as "anthropic" | "openai" | "gemini",
-      generationModel: cfg["generationModel"] ?? anthropicModel,
-      evaluationProvider: (cfg["evaluationProvider"] ?? "openai") as "anthropic" | "openai" | "gemini",
-      evaluationModel: cfg["evaluationModel"] ?? openaiModel,
-      adversarialProvider: (cfg["adversarialProvider"] ?? "gemini") as "anthropic" | "openai" | "gemini",
-      adversarialModel: cfg["adversarialModel"] ?? geminiModel,
-    };
-  } catch {
-    return {
-      anthropicModel: "claude-opus-4-6", openaiModel: "gpt-5.2", geminiModel: "gemini-3.1-pro-preview",
-      generationProvider: "anthropic", generationModel: "claude-opus-4-6",
-      evaluationProvider: "openai", evaluationModel: "gpt-5.2",
-      adversarialProvider: "gemini", adversarialModel: "gemini-3.1-pro-preview",
-    };
-  }
-}
+import { getModelConfig } from "../services/llm-router";
 
 const US_15_POINT_PLAN = {
   id: "us-15-point-plan",
@@ -126,7 +98,7 @@ export async function seedProposals(): Promise<void> {
   const existingIds = new Set(existing.map(e => e.id));
 
   const proposals = [US_15_POINT_PLAN, IRAN_5_POINT_PLAN];
-  const modelConfig = await getSeedModelConfig();
+  const modelConfig = await getModelConfig();
 
   for (const proposal of proposals) {
     if (existingIds.has(proposal.id)) {

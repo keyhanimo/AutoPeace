@@ -2113,6 +2113,16 @@ components:
           enum: [anthropic, openai, gemini]
         adversarialModel:
           type: string
+        forecastingProvider:
+          type: string
+          enum: [anthropic, openai, gemini]
+        forecastingModel:
+          type: string
+        extractionProvider:
+          type: string
+          enum: [anthropic, openai, gemini]
+        extractionModel:
+          type: string
         judgePanelAnthropicModel:
           type: string
         judgePanelOpenaiModel:
@@ -2172,6 +2182,10 @@ components:
         - evaluationModel
         - adversarialProvider
         - adversarialModel
+        - forecastingProvider
+        - forecastingModel
+        - extractionProvider
+        - extractionModel
 
     AdminConfigUpdate:
       type: object
@@ -2203,6 +2217,16 @@ components:
           type: string
           enum: [anthropic, openai, gemini]
         adversarialModel:
+          type: string
+        forecastingProvider:
+          type: string
+          enum: [anthropic, openai, gemini]
+        forecastingModel:
+          type: string
+        extractionProvider:
+          type: string
+          enum: [anthropic, openai, gemini]
+        extractionModel:
           type: string
         judgePanelAnthropicModel:
           type: string

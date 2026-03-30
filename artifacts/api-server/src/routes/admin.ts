@@ -6,6 +6,12 @@ import { adminAuth } from "../lib/admin-auth";
 import { runCycleNow, isRunning } from "../services/autoresearch";
 import { runDealCycleNow, isDealCycleRunning } from "../services/deal-autoresearch";
 import { UpdateAdminConfigBody, UpdateEvidenceSourceBody } from "@workspace/api-zod";
+import {
+  DEFAULT_ANTHROPIC_MODEL,
+  DEFAULT_OPENAI_MODEL,
+  DEFAULT_GEMINI_MODEL,
+  MODEL_DEFAULTS,
+} from "../services/llm-router";
 
 const router = Router();
 
@@ -26,19 +32,22 @@ const CONFIG_DEFAULTS: Record<string, string> = {
   cadence: "daily",
   budgetCapUsd: "5.0",
   isPaused: "false",
-  anthropicModel: "claude-opus-4-6",
-  openaiModel: "gpt-5.2",
-  geminiModel: "gemini-3.1-pro-preview",
-  generationProvider: "anthropic",
-  generationModel: "claude-opus-4-6",
-  evaluationProvider: "openai",
-  evaluationModel: "gpt-5.2",
-  adversarialProvider: "gemini",
-  adversarialModel: "gemini-3.1-pro-preview",
+  anthropicModel: DEFAULT_ANTHROPIC_MODEL,
+  openaiModel: DEFAULT_OPENAI_MODEL,
+  geminiModel: DEFAULT_GEMINI_MODEL,
+  generationProvider: MODEL_DEFAULTS.generationProvider,
+  generationModel: MODEL_DEFAULTS.generationModel,
+  evaluationProvider: MODEL_DEFAULTS.evaluationProvider,
+  evaluationModel: MODEL_DEFAULTS.evaluationModel,
+  adversarialProvider: MODEL_DEFAULTS.adversarialProvider,
+  adversarialModel: MODEL_DEFAULTS.adversarialModel,
+  forecastingProvider: MODEL_DEFAULTS.forecastingProvider,
+  forecastingModel: MODEL_DEFAULTS.forecastingModel,
+  extractionProvider: MODEL_DEFAULTS.extractionProvider,
+  extractionModel: MODEL_DEFAULTS.extractionModel,
   judgePanelAnthropicModel: "",
   judgePanelOpenaiModel: "",
   judgePanelGeminiModel: "",
-  // Per-stage overrides are intentionally absent from defaults — empty means "inherit from role"
 };
 
 async function getConfigMap(): Promise<Record<string, string>> {
@@ -55,15 +64,19 @@ function mapToResponse(cfg: Record<string, string>) {
     cadence: cfg["cadence"] ?? "daily",
     budgetCapUsd: parseFloat(cfg["budgetCapUsd"] ?? "5"),
     isPaused: cfg["isPaused"] === "true",
-    anthropicModel: cfg["anthropicModel"] ?? "claude-opus-4-6",
-    openaiModel: cfg["openaiModel"] ?? "gpt-5.2",
-    geminiModel: cfg["geminiModel"] ?? "gemini-3.1-pro-preview",
-    generationProvider: cfg["generationProvider"] ?? "anthropic",
-    generationModel: cfg["generationModel"] ?? cfg["anthropicModel"] ?? "claude-opus-4-6",
-    evaluationProvider: cfg["evaluationProvider"] ?? "openai",
-    evaluationModel: cfg["evaluationModel"] ?? cfg["openaiModel"] ?? "gpt-5.2",
-    adversarialProvider: cfg["adversarialProvider"] ?? "gemini",
-    adversarialModel: cfg["adversarialModel"] ?? cfg["geminiModel"] ?? "gemini-3.1-pro-preview",
+    anthropicModel: cfg["anthropicModel"] ?? DEFAULT_ANTHROPIC_MODEL,
+    openaiModel: cfg["openaiModel"] ?? DEFAULT_OPENAI_MODEL,
+    geminiModel: cfg["geminiModel"] ?? DEFAULT_GEMINI_MODEL,
+    generationProvider: cfg["generationProvider"] ?? MODEL_DEFAULTS.generationProvider,
+    generationModel: cfg["generationModel"] ?? cfg["anthropicModel"] ?? MODEL_DEFAULTS.generationModel,
+    evaluationProvider: cfg["evaluationProvider"] ?? MODEL_DEFAULTS.evaluationProvider,
+    evaluationModel: cfg["evaluationModel"] ?? cfg["openaiModel"] ?? MODEL_DEFAULTS.evaluationModel,
+    adversarialProvider: cfg["adversarialProvider"] ?? MODEL_DEFAULTS.adversarialProvider,
+    adversarialModel: cfg["adversarialModel"] ?? cfg["geminiModel"] ?? MODEL_DEFAULTS.adversarialModel,
+    forecastingProvider: cfg["forecastingProvider"] ?? MODEL_DEFAULTS.forecastingProvider,
+    forecastingModel: cfg["forecastingModel"] ?? cfg["anthropicModel"] ?? MODEL_DEFAULTS.forecastingModel,
+    extractionProvider: cfg["extractionProvider"] ?? MODEL_DEFAULTS.extractionProvider,
+    extractionModel: cfg["extractionModel"] ?? cfg["anthropicModel"] ?? MODEL_DEFAULTS.extractionModel,
     judgePanelAnthropicModel: cfg["judgePanelAnthropicModel"] ?? "",
     judgePanelOpenaiModel: cfg["judgePanelOpenaiModel"] ?? "",
     judgePanelGeminiModel: cfg["judgePanelGeminiModel"] ?? "",
@@ -90,9 +103,12 @@ function resolveStageProviderModel(
   }
   const roleProviderKey = `${role}Provider` as const;
   const roleModelKey = `${role}Model` as const;
+  const resolvedProvider = cfg[roleProviderKey] ?? MODEL_DEFAULTS[roleProviderKey as keyof typeof MODEL_DEFAULTS] ?? "anthropic";
+  const roleModelDefault = MODEL_DEFAULTS[roleModelKey as keyof typeof MODEL_DEFAULTS] ??
+    (resolvedProvider === "openai" ? DEFAULT_OPENAI_MODEL : resolvedProvider === "gemini" ? DEFAULT_GEMINI_MODEL : DEFAULT_ANTHROPIC_MODEL);
   return {
-    provider: cfg[roleProviderKey] ?? "anthropic",
-    model: cfg[roleModelKey] ?? "claude-opus-4-6",
+    provider: resolvedProvider,
+    model: cfg[roleModelKey] ?? roleModelDefault,
     overridden: false,
   };
 }

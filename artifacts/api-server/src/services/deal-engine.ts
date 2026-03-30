@@ -1,5 +1,16 @@
 import { randomUUID } from "node:crypto";
 import { logger } from "../lib/logger";
+import {
+  callLLM as sharedCallLLM,
+  callLLMForStage as sharedCallLLMForStage,
+  resolveStageConfig as sharedResolveStageConfig,
+  validateModelConfig as sharedValidateModelConfig,
+  getModelConfig as sharedGetModelConfig,
+  MODEL_DEFAULTS,
+  type ProviderName as SharedProviderName,
+  type ModelConfig as SharedModelConfig,
+  type CallLLMOptions,
+} from "./llm-router";
 
 export type InnovativeProvision = {
   title: string;
@@ -109,59 +120,10 @@ export type CreativeTradeoff = {
   netBenefit: string;
 };
 
-export type ProviderName = "anthropic" | "openai" | "gemini";
-
-/**
- * ModelConfig — three levels of specificity (highest wins):
- *   1. Per-agent stage override (stage1..stage8 Provider/Model)
- *   2. Per-role bucket (generationProvider/Model, evaluationProvider/Model, adversarialProvider/Model)
- *   3. Legacy per-provider model (anthropicModel, openaiModel, geminiModel)
- */
-export type ModelConfig = {
-  anthropicModel: string;
-  openaiModel: string;
-  geminiModel: string;
-  // Role-level config (applies to all stages with that role unless stage-level override exists)
-  generationProvider: ProviderName;
-  generationModel: string;
-  evaluationProvider: ProviderName;
-  evaluationModel: string;
-  adversarialProvider: ProviderName;
-  adversarialModel: string;
-  // Judge panel model overrides (for 3-model scoring; falls back to base models)
-  judgePanelAnthropicModel?: string;
-  judgePanelOpenaiModel?: string;
-  judgePanelGeminiModel?: string;
-  // Per-agent stage overrides (highest priority)
-  stage1Provider?: ProviderName; stage1Model?: string;   // Proposal Agent
-  stage2Provider?: ProviderName; stage2Model?: string;   // Stakeholder Evaluator
-  stage3Provider?: ProviderName; stage3Model?: string;   // Domestic Audiences
-  stage4Provider?: ProviderName; stage4Model?: string;   // Red-Team Agent
-  stage5Provider?: ProviderName; stage5Model?: string;   // Negotiator Agent
-  stage6Provider?: ProviderName; stage6Model?: string;   // Judge Agent
-  stage7Provider?: ProviderName; stage7Model?: string;   // Meta-Evaluator
-  stage8Provider?: ProviderName; stage8Model?: string;   // Diagnosis Generator
-};
-
-export function validateModelConfig(config: ModelConfig): void {
-  if (config.generationProvider === config.evaluationProvider) {
-    throw new Error(
-      `ModelConfig violation: generationProvider (${config.generationProvider}) and evaluationProvider (${config.evaluationProvider}) must use different LLM providers to ensure generation/evaluation independence.`
-    );
-  }
-}
-
-/** Resolve the effective provider+model for a given stage, with per-agent > per-role fallback. */
-export function resolveStageConfig(
-  stage: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8,
-  role: "generation" | "evaluation" | "adversarial",
-  config: ModelConfig,
-): { provider: ProviderName; model: string } {
-  const p = config[`stage${stage}Provider` as keyof ModelConfig] as ProviderName | undefined;
-  const m = config[`stage${stage}Model` as keyof ModelConfig] as string | undefined;
-  if (p && m) return { provider: p, model: m };
-  return { provider: config[`${role}Provider`], model: config[`${role}Model`] };
-}
+export type ProviderName = SharedProviderName;
+export type ModelConfig = SharedModelConfig;
+export const validateModelConfig = sharedValidateModelConfig;
+export const resolveStageConfig = sharedResolveStageConfig;
 
 export type EvaluatedDeal = {
   terms: DealTerms;
@@ -182,152 +144,10 @@ export type EvaluatedDeal = {
 const ARCHITECTURES = ["balanced", "nuclear-first", "hormuz-first", "humanitarian-first"] as const;
 type Architecture = typeof ARCHITECTURES[number];
 
-const DEFAULT_MODELS: ModelConfig = {
-  anthropicModel: "claude-opus-4-6",
-  openaiModel: "gpt-5.2",
-  geminiModel: "gemini-3.1-pro-preview",
-  generationProvider: "anthropic",
-  generationModel: "claude-opus-4-6",
-  evaluationProvider: "openai",
-  evaluationModel: "gpt-5.2",
-  adversarialProvider: "gemini",
-  adversarialModel: "gemini-3.1-pro-preview",
-};
+const DEFAULT_MODELS = MODEL_DEFAULTS;
 
-let _openai: import("openai").OpenAI | null = null;
-async function getOpenAI() {
-  if (!_openai) {
-    const mod = await import("@workspace/integrations-openai-ai-server");
-    _openai = mod.openai;
-  }
-  return _openai;
-}
-
-let _gemini: import("@google/genai").GoogleGenAI | null = null;
-async function getGemini() {
-  if (!_gemini) {
-    const mod = await import("@workspace/integrations-gemini-ai");
-    _gemini = mod.ai;
-  }
-  return _gemini;
-}
-
-let _anthropic: import("@anthropic-ai/sdk").Anthropic | null = null;
-async function getAnthropic() {
-  if (!_anthropic) {
-    const mod = await import("@workspace/integrations-anthropic-ai");
-    _anthropic = mod.anthropic;
-  }
-  return _anthropic;
-}
-
-async function callOpenAI(
-  prompt: string,
-  systemPrompt: string,
-  model = DEFAULT_MODELS.openaiModel,
-  maxTokens = 4096,
-): Promise<{ content: string; tokens: number }> {
-  try {
-    const openai = await getOpenAI();
-    const resp = await openai.chat.completions.create({
-      model,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: prompt },
-      ],
-      max_completion_tokens: maxTokens,
-    });
-    return {
-      content: resp.choices[0]?.message?.content ?? "{}",
-      tokens: resp.usage?.total_tokens ?? 0,
-    };
-  } catch (err) {
-    logger.warn({ err }, "OpenAI call failed, using fallback");
-    return { content: "{}", tokens: 0 };
-  }
-}
-
-async function callGemini(
-  prompt: string,
-  model = DEFAULT_MODELS.geminiModel,
-): Promise<{ content: string; tokens: number }> {
-  try {
-    const gemini = await getGemini();
-    const resp = await gemini.models.generateContent({
-      model,
-      contents: prompt,
-    });
-    return {
-      content: resp.text ?? "{}",
-      tokens: 500,
-    };
-  } catch (err) {
-    logger.warn({ err }, "Gemini call failed, using fallback");
-    return { content: "{}", tokens: 0 };
-  }
-}
-
-async function callAnthropic(
-  prompt: string,
-  systemPrompt: string,
-  model = DEFAULT_MODELS.anthropicModel,
-  maxTokens = 4096,
-): Promise<{ content: string; tokens: number }> {
-  try {
-    const anthropic = await getAnthropic();
-    const resp = await anthropic.messages.create({
-      model,
-      max_tokens: maxTokens,
-      system: systemPrompt,
-      messages: [{ role: "user", content: prompt }],
-    });
-    const content = resp.content[0];
-    return {
-      content: content?.type === "text" ? content.text : "{}",
-      tokens: (resp.usage?.input_tokens ?? 0) + (resp.usage?.output_tokens ?? 0),
-    };
-  } catch (err) {
-    logger.warn({ err }, "Anthropic call failed, using fallback");
-    return { content: "{}", tokens: 0 };
-  }
-}
-
-/**
- * callLLM — routes an LLM call to a specific provider+model pair.
- */
-async function callLLM(
-  prompt: string,
-  systemPrompt: string,
-  provider: ProviderName,
-  model: string,
-): Promise<{ content: string; tokens: number }> {
-  switch (provider) {
-    case "anthropic":
-      return callAnthropic(prompt, systemPrompt, model);
-    case "openai":
-      return callOpenAI(prompt, systemPrompt, model);
-    case "gemini":
-      return callGemini(prompt, model);
-    default:
-      logger.warn({ provider }, "Unknown provider, falling back to anthropic");
-      return callAnthropic(prompt, systemPrompt, model);
-  }
-}
-
-/**
- * callLLMForStage — resolves per-agent > per-role > default and dispatches.
- * stage: 1..8 maps to the 8 pipeline agents; role is the default bucket fallback.
- */
-async function callLLMForStage(
-  prompt: string,
-  systemPrompt: string,
-  stage: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8,
-  role: "generation" | "evaluation" | "adversarial",
-  config: ModelConfig,
-): Promise<{ content: string; tokens: number }> {
-  const { provider, model } = resolveStageConfig(stage, role, config);
-  return callLLM(prompt, systemPrompt, provider, model);
-}
+const callLLM = sharedCallLLM;
+const callLLMForStage = sharedCallLLMForStage;
 
 function parseLLMJson<T>(text: string, fallback: T): T {
   try {

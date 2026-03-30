@@ -1,18 +1,13 @@
 import type Anthropic from "@anthropic-ai/sdk";
-type AnthropicClient = Anthropic;
+import { callLLM, getModelConfig, getAnthropic } from "./llm-router";
 type BatchProcess = typeof import("@workspace/integrations-anthropic-ai/batch")["batchProcess"];
-let _anthropic: AnthropicClient | null = null;
 let _batchProcess: BatchProcess | null = null;
-async function getAnthropicClient(): Promise<{ anthropic: AnthropicClient; batchProcess: BatchProcess }> {
-  if (!_anthropic || !_batchProcess) {
-    const [anthMod, batchMod] = await Promise.all([
-      import("@workspace/integrations-anthropic-ai"),
-      import("@workspace/integrations-anthropic-ai/batch"),
-    ]);
-    _anthropic = anthMod.anthropic;
+async function getBatchProcess(): Promise<BatchProcess> {
+  if (!_batchProcess) {
+    const batchMod = await import("@workspace/integrations-anthropic-ai/batch");
     _batchProcess = batchMod.batchProcess;
   }
-  return { anthropic: _anthropic!, batchProcess: _batchProcess! };
+  return _batchProcess!;
 }
 import { normalizeProbabilities, parseLLMJson, type ForecastProbabilities } from "./scoring";
 export type { ForecastProbabilities };
@@ -112,14 +107,13 @@ You assess probabilities for 8 mutually exclusive conflict outcome states over d
 Your forecasts are based on systematic evidence review and calibrated uncertainty quantification.
 Always respond with valid JSON in a code block.`;
 
-  const model = process.env["ANTHROPIC_MODEL"] || "claude-opus-4-6";
+  const modelConfig = await getModelConfig();
+  const forecastingProvider = modelConfig.forecastingProvider;
+  const forecastingModel = modelConfig.forecastingModel;
 
   const tasks = TIME_HORIZONS.map(horizon => ({
     key: horizon,
-    messages: [
-      {
-        role: "user" as const,
-        content: `Assess the probability distribution for the following conflict outcomes in the Iran conflict complex over the next ${horizon}:
+    prompt: `Assess the probability distribution for the following conflict outcomes in the Iran conflict complex over the next ${horizon}:
 
 OUTCOMES (must sum to 1.0):
 ${OUTCOMES.map(o => `- ${o}`).join("\n")}
@@ -141,22 +135,15 @@ Respond ONLY with a JSON code block containing:
   },
   "rationale": "<2-3 sentence explanation>",
   "keyEvidenceItems": ["<evidence item id or title>", ...]
-}`
-      }
-    ]
+}`,
   }));
 
-  const { anthropic, batchProcess } = await getAnthropicClient();
+  const batchProcess = await getBatchProcess();
   const results = await batchProcess(
     tasks,
     async (task) => {
-      const msg = await anthropic.messages.create({
-        model,
-        max_tokens: 1024,
-        system: systemPrompt,
-        messages: task.messages,
-      });
-      const text = msg.content[0]?.type === "text" ? msg.content[0].text : "";
+      const resp = await callLLM(task.prompt, systemPrompt, forecastingProvider, forecastingModel, { maxTokens: 4096 });
+      const text = resp.content;
       const parsed = parseLLMJson(text);
       const rawProbs = parsed["probabilities"] as Record<string, number>;
       const probs = normalizeProbabilities(rawProbs);
@@ -214,17 +201,9 @@ export async function generateScenarioForecast(
 You re-assess outcome probabilities under specific hypothetical scenarios using systematic evidence review.
 Always respond with valid JSON in a code block.`;
 
-  const { anthropic } = await getAnthropicClient();
-  const model = process.env["ANTHROPIC_MODEL"] || "claude-opus-4-6";
+  const modelConfig = await getModelConfig();
 
-  const msg = await anthropic.messages.create({
-    model,
-    max_tokens: 1024,
-    system: systemPrompt,
-    messages: [
-      {
-        role: "user",
-        content: `SCENARIO: "${scenario.name}"
+  const userPrompt = `SCENARIO: "${scenario.name}"
 Description: ${scenario.description}
 Trigger condition: ${scenario.triggerCondition}
 
@@ -253,12 +232,10 @@ Respond ONLY with a JSON code block:
     "major_escalation": <float>
   },
   "rationale": "<2-3 sentence explanation of how this scenario shifts the probabilities>"
-}`
-      }
-    ],
-  });
+}`;
 
-  const text = msg.content[0]?.type === "text" ? msg.content[0].text : "";
+  const resp = await callLLM(userPrompt, systemPrompt, modelConfig.forecastingProvider, modelConfig.forecastingModel, { maxTokens: 4096 });
+  const text = resp.content;
   const parsed = parseLLMJson(text);
   const rawProbs = parsed["probabilities"] as Record<string, number>;
   const probabilities = normalizeProbabilities(rawProbs);

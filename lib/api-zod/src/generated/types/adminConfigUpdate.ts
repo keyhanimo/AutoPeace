@@ -8,6 +8,8 @@
 import type { AdminConfigUpdateAdversarialProvider } from "./adminConfigUpdateAdversarialProvider";
 import type { AdminConfigUpdateCadence } from "./adminConfigUpdateCadence";
 import type { AdminConfigUpdateEvaluationProvider } from "./adminConfigUpdateEvaluationProvider";
+import type { AdminConfigUpdateExtractionProvider } from "./adminConfigUpdateExtractionProvider";
+import type { AdminConfigUpdateForecastingProvider } from "./adminConfigUpdateForecastingProvider";
 import type { AdminConfigUpdateGenerationProvider } from "./adminConfigUpdateGenerationProvider";
 import type { AdminConfigUpdateStage1Provider } from "./adminConfigUpdateStage1Provider";
 import type { AdminConfigUpdateStage2Provider } from "./adminConfigUpdateStage2Provider";
@@ -31,6 +33,10 @@ export interface AdminConfigUpdate {
   evaluationModel?: string;
   adversarialProvider?: AdminConfigUpdateAdversarialProvider;
   adversarialModel?: string;
+  forecastingProvider?: AdminConfigUpdateForecastingProvider;
+  forecastingModel?: string;
+  extractionProvider?: AdminConfigUpdateExtractionProvider;
+  extractionModel?: string;
   judgePanelAnthropicModel?: string;
   judgePanelOpenaiModel?: string;
   judgePanelGeminiModel?: string;

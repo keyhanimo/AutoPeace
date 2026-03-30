@@ -87,13 +87,25 @@ Run migrations: `pnpm --filter @workspace/db run push`
 - `PATCH /api/admin/sources/:id` — enable/disable or change fetch frequency
 - `GET /api/admin/costs-summary` — per-provider cost breakdown with actual Gemini/OpenAI attribution
 
+## Unified LLM Router (`llm-router.ts`)
+
+All text LLM calls route through `artifacts/api-server/src/services/llm-router.ts`, the single source of truth for model defaults, provider-specific parameters, and admin config resolution. Zero hardcoded model names exist outside this module.
+
+**Exports**: `callLLM`, `callLLMForStage`, `getModelConfig`, `getConfigValue`, `resolveStageConfig`, `validateModelConfig`, `DEFAULT_ANTHROPIC_MODEL`, `DEFAULT_OPENAI_MODEL`, `DEFAULT_GEMINI_MODEL`, `MODEL_DEFAULTS`
+
+**Admin config roles**: `generation`, `evaluation`, `adversarial`, `forecasting`, `extraction` — each with independent `{provider, model}` settings. Per-stage overrides take highest priority.
+
+**Provider-specific handling**: OpenAI uses `max_completion_tokens` (no temperature), Anthropic uses `max_tokens`, Gemini uses `contents` array format. All handled automatically by the router.
+
+**Note**: Image/audio models in `lib/` (gpt-image-1, gpt-audio, gemini-2.5-flash-image, gpt-4o-mini-transcribe) are specialized hardware models and remain hardcoded — they are not text LLMs and don't need admin routing.
+
 ## Autoresearch Pipeline
 
 Each cycle (triggered manually or by cron):
 1. **Evidence ingestion** — RSS feeds (Reuters, AP, Guardian, BBC, Al Jazeera) filtered by Iran keywords
-2. **Forecasting** — Claude claude-opus-4-6 generates probabilities for 4 time horizons (30d, 90d, 180d, 1y)
-3. **Red-team** — Gemini gemini-3.1-pro-preview challenges the 90d forecast
-4. **Evaluation** — GPT-5.2 evaluates and retains/discards the mutation
+2. **Forecasting** — generates probabilities for 4 time horizons (30d, 90d, 180d, 1y) via admin-configured forecasting provider/model
+3. **Red-team** — adversarial provider challenges the 90d forecast
+4. **Evaluation** — evaluation provider evaluates and retains/discards the mutation
 5. **Changelog** — auto-headline generated from 90d probability leader
 
 Scheduler: hourly cron check, runs at UTC 6am daily by default.
@@ -211,8 +223,9 @@ Enhanced multi-agent pipeline (`deal-engine.ts`) with **grand coalition** cooper
 
 ## Key Files
 
+- `artifacts/api-server/src/services/llm-router.ts` — unified LLM router (single source of truth for all model routing)
 - `artifacts/api-server/src/services/autoresearch.ts` — forecast cycle orchestrator
-- `artifacts/api-server/src/services/deal-engine.ts` — 8-stage deal pipeline + validateModelConfig
+- `artifacts/api-server/src/services/deal-engine.ts` — 8-stage deal pipeline (re-exports types from llm-router)
 - `artifacts/api-server/src/services/deal-autoresearch.ts` — deal cycle loop, solution tree, Pareto
 - `artifacts/api-server/src/routes/deals.ts` — deal API endpoints incl. history/robustness/compare
 - `artifacts/api-server/src/routes/proposals.ts` — proposals + admin evaluate endpoint

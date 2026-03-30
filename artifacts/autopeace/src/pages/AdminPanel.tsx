@@ -236,6 +236,10 @@ export default function AdminPanel() {
         evaluationModel: config.evaluationModel,
         adversarialProvider: config.adversarialProvider as AdminConfigUpdate["adversarialProvider"],
         adversarialModel: config.adversarialModel,
+        forecastingProvider: config.forecastingProvider as AdminConfigUpdate["forecastingProvider"],
+        forecastingModel: config.forecastingModel,
+        extractionProvider: config.extractionProvider as AdminConfigUpdate["extractionProvider"],
+        extractionModel: config.extractionModel,
         judgePanelAnthropicModel: config.judgePanelAnthropicModel ?? "",
         judgePanelOpenaiModel: config.judgePanelOpenaiModel ?? "",
         judgePanelGeminiModel: config.judgePanelGeminiModel ?? "",
@@ -414,27 +418,27 @@ export default function AdminPanel() {
                 <Input
                   value={formData.judgePanelAnthropicModel ?? ""}
                   onChange={e => setFormData({ ...formData, judgePanelAnthropicModel: e.target.value })}
-                  placeholder={formData.anthropicModel || "claude-opus-4-6"}
+                  placeholder={formData.anthropicModel || "current base model"}
                 />
-                <p className="text-[10px] text-muted-foreground">Fallback: {formData.anthropicModel || "claude-opus-4-6"}</p>
+                <p className="text-[10px] text-muted-foreground">Fallback: {formData.anthropicModel || "base Anthropic model"}</p>
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-emerald-400">OpenAI Judge</label>
                 <Input
                   value={formData.judgePanelOpenaiModel ?? ""}
                   onChange={e => setFormData({ ...formData, judgePanelOpenaiModel: e.target.value })}
-                  placeholder={formData.openaiModel || "gpt-5.2"}
+                  placeholder={formData.openaiModel || "current base model"}
                 />
-                <p className="text-[10px] text-muted-foreground">Fallback: {formData.openaiModel || "gpt-5.2"}</p>
+                <p className="text-[10px] text-muted-foreground">Fallback: {formData.openaiModel || "base OpenAI model"}</p>
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-blue-400">Gemini Judge</label>
                 <Input
                   value={formData.judgePanelGeminiModel ?? ""}
                   onChange={e => setFormData({ ...formData, judgePanelGeminiModel: e.target.value })}
-                  placeholder={formData.geminiModel || "gemini-3.1-pro-preview"}
+                  placeholder={formData.geminiModel || "current base model"}
                 />
-                <p className="text-[10px] text-muted-foreground">Fallback: {formData.geminiModel || "gemini-3.1-pro-preview"}</p>
+                <p className="text-[10px] text-muted-foreground">Fallback: {formData.geminiModel || "base Gemini model"}</p>
               </div>
             </div>
             <div className="mt-4 flex justify-end">
@@ -450,13 +454,14 @@ export default function AdminPanel() {
               <Cpu className="w-5 h-5 text-primary" /> Model Assignment by Role
             </h3>
             <div className="space-y-4 mb-4">
-              {(["generation", "evaluation", "adversarial"] as const).map(role => {
-                const providerKey = `${role}Provider` as "generationProvider" | "evaluationProvider" | "adversarialProvider";
-                const modelKey = `${role}Model` as "generationModel" | "evaluationModel" | "adversarialModel";
-                const providerVal = (formData[providerKey] ?? config?.[providerKey] ?? (role === "generation" ? "anthropic" : role === "evaluation" ? "openai" : "gemini")) as string;
-                const modelVal = formData[modelKey] ?? config?.[modelKey] ?? "";
-                const roleLabel = role === "generation" ? "Generation (Stages 1, 5)" : role === "evaluation" ? "Evaluation (Stages 2, 3, 6, 7)" : "Adversarial (Stages 4, 8)";
-                const roleColor = role === "generation" ? "text-violet-400" : role === "evaluation" ? "text-blue-400" : "text-orange-400";
+              {(["generation", "evaluation", "adversarial", "forecasting", "extraction"] as const).map(role => {
+                const providerKey = `${role}Provider` as keyof AdminConfigUpdate;
+                const modelKey = `${role}Model` as keyof AdminConfigUpdate;
+                const cfgAny = config as unknown as Record<string, string> | undefined;
+                const providerVal = ((formData as Record<string, unknown>)[providerKey] ?? cfgAny?.[providerKey] ?? (role === "evaluation" ? "openai" : role === "adversarial" ? "gemini" : "anthropic")) as string;
+                const modelVal = ((formData as Record<string, unknown>)[modelKey] ?? cfgAny?.[modelKey] ?? "") as string;
+                const roleLabel = role === "generation" ? "Generation (Stages 1, 5)" : role === "evaluation" ? "Evaluation (Stages 2, 3, 6, 7)" : role === "adversarial" ? "Adversarial (Stages 4, 8)" : role === "forecasting" ? "Forecasting (Conflict Forecasts)" : "Extraction (Proposal Extraction)";
+                const roleColor = role === "generation" ? "text-violet-400" : role === "evaluation" ? "text-blue-400" : role === "adversarial" ? "text-orange-400" : role === "forecasting" ? "text-emerald-400" : "text-cyan-400";
                 return (
                   <div key={role} className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
@@ -476,7 +481,7 @@ export default function AdminPanel() {
                       <Input
                         value={modelVal}
                         onChange={e => setFormData({ ...formData, [modelKey]: e.target.value })}
-                        placeholder={role === "generation" ? "claude-opus-4-6" : role === "evaluation" ? "gpt-5.2" : "gemini-3.1-pro-preview"}
+                        placeholder={`Model name for ${role}`}
                       />
                     </div>
                   </div>
@@ -542,7 +547,7 @@ export default function AdminPanel() {
                         <td className="py-1.5">
                           <input
                             className="w-36 h-7 rounded-lg border border-border bg-background/50 px-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
-                            placeholder="e.g. gpt-5.2"
+                            placeholder="Override model"
                             value={modelVal}
                             onChange={e => setFormData(f => ({ ...f, [modelKey]: e.target.value || undefined }))}
                           />

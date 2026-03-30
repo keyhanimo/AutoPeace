@@ -22,33 +22,12 @@ import {
   normalizeProbabilities,
   type ForecastProbabilities,
 } from "./scoring";
-let _openai: import("openai").OpenAI | null = null;
-async function getOpenAI(): Promise<import("openai").OpenAI> {
-  if (!_openai) {
-    const mod = await import("@workspace/integrations-openai-ai-server");
-    _openai = mod.openai;
-  }
-  return _openai;
-}
-
-let _gemini: import("@google/genai").GoogleGenAI | null = null;
-async function getGemini(): Promise<import("@google/genai").GoogleGenAI> {
-  if (!_gemini) {
-    const mod = await import("@workspace/integrations-gemini-ai");
-    _gemini = mod.ai;
-  }
-  return _gemini;
-}
+import { callLLM, getModelConfig, getConfigValue } from "./llm-router";
 
 let runningCycleId: string | null = null;
 
 export function isRunning() {
   return runningCycleId !== null;
-}
-
-async function getConfigValue(key: string, defaultValue: string): Promise<string> {
-  const rows = await db.select().from(adminConfigTable).where(eq(adminConfigTable.key, key));
-  return rows[0]?.value ?? defaultValue;
 }
 
 export async function runCycleNow(): Promise<string> {
@@ -318,13 +297,9 @@ async function runHillClimbing(
       const probsStr = JSON.stringify(champion.probabilities, null, 2);
       const promptText = mutation.prompt(probsStr, champion.rationale);
 
-      const geminiModel = await getConfigValue("geminiModel", "gemini-3.1-pro-preview");
-      const ai = await getGemini();
-      const geminiResult = await ai.models.generateContent({
-        model: geminiModel,
-        contents: promptText,
-      });
-      const mutantText = geminiResult.text ?? "";
+      const modelCfg = await getModelConfig();
+      const mutantResp = await callLLM(promptText, "You are a conflict forecasting analyst.", modelCfg.adversarialProvider, modelCfg.adversarialModel);
+      const mutantText = mutantResp.content;
 
       let mutantProbs: ForecastProbabilities = champion.probabilities;
       try {
@@ -340,18 +315,8 @@ async function runHillClimbing(
 
       const mutantScore = computeCompositeScore(mutantProbs, backtestRecords);
 
-      const openaiModel = await getConfigValue("openaiModel", "gpt-5.2");
-      const openai = await getOpenAI();
-      const evalResponse = await openai.chat.completions.create({
-        model: openaiModel,
-        messages: [
-          {
-            role: "system",
-            content: "You are a Bayesian forecast evaluator. Compare two probability distributions and decide which is better calibrated. Respond ONLY with valid JSON.",
-          },
-          {
-            role: "user",
-            content: `Compare these two Iran conflict forecasts and decide which to retain.
+      const evalSystemPrompt = "You are a Bayesian forecast evaluator. Compare two probability distributions and decide which is better calibrated. Respond ONLY with valid JSON.";
+      const evalUserPrompt = `Compare these two Iran conflict forecasts and decide which to retain.
 
 Champion composite score (lower Brier is better): ${championScore.brier.toFixed(4)}, log: ${championScore.log.toFixed(4)}
 Challenger composite score: ${mutantScore.brier.toFixed(4)}, log: ${mutantScore.log.toFixed(4)}
@@ -360,13 +325,11 @@ Champion: ${JSON.stringify(champion.probabilities)}
 Challenger (${mutation.name}): ${JSON.stringify(mutantProbs)}
 Challenge rationale: ${mutantText.slice(0, 800)}
 
-Respond with JSON: {"recommendation": "retain_challenger" | "retain_champion", "reasoning": "<1 sentence>"}`,
-          },
-        ],
-        max_completion_tokens: 200,
-      });
+Respond with JSON: {"recommendation": "retain_challenger" | "retain_champion", "reasoning": "<1 sentence>"}`;
 
-      const evalText = evalResponse.choices[0]?.message?.content ?? "";
+      const evalResp = await callLLM(evalUserPrompt, evalSystemPrompt, modelCfg.evaluationProvider, modelCfg.evaluationModel, { maxTokens: 200 });
+
+      const evalText = evalResp.content;
       let evalResult: { recommendation?: string; reasoning?: string } = {};
       try {
         evalResult = parseLLMJson(evalText) as typeof evalResult;
@@ -380,12 +343,12 @@ Respond with JSON: {"recommendation": "retain_challenger" | "retain_champion", "
       const retained = evalResult["recommendation"] === "retain_challenger";
       experimentsRun++;
 
-      const geminiTokens = geminiResult.usageMetadata?.totalTokenCount ?? 600;
-      const openaiTokens = evalResponse.usage?.total_tokens ?? 200;
-      const geminiCostEst = geminiTokens * 0.00000015;
-      const openaiCostEst = openaiTokens * 0.000005;
-      const expCost = geminiCostEst + openaiCostEst;
-      const expTokens = geminiTokens + openaiTokens;
+      const mutantTokens = mutantResp.tokens;
+      const evalTokens = evalResp.tokens;
+      const mutantCostEst = mutantTokens * 0.00000015;
+      const evalCostEst = evalTokens * 0.000005;
+      const expCost = mutantCostEst + evalCostEst;
+      const expTokens = mutantTokens + evalTokens;
       totalTokens += expTokens;
       totalCost += expCost;
 
@@ -412,7 +375,7 @@ Respond with JSON: {"recommendation": "retain_challenger" | "retain_champion", "
         tokensConsumed: expTokens,
         wallClockSeconds: null,
         costUsd: expCost,
-        providerCosts: { gemini: geminiCostEst, openai: openaiCostEst },
+        providerCosts: { [modelCfg.adversarialProvider]: mutantCostEst, [modelCfg.evaluationProvider]: evalCostEst },
       });
     } catch (err) {
       logger.warn({ err, mutation: mutation.name, cycleId }, "Mutation experiment failed");

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { proposalSubmissionsTable, proposalsTable, adminConfigTable } from "@workspace/db/schema";
+import { proposalSubmissionsTable, proposalsTable } from "@workspace/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { adminAuth } from "../lib/admin-auth";
@@ -13,30 +13,10 @@ import {
   runMetaEvaluator,
   generateDiagnosis,
   computeWhatWouldItTake,
-  type ModelConfig,
   type DealTerms,
 } from "../services/deal-engine";
+import { getModelConfig } from "../services/llm-router";
 import { logger } from "../lib/logger";
-
-async function getDefaultModelConfig(): Promise<ModelConfig> {
-  const cfg = await db.select().from(adminConfigTable);
-  const map = Object.fromEntries(cfg.map(r => [r.key, r.value]));
-  const openaiModel = map["openaiModel"] ?? "gpt-5.2";
-  return {
-    anthropicModel: map["anthropicModel"] ?? "claude-opus-4-6",
-    openaiModel,
-    geminiModel: map["geminiModel"] ?? "gemini-3.1-pro-preview",
-    generationProvider: (map["generationProvider"] ?? "anthropic") as "anthropic" | "openai" | "gemini",
-    generationModel: map["generationModel"] ?? "claude-opus-4-6",
-    evaluationProvider: (map["evaluationProvider"] ?? "openai") as "anthropic" | "openai" | "gemini",
-    evaluationModel: map["evaluationModel"] ?? openaiModel,
-    adversarialProvider: (map["adversarialProvider"] ?? "gemini") as "anthropic" | "openai" | "gemini",
-    adversarialModel: map["adversarialModel"] ?? "gemini-3.1-pro-preview",
-    judgePanelAnthropicModel: map["judgePanelAnthropicModel"] || undefined,
-    judgePanelOpenaiModel: map["judgePanelOpenaiModel"] || undefined,
-    judgePanelGeminiModel: map["judgePanelGeminiModel"] || undefined,
-  };
-}
 
 const router = Router();
 
@@ -184,7 +164,7 @@ router.patch("/admin/proposals/queue/:id", adminAuth, async (req, res) => {
 
       (async () => {
         try {
-          const modelConfig = await getDefaultModelConfig();
+          const modelConfig = await getModelConfig();
 
           logger.info({ pid, submissionId: id }, "Starting full 8-stage evaluation for community proposal");
 

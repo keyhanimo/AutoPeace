@@ -5,6 +5,7 @@
  * AutoPeace API — AI-powered conflict forecasting and peace research
  * OpenAPI spec version: 0.1.0
  */
+import type { DealTermsStakeholderCommitments } from "./dealTermsStakeholderCommitments";
 
 export interface DealTerms {
   nuclearProtocol?: string;
@@ -15,5 +16,6 @@ export interface DealTerms {
   timelineYears?: number;
   sequencing?: string;
   additionalClauses?: string[];
-  stakeholderCommitments?: Record<string, string>;
+  /** Binding commitments from each stakeholder in the grand coalition */
+  stakeholderCommitments?: DealTermsStakeholderCommitments;
 }

@@ -1,5 +1,5 @@
 import { db } from "@workspace/db";
-import { evidenceItemsTable, proposalsTable, adminConfigTable } from "@workspace/db/schema";
+import { evidenceItemsTable, proposalsTable } from "@workspace/db/schema";
 import { desc, eq, and, isNull, sql } from "drizzle-orm";
 import { createHash } from "node:crypto";
 import { logger } from "../lib/logger";
@@ -12,54 +12,14 @@ import {
   runMetaEvaluator,
   generateDiagnosis,
   computeWhatWouldItTake,
-  type ModelConfig,
   type DealTerms,
 } from "./deal-engine";
+import { callLLM, getModelConfig, type ModelConfig } from "./llm-router";
 import { parseLLMJson } from "./scoring";
-
-let _anthropic: import("@anthropic-ai/sdk").Anthropic | null = null;
-async function getAnthropic() {
-  if (!_anthropic) {
-    const mod = await import("@workspace/integrations-anthropic-ai");
-    _anthropic = mod.anthropic;
-  }
-  return _anthropic;
-}
 
 function proposalStableId(name: string, source: string): string {
   const key = `proposal::${name.toLowerCase().trim()}::${source.toLowerCase().trim()}`;
   return `news-${createHash("sha256").update(key).digest("hex").slice(0, 20)}`;
-}
-
-async function getModelConfig(): Promise<ModelConfig> {
-  try {
-    const rows = await db.select().from(adminConfigTable);
-    const cfg = Object.fromEntries(rows.map(r => [r.key, r.value]));
-    const anthropicModel = cfg["anthropicModel"] ?? "claude-opus-4-6";
-    const openaiModel = cfg["openaiModel"] ?? "gpt-5.2";
-    const geminiModel = cfg["geminiModel"] ?? "gemini-3.1-pro-preview";
-    return {
-      anthropicModel,
-      openaiModel,
-      geminiModel,
-      generationProvider: (cfg["generationProvider"] ?? "anthropic") as "anthropic" | "openai" | "gemini",
-      generationModel: cfg["generationModel"] ?? anthropicModel,
-      evaluationProvider: (cfg["evaluationProvider"] ?? "openai") as "anthropic" | "openai" | "gemini",
-      evaluationModel: cfg["evaluationModel"] ?? openaiModel,
-      adversarialProvider: (cfg["adversarialProvider"] ?? "gemini") as "anthropic" | "openai" | "gemini",
-      adversarialModel: cfg["adversarialModel"] ?? geminiModel,
-      judgePanelAnthropicModel: cfg["judgePanelAnthropicModel"] || undefined,
-      judgePanelOpenaiModel: cfg["judgePanelOpenaiModel"] || undefined,
-      judgePanelGeminiModel: cfg["judgePanelGeminiModel"] || undefined,
-    };
-  } catch {
-    return {
-      anthropicModel: "claude-opus-4-6", openaiModel: "gpt-5.2", geminiModel: "gemini-3.1-pro-preview",
-      generationProvider: "anthropic", generationModel: "claude-opus-4-6",
-      evaluationProvider: "openai", evaluationModel: "gpt-5.2",
-      adversarialProvider: "gemini", adversarialModel: "gemini-3.1-pro-preview",
-    };
-  }
 }
 
 type ExtractedProposal = {
@@ -152,15 +112,16 @@ export async function extractProposalsFromEvidence(cycleId?: string): Promise<nu
 
   let extracted: ExtractedProposal[] = [];
   try {
-    const anthropic = await getAnthropic();
-    const resp = await anthropic.messages.create({
-      model: "claude-opus-4-6",
-      max_tokens: 3000,
-      system: EXTRACTION_SYSTEM_PROMPT,
-      messages: [{ role: "user", content: EXTRACTION_USER_PROMPT(articleBatch) }],
-    });
+    const extractionConfig = await getModelConfig();
+    const resp = await callLLM(
+      EXTRACTION_USER_PROMPT(articleBatch),
+      EXTRACTION_SYSTEM_PROMPT,
+      extractionConfig.extractionProvider,
+      extractionConfig.extractionModel,
+      { maxTokens: 3000 },
+    );
 
-    const text = resp.content[0]?.type === "text" ? resp.content[0].text : "{}";
+    const text = resp.content;
     const parsed = parseLLMJson(text) as { proposals?: ExtractedProposal[] } | ExtractedProposal[];
     const rawProposals = Array.isArray(parsed) ? parsed : (parsed.proposals ?? []);
     extracted = rawProposals.filter(p =>

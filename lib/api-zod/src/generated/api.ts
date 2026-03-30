@@ -461,6 +461,10 @@ export const GetAdminConfigResponse = zod.object({
   evaluationModel: zod.string(),
   adversarialProvider: zod.enum(["anthropic", "openai", "gemini"]),
   adversarialModel: zod.string(),
+  forecastingProvider: zod.enum(["anthropic", "openai", "gemini"]),
+  forecastingModel: zod.string(),
+  extractionProvider: zod.enum(["anthropic", "openai", "gemini"]),
+  extractionModel: zod.string(),
   judgePanelAnthropicModel: zod.string().optional(),
   judgePanelOpenaiModel: zod.string().optional(),
   judgePanelGeminiModel: zod.string().optional(),
@@ -498,6 +502,10 @@ export const UpdateAdminConfigBody = zod.object({
   evaluationModel: zod.string().optional(),
   adversarialProvider: zod.enum(["anthropic", "openai", "gemini"]).optional(),
   adversarialModel: zod.string().optional(),
+  forecastingProvider: zod.enum(["anthropic", "openai", "gemini"]).optional(),
+  forecastingModel: zod.string().optional(),
+  extractionProvider: zod.enum(["anthropic", "openai", "gemini"]).optional(),
+  extractionModel: zod.string().optional(),
   judgePanelAnthropicModel: zod.string().optional(),
   judgePanelOpenaiModel: zod.string().optional(),
   judgePanelGeminiModel: zod.string().optional(),
@@ -532,6 +540,10 @@ export const UpdateAdminConfigResponse = zod.object({
   evaluationModel: zod.string(),
   adversarialProvider: zod.enum(["anthropic", "openai", "gemini"]),
   adversarialModel: zod.string(),
+  forecastingProvider: zod.enum(["anthropic", "openai", "gemini"]),
+  forecastingModel: zod.string(),
+  extractionProvider: zod.enum(["anthropic", "openai", "gemini"]),
+  extractionModel: zod.string(),
   judgePanelAnthropicModel: zod.string().optional(),
   judgePanelOpenaiModel: zod.string().optional(),
   judgePanelGeminiModel: zod.string().optional(),
@@ -686,7 +698,12 @@ export const ListDealsResponse = zod.object({
         timelineYears: zod.number().optional(),
         sequencing: zod.string().optional(),
         additionalClauses: zod.array(zod.string()).optional(),
-        stakeholderCommitments: zod.record(zod.string(), zod.string()).optional(),
+        stakeholderCommitments: zod
+          .record(zod.string(), zod.string())
+          .optional()
+          .describe(
+            "Binding commitments from each stakeholder in the grand coalition",
+          ),
       }),
       scores: zod
         .object({
@@ -751,7 +768,12 @@ export const GetCurrentDealResponse = zod.object({
     timelineYears: zod.number().optional(),
     sequencing: zod.string().optional(),
     additionalClauses: zod.array(zod.string()).optional(),
-    stakeholderCommitments: zod.record(zod.string(), zod.string()).optional(),
+    stakeholderCommitments: zod
+      .record(zod.string(), zod.string())
+      .optional()
+      .describe(
+        "Binding commitments from each stakeholder in the grand coalition",
+      ),
   }),
   scores: zod
     .object({
@@ -813,7 +835,12 @@ export const GetParetoDealsResponse = zod.object({
         timelineYears: zod.number().optional(),
         sequencing: zod.string().optional(),
         additionalClauses: zod.array(zod.string()).optional(),
-        stakeholderCommitments: zod.record(zod.string(), zod.string()).optional(),
+        stakeholderCommitments: zod
+          .record(zod.string(), zod.string())
+          .optional()
+          .describe(
+            "Binding commitments from each stakeholder in the grand coalition",
+          ),
       }),
       scores: zod
         .object({
@@ -1043,7 +1070,12 @@ export const GetDealResponse = zod.object({
     timelineYears: zod.number().optional(),
     sequencing: zod.string().optional(),
     additionalClauses: zod.array(zod.string()).optional(),
-    stakeholderCommitments: zod.record(zod.string(), zod.string()).optional(),
+    stakeholderCommitments: zod
+      .record(zod.string(), zod.string())
+      .optional()
+      .describe(
+        "Binding commitments from each stakeholder in the grand coalition",
+      ),
   }),
   scores: zod
     .object({
@@ -1100,7 +1132,12 @@ export const ListProposalsResponse = zod.object({
         timelineYears: zod.number().optional(),
         sequencing: zod.string().optional(),
         additionalClauses: zod.array(zod.string()).optional(),
-        stakeholderCommitments: zod.record(zod.string(), zod.string()).optional(),
+        stakeholderCommitments: zod
+          .record(zod.string(), zod.string())
+          .optional()
+          .describe(
+            "Binding commitments from each stakeholder in the grand coalition",
+          ),
       }),
       scores: zod
         .object({
@@ -1152,7 +1189,12 @@ export const CreateProposalBody = zod.object({
     timelineYears: zod.number().optional(),
     sequencing: zod.string().optional(),
     additionalClauses: zod.array(zod.string()).optional(),
-    stakeholderCommitments: zod.record(zod.string(), zod.string()).optional(),
+    stakeholderCommitments: zod
+      .record(zod.string(), zod.string())
+      .optional()
+      .describe(
+        "Binding commitments from each stakeholder in the grand coalition",
+      ),
   }),
 });
 
@@ -1175,7 +1217,12 @@ export const GetProposalArenaResponse = zod.object({
         timelineYears: zod.number().optional(),
         sequencing: zod.string().optional(),
         additionalClauses: zod.array(zod.string()).optional(),
-        stakeholderCommitments: zod.record(zod.string(), zod.string()).optional(),
+        stakeholderCommitments: zod
+          .record(zod.string(), zod.string())
+          .optional()
+          .describe(
+            "Binding commitments from each stakeholder in the grand coalition",
+          ),
       }),
       scores: zod
         .object({
@@ -1229,7 +1276,12 @@ export const GetProposalArenaResponse = zod.object({
         timelineYears: zod.number().optional(),
         sequencing: zod.string().optional(),
         additionalClauses: zod.array(zod.string()).optional(),
-        stakeholderCommitments: zod.record(zod.string(), zod.string()).optional(),
+        stakeholderCommitments: zod
+          .record(zod.string(), zod.string())
+          .optional()
+          .describe(
+            "Binding commitments from each stakeholder in the grand coalition",
+          ),
       }),
       scores: zod
         .object({
@@ -1292,7 +1344,12 @@ export const GetProposalResponse = zod.object({
     timelineYears: zod.number().optional(),
     sequencing: zod.string().optional(),
     additionalClauses: zod.array(zod.string()).optional(),
-    stakeholderCommitments: zod.record(zod.string(), zod.string()).optional(),
+    stakeholderCommitments: zod
+      .record(zod.string(), zod.string())
+      .optional()
+      .describe(
+        "Binding commitments from each stakeholder in the grand coalition",
+      ),
   }),
   scores: zod
     .object({
@@ -1347,7 +1404,12 @@ export const EvaluateProposalResponse = zod.object({
       timelineYears: zod.number().optional(),
       sequencing: zod.string().optional(),
       additionalClauses: zod.array(zod.string()).optional(),
-      stakeholderCommitments: zod.record(zod.string(), zod.string()).optional(),
+      stakeholderCommitments: zod
+        .record(zod.string(), zod.string())
+        .optional()
+        .describe(
+          "Binding commitments from each stakeholder in the grand coalition",
+        ),
     }),
     scores: zod
       .object({

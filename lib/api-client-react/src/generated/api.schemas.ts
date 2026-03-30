@@ -275,6 +275,24 @@ export const AdminConfigResponseAdversarialProvider = {
   gemini: "gemini",
 } as const;
 
+export type AdminConfigResponseForecastingProvider =
+  (typeof AdminConfigResponseForecastingProvider)[keyof typeof AdminConfigResponseForecastingProvider];
+
+export const AdminConfigResponseForecastingProvider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
+export type AdminConfigResponseExtractionProvider =
+  (typeof AdminConfigResponseExtractionProvider)[keyof typeof AdminConfigResponseExtractionProvider];
+
+export const AdminConfigResponseExtractionProvider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
 export type AdminConfigResponseStage1Provider =
   (typeof AdminConfigResponseStage1Provider)[keyof typeof AdminConfigResponseStage1Provider];
 
@@ -360,6 +378,10 @@ export interface AdminConfigResponse {
   evaluationModel: string;
   adversarialProvider: AdminConfigResponseAdversarialProvider;
   adversarialModel: string;
+  forecastingProvider: AdminConfigResponseForecastingProvider;
+  forecastingModel: string;
+  extractionProvider: AdminConfigResponseExtractionProvider;
+  extractionModel: string;
   judgePanelAnthropicModel?: string;
   judgePanelOpenaiModel?: string;
   judgePanelGeminiModel?: string;
@@ -413,6 +435,24 @@ export type AdminConfigUpdateAdversarialProvider =
   (typeof AdminConfigUpdateAdversarialProvider)[keyof typeof AdminConfigUpdateAdversarialProvider];
 
 export const AdminConfigUpdateAdversarialProvider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
+export type AdminConfigUpdateForecastingProvider =
+  (typeof AdminConfigUpdateForecastingProvider)[keyof typeof AdminConfigUpdateForecastingProvider];
+
+export const AdminConfigUpdateForecastingProvider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
+export type AdminConfigUpdateExtractionProvider =
+  (typeof AdminConfigUpdateExtractionProvider)[keyof typeof AdminConfigUpdateExtractionProvider];
+
+export const AdminConfigUpdateExtractionProvider = {
   anthropic: "anthropic",
   openai: "openai",
   gemini: "gemini",
@@ -503,6 +543,10 @@ export interface AdminConfigUpdate {
   evaluationModel?: string;
   adversarialProvider?: AdminConfigUpdateAdversarialProvider;
   adversarialModel?: string;
+  forecastingProvider?: AdminConfigUpdateForecastingProvider;
+  forecastingModel?: string;
+  extractionProvider?: AdminConfigUpdateExtractionProvider;
+  extractionModel?: string;
   judgePanelAnthropicModel?: string;
   judgePanelOpenaiModel?: string;
   judgePanelGeminiModel?: string;
@@ -560,6 +604,11 @@ export interface CostSummary {
   byCycle: CostSummaryByCycleItem[];
 }
 
+/**
+ * Binding commitments from each stakeholder in the grand coalition
+ */
+export type DealTermsStakeholderCommitments = { [key: string]: string };
+
 export interface DealTerms {
   nuclearProtocol?: string;
   sanctionsRelief?: string;
@@ -569,7 +618,8 @@ export interface DealTerms {
   timelineYears?: number;
   sequencing?: string;
   additionalClauses?: string[];
-  stakeholderCommitments?: Record<string, string>;
+  /** Binding commitments from each stakeholder in the grand coalition */
+  stakeholderCommitments?: DealTermsStakeholderCommitments;
 }
 
 export interface DealScores {

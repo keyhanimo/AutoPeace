@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { randomUUID } from "node:crypto";
 import { db } from "@workspace/db";
-import { proposalsTable, dealsTable, adminConfigTable } from "@workspace/db/schema";
+import { proposalsTable, dealsTable } from "@workspace/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { adminAuth } from "../lib/admin-auth";
 import {
@@ -9,48 +9,8 @@ import {
   computeWhatWouldItTake,
   judgeAndScore,
   type DealTerms,
-  type ModelConfig,
 } from "../services/deal-engine";
-
-async function getModelConfig(): Promise<ModelConfig> {
-  try {
-    const rows = await db.select().from(adminConfigTable);
-    const cfg = Object.fromEntries(rows.map(r => [r.key, r.value]));
-    const anthropicModel = cfg["anthropicModel"] ?? "claude-opus-4-6";
-    const openaiModel = cfg["openaiModel"] ?? "gpt-5.2";
-    const geminiModel = cfg["geminiModel"] ?? "gemini-3.1-pro-preview";
-    const base: ModelConfig = {
-      anthropicModel,
-      openaiModel,
-      geminiModel,
-      generationProvider: (cfg["generationProvider"] ?? "anthropic") as "anthropic" | "openai" | "gemini",
-      generationModel: cfg["generationModel"] ?? anthropicModel,
-      evaluationProvider: (cfg["evaluationProvider"] ?? "openai") as "anthropic" | "openai" | "gemini",
-      evaluationModel: cfg["evaluationModel"] ?? openaiModel,
-      adversarialProvider: (cfg["adversarialProvider"] ?? "gemini") as "anthropic" | "openai" | "gemini",
-      adversarialModel: cfg["adversarialModel"] ?? geminiModel,
-    };
-    for (let s = 1; s <= 8; s++) {
-      const pk = `stage${s}Provider` as keyof ModelConfig;
-      const mk = `stage${s}Model` as keyof ModelConfig;
-      if (cfg[`stage${s}Provider`]) (base as Record<string, unknown>)[pk] = cfg[`stage${s}Provider`];
-      if (cfg[`stage${s}Model`]) (base as Record<string, unknown>)[mk] = cfg[`stage${s}Model`];
-    }
-    return base;
-  } catch {
-    return {
-      anthropicModel: "claude-opus-4-6",
-      openaiModel: "gpt-5.2",
-      geminiModel: "gemini-3.1-pro-preview",
-      generationProvider: "anthropic",
-      generationModel: "claude-opus-4-6",
-      evaluationProvider: "openai",
-      evaluationModel: "gpt-5.2",
-      adversarialProvider: "gemini",
-      adversarialModel: "gemini-3.1-pro-preview",
-    };
-  }
-}
+import { getModelConfig } from "../services/llm-router";
 
 const router = Router();
 
