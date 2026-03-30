@@ -114,7 +114,7 @@ Scheduler: hourly cron check, runs at UTC 6am daily by default.
 | Route | Page |
 |---|---|
 | `/` | Home — hero, peace gauge, stakeholder grid, DealHeroSection |
-| `/forecasts` | Forecast Dashboard — bar chart, what-if scenarios, community forecast panel |
+| `/forecasts` | Forecast Dashboard — bar chart, community forecast panel |
 | `/deals` | Deal Dashboard — solution tree, Pareto frontier, deal cards |
 | `/arena` | Proposal Arena — US vs Iran vs AI deal comparison |
 | `/stakeholders` | Stakeholder Gallery — expandable stakeholder profile cards |
@@ -145,7 +145,7 @@ All 10 data-displaying pages have peer-reviewed academic-standard sourcing:
 - Hourly cron scheduler reads cadence from admin config (`getConfigValue("cadence", "daily")`)
 - Cadence options: hourly (every tick), daily (06:00 UTC), weekly (Monday 06:00 UTC), manual (no auto-run)
 - Admin panel dropdown (`AdminPanel.tsx`) shows descriptive labels with helper text explaining the pipeline
-- Full pipeline per cycle: RSS/ACLED/GDELT ingestion → proposal extraction → multi-model forecasting → hill-climbing optimization → what-if scenarios → **deal engine optimization** (generates & evaluates new deal via solution tree, updates Pareto frontier)
+- Full pipeline per cycle: RSS/ACLED/GDELT ingestion → proposal extraction → multi-model forecasting → hill-climbing optimization → **deal engine optimization** (generates & evaluates new deal via solution tree, updates Pareto frontier)
 - Deal cycle runs as final step of each autoresearch cycle (non-critical — if it fails, forecasts are still saved)
 
 ## Phase 3 — Interactive Explorer & Community
@@ -167,7 +167,7 @@ All 10 data-displaying pages have peer-reviewed academic-standard sourcing:
 
 **New pages**: Evidence Explorer, Stakeholder Comparison, Submit Proposal, Data Portal, API Docs, Open Source
 
-**ForecastDashboard additions**: What-If Scenarios panel (4 toggleable scenarios with probability shifts) + Community Forecast panel (AI vs crowd bar chart)
+**ForecastDashboard additions**: Community Forecast panel (AI vs crowd bar chart)
 
 **Nav**: Grouped into Research / Explorer / Community / Info sections
 

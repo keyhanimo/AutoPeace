@@ -352,7 +352,6 @@ export default function AdminPanel() {
           { key: "forecasting", label: "Forecasting" },
           { key: "hill_climbing", label: "Hill Climbing" },
           { key: "changelog", label: "Changelog" },
-          { key: "what_if_scenarios", label: "What-If Scenarios" },
           { key: "deal_engine", label: "Deal Engine" },
         ];
         const elapsed = cycleStatus.cycleStartedAt ? Math.round((Date.now() - cycleStatus.cycleStartedAt) / 1000) : 0;
@@ -437,7 +436,7 @@ export default function AdminPanel() {
                   <option value="weekly">Weekly — run Mondays at 6:00 AM UTC</option>
                   <option value="manual">Manual Only — no automatic updates</option>
                 </select>
-                <p className="text-[10px] text-muted-foreground leading-relaxed">Controls how often the full autoresearch pipeline runs: ingests new evidence from RSS/ACLED/GDELT, updates forecasts via multi-model pipeline, optimizes deal proposals via the deal engine, and refreshes what-if scenarios. All data on the platform updates with each cycle.</p>
+                <p className="text-[10px] text-muted-foreground leading-relaxed">Controls how often the full autoresearch pipeline runs: ingests new evidence from RSS/ACLED/GDELT, updates forecasts via multi-model pipeline, and optimizes deal proposals via the deal engine. All data on the platform updates with each cycle.</p>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-muted-foreground">Anthropic Forecaster Model</label>

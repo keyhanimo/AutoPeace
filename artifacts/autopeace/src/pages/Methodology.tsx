@@ -78,7 +78,6 @@ export default function Methodology() {
             <li><a href="#cba" className="hover:text-primary transition-colors">Cost-Benefit Analysis Modeling</a></li>
             <li><a href="#scoring" className="hover:text-primary transition-colors">Scoring &amp; Evaluation Framework</a></li>
             <li><a href="#pareto" className="hover:text-primary transition-colors">Pareto Frontier &amp; Solution Tree</a></li>
-            <li><a href="#what-if" className="hover:text-primary transition-colors">What-If Scenario Analysis</a></li>
             <li><a href="#limitations" className="hover:text-primary transition-colors">Limitations &amp; Disclaimer</a></li>
           </ol>
         </Card>
@@ -160,14 +159,10 @@ export default function Methodology() {
             </li>
             <li className="bg-card p-3 border border-border flex items-start gap-3">
               <span className="bg-primary/20 text-primary font-mono text-xs px-2 py-1 shrink-0">Step 5</span>
-              <div><strong className="text-foreground">What-If Scenarios</strong> — Compute counterfactual forecast variants for predefined geopolitical scenarios (sanctions lifted, military strikes, Hormuz closure, US withdrawal).</div>
-            </li>
-            <li className="bg-card p-3 border border-border flex items-start gap-3">
-              <span className="bg-primary/20 text-primary font-mono text-xs px-2 py-1 shrink-0">Step 6</span>
               <div><strong className="text-foreground">Deal Optimization Trigger (Task B)</strong> — Trigger the 8-stage deal evaluation pipeline asynchronously. Task B runs as a separate async process that generates, tests, and scores a new peace deal proposal using the latest evidence and previous cycle's diagnosis. It manages its own persistence, Pareto frontier updates, and solution tree recording upon completion.</div>
             </li>
             <li className="bg-card p-3 border border-border flex items-start gap-3">
-              <span className="bg-primary/20 text-primary font-mono text-xs px-2 py-1 shrink-0">Step 7</span>
+              <span className="bg-primary/20 text-primary font-mono text-xs px-2 py-1 shrink-0">Step 6</span>
               <div><strong className="text-foreground">Task A Persistence</strong> — Store forecast results, experiment outcomes, and champion state in the database. Generate a changelog entry summarizing the cycle's key findings.</div>
             </li>
           </ol>
@@ -619,27 +614,9 @@ export default function Methodology() {
           </p>
         </Card>
 
-        <Card className="p-8" id="what-if">
-          <h2 className="text-2xl font-bold font-display text-foreground mt-0 flex items-center gap-3">
-            <ArrowRight className="w-6 h-6 text-primary" /> 12. What-If Scenario Analysis
-          </h2>
-          <p>
-            After each forecasting cycle, the system generates counterfactual forecast variants for four predefined geopolitical scenarios:
-          </p>
-          <div className="space-y-2 not-prose text-sm">
-            <div className="bg-card p-3 border border-border"><strong className="text-foreground">Sanctions Lifted:</strong> Western sanctions on Iran fully removed as part of a phased deal. Trigger: Full JCPOA-plus agreement with verified enrichment rollback.</div>
-            <div className="bg-card p-3 border border-border"><strong className="text-foreground">Military Strikes:</strong> Israeli or US military strikes on Iranian nuclear facilities. Trigger: Iran crosses 90% enrichment threshold or credible weapon assembly detected.</div>
-            <div className="bg-card p-3 border border-border"><strong className="text-foreground">Hormuz Closure:</strong> Iran closes the Strait of Hormuz disrupting global energy supply. Trigger: US or Israeli military action or crushing sanction escalation.</div>
-            <div className="bg-card p-3 border border-border"><strong className="text-foreground">US Withdrawal:</strong> United States significantly reduces military presence in the Middle East. Trigger: Domestic political shift, budget crisis, or grand strategy reorientation.</div>
-          </div>
-          <p className="mt-4">
-            Each scenario is evaluated by re-running the forecasting model with the scenario injected as context alongside current evidence and the base 90-day forecast. The model must explain how the scenario causally shifts each outcome probability. These counterfactuals serve as sensitivity analysis — revealing which external events would most dramatically alter the conflict trajectory.
-          </p>
-        </Card>
-
         <Card className="p-8 border-amber-700/40 bg-amber-900/10" id="limitations">
           <h2 className="text-2xl font-bold font-display text-foreground mt-0 flex items-center gap-3">
-            <AlertTriangle className="w-6 h-6 text-amber-400" /> 13. Limitations &amp; Disclaimer
+            <AlertTriangle className="w-6 h-6 text-amber-400" /> 12. Limitations &amp; Disclaimer
           </h2>
           <ul className="space-y-2 text-sm text-muted-foreground mt-4 list-disc list-inside">
             <li>Forecasts are <strong>probabilistic estimates</strong> produced by AI models and are not verified ground truth. All probabilities should be interpreted with appropriate epistemic humility.</li>

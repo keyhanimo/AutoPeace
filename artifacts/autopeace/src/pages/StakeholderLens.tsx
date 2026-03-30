@@ -5,13 +5,11 @@ import {
   useGetCostsByStakeholder,
   useGetCurrentDeal,
   useGetLatestForecasts,
-  useListWhatIfScenarios,
   type Stakeholder,
-  type WhatIfScenario,
 } from "@workspace/api-client-react";
 import { Card, PageHeader, Badge } from "@/components/ui";
 import {
-  Eye, TrendingUp, TrendingDown, Minus, AlertTriangle,
+  Eye, TrendingUp, AlertTriangle,
   CheckCircle2, XCircle, Shield, DollarSign, BarChart2,
 } from "lucide-react";
 import { DataSourceNote } from "@/components/DataSourceNote";
@@ -250,10 +248,8 @@ function CostLensSection({ stakeholderId }: { stakeholderId: string }) {
 
 function ForecastLensSection({
   stakeholder,
-  scenarios,
 }: {
   stakeholder: Stakeholder;
-  scenarios: WhatIfScenario[];
 }) {
   const { data: forecastsData, isLoading } = useGetLatestForecasts();
   const preferred = Array.isArray(stakeholder.preferredOutcomes) ? stakeholder.preferredOutcomes as string[] : typeof stakeholder.preferredOutcomes === "string" && (stakeholder.preferredOutcomes as string).trim() ? (stakeholder.preferredOutcomes as string).split(/,\s*/).map(s => s.trim()).filter(Boolean) : [];
@@ -313,32 +309,6 @@ function ForecastLensSection({
         <p className="text-sm text-muted-foreground">No forecast data available.</p>
       )}
 
-      {scenarios.length > 0 && preferred.length > 0 && (
-        <div className="mt-4 border-t border-border/40 pt-4">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-            How scenarios affect preferred outcomes
-          </p>
-          <div className="space-y-2">
-            {scenarios.map(s => {
-              const totalDelta = preferred.reduce(
-                (sum, key) => sum + (s.probabilityDeltas[key] ?? 0),
-                0,
-              );
-              const positive = totalDelta > 0.5;
-              const negative = totalDelta < -0.5;
-              return (
-                <div key={s.id} className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">{s.name}</span>
-                  <span className={`font-semibold flex items-center gap-1 ${positive ? "text-green-600" : negative ? "text-red-600" : "text-muted-foreground"}`}>
-                    {positive ? <TrendingUp className="w-3 h-3" /> : negative ? <TrendingDown className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
-                    {totalDelta > 0 ? "+" : ""}{totalDelta.toFixed(1)}pp
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
     </Card>
   );
 }
@@ -404,11 +374,9 @@ function DealLensSection({ stakeholderId }: { stakeholderId: string }) {
 
 export default function StakeholderLens() {
   const { data: stakeholderList, isLoading } = useListStakeholders();
-  const { data: scenariosData } = useListWhatIfScenarios();
   const [selectedId, setSelectedId] = useState<string>("");
 
   const stakeholders = ((stakeholderList as unknown as { data?: Stakeholder[] })?.data ?? []) as Stakeholder[];
-  const scenarios = ((scenariosData as unknown as { data?: WhatIfScenario[] })?.data ?? []) as WhatIfScenario[];
 
   const selected = stakeholders.find(s => s.id === selectedId) ?? stakeholders[0] ?? null;
 
@@ -447,7 +415,7 @@ export default function StakeholderLens() {
           <StakeholderOverview stakeholder={selected} />
 
           <div className="grid md:grid-cols-2 gap-4">
-            <ForecastLensSection stakeholder={selected} scenarios={scenarios} />
+            <ForecastLensSection stakeholder={selected} />
             <DealLensSection stakeholderId={effectiveId} />
           </div>
 

@@ -1205,62 +1205,6 @@ paths:
         "409":
           description: Already reviewed
 
-  /scenarios:
-    get:
-      operationId: listWhatIfScenarios
-      tags: [scenarios]
-      summary: List pre-computed what-if scenario snapshots
-      description: >
-        Returns the latest batch of what-if scenario snapshots generated during the
-        most recent research cycle. If no snapshots have been computed yet, returns
-        an empty array with status "not_ready". Does NOT trigger any LLM computation.
-      responses:
-        "200":
-          description: Scenario snapshots or not-ready indicator
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/WhatIfScenario"
-                  status:
-                    type: string
-                    enum: [not_ready]
-                    description: Present only when data is empty and snapshots are not yet available
-                  message:
-                    type: string
-                required: [data]
-
-  /admin/scenarios/compute:
-    post:
-      operationId: adminComputeScenarios
-      tags: [scenarios, admin]
-      summary: Trigger LLM-based what-if scenario computation (admin only)
-      security:
-        - adminKey: []
-      description: >
-        Runs the full what-if scenario pipeline (LLM probability generation +
-        stakeholder evaluation + judge scoring for top proposals) and stores
-        results. This is the only endpoint that triggers live LLM calls for
-        scenario computation.
-      responses:
-        "200":
-          description: Scenarios computed successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message: { type: string }
-                  count: { type: integer }
-                  data: { type: array, items: { type: object } }
-                required: [message, count, data]
-        "401":
-          description: Unauthorized
-
   /admin/proposals/queue/{id}/terms:
     patch:
       operationId: editProposalSubmissionTerms
@@ -1641,38 +1585,6 @@ components:
           type: string
       required:
         - status
-
-    WhatIfScenario:
-      type: object
-      properties:
-        id: { type: string }
-        name: { type: string }
-        description: { type: string }
-        triggerCondition: { type: string }
-        basedOnCycleId:
-          type: string
-          nullable: true
-        probabilityDeltas:
-          type: object
-          additionalProperties: { type: number }
-          description: Per-outcome probability shifts vs baseline (signed fractions)
-        absoluteProbabilities:
-          type: object
-          additionalProperties: { type: number }
-          description: Absolute probabilities under this scenario (0-1 fractions)
-        proposalImpacts:
-          type: array
-          nullable: true
-          items:
-            type: object
-            properties:
-              proposalId: { type: string }
-              proposalName: { type: string }
-              viabilityDelta: { type: number }
-              projectedComposite: { type: number }
-              favorabilityNote: { type: string }
-        updatedAt: { type: string, format: date-time }
-      required: [id, name, description, triggerCondition, probabilityDeltas, absoluteProbabilities, updatedAt]
 
     EmailSubscription:
       type: object

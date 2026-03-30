@@ -10,7 +10,6 @@ import {
 } from "@workspace/db/schema";
 import { desc, eq, isNull } from "drizzle-orm";
 import { logger } from "../lib/logger";
-import { computeAndStoreWhatIfScenarios } from "./what-if-scenarios";
 import { generateForecasts, getRecentForecastsForBacktest, type GeneratedForecast } from "./forecasting";
 import { ingestAllSources } from "./evidence-ingestion";
 import { extractProposalsFromEvidence } from "./proposal-extractor";
@@ -40,7 +39,6 @@ export type CycleStage =
   | "forecasting"
   | "red_team"
   | "hill_climbing"
-  | "what_if_scenarios"
   | "deal_engine"
   | "changelog"
   | "completed"
@@ -227,14 +225,6 @@ async function runCycleAsync(cycleId: string): Promise<void> {
     }).where(eq(cyclesTable.id, cycleId));
 
     logger.info({ cycleId, experimentsRun, experimentsRetained }, "Autoresearch cycle completed successfully");
-
-    setStage("what_if_scenarios");
-    try {
-      await withTimeout(computeAndStoreWhatIfScenarios(cycleId), 120_000, "What-if scenario computation timed out after 2 minutes");
-      logger.info({ cycleId }, "What-if scenario variants updated");
-    } catch (scenarioErr) {
-      logger.warn({ err: scenarioErr, cycleId }, "What-if scenario update failed (non-critical)");
-    }
 
     setStage("deal_engine");
     try {

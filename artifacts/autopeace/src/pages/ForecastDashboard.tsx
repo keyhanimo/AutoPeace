@@ -2,8 +2,7 @@ import React, { useState, useMemo } from "react";
 import {
   useGetLatestForecasts, useListForecasts, useListEvidence,
   useGetCommunityForecastAggregate, useSubmitCommunityForecast,
-  useListWhatIfScenarios,
-  type Forecast, type WhatIfScenario,
+  type Forecast,
 } from "@workspace/api-client-react";
 import { Card, PageHeader, Badge } from "@/components/ui";
 import {
@@ -11,7 +10,7 @@ import {
   RadarChart, PolarGrid, PolarAngleAxis, Radar,
   LineChart, Line, Legend, ScatterChart, Scatter, CartesianGrid,
 } from "recharts";
-import { AlertCircle, Clock, CheckCircle2, FileText, Target, TrendingUp, BarChart2, Users, Zap, Send } from "lucide-react";
+import { AlertCircle, Clock, CheckCircle2, FileText, Target, TrendingUp, BarChart2, Users, Send } from "lucide-react";
 import { DataSourceNote, DataFreshness } from "@/components/DataSourceNote";
 
 const TIME_HORIZONS = ['30d', '90d', '180d', '1y'] as const;
@@ -34,115 +33,6 @@ const PREDICTION_MARKETS = [
   { name: "Metaculus", peaceProb: 0.12, conflictProb: 0.65, lastUpdated: "2024-12-01" },
   { name: "Kalshi", peaceProb: 0.06, conflictProb: 0.78, lastUpdated: "2024-12-01" },
 ];
-
-function WhatIfPanel({ allForecasts }: { allForecasts: Forecast[] }) {
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const { data: scenariosData, isLoading: scenariosLoading } = useListWhatIfScenarios();
-  const scenarios: WhatIfScenario[] = (scenariosData?.data ?? []) as WhatIfScenario[];
-
-  const baseline90d = allForecasts.find(f => f.timeHorizon === "90d") ?? allForecasts[0];
-  const baseProbs = baseline90d ? getProbs(baseline90d) : {};
-  const activeScenario = scenarios.find(s => s.id === activeId) ?? null;
-
-  const chartData = CATEGORIES.map(cat => ({
-    name: cat.shortLabel,
-    base: parseFloat(((baseProbs[cat.key] ?? 0) * 100).toFixed(1)),
-    scenario: activeScenario
-      ? parseFloat(((activeScenario.absoluteProbabilities[cat.key] ?? 0) * 100).toFixed(1))
-      : undefined,
-    color: cat.color,
-  }));
-
-  const deltaData = activeScenario
-    ? CATEGORIES.map(cat => {
-        const base = parseFloat(((baseProbs[cat.key] ?? 0) * 100).toFixed(1));
-        const scenario = parseFloat(((activeScenario.absoluteProbabilities[cat.key] ?? 0) * 100).toFixed(1));
-        return { name: cat.shortLabel, delta: parseFloat((scenario - base).toFixed(1)) };
-      })
-    : [];
-
-  return (
-    <Card className="p-6">
-      <h3 className="text-lg font-bold mb-1 flex items-center gap-2">
-        <Zap className="w-4 h-4 text-primary" /> What-If Scenarios
-      </h3>
-      <p className="text-xs text-muted-foreground mb-4">
-        Pre-computed scenario variants updated each research cycle. Baseline is the <strong>90-day</strong> forecast for consistency with scenario computation.
-        Select a scenario to compare probability shifts vs. baseline.
-      </p>
-      {scenariosLoading ? (
-        <div className="grid sm:grid-cols-2 gap-2 mb-5">
-          {[0, 1, 2, 3].map(i => <div key={i} className="h-16 animate-pulse bg-secondary/40 rounded-lg" />)}
-        </div>
-      ) : scenarios.length === 0 ? (
-        <div className="text-center py-8 border border-border/20 rounded-lg bg-secondary/10 mb-5">
-          <p className="text-xs text-muted-foreground">Scenario snapshots are generated during each research cycle.</p>
-          <p className="text-[10px] text-muted-foreground/60 mt-1">Run a research cycle or ask an admin to compute scenarios.</p>
-        </div>
-      ) : (
-        <div className="grid sm:grid-cols-2 gap-2 mb-5">
-          {scenarios.map(s => (
-            <button
-              key={s.id}
-              onClick={() => setActiveId(prev => prev === s.id ? null : s.id)}
-              aria-pressed={activeId === s.id}
-              className={`text-left p-3 rounded-lg border text-xs transition-all ${
-                activeId === s.id
-                  ? "border-primary/50 bg-primary/10 text-primary"
-                  : "border-border/40 text-muted-foreground hover:border-border hover:text-foreground"
-              }`}
-            >
-              <div className="font-medium mb-0.5">{s.name}</div>
-              <div className="text-[10px] opacity-70 leading-relaxed">{s.description}</div>
-              <div className="text-[9px] opacity-50 mt-1">Trigger: {s.triggerCondition}</div>
-            </button>
-          ))}
-        </div>
-      )}
-      {activeScenario ? (
-        <div>
-          <div className="flex items-center gap-3 mb-3 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm inline-block" style={{ backgroundColor: "#475569" }} />90d Baseline</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm inline-block" style={{ backgroundColor: "#f59e0b" }} />Scenario</span>
-            <Badge variant="outline" className="ml-auto border-primary/40 text-primary text-xs">{activeScenario.name}</Badge>
-          </div>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={chartData} margin={{ top: 0, right: 4, left: 0, bottom: 0 }}>
-              <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#94a3b8" }} />
-              <YAxis tickFormatter={v => `${v}%`} tick={{ fontSize: 10, fill: "#94a3b8" }} width={32} />
-              <Tooltip
-                contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', fontSize: 11 }}
-                formatter={(v: number, name: string) => [`${v}%`, name === "base" ? "90d Baseline" : "Scenario"]}
-              />
-              <Bar dataKey="base" fill="#475569" opacity={0.6} radius={[2, 2, 0, 0]} name="base" />
-              <Bar dataKey="scenario" fill="#f59e0b" radius={[2, 2, 0, 0]} name="scenario" />
-            </BarChart>
-          </ResponsiveContainer>
-          <div className="mt-4">
-            <div className="text-[10px] text-muted-foreground uppercase tracking-widest mb-2">Probability Deltas vs 90d Baseline</div>
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-1">
-              {deltaData.map(d => (
-                <div key={d.name} className="text-center rounded bg-secondary/30 p-1.5">
-                  <div className="text-[9px] text-muted-foreground mb-0.5">{d.name}</div>
-                  <div className={`text-[11px] font-mono font-bold ${d.delta > 0 ? "text-emerald-400" : d.delta < 0 ? "text-red-400" : "text-muted-foreground"}`}>
-                    {d.delta > 0 ? "+" : ""}{d.delta}%
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          {activeScenario.basedOnCycleId && (
-            <p className="text-[9px] text-muted-foreground mt-2">Based on cycle: {activeScenario.basedOnCycleId.slice(0, 8)}…</p>
-          )}
-        </div>
-      ) : (
-        <div className="h-24 flex items-center justify-center border border-border/20 rounded-lg bg-secondary/20">
-          <p className="text-xs text-muted-foreground">Select a scenario to compare pre-computed probability shifts</p>
-        </div>
-      )}
-    </Card>
-  );
-}
 
 const HORIZON_LABELS: Record<string, string> = {
   "30d": "30 days",
@@ -880,10 +770,7 @@ export default function ForecastDashboard() {
             </div>
           </Card>
 
-          <div className="grid lg:grid-cols-2 gap-6">
-            <WhatIfPanel allForecasts={latestRes?.data ?? []} />
-            <CommunityForecastPanel activeForecast={activeForecast} />
-          </div>
+          <CommunityForecastPanel activeForecast={activeForecast} />
 
           <div className="grid lg:grid-cols-2 gap-6">
             <CalibrationScorecard forecasts={allForecasts} />

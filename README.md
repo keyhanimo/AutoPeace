@@ -191,7 +191,6 @@ autopeace/
 │   │       │   ├── llm-router.ts          # Unified LLM routing layer
 │   │       │   ├── proposal-extractor.ts  # Auto-extract proposals from evidence
 │   │       │   ├── proposal-screening.ts  # AI screening of community submissions
-│   │       │   ├── what-if-scenarios.ts   # Scenario computation engine
 │   │       │   └── scoring.ts             # Deal scoring utilities
 │   │       ├── seed/            # Seed data (stakeholders, proposals)
 │   │       └── app.ts           # Express app setup
@@ -275,7 +274,6 @@ The PostgreSQL database uses Drizzle ORM and contains 10+ tables organized aroun
 | `experiments` | Detailed logs of prompt mutations and parameter variations during research cycles |
 | `pipeline_evolution` | Cumulative prompt overrides per pipeline stage for hill-climbing optimization |
 | `solution_tree` | Hierarchical representation of deal evolution branches |
-| `what_if_scenarios` | Pre-computed hypothetical event impact projections |
 | `cost_of_war` | Economic, humanitarian, and strategic cost data per stakeholder |
 | `community_forecasts` | Aggregated user-submitted probability estimates |
 | `changelog_entries` | Auto-generated summaries of research cycle deltas |
@@ -337,7 +335,6 @@ All endpoints are prefixed with `/api`. Rate limits: 120 requests/min (public), 
 | `GET` | `/changelog` | Research cycle changelog |
 | `GET` | `/changelog.xml` | RSS 2.0 feed |
 | `GET` | `/changelog/:id` | Single changelog entry |
-| `GET` | `/scenarios` | Pre-computed what-if scenarios |
 
 ### Community Endpoints
 
@@ -373,7 +370,6 @@ All admin endpoints require the `X-Admin-Key` header matching the `ADMIN_PASSWOR
 | `POST` | `/admin/config` | Update configuration (cadence, models, budget, etc.) |
 | `POST` | `/admin/run` | Trigger a forecast research cycle (409 if already running) |
 | `POST` | `/admin/deal-run` | Trigger a deal generation cycle |
-| `POST` | `/admin/scenarios/compute` | Manually trigger what-if scenario computation |
 | `POST` | `/admin/proposals` | Manually add a new proposal |
 | `GET` | `/admin/proposals/queue` | View community submission review queue |
 | `PATCH` | `/admin/proposals/queue/:id` | Approve or reject a submission |
@@ -386,7 +382,7 @@ All admin endpoints require the `X-Admin-Key` header matching the `ADMIN_PASSWOR
 | Route | Page | Description |
 |---|---|---|
 | `/` | **Home** | Hero dashboard with Peace Outlook gauge, AI vs Human scores, live metrics (Brier scores, cycles, tokens), pipeline visualization |
-| `/forecasts` | **Forecast Dashboard** | Outcome probability charts, what-if scenario toggles, community forecast comparison, calibration scorecard |
+| `/forecasts` | **Forecast Dashboard** | Outcome probability charts, community forecast comparison, calibration scorecard |
 | `/deals` | **Deal Dashboard** | Current AI champion, 7-dimension radar charts, red-team results, stakeholder acceptance map, solution tree |
 | `/arena` | **Proposal Arena** | Human vs. AI deal comparison with side-by-side radar charts and score breakdowns |
 | `/costs` | **Cost-Benefit Analysis** | War costs vs. peace benefits by channel/stakeholder, humanitarian data, treemap, and methodology framework |

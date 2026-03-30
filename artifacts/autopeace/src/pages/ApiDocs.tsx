@@ -193,12 +193,6 @@ const ENDPOINTS: Endpoint[] = [
   },
 
   {
-    method: "GET", path: "/api/scenarios", summary: "List what-if scenario snapshots",
-    tags: ["scenarios"],
-    example: `curl "${BASE}/api/scenarios"`,
-  },
-
-  {
     method: "GET", path: "/api/changelog", summary: "Changelog entries from research cycles",
     tags: ["changelog"],
     params: [
@@ -315,7 +309,7 @@ const ENDPOINTS: Endpoint[] = [
   },
 ];
 
-const ALL_TAGS = ["system", "forecasts", "deals", "stakeholders", "costs", "evidence", "experiments", "scenarios", "changelog", "proposals", "community", "downloads"];
+const ALL_TAGS = ["system", "forecasts", "deals", "stakeholders", "costs", "evidence", "experiments", "changelog", "proposals", "community", "downloads"];
 
 function CodeBlock({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);
