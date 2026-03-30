@@ -243,7 +243,7 @@ export default function AdminPanel() {
         judgePanelAnthropicModel: config.judgePanelAnthropicModel ?? "",
         judgePanelOpenaiModel: config.judgePanelOpenaiModel ?? "",
         judgePanelGeminiModel: config.judgePanelGeminiModel ?? "",
-        submissionScreeningModel: (config as AdminConfigResponse & Record<string, string | undefined>).submissionScreeningModel ?? "",
+        submissionScreeningModel: config.submissionScreeningModel ?? "",
         ...stageFields,
       });
     }
@@ -460,7 +460,7 @@ export default function AdminPanel() {
             <div className="space-y-2">
               <label className="text-xs font-semibold text-violet-400">Screening Model (Anthropic)</label>
               <Input
-                value={(formData as Record<string, unknown>).submissionScreeningModel as string ?? ""}
+                value={formData.submissionScreeningModel ?? ""}
                 onChange={e => setFormData({ ...formData, submissionScreeningModel: e.target.value })}
                 placeholder="claude-sonnet-4-5"
               />
@@ -876,7 +876,11 @@ export default function AdminPanel() {
                       {([
                         ["Composite", s.composite],
                         ["Feasibility", s.feasibility],
+                        ["Coherence", s.coherence],
+                        ["Evidence", s.evidenceGrounding],
                         ["Domestic", s.domesticSellability],
+                        ["Regional", s.regionalStability],
+                        ["Implement.", s.implementability],
                         ["Durability", s.durability],
                       ] as [string, number][]).map(([label, val]) => (
                         <div key={label} className="flex items-center gap-2">
