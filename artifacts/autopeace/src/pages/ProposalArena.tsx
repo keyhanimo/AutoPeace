@@ -720,6 +720,10 @@ export default function ProposalArena() {
         )}
       </PageHeader>
 
+      <ArenaCompareChart proposals={proposals} aiDeal={aiDeal} />
+
+      <GapAnalysis proposals={proposals} aiDeal={aiDeal} />
+
       {aiDeal && (
         <AiDealCard
           deal={aiDeal}
@@ -727,10 +731,6 @@ export default function ProposalArena() {
           onToggle={() => setAiExpanded(!aiExpanded)}
         />
       )}
-
-      <ArenaCompareChart proposals={proposals} aiDeal={aiDeal} />
-
-      <GapAnalysis proposals={proposals} aiDeal={aiDeal} />
 
       <div className="space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
