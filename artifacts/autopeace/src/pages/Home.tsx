@@ -132,6 +132,12 @@ export default function Home() {
   const { data: proposalsRes } = useListProposals();
   const forecasts = latestRes?.data || [];
   const peaceProb = calculatePeaceProbability(forecasts);
+  const lastUpdated = forecasts.length > 0
+    ? forecasts.reduce((latest, f) => {
+        const t = new Date(f.createdAt ?? 0).getTime();
+        return t > latest ? t : latest;
+      }, 0)
+    : null;
 
   const allProposals = (proposalsRes?.data ?? []) as Proposal[];
   const humanProposals = allProposals
@@ -232,6 +238,13 @@ export default function Home() {
               {forecastLoading ? <div className="animate-pulse text-xs text-muted-foreground">Loading...</div> : <OutcomeSparkbar forecasts={forecasts} />}
             </div>
           </div>
+          {lastUpdated && (
+            <div className="mt-4 text-right">
+              <span className="text-[11px] text-muted-foreground/60">
+                Last updated: {new Date(lastUpdated).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
+              </span>
+            </div>
+          )}
         </div>
       </section>
 
