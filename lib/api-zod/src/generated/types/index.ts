@@ -81,6 +81,7 @@ export * from "./evidenceItem";
 export * from "./evidenceSource";
 export * from "./evidenceSourceUpdate";
 export * from "./experiment";
+export * from "./experimentProviderCosts";
 export * from "./experimentScoresAfter";
 export * from "./experimentScoresBefore";
 export * from "./experimentStats";

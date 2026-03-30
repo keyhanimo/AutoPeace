@@ -151,6 +151,13 @@ export const ListExperimentsResponse = zod.object({
       tokensConsumed: zod.number(),
       wallClockSeconds: zod.number().nullish(),
       costUsd: zod.number(),
+      providerCosts: zod
+        .object({
+          gemini: zod.number().optional(),
+          openai: zod.number().optional(),
+          anthropic: zod.number().optional(),
+        })
+        .nullish(),
     }),
   ),
   total: zod.number(),

@@ -1800,6 +1800,16 @@ components:
           nullable: true
         costUsd:
           type: number
+        providerCosts:
+          type: object
+          nullable: true
+          properties:
+            gemini:
+              type: number
+            openai:
+              type: number
+            anthropic:
+              type: number
       required:
         - id
         - cycleId

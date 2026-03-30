@@ -5,6 +5,7 @@
  * AutoPeace API — AI-powered conflict forecasting and peace research
  * OpenAPI spec version: 0.1.0
  */
+import type { ExperimentProviderCosts } from "./experimentProviderCosts";
 import type { ExperimentScoresAfter } from "./experimentScoresAfter";
 import type { ExperimentScoresBefore } from "./experimentScoresBefore";
 import type { ExperimentTask } from "./experimentTask";
@@ -23,4 +24,5 @@ export interface Experiment {
   tokensConsumed: number;
   wallClockSeconds?: number | null;
   costUsd: number;
+  providerCosts?: ExperimentProviderCosts;
 }

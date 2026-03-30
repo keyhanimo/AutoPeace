@@ -101,6 +101,12 @@ export type ExperimentScoresBefore = { [key: string]: unknown } | null;
 
 export type ExperimentScoresAfter = { [key: string]: unknown } | null;
 
+export type ExperimentProviderCosts = {
+  gemini?: number;
+  openai?: number;
+  anthropic?: number;
+} | null;
+
 export interface Experiment {
   id: string;
   cycleId: string;
@@ -115,6 +121,7 @@ export interface Experiment {
   tokensConsumed: number;
   wallClockSeconds?: number | null;
   costUsd: number;
+  providerCosts?: ExperimentProviderCosts;
 }
 
 export interface ExperimentStats {
