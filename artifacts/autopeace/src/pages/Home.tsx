@@ -100,7 +100,7 @@ function OutcomeSparkbar({ forecasts }: { forecasts: Forecast[] }) {
   if (!f30) return null;
   const probs = Object.entries(f30.probabilities)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 5);
+;
 
   return (
     <div className="space-y-2.5 w-full">
