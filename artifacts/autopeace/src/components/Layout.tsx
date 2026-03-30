@@ -3,7 +3,7 @@ import { useState } from "react";
 import {
   Menu, X, Activity, BarChart2, DollarSign, FlaskConical, BookOpen,
   HelpCircle, Shield, ChevronRight, Handshake, Users, Swords,
-  Search, GitCompare, Send, Database, Code2, Github, Eye,
+  Search, GitCompare, Send, Database, Code2, Eye,
 } from "lucide-react";
 
 type NavGroup = {
@@ -38,7 +38,6 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/submit", label: "Submit Proposal", icon: Send },
       { href: "/data", label: "Data Portal", icon: Database },
       { href: "/api-docs", label: "API Docs", icon: Code2 },
-      { href: "/open-source", label: "Open Source", icon: Github },
     ],
   },
   {
@@ -173,7 +172,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <div className="flex gap-4">
             <Link to="/methodology" className="hover:text-primary transition-colors">Methodology</Link>
             <Link to="/data" className="hover:text-primary transition-colors">Data</Link>
-            <Link to="/open-source" className="hover:text-primary transition-colors">Open Source</Link>
             <a href="https://github.com/keyhanimo/AutoPeace" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">GitHub</a>
             <a href="https://replit.com/@keyhanimo/AutoPeace" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">Remix on Replit</a>
           </div>

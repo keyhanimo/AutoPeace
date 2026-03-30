@@ -21,7 +21,6 @@ import StakeholderLens from "@/pages/StakeholderLens";
 import SubmitProposal from "@/pages/SubmitProposal";
 import DataPortal from "@/pages/DataPortal";
 import ApiDocs from "@/pages/ApiDocs";
-import OpenSource from "@/pages/OpenSource";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -51,7 +50,6 @@ function Router() {
         <Route path="/submit" element={<SubmitProposal />} />
         <Route path="/data" element={<DataPortal />} />
         <Route path="/api-docs" element={<ApiDocs />} />
-        <Route path="/open-source" element={<OpenSource />} />
         <Route path="/changelog" element={<Changelog />} />
         <Route path="/changelog/:id" element={<ChangelogEntry />} />
         <Route path="/methodology" element={<Methodology />} />
