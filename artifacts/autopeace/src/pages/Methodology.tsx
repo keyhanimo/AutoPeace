@@ -668,6 +668,14 @@ export default function Methodology() {
               <ExternalLink className="w-4 h-4 text-primary" /> View Source on GitHub
             </a>
             <a
+              href="https://replit.com/@keyhanimo/AutoPeace"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 border border-border hover:border-primary/50 hover:bg-secondary/50 transition-colors text-sm text-foreground"
+            >
+              <ExternalLink className="w-4 h-4 text-primary" /> Remix on Replit
+            </a>
+            <a
               href="https://acleddata.com"
               target="_blank"
               rel="noopener noreferrer"

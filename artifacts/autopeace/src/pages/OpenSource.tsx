@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Card, PageHeader, Badge } from "@/components/ui";
-import { Github, Code2, FileText, Database, Globe, FlaskConical, Users, Heart, BookOpen, ArrowRight, Mail, Bell } from "lucide-react";
+import { Github, Code2, FileText, Database, Globe, FlaskConical, Users, Heart, BookOpen, ArrowRight, Mail, Bell, ExternalLink } from "lucide-react";
 
 function getBaseUrl() {
   return window.location.origin + import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -152,6 +152,15 @@ export default function OpenSource() {
         >
           <Github className="w-3.5 h-3.5" aria-hidden="true" /> View on GitHub
         </a>
+        <a
+          href="https://replit.com/@keyhanimo/AutoPeace"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary/70 hover:bg-secondary border border-border/50 text-xs font-medium transition-colors"
+          aria-label="Remix AutoPeace on Replit (opens in new tab)"
+        >
+          <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" /> Remix on Replit
+        </a>
       </PageHeader>
 
       <div className="grid sm:grid-cols-3 gap-4">
@@ -258,15 +267,26 @@ export default function OpenSource() {
             <h3 className="font-bold mb-1">Licence</h3>
             <p className="text-sm text-muted-foreground">Source code: MIT. Research data and outputs: CC BY 4.0.</p>
           </div>
-          <a
-            href="https://github.com/keyhanimo/AutoPeace"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-xs text-primary hover:underline"
-            aria-label="Open GitHub profile (opens in new tab)"
-          >
-            <Github className="w-3.5 h-3.5" /> github.com/keyhanimo/AutoPeace <ArrowRight className="w-3.5 h-3.5" />
-          </a>
+          <div className="flex items-center gap-4">
+            <a
+              href="https://github.com/keyhanimo/AutoPeace"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs text-primary hover:underline"
+              aria-label="View on GitHub (opens in new tab)"
+            >
+              <Github className="w-3.5 h-3.5" /> github.com/keyhanimo/AutoPeace <ArrowRight className="w-3.5 h-3.5" />
+            </a>
+            <a
+              href="https://replit.com/@keyhanimo/AutoPeace"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs text-primary hover:underline"
+              aria-label="Remix on Replit (opens in new tab)"
+            >
+              <ExternalLink className="w-3.5 h-3.5" /> replit.com/@keyhanimo/AutoPeace <ArrowRight className="w-3.5 h-3.5" />
+            </a>
+          </div>
         </div>
       </Card>
     </div>
