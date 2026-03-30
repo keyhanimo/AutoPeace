@@ -9,6 +9,7 @@ import {
 import { AlertCircle, Shield, Zap, Globe, Heart, TrendingUp, CheckCircle2, XCircle, AlertTriangle, GitBranch } from "lucide-react";
 import { motion } from "framer-motion";
 import { DataSourceNote } from "@/components/DataSourceNote";
+import { ScoreBreakdownPanel, type ExtendedScores } from "@/components/ScoreBreakdownPanel";
 function getBaseUrl() {
   return window.location.origin + import.meta.env.BASE_URL.replace(/\/$/, "");
 }
@@ -297,7 +298,7 @@ function DealWhatIfPanel(_props: { currentDealName?: string }) {
 }
 
 function DealDetailView({ deal, isHistorical }: { deal: Deal; isHistorical?: boolean }) {
-  const scores = deal.scores as DealScores | null;
+  const scores = deal.scores as ExtendedScores | null;
   const stakeholderEvals = deal.stakeholderEvaluations as Record<string, { verdict: string; rationale: string }> | null ?? {};
   const redTeamResults = deal.redTeamResults as Array<{ attack: string; severity: string; response: string; survived: boolean }> | null ?? [];
   const domesticEvals = deal.domesticEvaluations as Record<string, { audience: string; verdict: string; rationale: string }> | null ?? {};
@@ -393,6 +394,12 @@ function DealDetailView({ deal, isHistorical }: { deal: Deal; isHistorical?: boo
           </div>
         </Card>
       </div>
+
+      {scores && (
+        <Card className="p-6">
+          <ScoreBreakdownPanel scores={scores} label="Detailed Score Breakdown — 3-Model Judge Panel" />
+        </Card>
+      )}
 
       {deal.diagnosis && (
         <Card className="p-6 border-amber-800/30 bg-amber-950/10">

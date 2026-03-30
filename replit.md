@@ -213,6 +213,10 @@ Auto-scans ingested diplomatic evidence items for real-world peace proposals usi
 - `lib/api-spec/openapi.yaml` — full OpenAPI 3.1 spec (all new endpoints documented)
 - `lib/api-client-react/src/generated/` — orval-generated React Query hooks
 
+## Shared UI Components
+
+- **`ScoreBreakdownPanel`** (`artifacts/autopeace/src/components/ScoreBreakdownPanel.tsx`) — reusable score breakdown with per-dimension rationale + 3-model judge panel tabs. Exports `ScoreBreakdownPanel` component, `SCORE_DIMENSIONS` config, and `ExtendedScores` type. Used by both `DealDashboard.tsx` and `ProposalArena.tsx`.
+
 ## TypeScript & Composite Projects
 
 Every package extends `tsconfig.base.json` which sets `composite: true`. The root `tsconfig.json` lists all packages as project references. This means:
