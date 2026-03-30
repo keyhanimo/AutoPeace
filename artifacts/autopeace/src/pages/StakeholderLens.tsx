@@ -211,13 +211,13 @@ function CostLensSection({ stakeholderId }: { stakeholderId: string }) {
 
   const cost = data as unknown as {
     economic?: { totalUsd?: number };
-    humanitarian?: { displacedPersons?: number; civilianCasualties?: number };
+    humanitarian?: { displacedPersons?: number; casualtiesEstimate?: number };
     strategic?: { proliferationRiskLevel?: string };
   };
 
   const econTotal = cost.economic?.totalUsd ?? 0;
   const displaced = cost.humanitarian?.displacedPersons ?? 0;
-  const casualties = cost.humanitarian?.civilianCasualties ?? 0;
+  const casualties = cost.humanitarian?.casualtiesEstimate ?? 0;
   const prolifRisk = cost.strategic?.proliferationRiskLevel ?? "—";
 
   return (
