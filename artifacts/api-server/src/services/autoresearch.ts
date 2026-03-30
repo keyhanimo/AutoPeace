@@ -237,7 +237,7 @@ async function runCycleAsync(cycleId: string): Promise<void> {
         logger.info({ cycleId }, "Deal cycle already running — skipping deal optimization this cycle");
       } else {
         logger.info({ cycleId }, "Starting deal optimization as part of autoresearch cycle");
-        const dealCycleId = await withTimeout(runDealCycleNow(), 300_000, "Deal engine timed out after 5 minutes");
+        const dealCycleId = await withTimeout(runDealCycleNow(), 900_000, "Deal engine timed out after 15 minutes");
         logger.info({ cycleId, dealCycleId }, "Deal optimization triggered successfully");
       }
     } catch (dealErr) {
