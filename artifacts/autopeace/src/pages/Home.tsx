@@ -369,88 +369,88 @@ export default function Home() {
           <div className="absolute inset-0 bg-gradient-to-br from-card via-card/90 to-card" />
         </div>
 
-        <div className="relative z-10 p-8 md:p-12 grid lg:grid-cols-2 gap-10 items-start">
-          <div className="space-y-5">
-            <Badge variant="outline" className="bg-background/50 backdrop-blur-md border-l-primary/80 text-primary border-l-2">
-              Live AI Geopolitical Analysis
-            </Badge>
-            <h1 className="text-4xl md:text-5xl font-bold font-display leading-tight">
-              Can AI Design a <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-primary">Better Peace Deal</span> Than Humans?
-            </h1>
-            <p className="text-lg text-muted-foreground max-w-xl">
-              AutoPeace continuously generates and stress-tests peace proposals for the Iran conflict using a multi-agent AI pipeline — then scores them against real-world human proposals on the same 7 dimensions. See how they compare.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Link to="/arena">
-                <Button size="sm" className="gap-1.5 rounded-sm">
-                  Proposal Arena <ArrowRight className="w-4 h-4" />
-                </Button>
-              </Link>
-              <Link to="/methodology">
-                <Button variant="outline" size="sm" className="bg-background/50 backdrop-blur-sm rounded-sm">
-                  Methodology
-                </Button>
-              </Link>
+        <div className="relative z-10 p-6 md:p-8">
+          <div className="grid lg:grid-cols-2 gap-6 items-start">
+            <div className="space-y-3">
+              <Badge variant="outline" className="bg-background/50 backdrop-blur-md border-l-primary/80 text-primary border-l-2">
+                Live AI Geopolitical Analysis
+              </Badge>
+              <h1 className="text-3xl md:text-4xl font-bold font-display leading-tight">
+                Can AI Design a <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-primary">Better Peace Deal</span> Than Humans?
+              </h1>
+              <p className="text-sm text-muted-foreground max-w-lg">
+                AutoPeace continuously generates and stress-tests peace proposals for the Iran conflict using a multi-agent AI pipeline — then scores them against real-world human proposals on the same 7 dimensions.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Link to="/arena">
+                  <Button size="sm" className="gap-1.5 rounded-sm">
+                    Proposal Arena <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </Link>
+                <Link to="/methodology">
+                  <Button variant="outline" size="sm" className="bg-background/50 backdrop-blur-sm rounded-sm">
+                    Methodology
+                  </Button>
+                </Link>
+              </div>
             </div>
-          </div>
 
-          <div className="space-y-5">
-            <div className="bg-card/80 border border-border/50 rounded-sm p-5">
-              <div className="mb-4">
-                <h3 className="text-base font-bold uppercase tracking-wider">AI vs Human Proposals</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">Composite score — same 7-dimension evaluation by 3 independent AI judges</p>
+            <div className="bg-card/80 border border-border/50 rounded-sm p-4">
+              <div className="mb-3">
+                <h3 className="text-sm font-bold uppercase tracking-wider">AI vs Human Proposals</h3>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Composite score — same 7-dimension evaluation by 3 independent AI judges</p>
               </div>
               <AIvsHumanChart
                 aiDeal={currentDeal as { scores: unknown; architecture: string } | null}
                 humanProposals={humanProposals}
               />
-              <div className="flex items-center gap-4 mt-4 pt-3 border-t border-border/30">
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <div className="w-2.5 h-2.5 rounded-sm bg-blue-500" />
+              <div className="flex items-center gap-4 mt-3 pt-2 border-t border-border/30">
+                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <div className="w-2 h-2 rounded-sm bg-blue-500" />
                   AI-Generated
                 </div>
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <div className="w-2.5 h-2.5 rounded-sm bg-amber-500" />
+                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <div className="w-2 h-2 rounded-sm bg-amber-500" />
                   Human Proposal
                 </div>
                 <div className="flex-1" />
-                <div className="text-xs text-muted-foreground/60">
+                <div className="text-[11px] text-muted-foreground/60">
                   Scored by Anthropic + OpenAI + Gemini
                 </div>
               </div>
             </div>
+          </div>
 
-            <div className="bg-card border border-border p-5 rounded-sm flex flex-col sm:flex-row gap-6 items-center">
-              <div className="flex flex-col items-center shrink-0">
-                <div className="relative w-28 h-28">
-                  <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                    <circle cx="50" cy="50" r="42" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-border" />
-                    {!forecastLoading && (
-                      <motion.circle
-                        cx="50" cy="50" r="42"
-                        stroke="currentColor"
-                        strokeWidth="10"
-                        fill="transparent"
-                        className="text-primary"
-                        strokeDasharray={2 * Math.PI * 42}
-                        initial={{ strokeDashoffset: 2 * Math.PI * 42 }}
-                        animate={{ strokeDashoffset: (2 * Math.PI * 42) - (peaceProb / 100) * (2 * Math.PI * 42) }}
-                        transition={{ duration: 1.5, ease: "easeOut" }}
-                      />
-                    )}
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <div className="text-xl font-bold">{forecastLoading ? "--" : peaceProb.toFixed(0)}<span className="text-sm">%</span></div>
-                    <div className="text-[11px] text-muted-foreground text-center leading-tight uppercase tracking-wider font-bold">Peace<br/>Outlook</div>
-                  </div>
+          <div className="mt-5 bg-card border border-border p-4 rounded-sm flex flex-col sm:flex-row gap-5 items-center">
+            <div className="flex flex-col items-center shrink-0">
+              <div className="relative w-24 h-24">
+                <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="42" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-border" />
+                  {!forecastLoading && (
+                    <motion.circle
+                      cx="50" cy="50" r="42"
+                      stroke="currentColor"
+                      strokeWidth="10"
+                      fill="transparent"
+                      className="text-primary"
+                      strokeDasharray={2 * Math.PI * 42}
+                      initial={{ strokeDashoffset: 2 * Math.PI * 42 }}
+                      animate={{ strokeDashoffset: (2 * Math.PI * 42) - (peaceProb / 100) * (2 * Math.PI * 42) }}
+                      transition={{ duration: 1.5, ease: "easeOut" }}
+                    />
+                  )}
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <div className="text-lg font-bold">{forecastLoading ? "--" : peaceProb.toFixed(0)}<span className="text-xs">%</span></div>
+                  <div className="text-[10px] text-muted-foreground text-center leading-tight uppercase tracking-wider font-bold">Peace<br/>Outlook</div>
                 </div>
-                <span className="text-xs text-muted-foreground mt-2 uppercase tracking-widest font-bold">30d Horizon</span>
-                <span className="text-[10px] text-muted-foreground/70 mt-1 text-center max-w-[140px] leading-tight">Sum of 4 peace-outcome probabilities from AI forecast</span>
               </div>
-              <div className="w-px h-24 bg-border/50 hidden sm:block shrink-0" />
-              <div className="flex-1 min-w-0 w-full">
-                {forecastLoading ? <div className="animate-pulse text-xs text-muted-foreground">Loading...</div> : <OutcomeSparkbar forecasts={forecasts} />}
-              </div>
+              <span className="text-[10px] text-muted-foreground mt-1.5 uppercase tracking-widest font-bold">30d Horizon</span>
+              <span className="text-[9px] text-muted-foreground/70 mt-0.5 text-center max-w-[120px] leading-tight">Sum of 4 peace-outcome probabilities</span>
+            </div>
+            <div className="w-px h-20 bg-border/50 hidden sm:block shrink-0" />
+            <div className="flex-1 min-w-0 w-full">
+              {forecastLoading ? <div className="animate-pulse text-xs text-muted-foreground">Loading...</div> : <OutcomeSparkbar forecasts={forecasts} />}
             </div>
           </div>
         </div>
