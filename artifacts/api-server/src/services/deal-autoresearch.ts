@@ -242,10 +242,7 @@ export async function runDealCycleNow(): Promise<string> {
   dealCycleRunning = true;
   const cycleId = randomUUID();
 
-  runDealCycleAsync(cycleId).catch(err => {
-    logger.error({ err, cycleId }, "Deal autoresearch cycle failed");
-    dealCycleRunning = false;
-  });
+  await runDealCycleAsync(cycleId);
 
   return cycleId;
 }
