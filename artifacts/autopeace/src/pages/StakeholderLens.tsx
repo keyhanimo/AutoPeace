@@ -5,20 +5,16 @@ import {
   useGetCostsByStakeholder,
   useGetCurrentDeal,
   useGetLatestForecasts,
+  useListWhatIfScenarios,
   type Stakeholder,
+  type WhatIfScenario,
 } from "@workspace/api-client-react";
-import { useQuery } from "@tanstack/react-query";
 import { Card, PageHeader, Badge } from "@/components/ui";
 import {
   Eye, TrendingUp, TrendingDown, Minus, AlertTriangle,
   CheckCircle2, XCircle, Shield, DollarSign, BarChart2,
 } from "lucide-react";
 import { DataSourceNote } from "@/components/DataSourceNote";
-function getBaseUrl() {
-  return window.location.origin + import.meta.env.BASE_URL.replace(/\/$/, "");
-}
-
-
 const OUTCOME_LABELS: Record<string, string> = {
   continued_conflict: "Continued Conflict",
   major_escalation: "Major Escalation",
@@ -52,33 +48,6 @@ function VerdictBadge({ verdict }: { verdict: string }) {
   );
 }
 
-type WhatIfScenario = {
-  id: string;
-  name: string;
-  description: string;
-  triggerCondition: string;
-  absoluteProbabilities: Record<string, number>;
-  probabilityDeltas: Record<string, number>;
-  proposalImpacts?: Array<{
-    proposalId: string;
-    proposalName: string;
-    viabilityDelta: number;
-    projectedComposite: number;
-    favorabilityNote: string;
-  }>;
-};
-
-function useScenarios() {
-  return useQuery<{ data: WhatIfScenario[] }>({
-    queryKey: ["scenarios"],
-    queryFn: async () => {
-      const res = await fetch(`${getBaseUrl()}/api/scenarios`);
-      if (!res.ok) throw new Error("Failed to fetch scenarios");
-      return res.json();
-    },
-    staleTime: 60_000,
-  });
-}
 
 function StakeholderOverview({ stakeholder }: { stakeholder: Stakeholder }) {
   const icon = stakeholder.flag || "🏛️";
@@ -435,11 +404,11 @@ function DealLensSection({ stakeholderId }: { stakeholderId: string }) {
 
 export default function StakeholderLens() {
   const { data: stakeholderList, isLoading } = useListStakeholders();
-  const { data: scenariosData } = useScenarios();
+  const { data: scenariosData } = useListWhatIfScenarios();
   const [selectedId, setSelectedId] = useState<string>("");
 
   const stakeholders = ((stakeholderList as unknown as { data?: Stakeholder[] })?.data ?? []) as Stakeholder[];
-  const scenarios = scenariosData?.data ?? [];
+  const scenarios = ((scenariosData as unknown as { data?: WhatIfScenario[] })?.data ?? []) as WhatIfScenario[];
 
   const selected = stakeholders.find(s => s.id === selectedId) ?? stakeholders[0] ?? null;
 
