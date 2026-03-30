@@ -302,6 +302,8 @@ function DealDetailView({ deal, isHistorical }: { deal: Deal; isHistorical?: boo
   const stakeholderEvals = deal.stakeholderEvaluations as Record<string, { verdict: string; rationale: string }> | null ?? {};
   const redTeamResults = deal.redTeamResults as Array<{ attack: string; severity: string; response: string; survived: boolean }> | null ?? [];
   const domesticEvals = deal.domesticEvaluations as Record<string, { audience: string; verdict: string; rationale: string }> | null ?? {};
+  const domesticFraming = (deal as Record<string, unknown>).domesticFramingStrategies as Record<string, { audience: string; framingNarrative: string; keyTalkingPoints: string[]; historicalAnalogy?: string; riskOfBackfire: string }> | null ?? {};
+  const brainstormInsights = (deal as Record<string, unknown>).brainstormInsights as { historicalAnalogies: Array<{ dealName: string; relevantLesson: string; applicability: string }>; creativeProvisions: Array<{ idea: string; rationale: string; noveltyLevel: string }>; crossIssueLinkages: Array<{ linkage: string; stakeholdersHelped: string[] }>; unconventionalApproaches: string[] } | null;
   const terms = deal.terms as Record<string, unknown>;
 
   const radarData = useMemo(() => {
@@ -391,6 +393,23 @@ function DealDetailView({ deal, isHistorical }: { deal: Deal; isHistorical?: boo
                 </div>
               </div>
             )}
+            {Boolean(Array.isArray((terms as Record<string, unknown>).innovativeProvisions) && ((terms as Record<string, unknown>).innovativeProvisions as unknown[]).length > 0) && (
+              <div className="border-t border-border/50 pt-3 mt-3">
+                <span className="text-xs text-violet-400 font-semibold uppercase tracking-wider block mb-2">Innovative Provisions</span>
+                <div className="space-y-3">
+                  {((terms as Record<string, unknown>).innovativeProvisions as Array<{ title: string; description: string; rationale: string; historicalPrecedent?: string }>).map((prov, idx) => (
+                    <div key={idx} className="p-3 rounded-lg border border-violet-800/30 bg-violet-950/10">
+                      <span className="text-xs font-bold text-violet-300 block mb-1">{prov.title}</span>
+                      <p className="text-xs text-muted-foreground mb-1">{prov.description}</p>
+                      <p className="text-[10px] text-violet-400/70 italic">{prov.rationale}</p>
+                      {prov.historicalPrecedent && (
+                        <p className="text-[10px] text-muted-foreground/50 mt-1">Precedent: {prov.historicalPrecedent}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </Card>
       </div>
@@ -449,6 +468,87 @@ function DealDetailView({ deal, isHistorical }: { deal: Deal; isHistorical?: boo
           )}
         </div>
       </Card>
+
+      {Object.keys(domesticFraming).length > 0 && (
+        <Card className="p-6 border-emerald-800/30 bg-emerald-950/5">
+          <h3 className="text-lg font-bold mb-2">AI Creative Framing Strategies</h3>
+          <p className="text-[10px] text-muted-foreground mb-4">
+            For each difficult domestic audience, the AI generates creative narratives and talking points to make the deal sellable — transforming perceived concessions into perceived victories.
+          </p>
+          <div className="space-y-4">
+            {Object.entries(domesticFraming).map(([key, strategy]) => (
+              <div key={key} className="p-4 rounded-lg border border-emerald-800/30 bg-emerald-950/10">
+                <span className="text-sm font-bold text-emerald-300 block mb-2">{strategy.audience}</span>
+                <p className="text-xs text-foreground mb-2 italic">"{strategy.framingNarrative}"</p>
+                <div className="space-y-1 mb-2">
+                  {strategy.keyTalkingPoints.map((pt: string, i: number) => (
+                    <div key={i} className="flex gap-2 text-xs text-muted-foreground">
+                      <span className="text-emerald-500 shrink-0">•</span>
+                      <span>{pt}</span>
+                    </div>
+                  ))}
+                </div>
+                {strategy.historicalAnalogy && (
+                  <p className="text-[10px] text-emerald-400/60 italic">Historical analogy: {strategy.historicalAnalogy}</p>
+                )}
+                <p className="text-[10px] text-amber-400/60 mt-1">Risk: {strategy.riskOfBackfire}</p>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {brainstormInsights && (
+        <Card className="p-6 border-violet-800/30 bg-violet-950/5">
+          <h3 className="text-lg font-bold mb-2">AI Innovation Brainstorm</h3>
+          <p className="text-[10px] text-muted-foreground mb-4">
+            Before designing this deal, the AI conducted an extended creative brainstorm — mining historical peace deals for applicable lessons, identifying cross-issue linkages between stakeholders, and exploring unconventional approaches.
+          </p>
+
+          {brainstormInsights.historicalAnalogies?.length > 0 && (
+            <div className="mb-4">
+              <span className="text-xs text-violet-400 font-semibold uppercase tracking-wider block mb-2">Historical Analogies Applied</span>
+              <div className="space-y-2">
+                {brainstormInsights.historicalAnalogies.map((a, i) => (
+                  <div key={i} className="p-2 rounded border border-violet-800/20 bg-violet-950/10">
+                    <span className="text-xs font-bold text-violet-300">{a.dealName}</span>
+                    <p className="text-[10px] text-muted-foreground">{a.relevantLesson}</p>
+                    <p className="text-[10px] text-violet-400/60 italic">{a.applicability}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {brainstormInsights.crossIssueLinkages?.length > 0 && (
+            <div className="mb-4">
+              <span className="text-xs text-violet-400 font-semibold uppercase tracking-wider block mb-2">Cross-Issue Linkages</span>
+              <div className="space-y-2">
+                {brainstormInsights.crossIssueLinkages.map((l, i) => (
+                  <div key={i} className="p-2 rounded border border-violet-800/20 bg-violet-950/10">
+                    <p className="text-xs text-muted-foreground">{l.linkage}</p>
+                    <span className="text-[10px] text-violet-400/60">Benefits: {l.stakeholdersHelped.join(", ")}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {brainstormInsights.unconventionalApproaches?.length > 0 && (
+            <div>
+              <span className="text-xs text-violet-400 font-semibold uppercase tracking-wider block mb-2">Unconventional Approaches</span>
+              <div className="space-y-1">
+                {brainstormInsights.unconventionalApproaches.map((a, i) => (
+                  <div key={i} className="flex gap-2 text-xs text-muted-foreground">
+                    <span className="text-violet-500 shrink-0">•</span>
+                    <span>{a}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
 
       <Card className="p-6">
         <div className="flex items-center justify-between mb-2">

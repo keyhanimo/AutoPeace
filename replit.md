@@ -49,7 +49,7 @@ artifacts-monorepo/
 └── package.json
 ```
 
-## Database Schema (9 tables)
+## Database Schema (10+ tables)
 
 - **stakeholders** — 32 conflict actors with flags/roles/definitions. Categories: core_principal (3), gulf_state (6), regional_broker (8), external_power (8), global_bloc (3), international_org (1), internal_faction (2). Definitions for each actor (including aggregate blocs) are in the Stakeholders page frontend.
 - **cycles** — autoresearch run records (status, tokens, cost, timestamps)
@@ -60,6 +60,8 @@ artifacts-monorepo/
 - **cost_of_war** — economic/human cost data for Iran, US, Israel
 - **changelog_entries** — auto-generated headlines summarizing each cycle
 - **admin_config** — key/value config (isPaused, cadence, etc.)
+- **deals** — includes `innovativeProvisions` (jsonb), `domesticFramingStrategies` (jsonb), `brainstormInsights` (jsonb), `pipelineConfig` (jsonb) columns for enhanced pipeline data
+- **pipeline_evolution** — tracks cumulative prompt overrides per stage key for pipeline hill-climbing
 
 Run migrations: `pnpm --filter @workspace/db run push`
 
@@ -175,15 +177,23 @@ Auto-scans ingested diplomatic evidence items for real-world peace proposals usi
 
 ## Phase 2 — Deal Engine (Task B)
 
-8-stage multi-agent pipeline (`deal-engine.ts`) with **grand coalition** cooperative game theory framing:
-1. **Proposal Agent** (generation role) — designs deal terms per architecture; generates binding `stakeholderCommitments` for all 8 core parties
+Enhanced multi-agent pipeline (`deal-engine.ts`) with **grand coalition** cooperative game theory framing and AI creativity maximization:
+
+0. **Innovation Brainstorm** (pre-stage) — extended creative reasoning: mines historical peace deal analogies, generates creative provisions, discovers cross-issue linkages across stakeholders, explores unconventional approaches. Output stored in `brainstormInsights` and feeds into proposal generation.
+1. **Proposal Agent** (generation role) — designs deal terms per architecture using brainstorm insights; generates binding `stakeholderCommitments` for all 8 core parties + `innovativeProvisions` (novel mechanisms beyond traditional categories)
 2. **Stakeholder Evaluator** (evaluation role) — assesses **23 stakeholders across 4 tiers** with normalized output (missing stakeholders get conditional fallback)
 3. **Domestic Audiences** (evaluation role) — Iran/US/Israel domestic political sellability
+3.5. **Creative Reframing** (generation role) — generates clever domestic selling narratives per stakeholder audience, transforming perceived concessions into perceived victories. Stored in `domesticFramingStrategies`.
 4. **Red-Team Agent** (adversarial role) — 5 attack scenarios, severity + survival
-5. **Negotiator Agent** (generation role) — targeted amendments for rejectors with tier priority labels
+5. **Creative Negotiator** (generation role) — searches for Pareto improvements and creative win-win tradeoffs rather than just patching rejections; uses domestic framing strategies
 6. **Judge Agent** (evaluation role) — 7-dimension scoring (0–1 each) with tier-aware acceptance hierarchy and coalition stability evaluation
-7. **Meta-Evaluator** (evaluation role) — pipeline reasoning quality + next architecture suggestion
+7. **Meta-Evaluator** (evaluation role) — pipeline reasoning quality + next architecture suggestion + `promptImprovements` for pipeline hill-climbing
 8. **Diagnosis Generator** (adversarial role) — tier-aware diagnosis with required/critical rejection warnings
+
+**Pipeline Hill-Climbing** (`pipelineEvolutionTable` in DB):
+- Meta-evaluator suggests specific prompt improvements after each cycle
+- `evolvePipeline()` in autoresearch stores cumulative overrides keyed by stage (`brainstorm_system`, `proposal_system`, `framing_system`, `negotiator_system`, etc.)
+- Future pipeline runs apply these overrides, enabling the AI to iteratively improve its own deal generation prompts over time
 
 **Tiered Stakeholder Acceptance System** (`STAKEHOLDER_REGISTRY` in deal-engine.ts):
 - **Required** (Iran, US) — both must accept for deal to be implementable; rejection caps feasibility at 0.15

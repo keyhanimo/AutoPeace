@@ -16,6 +16,13 @@ export const dealsTable = pgTable("deals", {
     timelineYears?: number;
     sequencing?: string;
     additionalClauses?: string[];
+    innovativeProvisions?: Array<{
+      title: string;
+      description: string;
+      rationale: string;
+      historicalPrecedent?: string;
+    }>;
+    stakeholderCommitments?: Record<string, string>;
   }>(),
   scores: jsonb("scores").$type<{
     feasibility?: number;
@@ -38,6 +45,19 @@ export const dealsTable = pgTable("deals", {
     verdict: "sellable" | "difficult" | "unsellable";
     rationale: string;
   }>>(),
+  domesticFramingStrategies: jsonb("domestic_framing_strategies").$type<Record<string, {
+    audience: string;
+    framingNarrative: string;
+    keyTalkingPoints: string[];
+    historicalAnalogy?: string;
+    riskOfBackfire: string;
+  }>>(),
+  brainstormInsights: jsonb("brainstorm_insights").$type<{
+    historicalAnalogies: Array<{ dealName: string; relevantLesson: string; applicability: string }>;
+    creativeProvisions: Array<{ idea: string; rationale: string; noveltyLevel: string }>;
+    crossIssueLinkages: Array<{ linkage: string; stakeholdersHelped: string[] }>;
+    unconventionalApproaches: string[];
+  }>(),
   redTeamResults: jsonb("red_team_results").$type<Array<{
     attack: string;
     severity: "low" | "medium" | "high" | "critical";
@@ -53,6 +73,11 @@ export const dealsTable = pgTable("deals", {
     }>;
     revisedTermsPartial: Record<string, unknown>;
     negotiationStrategy: string;
+    creativeTradeoffs?: Array<{
+      gives: string;
+      gets: string;
+      netBenefit: string;
+    }>;
   }>(),
   metaEvaluatorResult: jsonb("meta_evaluator_result").$type<{
     pipelineQuality: number;
@@ -60,7 +85,14 @@ export const dealsTable = pgTable("deals", {
     blindspots: string[];
     suggestedNextArchitecture: string;
     confidenceInOutcome: number;
+    promptImprovements?: Array<{
+      stage: string;
+      currentWeakness: string;
+      suggestedChange: string;
+      expectedImpact: string;
+    }>;
   }>(),
+  pipelineConfig: jsonb("pipeline_config").$type<Record<string, string>>(),
   diagnosis: text("diagnosis"),
   isPareto: boolean("is_pareto").notNull().default(false),
   isCurrent: boolean("is_current").notNull().default(false),
@@ -70,7 +102,25 @@ export const dealsTable = pgTable("deals", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const pipelineEvolutionTable = pgTable("pipeline_evolution", {
+  id: text("id").primaryKey(),
+  parentConfigId: text("parent_config_id"),
+  generation: integer("generation").notNull().default(0),
+  promptOverrides: jsonb("prompt_overrides").notNull().$type<Record<string, string>>(),
+  parameterOverrides: jsonb("parameter_overrides").notNull().$type<Record<string, number | string>>(),
+  description: text("description").notNull(),
+  avgCompositeScore: real("avg_composite_score"),
+  dealCount: integer("deal_count").notNull().default(0),
+  isCurrent: boolean("is_current").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const insertDealSchema = createInsertSchema(dealsTable).omit({ createdAt: true });
 export const selectDealSchema = createSelectSchema(dealsTable);
 export type InsertDeal = z.infer<typeof insertDealSchema>;
 export type Deal = typeof dealsTable.$inferSelect;
+
+export const insertPipelineEvolutionSchema = createInsertSchema(pipelineEvolutionTable).omit({ createdAt: true });
+export const selectPipelineEvolutionSchema = createSelectSchema(pipelineEvolutionTable);
+export type InsertPipelineEvolution = z.infer<typeof insertPipelineEvolutionSchema>;
+export type PipelineEvolution = typeof pipelineEvolutionTable.$inferSelect;

@@ -1,6 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { logger } from "../lib/logger";
 
+export type InnovativeProvision = {
+  title: string;
+  description: string;
+  rationale: string;
+  historicalPrecedent?: string;
+};
+
 export type DealTerms = {
   nuclearProtocol: string;
   sanctionsRelief: string;
@@ -10,6 +17,7 @@ export type DealTerms = {
   timelineYears: number;
   sequencing: string;
   additionalClauses: string[];
+  innovativeProvisions?: InnovativeProvision[];
   stakeholderCommitments?: Record<string, string>;
 };
 
@@ -72,6 +80,33 @@ export type MetaEvaluatorResult = {
   blindspots: string[];
   suggestedNextArchitecture: string;
   confidenceInOutcome: number;
+  promptImprovements?: Array<{
+    stage: string;
+    currentWeakness: string;
+    suggestedChange: string;
+    expectedImpact: string;
+  }>;
+};
+
+export type BrainstormInsights = {
+  historicalAnalogies: Array<{ dealName: string; relevantLesson: string; applicability: string }>;
+  creativeProvisions: Array<{ idea: string; rationale: string; noveltyLevel: string }>;
+  crossIssueLinkages: Array<{ linkage: string; stakeholdersHelped: string[] }>;
+  unconventionalApproaches: string[];
+};
+
+export type DomesticFramingStrategy = {
+  audience: string;
+  framingNarrative: string;
+  keyTalkingPoints: string[];
+  historicalAnalogy?: string;
+  riskOfBackfire: string;
+};
+
+export type CreativeTradeoff = {
+  gives: string;
+  gets: string;
+  netBenefit: string;
 };
 
 export type ProviderName = "anthropic" | "openai" | "gemini";
@@ -133,10 +168,13 @@ export type EvaluatedDeal = {
   scores: DealScores;
   stakeholderEvaluations: Record<string, StakeholderVerdict>;
   domesticEvaluations: Record<string, DomesticVerdict>;
+  domesticFramingStrategies: Record<string, DomesticFramingStrategy>;
+  brainstormInsights: BrainstormInsights | null;
   redTeamResults: RedTeamResult[];
   negotiatorResult: NegotiatorResult | null;
   metaEvaluatorResult: MetaEvaluatorResult | null;
   diagnosis: string;
+  pipelineConfig: Record<string, string>;
   tokensConsumed: number;
   costUsd: number;
 };
@@ -187,6 +225,7 @@ async function callOpenAI(
   prompt: string,
   systemPrompt: string,
   model = DEFAULT_MODELS.openaiModel,
+  maxTokens = 4096,
 ): Promise<{ content: string; tokens: number }> {
   try {
     const openai = await getOpenAI();
@@ -197,7 +236,7 @@ async function callOpenAI(
         { role: "user", content: prompt },
       ],
       temperature: 0.7,
-      max_tokens: 2000,
+      max_tokens: maxTokens,
     });
     return {
       content: resp.choices[0]?.message?.content ?? "{}",
@@ -233,12 +272,13 @@ async function callAnthropic(
   prompt: string,
   systemPrompt: string,
   model = DEFAULT_MODELS.anthropicModel,
+  maxTokens = 4096,
 ): Promise<{ content: string; tokens: number }> {
   try {
     const anthropic = await getAnthropic();
     const resp = await anthropic.messages.create({
       model,
-      max_tokens: 2000,
+      max_tokens: maxTokens,
       system: systemPrompt,
       messages: [{ role: "user", content: prompt }],
     });
@@ -413,28 +453,146 @@ const DOMESTIC_AUDIENCES: Record<string, { stakeholder: string; audiences: strin
 };
 
 /**
- * PROPOSAL AGENT (Anthropic) — generation role
+ * INNOVATION BRAINSTORM (Stage 0) — creative pre-generation
+ * Extended reasoning stage that mines historical precedents, explores creative
+ * mechanisms, identifies cross-issue linkages, and generates unconventional
+ * approaches BEFORE the formal proposal is constructed.
+ * This is where "superhuman" AI creativity happens — the model processes all
+ * stakeholder preferences simultaneously and finds non-obvious trade-offs.
+ */
+export async function runInnovationBrainstorm(
+  evidenceSummary: string,
+  previousDiagnosis: string,
+  architecture: Architecture = "balanced",
+  modelConfig: ModelConfig = DEFAULT_MODELS,
+  pipelineOverrides: Record<string, string> = {},
+): Promise<{ insights: BrainstormInsights; tokens: number }> {
+  const overridePrompt = pipelineOverrides["brainstorm_system"] || "";
+  const overrideUser = pipelineOverrides["brainstorm_user"] || "";
+
+  const systemPrompt = `You are a creative genius in conflict resolution, combining deep knowledge of historical peace processes with lateral thinking and game theory.
+Your task is NOT to write a peace deal yet — it is to BRAINSTORM. Think expansively, creatively, and unconventionally.
+You have the unique ability to simultaneously consider the preferences, fears, and domestic constraints of 20+ stakeholders and find non-obvious intersections where everyone can gain.
+
+KEY CREATIVE MANDATE:
+1. HISTORICAL MINING: Draw specific, actionable lessons from successful peace deals (Camp David, Good Friday Agreement, JCPOA, Dayton, Oslo, the Iran-Iraq War ceasefire, ASEAN Treaty of Amity, the Abraham Accords). What specific mechanisms from these deals could be adapted?
+2. CROSS-ISSUE LINKAGES: Find creative connections between seemingly unrelated issues. Example: "Iran's water crisis + Gulf desalination technology" could be linked to "nuclear cooperation transparency." Think about how solving one country's domestic problem can be packaged as a concession from another.
+3. CREATIVE MECHANISMS: Invent deal provisions that don't fit traditional categories — joint economic zones, shared technology platforms, cultural exchange corridors, resource-sharing agreements, face-saving asymmetric timelines, constructive ambiguity clauses, phased sovereignty arrangements.
+4. REFRAMING: Think about how to present painful concessions as victories. How can enrichment limits be sold as Iran's ticket to civilian nuclear prestige? How can sanctions relief be framed as US strategic repositioning rather than capitulation?
+5. UNCONVENTIONAL APPROACHES: Consider ideas that traditional diplomats might dismiss — citizen diplomacy tracks, economic integration before political resolution, technology-driven verification that builds trust, regional development banks, shared threat frameworks (climate, water, pandemics).
+
+${overridePrompt}
+Output valid JSON only.`;
+
+  const prompt = `${overrideUser}
+CURRENT GEOPOLITICAL EVIDENCE:
+${evidenceSummary.slice(0, 4000)}
+
+${previousDiagnosis ? `PREVIOUS DEAL DIAGNOSIS (what went wrong and must be overcome):
+${previousDiagnosis}` : "This is the first brainstorm for a fresh deal search."}
+
+ARCHITECTURE LENS: ${architecture}
+
+ALL STAKEHOLDERS AND THEIR DEEP PROFILES:
+${STAKEHOLDER_REGISTRY.map(s => `- ${s.id} [${s.tier.toUpperCase()}]: ${s.name}. ${s.profile}`).join("\n")}
+
+DOMESTIC AUDIENCES THAT MUST BE CONVINCED:
+${Object.entries(DOMESTIC_AUDIENCES).map(([id, { stakeholder, audiences }]) => `- ${stakeholder}: ${audiences.join(", ")}`).join("\n")}
+
+ECONOMIC CONTEXT: Conflict costs ~$450B/yr globally. Peace yields ~$560B/yr. Key: Iran bears $87B in costs but gains $142B from peace — the largest single-country swing. This asymmetry is a creative leverage point.
+
+BRAINSTORM INSTRUCTIONS:
+Think deeply about EVERY stakeholder simultaneously. What does each one need that another could provide at low cost? Where are the positive-sum trades hiding? What historical mechanisms solved similar multi-party deadlocks?
+
+Return JSON:
+{
+  "historicalAnalogies": [
+    { "dealName": "specific historical agreement", "relevantLesson": "what specific mechanism or approach worked", "applicability": "how it maps to this conflict" }
+  ],
+  "creativeProvisions": [
+    { "idea": "novel deal element that doesn't fit traditional categories", "rationale": "why this helps multiple stakeholders", "noveltyLevel": "incremental|significant|breakthrough" }
+  ],
+  "crossIssueLinkages": [
+    { "linkage": "how issue X can be traded for issue Y across stakeholders", "stakeholdersHelped": ["list", "of", "benefiting", "stakeholders"] }
+  ],
+  "unconventionalApproaches": ["list of bold, creative approaches that traditional diplomats might miss"]
+}
+
+Generate at least 4 historical analogies, 5 creative provisions (at least 2 at 'breakthrough' novelty), 4 cross-issue linkages, and 4 unconventional approaches.`;
+
+  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 1, "generation", modelConfig);
+
+  const fallback: BrainstormInsights = {
+    historicalAnalogies: [
+      { dealName: "JCPOA (2015)", relevantLesson: "Phased sanctions relief tied to verifiable nuclear rollback created momentum", applicability: "Core framework can be revived with stronger verification" },
+      { dealName: "Good Friday Agreement", relevantLesson: "Constructive ambiguity on sovereignty allowed both sides to claim victory", applicability: "Iran's 'nuclear rights' vs US 'non-proliferation' can use similar framing" },
+    ],
+    creativeProvisions: [
+      { idea: "Regional Water-Energy Nexus Agreement linking Gulf desalination tech to Iranian gas exports", rationale: "Creates economic interdependence that raises cost of conflict", noveltyLevel: "breakthrough" },
+    ],
+    crossIssueLinkages: [
+      { linkage: "Iran's Chabahar port development funded by India/Japan in exchange for Hormuz navigation guarantees", stakeholdersHelped: ["iran", "india", "japan"] },
+    ],
+    unconventionalApproaches: ["Citizen diplomacy track with joint Iran-US-Israel university research programs on shared challenges (earthquakes, water scarcity)"],
+  };
+
+  const insights = parseLLMJson<BrainstormInsights>(content, fallback);
+  return { insights, tokens };
+}
+
+/**
+ * PROPOSAL AGENT (Stage 1) — generation role
  * Designs the initial deal terms for a given architecture.
+ * NOW ENHANCED: Receives brainstorm insights as creative fuel,
+ * includes innovativeProvisions field for novel mechanisms.
  */
 export async function generateProposal(
   evidenceSummary: string,
   previousDiagnosis: string,
   architecture: Architecture = "balanced",
   modelConfig: ModelConfig = DEFAULT_MODELS,
+  brainstormInsights: BrainstormInsights | null = null,
+  pipelineOverrides: Record<string, string> = {},
 ): Promise<{ terms: DealTerms; tokens: number }> {
-  const systemPrompt = `You are an expert peace negotiator and conflict resolution specialist trained in cooperative game theory.
+  const overridePrompt = pipelineOverrides["proposal_system"] || "";
+  const overrideUser = pipelineOverrides["proposal_user"] || "";
+
+  const brainstormContext = brainstormInsights ? `
+CREATIVE BRAINSTORM INSIGHTS (use these as fuel for your proposal — incorporate the best ideas):
+
+Historical Lessons to Apply:
+${brainstormInsights.historicalAnalogies.map(a => `- ${a.dealName}: ${a.relevantLesson} → ${a.applicability}`).join("\n")}
+
+Creative Provisions to Consider Incorporating:
+${brainstormInsights.creativeProvisions.map(p => `- [${p.noveltyLevel}] ${p.idea}: ${p.rationale}`).join("\n")}
+
+Cross-Issue Linkages to Exploit:
+${brainstormInsights.crossIssueLinkages.map(l => `- ${l.linkage} (helps: ${l.stakeholdersHelped.join(", ")})`).join("\n")}
+
+Unconventional Approaches:
+${brainstormInsights.unconventionalApproaches.map(a => `- ${a}`).join("\n")}
+` : "";
+
+  const systemPrompt = `You are an expert peace negotiator and conflict resolution specialist trained in cooperative game theory, with a particular talent for CREATIVE and UNCONVENTIONAL deal design.
 Your task is to design a detailed, realistic peace deal framework for the Iran-US-Israel conflict complex.
 Architecture focus: ${architecture}.
-CRITICAL PRINCIPLE: Stable peace outcomes often require a GRAND COALITION — binding commitments from ALL relevant stakeholders, not just the primary parties. A deal that only specifies what Iran, the US, and Israel must do will likely fail because secondary stakeholders (EU, Russia, China, Saudi Arabia, IAEA) hold veto power, spoiler potential, or economic leverage that can make or break implementation.
-Design commitments for every stakeholder that give each party a concrete stake in the deal's success.
+
+CRITICAL PRINCIPLES:
+1. GRAND COALITION: Stable peace requires binding commitments from ALL relevant stakeholders. Design commitments for every stakeholder that give each party a concrete stake in the deal's success.
+2. CREATIVE MECHANISMS: Go beyond traditional diplomatic categories. Include innovative provisions that create new value rather than just dividing existing pie. Think about economic integration, technology sharing, environmental cooperation, cultural exchange — anything that creates positive-sum dynamics.
+3. FACE-SAVING FRAMING: For every painful concession, build in face-saving language or asymmetric framing that lets each leader sell the deal domestically as a victory.
+4. SEQUENCING INNOVATION: Think creatively about sequencing — not just "who goes first" but how to create irreversible momentum through early wins that make walking away costly for all parties.
+
+${overridePrompt}
 Output valid JSON only, no prose.`;
 
-  const prompt = `Based on current evidence:
-${evidenceSummary.slice(0, 2000)}
+  const prompt = `${overrideUser}Based on current evidence:
+${evidenceSummary.slice(0, 4000)}
 
 ${previousDiagnosis ? `Previous deal failed because: ${previousDiagnosis}` : "Design an initial deal proposal."}
 
 Architecture approach: ${architecture}
+${brainstormContext}
 
 COST-BENEFIT CONTEXT (annual estimates, USD billions):
 The ongoing conflict costs the world ~$450B/yr in GDP-equivalent losses. A durable peace could generate ~$560B/yr in benefits. Key channels: Trade & Sanctions ($75B war cost, $122B peace gain), Energy Markets ($113B/$133B — includes transfers), Shipping & Insurance ($55B/$69B), Finance & Banking ($55B/$82B), Defense & Security ($72B/$39B), Aviation & Tourism ($30B/$45B), Humanitarian ($28B/$26B), Productivity & FDI ($28B/$56B).
@@ -456,20 +614,30 @@ ${getStakeholdersByTier("contextual").map(s => `- ${s.id}: ${s.name}`).join(", "
 
 Generate a peace deal JSON with these exact keys:
 {
-  "nuclearProtocol": "string describing nuclear terms",
-  "sanctionsRelief": "string describing sanctions",
-  "hormuzArrangements": "string describing maritime security",
-  "humanitarianProvisions": "string describing humanitarian terms",
-  "verificationMechanism": "string describing verification",
+  "nuclearProtocol": "string describing nuclear terms — be specific about enrichment levels, facility access, technology sharing",
+  "sanctionsRelief": "string describing sanctions — be specific about timing, conditionality, snapback mechanisms",
+  "hormuzArrangements": "string describing maritime security — include creative multilateral arrangements",
+  "humanitarianProvisions": "string describing humanitarian terms — address immediate and long-term needs",
+  "verificationMechanism": "string describing verification — consider technology-enhanced monitoring beyond traditional IAEA",
   "timelineYears": number,
-  "sequencing": "string describing step-by-step sequencing",
-  "additionalClauses": ["array", "of", "additional", "terms"],
+  "sequencing": "string describing creative step-by-step sequencing with early wins and irreversibility mechanisms",
+  "additionalClauses": ["array of additional standard terms"],
+  "innovativeProvisions": [
+    {
+      "title": "short title of novel deal element",
+      "description": "detailed description of this creative provision",
+      "rationale": "why this helps the deal succeed — which stakeholders benefit and how",
+      "historicalPrecedent": "optional: what historical deal used a similar mechanism"
+    }
+  ],
   "stakeholderCommitments": {
-${CORE_STAKEHOLDERS.map(s => `    "${s.id}": "specific binding commitments ${s.name} makes"`).join(",\n")}
+${CORE_STAKEHOLDERS.map(s => `    "${s.id}": "specific binding commitments ${s.name} makes — be creative about what they PROVIDE not just what they ACCEPT"`).join(",\n")}
   }
 }
 
-IMPORTANT: Iran and the US are the two REQUIRED parties — without both accepting, no deal is implementable. Israel is CRITICAL — its rejection would severely undermine any deal. Other stakeholders (influential tier) matter for durability and implementation but are not absolute gatekeepers.
+CREATIVE MANDATE: Include at least 3 innovative provisions that go beyond traditional nuclear/sanctions/verification categories. Think about economic integration mechanisms, technology-sharing frameworks, regional development funds, environmental cooperation, cultural exchange programs, or entirely novel constructs. The best peace deals create new value, not just redistribute concessions.
+
+IMPORTANT: Iran and the US are the two REQUIRED parties — without both accepting, no deal is implementable. Israel is CRITICAL — its rejection would severely undermine any deal.
 Every stakeholder MUST have concrete, specific commitments. Vague statements like "supports the deal" are insufficient. Each commitment should specify what the stakeholder will DO, PROVIDE, or GUARANTEE.`;
 
   const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 1, "generation", modelConfig);
@@ -483,6 +651,12 @@ Every stakeholder MUST have concrete, specific commitments. Vague statements lik
     }
   }
   terms.stakeholderCommitments = sc;
+
+  if (!terms.innovativeProvisions || terms.innovativeProvisions.length === 0) {
+    terms.innovativeProvisions = [
+      { title: "Regional Economic Integration Fund", description: "A multilateral development fund seeded by sanctions-relief dividends, financing joint infrastructure projects across Iran, Gulf states, and broader region", rationale: "Creates economic interdependence that raises the cost of returning to conflict for all parties", historicalPrecedent: "European Coal and Steel Community (1951) — economic integration as peace architecture" },
+    ];
+  }
 
   return { terms, tokens };
 }
@@ -573,15 +747,103 @@ Return JSON with ALL stakeholder IDs: { "iran": { verdict, rationale, redLineVio
 }
 
 /**
- * NEGOTIATOR AGENT (Anthropic) — generation role
- * Analyzes rejecting stakeholders and proposes targeted amendments to bridge gaps.
- * Runs after initial stakeholder evaluation to attempt to reconcile rejections.
+ * CREATIVE REFRAMING AGENT (Stage 3.5) — domestic narrative generation
+ * Instead of just evaluating sellability, this stage GENERATES clever framing
+ * strategies for selling each deal term to domestic audiences.
+ * This is where AI creativity shines — finding narratives that transform
+ * painful concessions into perceived victories.
+ */
+export async function generateDomesticFramingStrategies(
+  terms: DealTerms,
+  domesticEvaluations: Record<string, DomesticVerdict>,
+  modelConfig: ModelConfig = DEFAULT_MODELS,
+  pipelineOverrides: Record<string, string> = {},
+): Promise<{ strategies: Record<string, DomesticFramingStrategy>; tokens: number }> {
+  const overridePrompt = pipelineOverrides["framing_system"] || "";
+
+  const unsellableAudiences = Object.entries(domesticEvaluations)
+    .filter(([, ev]) => ev.verdict === "unsellable" || ev.verdict === "difficult")
+    .map(([key, ev]) => ({ key, audience: ev.audience, rationale: ev.rationale }));
+
+  if (unsellableAudiences.length === 0) {
+    return { strategies: {}, tokens: 0 };
+  }
+
+  const systemPrompt = `You are a master political strategist and communications expert who specializes in selling difficult compromises to hostile domestic audiences.
+Your genius lies in REFRAMING: taking what looks like a concession and presenting it as a strategic victory. You draw on historical examples of leaders who successfully sold painful peace deals at home.
+
+KEY TECHNIQUES:
+1. VICTORY FRAMING: Find the angle where a concession IS a victory. "We didn't give up enrichment — we gained international recognition as a peaceful nuclear power."
+2. THREAT REFRAMING: Show what happens WITHOUT the deal. "Without this agreement, we face X which is worse."
+3. HISTORICAL ANCHORING: Connect to national myths, historical victories, or cultural values. "Like [historical leader] who..."
+4. STRATEGIC REPOSITIONING: Frame the deal as a smart strategic move, not capitulation. "This frees us to focus on [bigger priority]."
+5. FACE-SAVING LANGUAGE: Find specific words and phrases that honor dignity while achieving compromise.
+6. DOMESTIC BENEFIT SPOTLIGHTING: Highlight specific tangible benefits that matter to the target audience.
+
+${overridePrompt}
+Output valid JSON only.`;
+
+  const innovativeContext = terms.innovativeProvisions?.length
+    ? `\nINNOVATIVE PROVISIONS (new value created by this deal):\n${terms.innovativeProvisions.map(p => `- ${p.title}: ${p.description}`).join("\n")}`
+    : "";
+
+  const prompt = `For each difficult domestic audience below, generate a creative framing strategy that could make this peace deal SELLABLE to them.
+
+DEAL TERMS:
+- Nuclear: ${terms.nuclearProtocol}
+- Sanctions: ${terms.sanctionsRelief}
+- Sequencing: ${terms.sequencing}
+- Timeline: ${terms.timelineYears} years
+${innovativeContext}
+
+AUDIENCES THAT FIND THIS DEAL DIFFICULT OR UNSELLABLE:
+${unsellableAudiences.map(a => `- ${a.key} (${a.audience}): ${a.rationale}`).join("\n")}
+
+For each audience, return a creative framing strategy. Think about what narrative would ACTUALLY work with this specific group — not generic talking points, but tailored, psychologically astute framing.
+
+Return JSON object keyed by audience key:
+{
+  "${unsellableAudiences[0]?.key || "example"}": {
+    "audience": "full audience name",
+    "framingNarrative": "The core narrative in 2-3 sentences — this is the 'story' leaders would tell. Be specific and creative.",
+    "keyTalkingPoints": ["specific talking point 1", "specific talking point 2", "specific talking point 3"],
+    "historicalAnalogy": "optional: a historical example of a leader successfully selling a similar compromise",
+    "riskOfBackfire": "honest assessment of risks with this framing approach"
+  }
+}`;
+
+  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 3, "evaluation", modelConfig);
+
+  const fallback: Record<string, DomesticFramingStrategy> = {};
+  for (const a of unsellableAudiences) {
+    fallback[a.key] = {
+      audience: a.audience,
+      framingNarrative: `This deal positions ${a.audience.split("—")[0]?.trim() || "the stakeholder"} as a strategic leader who chose strength through engagement rather than isolation.`,
+      keyTalkingPoints: ["Economic benefits outweigh costs", "Verification ensures compliance", "Alternative is continued instability"],
+      riskOfBackfire: "Generic framing may not resonate with specific concerns of this audience.",
+    };
+  }
+
+  const parsed = parseLLMJson<Record<string, DomesticFramingStrategy>>(content, fallback);
+  return { strategies: parsed, tokens };
+}
+
+/**
+ * CREATIVE NEGOTIATOR AGENT (Stage 5) — generation role
+ * UPGRADED: No longer just patches rejections. Now proactively searches for
+ * Pareto improvements — creative win-win restructurings where everyone gains.
+ * Also generates "creative tradeoffs" — novel cross-issue deals that traditional
+ * negotiators might miss.
  */
 export async function runNegotiator(
   terms: DealTerms,
   stakeholderEvaluations: Record<string, StakeholderVerdict>,
+  domesticFramingStrategies: Record<string, DomesticFramingStrategy>,
   modelConfig: ModelConfig = DEFAULT_MODELS,
-): Promise<{ result: NegotiatorResult; tokens: number }> {
+  pipelineOverrides: Record<string, string> = {},
+): Promise<{ result: NegotiatorResult & { creativeTradeoffs?: CreativeTradeoff[] }; tokens: number }> {
+  const overridePrompt = pipelineOverrides["negotiator_system"] || "";
+
   const rejecters = Object.entries(stakeholderEvaluations)
     .filter(([, e]) => e.verdict === "reject")
     .map(([id, e]) => ({ id, rationale: e.rationale, redLineViolations: e.redLineViolations, conditions: e.conditions }));
@@ -590,7 +852,11 @@ export async function runNegotiator(
     .filter(([, e]) => e.verdict === "conditional")
     .map(([id, e]) => ({ id, conditions: e.conditions }));
 
-  const fallback: NegotiatorResult = {
+  const acceptors = Object.entries(stakeholderEvaluations)
+    .filter(([, e]) => e.verdict === "accept")
+    .map(([id]) => id);
+
+  const fallback: NegotiatorResult & { creativeTradeoffs?: CreativeTradeoff[] } = {
     proposedAmendments: rejecters.map(r => ({
       stakeholder: r.id,
       originalConcern: r.redLineViolations[0] ?? r.rationale.slice(0, 100),
@@ -599,14 +865,20 @@ export async function runNegotiator(
     })),
     revisedTermsPartial: {},
     negotiationStrategy: "Sequential confidence-building with parallel technical tracks for each stakeholder group",
+    creativeTradeoffs: [],
   };
 
-  if (rejecters.length === 0 && conditionals.length === 0) {
-    return { result: fallback, tokens: 0 };
-  }
+  const systemPrompt = `You are a master negotiator who combines strategic brilliance with creative lateral thinking.
+Your role goes FAR beyond patching rejections. You actively SEARCH for Pareto improvements — restructurings where everyone gains.
 
-  const systemPrompt = `You are a master negotiator specializing in multi-party peace agreements.
-Your role: given stakeholder objections, propose specific, realistic amendments that could bring rejecting/conditional parties toward acceptance WITHOUT losing other parties' support.
+THREE MODES OF OPERATION:
+1. FIX REJECTIONS: Address specific stakeholder objections with targeted amendments.
+2. FIND PARETO IMPROVEMENTS: Look for creative restructurings where EVERY party is better off. Can you add value rather than just redistribute it? Can you link issues across stakeholders to create positive-sum trades?
+3. CREATIVE TRADEOFFS: Propose novel cross-issue deals that traditional negotiators would miss. "Iran gets X (which costs the US very little) in exchange for Y (which costs Iran very little but matters enormously to Israel)."
+
+IMPORTANT: When fixing rejections, NEVER just weaken terms to make a rejecter happy — that usually causes other stakeholders to reject. Instead, find CREATIVE restructurings that address the objection while preserving what others value. Add new value rather than redistribute existing value.
+
+${overridePrompt}
 Output JSON only.`;
 
   const tierOf = (id: string) => STAKEHOLDER_REGISTRY.find(s => s.id === id)?.tier ?? "contextual";
@@ -617,32 +889,53 @@ Output JSON only.`;
     return `[${t}]`;
   };
 
-  const prompt = `Negotiate amendments for this Iran peace deal:
+  const framingContext = Object.keys(domesticFramingStrategies).length > 0
+    ? `\nDOMESTIC FRAMING INSIGHTS (use these to inform your amendments):\n${Object.entries(domesticFramingStrategies).map(([key, s]) => `- ${key}: ${s.framingNarrative.slice(0, 100)}`).join("\n")}`
+    : "";
+
+  const innovativeContext = terms.innovativeProvisions?.length
+    ? `\nEXISTING INNOVATIVE PROVISIONS:\n${terms.innovativeProvisions.map(p => `- ${p.title}: ${p.description.slice(0, 100)}`).join("\n")}`
+    : "";
+
+  const prompt = `Negotiate creative improvements for this Iran peace deal:
 
 CURRENT TERMS SUMMARY:
-- Nuclear: ${terms.nuclearProtocol.slice(0, 150)}
-- Sanctions: ${terms.sanctionsRelief.slice(0, 150)}
-- Sequencing: ${terms.sequencing.slice(0, 150)}
+- Nuclear: ${terms.nuclearProtocol}
+- Sanctions: ${terms.sanctionsRelief}
+- Sequencing: ${terms.sequencing}
+- Maritime: ${terms.hormuzArrangements}
+${innovativeContext}
+${framingContext}
+
+ACCEPTING STAKEHOLDERS (do not lose their support): ${acceptors.join(", ")}
 
 REJECTING STAKEHOLDERS (prioritized by acceptance tier):
-${rejecters.map(r => `- ${r.id} ${priorityLabel(r.id)}: Red lines violated: ${r.redLineViolations.join(", ")}. Conditions for acceptance: ${r.conditions.join(", ")}`).join("\n")}
+${rejecters.map(r => `- ${r.id} ${priorityLabel(r.id)}: Red lines: ${r.redLineViolations.join(", ")}. Conditions: ${r.conditions.join(", ")}`).join("\n") || "None — focus on Pareto improvements."}
 
 CONDITIONAL STAKEHOLDERS:
-${conditionals.map(c => `- ${c.id} ${priorityLabel(c.id)}: Conditions: ${c.conditions.join(", ")}`).join("\n")}
+${conditionals.map(c => `- ${c.id} ${priorityLabel(c.id)}: Conditions: ${c.conditions.join(", ")}`).join("\n") || "None."}
 
-PRIORITY: Iran and US rejection is a DEAL-BREAKER — amendments MUST address their concerns first. Israel rejection is near-fatal — high priority. Other stakeholders matter for durability but are not gatekeepers.
+STAKEHOLDER PROFILES (for creative trade identification):
+${STAKEHOLDER_REGISTRY.filter(s => ["required", "critical", "influential"].includes(s.tier)).map(s => `- ${s.id}: ${s.profile}`).join("\n")}
+
+PRIORITY: Iran and US rejection is a DEAL-BREAKER. Israel rejection is near-fatal. But ALSO actively search for Pareto improvements even if all parties currently accept.
 
 Return JSON:
 {
   "proposedAmendments": [
-    { "stakeholder": "id", "originalConcern": "text", "proposedChange": "specific change text", "likelihood": "low|medium|high" }
+    { "stakeholder": "id", "originalConcern": "text", "proposedChange": "specific creative change", "likelihood": "low|medium|high" }
   ],
   "revisedTermsPartial": { "nuclearProtocol": "revised if needed", "sequencing": "revised if needed" },
-  "negotiationStrategy": "overall strategy text"
-}`;
+  "negotiationStrategy": "overall creative strategy text",
+  "creativeTradeoffs": [
+    { "gives": "what one party gives (and why it costs them relatively little)", "gets": "what they receive in exchange (and why it matters a lot to them)", "netBenefit": "why this is positive-sum — all parties gain" }
+  ]
+}
+
+CREATIVE MANDATE: Include at least 2 creative tradeoffs even if no stakeholders reject. These should be novel cross-issue deals that create new value. Think about asymmetric valuations — what is cheap for one party but precious for another?`;
 
   const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 5, "generation", modelConfig);
-  const result = parseLLMJson<NegotiatorResult>(content, fallback);
+  const result = parseLLMJson<NegotiatorResult & { creativeTradeoffs?: CreativeTradeoff[] }>(content, fallback);
   return { result, tokens };
 }
 
@@ -936,16 +1229,20 @@ Return JSON with scores and rationale for each dimension:
 }
 
 /**
- * META-EVALUATOR AGENT (OpenAI) — meta-evaluation role
- * Evaluates the overall quality of the pipeline's reasoning and suggests next steps.
- * Separated from the judge: the judge scores the deal, the meta-evaluator scores the reasoning process.
+ * META-EVALUATOR AGENT (Stage 7) — meta-evaluation + pipeline hill-climbing
+ * Evaluates the overall quality of the pipeline's reasoning and suggests improvements.
+ * NOW ENHANCED: Also suggests specific prompt improvements for each pipeline stage,
+ * enabling the autoresearch loop to hill-climb on the pipeline itself.
  */
 export async function runMetaEvaluator(
   terms: DealTerms,
   scores: DealScores,
   negotiatorResult: NegotiatorResult | null,
   stakeholderEvaluations: Record<string, StakeholderVerdict>,
+  brainstormInsights: BrainstormInsights | null,
+  domesticFramingStrategies: Record<string, DomesticFramingStrategy>,
   modelConfig: ModelConfig = DEFAULT_MODELS,
+  currentPipelineOverrides: Record<string, string> = {},
 ): Promise<{ result: MetaEvaluatorResult; tokens: number }> {
   const fallback: MetaEvaluatorResult = {
     pipelineQuality: 0.6,
@@ -953,20 +1250,50 @@ export async function runMetaEvaluator(
     blindspots: ["Long-term implementation risks not fully assessed", "Regional spoiler dynamics under-modeled"],
     suggestedNextArchitecture: "nuclear-first",
     confidenceInOutcome: 0.55,
+    promptImprovements: [],
   };
 
   const systemPrompt = `You are a meta-level evaluator assessing the quality of an AI peace deal pipeline's reasoning.
-You review the overall analysis process, identify blind spots, and suggest improvements.
+You have TWO critical jobs:
+1. EVALUATE: Assess the pipeline's reasoning quality, find blind spots, suggest architecture changes.
+2. IMPROVE THE PIPELINE ITSELF: Suggest specific prompt modifications for each stage that would produce better deals next time. Think of yourself as a machine learning researcher tuning a system — what would you change about the instructions to each AI agent?
+
+PIPELINE STAGES YOU CAN SUGGEST IMPROVEMENTS FOR:
+- "brainstorm_system" or "brainstorm_user": The innovation brainstorm pre-stage
+- "proposal_system" or "proposal_user": The deal proposal generator
+- "framing_system": The domestic framing strategy generator
+- "negotiator_system": The creative negotiator
+
+For each improvement, describe what's currently weak and suggest a SPECIFIC prompt addition or modification. These will be injected into future pipeline runs.
+
 Output JSON only.`;
 
   const acceptCount = Object.values(stakeholderEvaluations).filter(e => e.verdict === "accept").length;
   const rejectCount = Object.values(stakeholderEvaluations).filter(e => e.verdict === "reject").length;
 
-  const prompt = `Evaluate this AI pipeline's reasoning about an Iran peace deal:
+  const brainstormQuality = brainstormInsights
+    ? `Brainstorm produced ${brainstormInsights.historicalAnalogies.length} analogies, ${brainstormInsights.creativeProvisions.length} creative provisions, ${brainstormInsights.crossIssueLinkages.length} linkages.`
+    : "No brainstorm stage ran.";
+
+  const framingQuality = Object.keys(domesticFramingStrategies).length > 0
+    ? `Framing strategies generated for ${Object.keys(domesticFramingStrategies).length} difficult audiences.`
+    : "No framing strategies generated.";
+
+  const overridesActive = Object.keys(currentPipelineOverrides).length > 0
+    ? `Active pipeline overrides: ${Object.keys(currentPipelineOverrides).join(", ")}`
+    : "No pipeline overrides active (using default prompts).";
+
+  const innovativeCount = terms.innovativeProvisions?.length ?? 0;
+
+  const prompt = `Evaluate this AI pipeline's reasoning about an Iran peace deal AND suggest improvements:
 
 DEAL COMPOSITE SCORE: ${(scores.composite * 100).toFixed(1)}%
 STAKEHOLDER RESULTS: ${acceptCount} accept, ${rejectCount} reject out of ${Object.keys(stakeholderEvaluations).length}
 NEGOTIATOR APPLIED: ${negotiatorResult ? `Yes — proposed ${negotiatorResult.proposedAmendments.length} amendments` : "No"}
+INNOVATIVE PROVISIONS: ${innovativeCount} generated
+${brainstormQuality}
+${framingQuality}
+${overridesActive}
 WEAKEST DIMENSIONS: ${Object.entries(scores)
   .filter(([k]) => k !== "composite")
   .sort(([, a], [, b]) => (a as number) - (b as number))
@@ -974,14 +1301,24 @@ WEAKEST DIMENSIONS: ${Object.entries(scores)
   .map(([k, v]) => `${k}: ${((v as number) * 100).toFixed(0)}%`)
   .join(", ")}
 
-Assess the reasoning quality and return:
+Assess the reasoning quality and suggest pipeline improvements:
 {
-  "pipelineQuality": 0.0-1.0 (how well the pipeline reasoned about this deal),
-  "reasoning": "2-3 sentence assessment of pipeline's reasoning quality",
+  "pipelineQuality": 0.0-1.0,
+  "reasoning": "2-3 sentence assessment of pipeline reasoning quality, including brainstorm and framing stages",
   "blindspots": ["list", "of", "identified", "gaps"],
   "suggestedNextArchitecture": "balanced|nuclear-first|hormuz-first|humanitarian-first",
-  "confidenceInOutcome": 0.0-1.0
-}`;
+  "confidenceInOutcome": 0.0-1.0,
+  "promptImprovements": [
+    {
+      "stage": "brainstorm_system|brainstorm_user|proposal_system|proposal_user|framing_system|negotiator_system",
+      "currentWeakness": "what the current prompts are failing to produce",
+      "suggestedChange": "SPECIFIC text to add or modify in the prompt. Be concrete — write actual prompt text.",
+      "expectedImpact": "what improvement this should produce and on which scoring dimensions"
+    }
+  ]
+}
+
+IMPORTANT: The promptImprovements field is how this pipeline evolves over time. Be specific and actionable. Vague suggestions like "improve stakeholder analysis" are useless. Instead, write specific prompt additions like "Add instruction: Consider the role of non-state actors as potential spoilers..." Include 2-4 concrete improvements.`;
 
   const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 7, "evaluation", modelConfig);
   const result = parseLLMJson<MetaEvaluatorResult>(content, fallback);
@@ -1081,32 +1418,40 @@ Limit to 6 items total.`;
 }
 
 /**
- * FULL EVALUATION PIPELINE
+ * FULL EVALUATION PIPELINE (Enhanced)
  * Stages:
- * 1. Proposal Agent (Anthropic) — generates deal terms
- * 2. Stakeholder Evaluation Agent (OpenAI) — assesses stakeholder acceptance
- * 3. Domestic Audience Agent (OpenAI) — assesses domestic political sellability
- * 4. Red-Team Agent (Gemini) — adversarial stress testing
- * 5. Negotiator Agent (Anthropic) — proposes amendments for rejecters
- * 6. Judge Agent (OpenAI) — scores on 7 dimensions
- * 7. Meta-Evaluator (OpenAI) — evaluates overall pipeline reasoning quality
- * 8. Diagnosis Generator (Gemini) — human-readable explanation
+ * 0. Innovation Brainstorm — creative pre-generation with historical mining
+ * 1. Proposal Agent — generates deal terms with innovative provisions
+ * 2. Stakeholder Evaluation Agent — assesses stakeholder acceptance
+ * 3. Domestic Audience Agent — assesses domestic political sellability
+ * 3.5. Creative Reframing Agent — generates domestic selling narratives
+ * 4. Red-Team Agent — adversarial stress testing
+ * 5. Creative Negotiator Agent — Pareto improvements + creative tradeoffs
+ * 6. Judge Agent — scores on 7 dimensions (3-model panel)
+ * 7. Meta-Evaluator — evaluates pipeline quality + suggests prompt improvements
+ * 8. Diagnosis Generator — human-readable explanation
  */
 export async function runFullEvaluation(
   evidenceSummary: string,
   previousDiagnosis: string,
   architecture: Architecture = "balanced",
   modelConfig: ModelConfig = DEFAULT_MODELS,
+  pipelineOverrides: Record<string, string> = {},
 ): Promise<EvaluatedDeal> {
   validateModelConfig(modelConfig);
-  logger.info({ architecture, models: modelConfig }, "Starting full deal evaluation pipeline");
+  logger.info({ architecture, models: modelConfig, overrides: Object.keys(pipelineOverrides) }, "Starting enhanced deal evaluation pipeline");
   let totalTokens = 0;
   let totalCost = 0;
 
-  // Stage 1: Proposal Agent (Anthropic — generation role)
-  const { terms, tokens: t1 } = await generateProposal(evidenceSummary, previousDiagnosis, architecture, modelConfig);
+  // Stage 0: Innovation Brainstorm — creative pre-generation
+  const { insights: brainstormInsights, tokens: t0 } = await runInnovationBrainstorm(evidenceSummary, previousDiagnosis, architecture, modelConfig, pipelineOverrides);
+  totalTokens += t0;
+  logger.info({ stage: "brainstorm", analogies: brainstormInsights.historicalAnalogies.length, provisions: brainstormInsights.creativeProvisions.length, tokens: t0 }, "Stage 0 complete");
+
+  // Stage 1: Proposal Agent — generates deal terms using brainstorm insights
+  const { terms, tokens: t1 } = await generateProposal(evidenceSummary, previousDiagnosis, architecture, modelConfig, brainstormInsights, pipelineOverrides);
   totalTokens += t1;
-  logger.info({ stage: "proposal", tokens: t1 }, "Stage 1 complete");
+  logger.info({ stage: "proposal", innovativeProvisions: terms.innovativeProvisions?.length ?? 0, tokens: t1 }, "Stage 1 complete");
 
   // Stage 2: Stakeholder Evaluation Agent (OpenAI — evaluation role)
   const { evaluations: stakeholderEvaluations, tokens: t2 } = await evaluateStakeholders(terms, modelConfig);
@@ -1118,15 +1463,20 @@ export async function runFullEvaluation(
   totalTokens += t3;
   logger.info({ stage: "domestic", tokens: t3 }, "Stage 3 complete");
 
+  // Stage 3.5: Creative Reframing Agent — generates domestic selling narratives
+  const { strategies: domesticFramingStrategies, tokens: t35 } = await generateDomesticFramingStrategies(terms, domesticEvaluations, modelConfig, pipelineOverrides);
+  totalTokens += t35;
+  logger.info({ stage: "framing", strategiesGenerated: Object.keys(domesticFramingStrategies).length, tokens: t35 }, "Stage 3.5 complete");
+
   // Stage 4: Red-Team Agent (Gemini — adversarial role)
   const { results: redTeamResults, tokens: t4 } = await runRedTeam(terms, modelConfig);
   totalTokens += t4;
   logger.info({ stage: "redteam", tokens: t4 }, "Stage 4 complete");
 
-  // Stage 5: Negotiator Agent (Anthropic — generation/bridging role)
-  const { result: negotiatorResult, tokens: t5 } = await runNegotiator(terms, stakeholderEvaluations, modelConfig);
+  // Stage 5: Creative Negotiator Agent — Pareto improvements + creative tradeoffs
+  const { result: negotiatorResult, tokens: t5 } = await runNegotiator(terms, stakeholderEvaluations, domesticFramingStrategies, modelConfig, pipelineOverrides);
   totalTokens += t5;
-  logger.info({ stage: "negotiator", amendments: negotiatorResult.proposedAmendments.length, tokens: t5 }, "Stage 5 complete");
+  logger.info({ stage: "negotiator", amendments: negotiatorResult.proposedAmendments.length, tradeoffs: negotiatorResult.creativeTradeoffs?.length ?? 0, tokens: t5 }, "Stage 5 complete");
 
   // Apply negotiator's revisedTermsPartial before judge scores the deal
   const revisedTerms: DealTerms = {
@@ -1139,13 +1489,13 @@ export async function runFullEvaluation(
   totalTokens += t6;
   logger.info({ stage: "judge", composite: scores.composite.toFixed(3), tokens: t6 }, "Stage 6 complete");
 
-  // Stage 7: Meta-Evaluator (OpenAI — meta-evaluation role, distinct from judge)
-  const { result: metaEvaluatorResult, tokens: t7 } = await runMetaEvaluator(terms, scores, negotiatorResult, stakeholderEvaluations, modelConfig);
+  // Stage 7: Meta-Evaluator — evaluates pipeline quality + suggests prompt improvements for hill-climbing
+  const { result: metaEvaluatorResult, tokens: t7 } = await runMetaEvaluator(revisedTerms, scores, negotiatorResult, stakeholderEvaluations, brainstormInsights, domesticFramingStrategies, modelConfig, pipelineOverrides);
   totalTokens += t7;
-  logger.info({ stage: "meta-evaluator", quality: metaEvaluatorResult.pipelineQuality, tokens: t7 }, "Stage 7 complete");
+  logger.info({ stage: "meta-evaluator", quality: metaEvaluatorResult.pipelineQuality, promptImprovements: metaEvaluatorResult.promptImprovements?.length ?? 0, tokens: t7 }, "Stage 7 complete");
 
   // Stage 8: Diagnosis Generator (Gemini — synthesis role)
-  const { diagnosis, tokens: t8 } = await generateDiagnosis(terms, stakeholderEvaluations, redTeamResults, scores, modelConfig);
+  const { diagnosis, tokens: t8 } = await generateDiagnosis(revisedTerms, stakeholderEvaluations, redTeamResults, scores, modelConfig);
   totalTokens += t8;
   logger.info({ stage: "diagnosis", tokens: t8 }, "Stage 8 complete");
 
@@ -1156,10 +1506,13 @@ export async function runFullEvaluation(
     scores,
     stakeholderEvaluations,
     domesticEvaluations,
+    domesticFramingStrategies,
+    brainstormInsights,
     redTeamResults,
     negotiatorResult,
     metaEvaluatorResult,
     diagnosis,
+    pipelineConfig: pipelineOverrides,
     tokensConsumed: totalTokens,
     costUsd: totalCost,
   };

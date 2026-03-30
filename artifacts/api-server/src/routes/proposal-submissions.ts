@@ -197,7 +197,7 @@ router.patch("/admin/proposals/queue/:id", adminAuth, async (req, res) => {
           const { results: redTeamResults } = await runRedTeam(terms, modelConfig);
           logger.info({ pid, stage: 4 }, "Red-team evaluation complete");
 
-          const { result: negotiatorResult } = await runNegotiator(terms, stakeholderEvaluations, modelConfig);
+          const { result: negotiatorResult } = await runNegotiator(terms, stakeholderEvaluations, {}, modelConfig);
           logger.info({ pid, stage: 5 }, "Negotiator amendments complete");
 
           const revisedTerms: DealTerms = {
@@ -208,7 +208,7 @@ router.patch("/admin/proposals/queue/:id", adminAuth, async (req, res) => {
           const { scores } = await judgeAndScore(revisedTerms, stakeholderEvaluations, redTeamResults, domesticEvaluations, modelConfig);
           logger.info({ pid, stage: 6, composite: scores.composite }, "Judge panel scoring complete");
 
-          const { result: metaResult } = await runMetaEvaluator(terms, scores, negotiatorResult, stakeholderEvaluations, modelConfig);
+          const { result: metaResult } = await runMetaEvaluator(terms, scores, negotiatorResult, stakeholderEvaluations, null, {}, modelConfig);
           logger.info({ pid, stage: 7 }, "Meta-evaluation complete");
 
           const { diagnosis } = await generateDiagnosis(terms, stakeholderEvaluations, redTeamResults, scores, modelConfig);

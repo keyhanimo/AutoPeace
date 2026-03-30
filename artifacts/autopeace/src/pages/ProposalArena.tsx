@@ -176,6 +176,17 @@ function ProposalCard({
                         ))}
                       </div>
                     )}
+                    {Boolean(Array.isArray((terms as Record<string, unknown>).innovativeProvisions) && ((terms as Record<string, unknown>).innovativeProvisions as unknown[]).length > 0) && (
+                      <div className="border-t border-border/30 pt-2 mt-2">
+                        <span className="text-[10px] text-violet-400 font-semibold uppercase tracking-wider block mb-1.5">Innovative Provisions</span>
+                        {((terms as Record<string, unknown>).innovativeProvisions as Array<{ title: string; description: string; rationale: string }>).map((prov, idx) => (
+                          <div key={idx} className="p-2 rounded border border-violet-800/20 bg-violet-950/10 mb-1.5">
+                            <span className="text-[11px] font-bold text-violet-300">{prov.title}</span>
+                            <p className="text-[10px] text-muted-foreground">{prov.description.slice(0, 200)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -290,6 +301,9 @@ function AiDealCard({
   const terms = deal.terms as Record<string, unknown>;
   const redTeamResults = (deal.redTeamResults ?? []) as Array<{ attack: string; severity: string; response: string; survived: boolean }>;
   const domesticEvals = (deal.domesticEvaluations ?? {}) as Record<string, { audience: string; verdict: string; rationale: string }>;
+  const domesticFraming = ((deal as Record<string, unknown>).domesticFramingStrategies ?? {}) as Record<string, { audience: string; framingNarrative: string; keyTalkingPoints: string[]; historicalAnalogy?: string; riskOfBackfire: string }>;
+  const brainstormInsights = (deal as Record<string, unknown>).brainstormInsights as { historicalAnalogies: Array<{ dealName: string; relevantLesson: string; applicability: string }>; creativeProvisions: Array<{ idea: string; rationale: string; noveltyLevel: string }>; crossIssueLinkages: Array<{ linkage: string; stakeholdersHelped: string[] }>; unconventionalApproaches: string[] } | null;
+  const innovativeProvisions = Array.isArray(terms.innovativeProvisions) ? terms.innovativeProvisions as Array<{ title: string; description: string; rationale: string }> : [];
 
   return (
     <Card className="overflow-hidden border-primary/30">
@@ -443,6 +457,62 @@ function AiDealCard({
                         </div>
                       );
                     })}
+                  </div>
+                </div>
+              )}
+
+              {innovativeProvisions.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-bold text-violet-400 uppercase tracking-wider mb-3">Innovative Provisions</h4>
+                  <div className="grid sm:grid-cols-2 gap-2">
+                    {innovativeProvisions.map((prov, idx) => (
+                      <div key={idx} className="p-2.5 rounded-lg border border-violet-800/20 bg-violet-950/10 text-xs">
+                        <span className="font-bold text-violet-300">{prov.title}</span>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">{prov.description.slice(0, 200)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {Object.keys(domesticFraming).length > 0 && (
+                <div>
+                  <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-3">Creative Framing Strategies</h4>
+                  <div className="space-y-2">
+                    {Object.entries(domesticFraming).map(([key, strategy]) => (
+                      <div key={key} className="p-2.5 rounded-lg border border-emerald-800/30 bg-emerald-950/10 text-xs">
+                        <span className="font-medium text-emerald-300">{strategy.audience}</span>
+                        <p className="text-[10px] text-foreground mt-0.5 italic">"{strategy.framingNarrative}"</p>
+                        <div className="mt-1 space-y-0.5">
+                          {strategy.keyTalkingPoints.map((pt: string, i: number) => (
+                            <div key={i} className="flex gap-1.5 text-[10px] text-muted-foreground">
+                              <span className="text-emerald-500 shrink-0">•</span><span>{pt}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-[9px] text-amber-400/60 mt-1">Risk: {strategy.riskOfBackfire}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {brainstormInsights && (
+                <div>
+                  <h4 className="text-xs font-bold text-violet-400 uppercase tracking-wider mb-3">AI Innovation Brainstorm</h4>
+                  <div className="grid sm:grid-cols-2 gap-2">
+                    {brainstormInsights.historicalAnalogies?.map((a, i) => (
+                      <div key={i} className="p-2 rounded border border-violet-800/20 bg-violet-950/10 text-xs">
+                        <span className="font-bold text-violet-300">{a.dealName}</span>
+                        <p className="text-[10px] text-muted-foreground">{a.relevantLesson}</p>
+                      </div>
+                    ))}
+                    {brainstormInsights.crossIssueLinkages?.map((l, i) => (
+                      <div key={`l-${i}`} className="p-2 rounded border border-violet-800/20 bg-violet-950/10 text-xs">
+                        <p className="text-muted-foreground">{l.linkage}</p>
+                        <span className="text-[10px] text-violet-400/60">Benefits: {l.stakeholdersHelped.join(", ")}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}

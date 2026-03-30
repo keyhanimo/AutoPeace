@@ -264,7 +264,7 @@ export async function extractProposalsFromEvidence(cycleId?: string): Promise<nu
         const { evaluations: aiEvals } = await evaluateStakeholders(terms, modelConfig);
         const { evaluations: domesticEvals } = await evaluateDomesticAudiences(terms, modelConfig);
         const { results: redTeamResults } = await runRedTeam(terms, modelConfig);
-        const { result: negotiatorResult } = await runNegotiator(terms, aiEvals, modelConfig);
+        const { result: negotiatorResult } = await runNegotiator(terms, aiEvals, {}, modelConfig);
 
         const revisedTerms: DealTerms = {
           ...terms,
@@ -273,7 +273,7 @@ export async function extractProposalsFromEvidence(cycleId?: string): Promise<nu
 
         const { scores: aiScores } = await judgeAndScore(revisedTerms, aiEvals, redTeamResults, domesticEvals, modelConfig);
 
-        await runMetaEvaluator(terms, aiScores, negotiatorResult, aiEvals, modelConfig);
+        await runMetaEvaluator(terms, aiScores, negotiatorResult, aiEvals, null, {}, modelConfig);
         await generateDiagnosis(terms, aiEvals, redTeamResults, aiScores, modelConfig);
 
         const rawWwit = await computeWhatWouldItTake(terms, aiEvals, modelConfig);
