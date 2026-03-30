@@ -3,6 +3,7 @@ import { PageHeader, Card, Badge } from "@/components/ui";
 import {
   TrendingUp, Shield, HeartPulse, Ship, Plane, Factory,
   Banknote, Zap, ChevronDown, ChevronUp, ArrowRight, Scale, Globe, BarChart3,
+  Info, BookOpen, AlertTriangle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -52,6 +53,12 @@ interface StakeholderCBA {
   keyFacts: string[];
   displaced: number;
   casualties: number;
+  displacedRange?: [number, number];
+  casualtiesRange?: [number, number];
+  iranAttributionPct: number;
+  humanitarianAttribution: string;
+  humanitarianSources: string[];
+  humanitarianDateRange: string;
 }
 
 const STAKEHOLDERS: StakeholderCBA[] = [
@@ -69,7 +76,12 @@ const STAKEHOLDERS: StakeholderCBA[] = [
       productivity: { warCost: 6.0, peaceBenefit: 19.0 },
     },
     keyFacts: ["$200B+ cumulative sanctions cost since 2018", "Oil exports constrained to ~1.5M bbl/day vs 2.5M potential", "Banking system cut off from SWIFT"],
-    displaced: 0, casualties: 1200,
+    displaced: 0, casualties: 1500,
+    casualtiesRange: [800, 2500],
+    iranAttributionPct: 100,
+    humanitarianAttribution: "Fatalities from protest crackdowns linked to sanctions-driven economic hardship and regime security posture (2019 fuel protests, 2022 Mahsa Amini movement). Does not include combat deaths from proxy operations counted under other theaters.",
+    humanitarianSources: ["HRANA (Human Rights Activists News Agency), annual reports 2019–2024", "Amnesty International, 'Trampled Humanity' (2023)", "UN OHCHR Iran monitoring reports"],
+    humanitarianDateRange: "2019–2024",
   },
   {
     id: "us", name: "United States", flag: "🇺🇸", region: "Core Principal", gdpB: 28780,
@@ -85,7 +97,12 @@ const STAKEHOLDERS: StakeholderCBA[] = [
       productivity: { warCost: 4.0, peaceBenefit: 5.0 },
     },
     keyFacts: ["$25B/yr Iran-linked military deployment cost", "CENTCOM operational tempo at multi-year high", "Sanctions enforcement budget ~$1.2B/yr"],
-    displaced: 0, casualties: 45,
+    displaced: 0, casualties: 50,
+    casualtiesRange: [30, 80],
+    iranAttributionPct: 100,
+    humanitarianAttribution: "US military personnel killed in Iran-linked incidents in Iraq, Syria, and Gulf region. Includes January 2024 Tower 22 drone attack (3 killed) and earlier Iran-backed militia strikes on US bases.",
+    humanitarianSources: ["US Department of Defense casualty reports", "CRS, 'U.S. Forces in the Middle East' (2024)", "DoD Inspector General quarterly reports on Operation Inherent Resolve"],
+    humanitarianDateRange: "2019–2024",
   },
   {
     id: "israel", name: "Israel", flag: "🇮🇱", region: "Core Principal", gdpB: 539,
@@ -101,7 +118,13 @@ const STAKEHOLDERS: StakeholderCBA[] = [
       productivity: { warCost: 4.0, peaceBenefit: 3.5 },
     },
     keyFacts: ["Reserve mobilization costs ~$1.5B/month at peak", "Tourism receipts down 40%", "Sovereign CDS spread doubled since 2023"],
-    displaced: 200000, casualties: 1200,
+    displaced: 200000, casualties: 1400,
+    displacedRange: [150000, 250000],
+    casualtiesRange: [1200, 1800],
+    iranAttributionPct: 60,
+    humanitarianAttribution: "Displacement from Hezbollah border escalation (northern Israel evacuation ~60K) and Gaza border evacuation (~130K). Casualties include Oct 7 attack and subsequent Hezbollah/Iran-linked incidents. Iran attribution (60%) reflects Hezbollah as primary proxy; Hamas attribution to Iran is debated in the literature.",
+    humanitarianSources: ["OCHA Situation Reports, Oct 2023–2024", "Israeli National Emergency Authority (RACHEL)", "IDF official casualty figures", "ICG, 'The Israel-Hezbollah Conflict' (2024)"],
+    humanitarianDateRange: "Oct 2023–2024",
   },
   {
     id: "saudi_arabia", name: "Saudi Arabia", flag: "🇸🇦", region: "Gulf State", gdpB: 1108,
@@ -118,6 +141,10 @@ const STAKEHOLDERS: StakeholderCBA[] = [
     },
     keyFacts: ["Vision 2030 investment dampened by regional risk", "Benefits from higher oil prices (transfer, not efficiency)", "Airspace rerouting adds 2-3hr to some flights"],
     displaced: 0, casualties: 0,
+    iranAttributionPct: 0,
+    humanitarianAttribution: "No direct conflict displacement or fatalities recorded in this territory from the Iran conflict complex. Economic impact is the primary transmission channel.",
+    humanitarianSources: ["UNHCR Global Trends (2024): no Saudi Arabia entries under Iran-related displacement"],
+    humanitarianDateRange: "N/A",
   },
   {
     id: "uae", name: "UAE", flag: "🇦🇪", region: "Gulf State", gdpB: 509,
@@ -134,6 +161,10 @@ const STAKEHOLDERS: StakeholderCBA[] = [
     },
     keyFacts: ["Dubai logistics hub disrupted by Hormuz risk", "War-risk insurance up 300%+", "Aviation rerouting costs ~$3B/yr"],
     displaced: 0, casualties: 0,
+    iranAttributionPct: 0,
+    humanitarianAttribution: "No direct conflict displacement or fatalities recorded. 2022 Houthi drone/missile attacks on Abu Dhabi targeted infrastructure but caused minimal casualties (3 killed). Economic/logistics disruption is the primary impact channel.",
+    humanitarianSources: ["UNHCR Global Trends (2024)", "OCHA Gulf region sitreps"],
+    humanitarianDateRange: "2022–2024",
   },
   {
     id: "europe", name: "Europe (EU+UK)", flag: "🇪🇺", region: "Major External", gdpB: 19800,
@@ -150,6 +181,10 @@ const STAKEHOLDERS: StakeholderCBA[] = [
     },
     keyFacts: ["LNG price premium ~$2-4/MMBtu from Hormuz risk", "Sanctions compliance cost ~$5B/yr across EU", "Mediterranean shipping rerouted from Suez disruption"],
     displaced: 0, casualties: 0,
+    iranAttributionPct: 0,
+    humanitarianAttribution: "No direct conflict displacement or fatalities in EU/UK territory from the Iran conflict complex. Humanitarian costs are borne through refugee reception from spillover theaters (not counted here to avoid double-counting with origin countries) and economic channels.",
+    humanitarianSources: ["UNHCR Global Trends (2024)", "Eurostat asylum statistics"],
+    humanitarianDateRange: "N/A",
   },
   {
     id: "china", name: "China", flag: "🇨🇳", region: "Major External", gdpB: 17960,
@@ -166,6 +201,10 @@ const STAKEHOLDERS: StakeholderCBA[] = [
     },
     keyFacts: ["Imports ~1.5M bbl/day through Hormuz", "BRI infrastructure projects at risk", "Major buyer of sanctioned Iranian oil at discount"],
     displaced: 0, casualties: 0,
+    iranAttributionPct: 0,
+    humanitarianAttribution: "No direct conflict displacement or fatalities recorded in China from the Iran conflict complex. Impact is transmitted through energy price and trade channels.",
+    humanitarianSources: ["UNHCR Global Trends (2024)"],
+    humanitarianDateRange: "N/A",
   },
   {
     id: "india", name: "India", flag: "🇮🇳", region: "Major External", gdpB: 3940,
@@ -182,6 +221,10 @@ const STAKEHOLDERS: StakeholderCBA[] = [
     },
     keyFacts: ["3rd largest oil importer, heavy Hormuz dependence", "Chabahar port project stalled", "Fertilizer import costs up 25%"],
     displaced: 0, casualties: 0,
+    iranAttributionPct: 0,
+    humanitarianAttribution: "No direct conflict displacement or fatalities recorded in India from the Iran conflict complex. Impact is transmitted through energy import costs and shipping disruption.",
+    humanitarianSources: ["UNHCR Global Trends (2024)"],
+    humanitarianDateRange: "N/A",
   },
   {
     id: "japan_korea", name: "Japan + South Korea", flag: "🇯🇵", region: "Major External", gdpB: 7200,
@@ -198,6 +241,10 @@ const STAKEHOLDERS: StakeholderCBA[] = [
     },
     keyFacts: ["~80% of oil imports transit Hormuz", "LNG supply contracts at risk", "Insurance premiums tripled for Gulf-bound vessels"],
     displaced: 0, casualties: 0,
+    iranAttributionPct: 0,
+    humanitarianAttribution: "No direct conflict displacement or fatalities recorded from the Iran conflict complex. Energy import dependence on Hormuz transit is the primary risk channel.",
+    humanitarianSources: ["UNHCR Global Trends (2024)"],
+    humanitarianDateRange: "N/A",
   },
   {
     id: "ukraine", name: "Ukraine", flag: "🇺🇦", region: "Major External", gdpB: 179,
@@ -213,7 +260,13 @@ const STAKEHOLDERS: StakeholderCBA[] = [
       productivity: { warCost: 1.0, peaceBenefit: 1.0 },
     },
     keyFacts: ["Iran supplies Russia with Shahed drones used against Ukrainian infrastructure", "Iran peace could reduce Russia's military supply chain leverage", "Energy infrastructure 40%+ damaged — higher global energy prices compound burden", "Grain exports disrupted, compounding global food insecurity"],
-    displaced: 6500000, casualties: 50000,
+    displaced: 6500000, casualties: 40000,
+    displacedRange: [6000000, 8000000],
+    casualtiesRange: [25000, 60000],
+    iranAttributionPct: 5,
+    humanitarianAttribution: "Total figures are from the Russia-Ukraine war. Iran's role is limited to the Shahed-136/238 drone supply chain (~3,700+ drones delivered per Ukrainian military estimates). The 5% attribution weight reflects the drone campaign's estimated share of total damage. These figures are included for systemic context, not as direct Iran-conflict casualties.",
+    humanitarianSources: ["UNHCR Ukraine Situation, operational data portal (2024)", "UN OHCHR, civilian casualty update (Feb 2022–2024)", "Ukrainian Ministry of Defense drone tracking reports", "RUSI, 'The Shahed Effect: Iran's Drone War in Ukraine' (2023)", "IISS Strategic Survey 2024"],
+    humanitarianDateRange: "Feb 2022–2024",
   },
   {
     id: "iraq", name: "Iraq", flag: "🇮🇶", region: "Regional Spillover", gdpB: 264,
@@ -228,8 +281,14 @@ const STAKEHOLDERS: StakeholderCBA[] = [
       humanitarian: { warCost: 2.0, peaceBenefit: 2.0 },
       productivity: { warCost: 1.0, peaceBenefit: 2.0 },
     },
-    keyFacts: ["Direct spillover conflict risk", "Trade corridor to Iran disrupted", "2M+ internal displacement linked to proxy conflicts"],
-    displaced: 2000000, casualties: 3500,
+    keyFacts: ["Direct spillover conflict risk from Iran-backed PMF", "Trade corridor to Iran disrupted", "IDP population linked to post-ISIS and militia activity"],
+    displaced: 1200000, casualties: 3500,
+    displacedRange: [1000000, 1500000],
+    casualtiesRange: [2000, 5000],
+    iranAttributionPct: 50,
+    humanitarianAttribution: "Internal displacement from multiple overlapping conflicts including post-ISIS operations, Iran-backed Popular Mobilization Forces (PMF) activity, and Turkey-PKK cross-border operations. Iran attribution (50%) reflects PMF's significant but not sole role in instability. Casualty figures cover conflict-related fatalities in areas with active Iran-linked militia presence.",
+    humanitarianSources: ["IOM Iraq Displacement Tracking Matrix (2024)", "UNHCR Iraq operational data", "ACLED Iraq conflict data (2019–2024)", "ICG, 'Iraq's Militia Politics' (2023)"],
+    humanitarianDateRange: "2019–2024",
   },
   {
     id: "turkey", name: "Turkey", flag: "🇹🇷", region: "Regional Spillover", gdpB: 1108,
@@ -246,6 +305,10 @@ const STAKEHOLDERS: StakeholderCBA[] = [
     },
     keyFacts: ["Key trade corridor and intermediary", "Refugee spillover costs ~$2B/yr", "Reconstruction contracts potential under peace"],
     displaced: 0, casualties: 0,
+    iranAttributionPct: 0,
+    humanitarianAttribution: "Turkey hosts ~3.6M Syrian refugees but these are counted at origin to avoid double-counting. No direct Iran-complex conflict casualties recorded in Turkish territory.",
+    humanitarianSources: ["UNHCR Turkey factsheet (2024)", "DGMM Turkey migration statistics"],
+    humanitarianDateRange: "2011–2024",
   },
   {
     id: "lebanon", name: "Lebanon", flag: "🇱🇧", region: "Regional Spillover", gdpB: 22,
@@ -260,8 +323,14 @@ const STAKEHOLDERS: StakeholderCBA[] = [
       humanitarian: { warCost: 2.0, peaceBenefit: 1.0 },
       productivity: { warCost: 1.0, peaceBenefit: 0.5 },
     },
-    keyFacts: ["Direct conflict damage to infrastructure", "Sovereign default deepened by war", "1.5M Syrian refugees + new displacement"],
-    displaced: 1500000, casualties: 2800,
+    keyFacts: ["Direct conflict damage to infrastructure from Israel-Hezbollah war", "Sovereign default deepened by war", "1.5M Syrian refugees + new displacement from 2023–2024 escalation"],
+    displaced: 1200000, casualties: 2500,
+    displacedRange: [900000, 1500000],
+    casualtiesRange: [1500, 4000],
+    iranAttributionPct: 40,
+    humanitarianAttribution: "Includes ~200K+ displaced from 2023–2024 Israel-Hezbollah escalation (Iran-attributable via Hezbollah) and ~1M Syrian refugees (not Iran-attributable). Casualties primarily from Israeli operations against Hezbollah in Lebanese territory. Attribution (40%) reflects mixed causation: Hezbollah (Iran proxy) is the Iran-linked driver, but Syrian refugee displacement predates and is largely separate from the Iran conflict complex.",
+    humanitarianSources: ["UNHCR Lebanon operational data (2024)", "OCHA Lebanon Flash Updates (2023–2024)", "Lebanese Red Cross situation reports", "ICG, 'Hezbollah's War Gamble' (2024)"],
+    humanitarianDateRange: "2023–2024 (displacement), 2011–2024 (refugees cumulative)",
   },
   {
     id: "yemen", name: "Yemen", flag: "🇾🇪", region: "Regional Spillover", gdpB: 22,
@@ -276,8 +345,14 @@ const STAKEHOLDERS: StakeholderCBA[] = [
       humanitarian: { warCost: 2.0, peaceBenefit: 1.0 },
       productivity: { warCost: 0.0, peaceBenefit: 0.0 },
     },
-    keyFacts: ["Red Sea / Bab el-Mandeb disruption", "21M people need humanitarian aid", "Infrastructure largely destroyed"],
-    displaced: 4500000, casualties: 5000,
+    keyFacts: ["Red Sea / Bab el-Mandeb disruption by Houthi forces", "21M people need humanitarian aid (OCHA 2024)", "Infrastructure largely destroyed after 9 years of war"],
+    displaced: 4500000, casualties: 150000,
+    displacedRange: [4000000, 4700000],
+    casualtiesRange: [100000, 377000],
+    iranAttributionPct: 80,
+    humanitarianAttribution: "Yemen's civil war (2014–present) involves Iran-backed Houthi forces as a primary belligerent. Displacement figure is internally displaced persons (IDPs). Casualty figure uses ACLED's direct conflict fatalities estimate (~150K); the UN Development Programme estimates total deaths including disease and famine at ~377K through 2021. Attribution (80%) reflects Iran's substantial role through Houthi support (arms, training, financing), while acknowledging local political dynamics and Saudi-led coalition actions as co-drivers.",
+    humanitarianSources: ["UNHCR Yemen operational data (2024)", "ACLED, Yemen conflict data (2015–2024): ~150K direct fatalities", "UN Development Programme, 'Assessing the Impact of War on Development in Yemen' (2021): 377K total deaths", "OCHA Yemen Humanitarian Needs Overview (2024)", "UN Panel of Experts on Yemen, S/2024/135"],
+    humanitarianDateRange: "2015–2024",
   },
   {
     id: "egypt", name: "Egypt", flag: "🇪🇬", region: "Regional Spillover", gdpB: 395,
@@ -294,6 +369,10 @@ const STAKEHOLDERS: StakeholderCBA[] = [
     },
     keyFacts: ["Suez Canal revenue at risk from rerouting", "Tourism down 15% from regional instability", "Energy import burden increased $2B/yr"],
     displaced: 0, casualties: 0,
+    iranAttributionPct: 0,
+    humanitarianAttribution: "No direct conflict displacement or fatalities recorded in Egypt from the Iran conflict complex. Suez Canal disruption from Houthi attacks is the primary impact channel. Hosts some refugees from neighboring conflicts (not counted here).",
+    humanitarianSources: ["UNHCR Global Trends (2024)", "Suez Canal Authority reports"],
+    humanitarianDateRange: "N/A",
   },
   {
     id: "qatar", name: "Qatar", flag: "🇶🇦", region: "Gulf State", gdpB: 219,
@@ -310,6 +389,10 @@ const STAKEHOLDERS: StakeholderCBA[] = [
     },
     keyFacts: ["LNG price premium benefits Qatar (transfer)", "Aviation hub disrupted by airspace closures", "Diplomacy broker with mediation leverage"],
     displaced: 0, casualties: 0,
+    iranAttributionPct: 0,
+    humanitarianAttribution: "No direct conflict displacement or fatalities recorded in Qatar from the Iran conflict complex. Qatar serves as diplomatic mediator; impact is economic (aviation, LNG pricing).",
+    humanitarianSources: ["UNHCR Global Trends (2024)"],
+    humanitarianDateRange: "N/A",
   },
   {
     id: "pakistan", name: "Pakistan", flag: "🇵🇰", region: "Regional Spillover", gdpB: 374,
@@ -326,6 +409,10 @@ const STAKEHOLDERS: StakeholderCBA[] = [
     },
     keyFacts: ["Iran-Pakistan pipeline stalled by sanctions", "Energy import costs up $3B/yr", "Hosting Iran talks as regional mediator"],
     displaced: 0, casualties: 0,
+    iranAttributionPct: 0,
+    humanitarianAttribution: "No direct conflict displacement or fatalities recorded in Pakistan from the Iran conflict complex. Cross-border Balochistan tensions exist but are not part of the Iran-proxy conflict network tracked here.",
+    humanitarianSources: ["UNHCR Global Trends (2024)", "OCHA Pakistan situation reports"],
+    humanitarianDateRange: "N/A",
   },
   {
     id: "jordan", name: "Jordan", flag: "🇯🇴", region: "Regional Spillover", gdpB: 50,
@@ -342,6 +429,10 @@ const STAKEHOLDERS: StakeholderCBA[] = [
     },
     keyFacts: ["Hosts 1.3M Syrian refugees", "Trade corridors disrupted", "Tourism down 20% from regional risk"],
     displaced: 0, casualties: 0,
+    iranAttributionPct: 0,
+    humanitarianAttribution: "Jordan hosts ~1.3M Syrian and ~65K Iraqi refugees but these are counted at origin to avoid double-counting. No direct Iran-complex conflict casualties recorded in Jordanian territory.",
+    humanitarianSources: ["UNHCR Jordan factsheet (2024)", "Jordan Response Plan for the Syria Crisis (2024)"],
+    humanitarianDateRange: "2011–2024",
   },
   {
     id: "global_south_importers", name: "Global South (Importers)", flag: "🌍", region: "Global", gdpB: 15000,
@@ -358,6 +449,10 @@ const STAKEHOLDERS: StakeholderCBA[] = [
     },
     keyFacts: ["Fuel and fertilizer import burden up 15-25%", "Inflation pass-through 1-2% in vulnerable economies", "Food security at risk for 200M+ people"],
     displaced: 0, casualties: 0,
+    iranAttributionPct: 0,
+    humanitarianAttribution: "Indirect humanitarian impact through food and energy price inflation. Difficult to separate from other global shocks. Not counted in direct humanitarian totals.",
+    humanitarianSources: ["FAO Food Price Index", "World Bank Commodity Markets Outlook (2024)"],
+    humanitarianDateRange: "2022–2024",
   },
 ];
 
@@ -366,6 +461,8 @@ const GLOBAL_PEACE_BENEFIT_B = STAKEHOLDERS.reduce((s, sh) => s + sh.peaceBenefi
 const GLOBAL_NET_SWING_B = GLOBAL_WAR_COST_B + GLOBAL_PEACE_BENEFIT_B;
 const TOTAL_DISPLACED = STAKEHOLDERS.reduce((s, sh) => s + sh.displaced, 0);
 const TOTAL_CASUALTIES = STAKEHOLDERS.reduce((s, sh) => s + sh.casualties, 0);
+const IRAN_ATTRIBUTED_DISPLACED = Math.round(STAKEHOLDERS.reduce((s, sh) => s + sh.displaced * (sh.iranAttributionPct / 100), 0));
+const IRAN_ATTRIBUTED_CASUALTIES = Math.round(STAKEHOLDERS.reduce((s, sh) => s + sh.casualties * (sh.iranAttributionPct / 100), 0));
 
 const GLOBAL_CHANNEL_DATA = CHANNELS.map(ch => {
   const warCost = STAKEHOLDERS.reduce((s, sh) => s + Math.max(0, sh.channels[ch.id].warCost), 0);
@@ -403,23 +500,128 @@ function GlobalSummaryCards() {
 }
 
 function HumanitarianBanner() {
+  const [showSources, setShowSources] = useState(false);
+  const stakeholdersWithHumanitarian = STAKEHOLDERS.filter(s => s.displaced > 0 || s.casualties > 0);
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <div className="flex items-center gap-4 px-5 py-4 bg-card border border-border/50 rounded-sm">
-        <HeartPulse className="w-8 h-8 text-orange-400 shrink-0" />
-        <div>
-          <div className="text-xl font-bold font-mono text-orange-400">{fmtNum(TOTAL_DISPLACED)}</div>
-          <div className="text-xs text-muted-foreground">People displaced by conflict</div>
+    <Card className="p-5 border-orange-900/30">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <HeartPulse className="w-5 h-5 text-orange-400" />
+          <h3 className="text-sm font-bold">Humanitarian Impact</h3>
+        </div>
+        <button
+          onClick={() => setShowSources(!showSources)}
+          className="flex items-center gap-1.5 text-[10px] text-primary hover:underline underline-offset-2"
+        >
+          <BookOpen className="w-3.5 h-3.5" />
+          {showSources ? "Hide sources" : "View sources & methodology"}
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+        <div className="px-4 py-3 bg-orange-950/20 border border-orange-800/20 rounded-sm">
+          <div className="text-lg font-bold font-mono text-orange-400">{fmtNum(IRAN_ATTRIBUTED_DISPLACED)}</div>
+          <div className="text-[10px] text-muted-foreground">Iran-complex attributed displaced</div>
+        </div>
+        <div className="px-4 py-3 bg-red-950/20 border border-red-800/20 rounded-sm">
+          <div className="text-lg font-bold font-mono text-red-400">{fmtNum(IRAN_ATTRIBUTED_CASUALTIES)}</div>
+          <div className="text-[10px] text-muted-foreground">Iran-complex attributed fatalities</div>
+        </div>
+        <div className="px-4 py-3 bg-secondary/30 border border-border/30 rounded-sm">
+          <div className="text-lg font-bold font-mono text-muted-foreground">{fmtNum(TOTAL_DISPLACED)}</div>
+          <div className="text-[10px] text-muted-foreground">Total displaced (all linked conflicts)</div>
+        </div>
+        <div className="px-4 py-3 bg-secondary/30 border border-border/30 rounded-sm">
+          <div className="text-lg font-bold font-mono text-muted-foreground">{fmtNum(TOTAL_CASUALTIES)}</div>
+          <div className="text-[10px] text-muted-foreground">Total fatalities (all linked conflicts)</div>
         </div>
       </div>
-      <div className="flex items-center gap-4 px-5 py-4 bg-card border border-border/50 rounded-sm">
-        <Shield className="w-8 h-8 text-red-400 shrink-0" />
-        <div>
-          <div className="text-xl font-bold font-mono text-red-400">{fmtNum(TOTAL_CASUALTIES)}</div>
-          <div className="text-xs text-muted-foreground">Estimated casualties</div>
-        </div>
+
+      <div className="flex items-start gap-2 px-3 py-2 bg-amber-950/20 border border-amber-800/20 rounded-sm">
+        <AlertTriangle className="w-3.5 h-3.5 text-amber-400 mt-0.5 shrink-0" />
+        <p className="text-[10px] text-amber-200/80 leading-relaxed">
+          <strong>Attribution note:</strong> Iran-complex attributed figures weight each stakeholder's humanitarian data by the estimated share directly attributable to Iran's conflict network (proxies, sanctions, military supply chains). Total figures include all casualties and displacement in linked conflict theaters regardless of cause. See per-stakeholder breakdowns for specific attribution rationale and source citations.
+        </p>
       </div>
-    </div>
+
+      <AnimatePresence>
+        {showSources && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="mt-4 space-y-3 border-t border-border/50 pt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                <div>
+                  <h4 className="font-semibold text-foreground mb-2 flex items-center gap-1.5">
+                    <Info className="w-3.5 h-3.5 text-primary" />
+                    Attribution Methodology
+                  </h4>
+                  <ul className="space-y-1.5 text-muted-foreground text-[11px] leading-relaxed">
+                    <li><strong className="text-foreground">100%</strong> — Direct Iran conflict (e.g., Iran internal, US forces in Iran-linked operations)</li>
+                    <li><strong className="text-foreground">80%</strong> — Iran-backed primary belligerent (e.g., Yemen/Houthis)</li>
+                    <li><strong className="text-foreground">40–60%</strong> — Iran proxy is significant but not sole cause (e.g., Israel-Hezbollah, Iraq-PMF)</li>
+                    <li><strong className="text-foreground">5%</strong> — Indirect supply chain link only (e.g., Ukraine-Shahed drones)</li>
+                    <li><strong className="text-foreground">0%</strong> — No direct humanitarian link to Iran complex</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-foreground mb-2 flex items-center gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                    Key Caveats
+                  </h4>
+                  <ul className="space-y-1.5 text-muted-foreground text-[11px] leading-relaxed">
+                    <li>"Casualties" = estimated fatalities (military + civilian combined) unless otherwise noted per stakeholder.</li>
+                    <li>Attribution weights are researcher estimates, not precise measurements. Multi-causal conflicts resist clean decomposition.</li>
+                    <li>Yemen's casualty range (100K–377K) spans ACLED direct fatalities to UN total deaths including indirect causes (disease, famine).</li>
+                    <li>Displacement figures count internally displaced persons (IDPs) at origin, not refugees hosted by third countries, to avoid double-counting.</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-semibold text-foreground text-xs mb-2">Per-Stakeholder Humanitarian Sources</h4>
+                <div className="space-y-2">
+                  {stakeholdersWithHumanitarian.map(s => (
+                    <div key={s.id} className="px-3 py-2 bg-secondary/20 rounded-sm">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm">{s.flag}</span>
+                        <span className="text-xs font-semibold text-foreground">{s.name}</span>
+                        <Badge variant="outline" className="text-[9px]">{s.iranAttributionPct}% Iran-attributed</Badge>
+                        <span className="text-[10px] text-muted-foreground ml-auto">{s.humanitarianDateRange}</span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground leading-relaxed mb-1.5">{s.humanitarianAttribution}</p>
+                      <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                        {s.humanitarianSources.map((src, i) => (
+                          <span key={i} className="text-[9px] text-primary/70">• {src}</span>
+                        ))}
+                      </div>
+                      <div className="flex gap-4 mt-1.5 text-[10px]">
+                        {s.displaced > 0 && (
+                          <span className="text-orange-300">
+                            Displaced: {fmtNum(s.displaced)}
+                            {s.displacedRange && <span className="text-muted-foreground"> (range: {fmtNum(s.displacedRange[0])}–{fmtNum(s.displacedRange[1])})</span>}
+                          </span>
+                        )}
+                        {s.casualties > 0 && (
+                          <span className="text-red-300">
+                            Fatalities: {fmtNum(s.casualties)}
+                            {s.casualtiesRange && <span className="text-muted-foreground"> (range: {fmtNum(s.casualtiesRange[0])}–{fmtNum(s.casualtiesRange[1])})</span>}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </Card>
   );
 }
 
@@ -644,21 +846,39 @@ function StakeholderRow({ s, isExpanded, onToggle }: { s: StakeholderCBA; isExpa
                 <StakeholderRadarChart stakeholder={s} />
               </div>
               {(s.displaced > 0 || s.casualties > 0) && (
-                <div className="flex gap-4 flex-wrap">
-                  {s.displaced > 0 && (
-                    <div className="flex items-center gap-2 text-xs px-3 py-2 bg-orange-950/30 border border-orange-800/30 rounded-sm">
-                      <HeartPulse className="w-3.5 h-3.5 text-orange-400" />
-                      <span className="text-orange-300 font-mono font-bold">{fmtNum(s.displaced)}</span>
-                      <span className="text-muted-foreground">displaced</span>
+                <div className="space-y-2">
+                  <div className="flex gap-4 flex-wrap">
+                    {s.displaced > 0 && (
+                      <div className="flex items-center gap-2 text-xs px-3 py-2 bg-orange-950/30 border border-orange-800/30 rounded-sm">
+                        <HeartPulse className="w-3.5 h-3.5 text-orange-400" />
+                        <span className="text-orange-300 font-mono font-bold">{fmtNum(s.displaced)}</span>
+                        <span className="text-muted-foreground">displaced</span>
+                        {s.displacedRange && <span className="text-[10px] text-muted-foreground">(range: {fmtNum(s.displacedRange[0])}–{fmtNum(s.displacedRange[1])})</span>}
+                      </div>
+                    )}
+                    {s.casualties > 0 && (
+                      <div className="flex items-center gap-2 text-xs px-3 py-2 bg-red-950/30 border border-red-800/30 rounded-sm">
+                        <Shield className="w-3.5 h-3.5 text-red-400" />
+                        <span className="text-red-300 font-mono font-bold">{fmtNum(s.casualties)}</span>
+                        <span className="text-muted-foreground">fatalities</span>
+                        {s.casualtiesRange && <span className="text-[10px] text-muted-foreground">(range: {fmtNum(s.casualtiesRange[0])}–{fmtNum(s.casualtiesRange[1])})</span>}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 text-xs px-3 py-2 bg-primary/10 border border-primary/20 rounded-sm">
+                      <Info className="w-3.5 h-3.5 text-primary" />
+                      <span className="text-primary font-mono font-bold">{s.iranAttributionPct}%</span>
+                      <span className="text-muted-foreground">Iran-attributed</span>
                     </div>
-                  )}
-                  {s.casualties > 0 && (
-                    <div className="flex items-center gap-2 text-xs px-3 py-2 bg-red-950/30 border border-red-800/30 rounded-sm">
-                      <Shield className="w-3.5 h-3.5 text-red-400" />
-                      <span className="text-red-300 font-mono font-bold">{fmtNum(s.casualties)}</span>
-                      <span className="text-muted-foreground">casualties</span>
+                  </div>
+                  <div className="px-3 py-2 bg-secondary/20 rounded-sm">
+                    <p className="text-[10px] text-muted-foreground leading-relaxed mb-1">{s.humanitarianAttribution}</p>
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                      {s.humanitarianSources.map((src, i) => (
+                        <span key={i} className="text-[9px] text-primary/70">• {src}</span>
+                      ))}
                     </div>
-                  )}
+                    <span className="text-[9px] text-muted-foreground/60 mt-1 block">Period: {s.humanitarianDateRange}</span>
+                  </div>
                 </div>
               )}
               <div>
@@ -732,7 +952,7 @@ function MethodologyNote() {
         <Scale className="w-4 h-4 text-primary" />
         Methodology & Accounting Framework
       </h3>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-muted-foreground">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs text-muted-foreground">
         <div>
           <div className="font-semibold text-foreground mb-1">Real Resource Losses</div>
           <p className="leading-relaxed">Physical destruction, lost output, wasted fuel, rerouting costs, labor losses. These reduce global wealth.</p>
@@ -745,10 +965,27 @@ function MethodologyNote() {
           <div className="font-semibold text-foreground mb-1">Risk & Confidence Effects</div>
           <p className="leading-relaxed">Insurance premia, sovereign spreads, investment uncertainty. These change welfare through volatility and capital allocation.</p>
         </div>
+        <div>
+          <div className="font-semibold text-foreground mb-1">Humanitarian Accounting</div>
+          <p className="leading-relaxed">Displaced persons counted as IDPs at origin (source: UNHCR/IOM). Fatalities use best available conflict data (ACLED, UN OHCHR). Attribution weights estimate Iran complex's causal share.</p>
+        </div>
       </div>
-      <p className="text-[10px] text-muted-foreground mt-3 italic">
-        Estimates model war and peace as alternative states of the same system. Stakeholder figures include transfers; global totals net out internal transfers to avoid double-counting. Ranges: conservative to upside; base case shown.
-      </p>
+      <div className="mt-4 pt-3 border-t border-border/50">
+        <h4 className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5">
+          <BookOpen className="w-3.5 h-3.5 text-primary" />
+          Economic Data Sources & Limitations
+        </h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[10px] text-muted-foreground leading-relaxed">
+          <div>
+            <p className="mb-1.5"><strong className="text-foreground">Economic channel estimates</strong> are modeled using the war-peace alternative states framework: each stakeholder's war cost and peace benefit are estimated per channel using public data from IMF Article IV reports, World Bank commodity outlooks, UNCTAD trade data, IEA energy reports, Lloyd's shipping indices, and published academic estimates of sanctions costs.</p>
+            <p><strong className="text-foreground">GDP figures</strong> use IMF World Economic Outlook (2024) nominal GDP estimates.</p>
+          </div>
+          <div>
+            <p className="mb-1.5"><strong className="text-foreground">Limitations:</strong> All figures are researcher estimates, not audited accounts. Economic channel data uses base-case scenarios; conservative and upside bounds are not shown in the current interface. Transfer effects (negative war costs) are noted per stakeholder but netted out at the global level. Multi-causal conflicts resist clean decomposition — attribution weights involve judgment.</p>
+            <p><strong className="text-foreground">Modeling framework:</strong> Follows the principle ΔW(s₁, s₀) = W(peace) − W(war) applied per stakeholder and per channel. See methodology page for full specification.</p>
+          </div>
+        </div>
+      </div>
     </Card>
   );
 }
