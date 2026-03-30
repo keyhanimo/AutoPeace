@@ -730,14 +730,13 @@ function StakeholderWaterfallChart({ stakeholders }: { stakeholders: Stakeholder
       </p>
       <div className="h-[480px]">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 24 }} layout="vertical" barGap={3} barCategoryGap="25%">
+          <BarChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }} layout="vertical" barGap={3} barCategoryGap="25%">
             <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={false} />
             <XAxis
               type="number"
               domain={[-domainMax, domainMax]}
               tick={{ fontSize: 10, fill: '#94a3b8' }}
               tickFormatter={v => `$${Math.abs(v)}B`}
-              label={{ value: '← War Cost (USD B/yr) | Peace Benefit (USD B/yr) →', position: 'insideBottom', style: { fontSize: 10, fill: '#64748b' }, offset: -14 }}
             />
             <YAxis dataKey="name" type="category" tick={{ fontSize: 10, fill: '#94a3b8' }} width={130} />
             <Tooltip
