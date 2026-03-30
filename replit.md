@@ -51,7 +51,7 @@ artifacts-monorepo/
 
 ## Database Schema (10+ tables)
 
-- **stakeholders** — 32 conflict actors with flags/roles/definitions. Categories: core_principal (3), gulf_state (6), regional_broker (8), external_power (8), global_bloc (3), international_org (1), internal_faction (2). Definitions for each actor (including aggregate blocs) are in the Stakeholders page frontend.
+- **stakeholders** — 33 conflict actors with flags/roles/definitions + `tier` (required/critical/influential/contextual) and `profileSummary` columns. Categories: core_principal (3), gulf_state (6), regional_broker (8), external_power (8), global_bloc (3), international_org (1), internal_faction (2). Profiles loaded from DB at deal pipeline runtime (no more hardcoded registry). Evidence-driven profile updates run each cycle via `stakeholder-updater.ts`.
 - **cycles** — autoresearch run records (status, tokens, timestamps)
 - **forecasts** — probability distributions across 8 outcome states per time horizon
 - **experiments** — red-team mutation log (Task A: Gemini red-team + GPT-4o eval)
@@ -217,11 +217,12 @@ Enhanced multi-agent pipeline (`deal-engine.ts`) with **grand coalition** cooper
 - `evolvePipeline()` in autoresearch stores cumulative overrides keyed by stage (`brainstorm_system`, `proposal_system`, `framing_system`, `negotiator_system`, etc.)
 - Future pipeline runs apply these overrides, enabling the AI to iteratively improve its own deal generation prompts over time
 
-**Tiered Stakeholder Acceptance System** (`STAKEHOLDER_REGISTRY` in deal-engine.ts):
+**Tiered Stakeholder Acceptance System** (DB-driven, loaded via `loadStakeholderRegistryFromDB()` at pipeline start):
 - **Required** (Iran, US) — both must accept for deal to be implementable; rejection caps feasibility at 0.15
 - **Critical** (Israel) — rejection severely undermines viability; caps feasibility at 0.35
 - **Influential** (Saudi Arabia, EU3, Russia, China, IAEA) — affects durability but not gatekeepers
 - **Contextual** (UAE, Qatar, Turkey, Iraq, Egypt, India, Japan, South Korea, Jordan, Pakistan, Ukraine, Oman, Global North, Global South Energy Exporters, Global South Energy Importers) — affects regional stability
+- Profiles updated each autoresearch cycle via `stakeholder-updater.ts` (LLM analyzes recent evidence for material position shifts)
 
 **Grand Coalition**: `DealTerms.stakeholderCommitments` (optional `Record<string, string>`) stores binding commitments from each stakeholder. Validated post-generation to ensure all 8 core parties have concrete commitments (auto-fills from defaults if LLM omits any). Displayed in Deal Dashboard and Proposal Arena frontend.
 
@@ -235,7 +236,8 @@ Enhanced multi-agent pipeline (`deal-engine.ts`) with **grand coalition** cooper
 
 - `artifacts/api-server/src/services/llm-router.ts` — unified LLM router (single source of truth for all model routing)
 - `artifacts/api-server/src/services/autoresearch.ts` — forecast cycle orchestrator
-- `artifacts/api-server/src/services/deal-engine.ts` — 8-stage deal pipeline (re-exports types from llm-router)
+- `artifacts/api-server/src/services/deal-engine.ts` — 8-stage deal pipeline (re-exports types from llm-router); loads stakeholder profiles from DB
+- `artifacts/api-server/src/services/stakeholder-updater.ts` — evidence-driven stakeholder profile updater (LLM-based)
 - `artifacts/api-server/src/services/deal-autoresearch.ts` — deal cycle loop, solution tree, Pareto
 - `artifacts/api-server/src/routes/deals.ts` — deal API endpoints incl. history/robustness/compare
 - `artifacts/api-server/src/routes/proposals.ts` — proposals + admin evaluate endpoint

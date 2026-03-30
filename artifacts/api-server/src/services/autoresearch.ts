@@ -10,6 +10,7 @@ import {
 } from "@workspace/db/schema";
 import { desc, eq, isNull } from "drizzle-orm";
 import { logger } from "../lib/logger";
+import { updateStakeholderProfilesFromEvidence } from "./stakeholder-updater";
 import {
   setStage,
   setRunningCycleId,
@@ -132,6 +133,13 @@ async function runCycleAsync(cycleId: string): Promise<void> {
     setStage("evidence_ingestion");
     const ingestedCount = await ingestAllSources();
     logger.info({ cycleId, ingestedCount }, "Evidence ingestion complete");
+
+    try {
+      const stakeholderUpdateResult = await updateStakeholderProfilesFromEvidence(cycleId);
+      logger.info({ cycleId, ...stakeholderUpdateResult }, "Stakeholder profile update from evidence complete");
+    } catch (stakeholderErr) {
+      logger.warn({ err: stakeholderErr, cycleId }, "Stakeholder profile update failed (non-critical)");
+    }
 
     setStage("proposal_extraction");
     try {

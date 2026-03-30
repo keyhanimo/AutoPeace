@@ -13,6 +13,8 @@ export const stakeholdersTable = pgTable("stakeholders", {
   preferredOutcomes: text("preferred_outcomes").notNull().default(""),
   constraints: text("constraints").notNull().default(""),
   communicationStyle: text("communication_style").notNull().default(""),
+  tier: text("tier").notNull().default("contextual"),
+  profileSummary: text("profile_summary").notNull().default(""),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

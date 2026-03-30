@@ -12,6 +12,8 @@ import {
   type ModelConfig as SharedModelConfig,
   type CallLLMOptions,
 } from "./llm-router";
+import { db } from "@workspace/db";
+import { stakeholdersTable } from "@workspace/db/schema";
 
 export type InnovativeProvision = {
   title: string;
@@ -205,66 +207,32 @@ type StakeholderEntry = {
   tier: AcceptanceTier;
 };
 
-const STAKEHOLDER_REGISTRY: StakeholderEntry[] = [
-  { id: "iran", name: "Iran", tier: "required",
-    profile: "Seeks sanctions relief, nuclear recognition, no regime change threat. Red lines: denuclearization, regime change, loss of deterrence." },
-  { id: "us", name: "United States", tier: "required",
-    profile: "Seeks verifiable denuclearization, regional security. Red lines: nuclear weapons capability, Hormuz blockade." },
+let STAKEHOLDER_REGISTRY: StakeholderEntry[] = [];
 
-  { id: "israel", name: "Israel", tier: "critical",
-    profile: "Opposes any deal that leaves Iran with enrichment capacity. Red line: any path to Iranian nuclear weapon. Borderline make-or-break — can undermine implementation unilaterally." },
-
-  { id: "saudi_arabia", name: "Saudi Arabia", tier: "influential",
-    profile: "Seeks regional security guarantees, economic normalization. Concerned about Iranian influence in Yemen, Lebanon." },
-  { id: "iaea", name: "IAEA", tier: "influential",
-    profile: "Verification authority. Supports snap inspections, continuous monitoring. Essential for implementation but not a party to the deal." },
-  { id: "russia", name: "Russia", tier: "influential",
-    profile: "UNSC veto holder. Supports Iranian sovereignty, opposes Western-led sanctions. Can block/enable at UN level." },
-  { id: "china", name: "China", tier: "influential",
-    profile: "Major Iranian trade partner. Values economic ties, opposes sanctions, supports negotiated solution. BRI interests." },
-  { id: "eu3", name: "EU (France/UK/Germany)", tier: "influential",
-    profile: "Strong verification advocate, supports phased sanctions relief, key economic/trade mechanisms." },
-
-  { id: "uae", name: "United Arab Emirates", tier: "contextual",
-    profile: "Trade hub stability, neutrality preservation, significant Iranian trade volumes. Strait of Hormuz exposure." },
-  { id: "qatar", name: "Qatar", tier: "contextual",
-    profile: "Mediation role, shared gas field with Iran. Multi-directional diplomacy, potential deal broker." },
-  { id: "oman", name: "Oman", tier: "contextual",
-    profile: "Traditional neutral facilitator, Strait of Hormuz geography. Back-channel specialist." },
-  { id: "turkey", name: "Turkey", tier: "contextual",
-    profile: "NATO member with Iranian economic relations. Regional power seeking mediator role. Kurdish issue linkage." },
-  { id: "iraq", name: "Iraq", tier: "contextual",
-    profile: "Caught between Iran/US. PMF-Iranian ties, US troop presence. Avoids becoming battleground." },
-  { id: "egypt", name: "Egypt", tier: "contextual",
-    profile: "Regional stability, Gaza ceasefire, canal revenues. Pragmatic broker." },
-  { id: "india", name: "India", tier: "contextual",
-    profile: "Energy security (Iranian oil), Chabahar port access. Balancing US and Iran." },
-  { id: "japan", name: "Japan", tier: "contextual",
-    profile: "Strait of Hormuz oil dependency, constitutional pacifism. Quiet mediator." },
-  { id: "south_korea", name: "South Korea", tier: "contextual",
-    profile: "Frozen Iranian assets leverage, energy security. US-aligned but economically exposed." },
-  { id: "jordan", name: "Jordan", tier: "contextual",
-    profile: "Palestinian linkage, US support dependency. Regional stability buffer." },
-  { id: "pakistan", name: "Pakistan", tier: "contextual",
-    profile: "Iran border, economic corridor interests. Islamic solidarity framework." },
-  { id: "ukraine", name: "Ukraine", tier: "contextual",
-    profile: "Wants to cut Iran-Russia military supply chain (Shahed drones). Active war with Russia shapes priorities." },
-  { id: "global_north", name: "Global North Bloc", tier: "contextual",
-    profile: "Rules-based order, non-proliferation norms, energy price stability." },
-  { id: "global_south_energy_importers", name: "Global South Energy Importers", tier: "contextual",
-    profile: "Low energy prices, food security. Oil spike above $120/bbl is red line." },
-  { id: "global_south_energy_exporters", name: "Global South Energy Exporters", tier: "contextual",
-    profile: "OPEC+ cohesion, elevated oil prices. Controlled conflict may serve their interests." },
-];
+async function loadStakeholderRegistryFromDB(): Promise<StakeholderEntry[]> {
+  const rows = await db.select().from(stakeholdersTable);
+  const validTiers: AcceptanceTier[] = ["required", "critical", "influential", "contextual"];
+  STAKEHOLDER_REGISTRY = rows.map(r => ({
+    id: r.id,
+    name: r.name,
+    profile: r.profileSummary || r.goals,
+    tier: (validTiers.includes(r.tier as AcceptanceTier) ? r.tier : "contextual") as AcceptanceTier,
+  }));
+  logger.info({ count: STAKEHOLDER_REGISTRY.length }, "Loaded stakeholder registry from DB");
+  return STAKEHOLDER_REGISTRY;
+}
 
 function getStakeholdersByTier(...tiers: AcceptanceTier[]): StakeholderEntry[] {
   return STAKEHOLDER_REGISTRY.filter(s => tiers.includes(s.tier));
 }
 
-const REQUIRED_STAKEHOLDERS = getStakeholdersByTier("required");
-const CRITICAL_STAKEHOLDERS = getStakeholdersByTier("critical");
-const CORE_STAKEHOLDERS = getStakeholdersByTier("required", "critical", "influential");
-const ALL_EVALUATED_STAKEHOLDERS = STAKEHOLDER_REGISTRY;
+function getCoreStakeholders(): StakeholderEntry[] {
+  return getStakeholdersByTier("required", "critical", "influential");
+}
+
+function getAllEvaluatedStakeholders(): StakeholderEntry[] {
+  return STAKEHOLDER_REGISTRY;
+}
 
 const DOMESTIC_AUDIENCES: Record<string, { stakeholder: string; audiences: string[] }> = {
   "iran": { stakeholder: "Iran", audiences: ["Supreme Leader", "IRGC", "reformists", "public"] },
@@ -421,10 +389,10 @@ Your deal should address the channels where the largest economic gains are achie
 
 STAKEHOLDER ACCEPTANCE TIERS:
 REQUIRED (deal cannot proceed without their acceptance):
-${REQUIRED_STAKEHOLDERS.map(s => `- ${s.id}: ${s.name}. ${s.profile}`).join("\n")}
+${getStakeholdersByTier("required").map(s => `- ${s.id}: ${s.name}. ${s.profile}`).join("\n")}
 
 CRITICAL (borderline make-or-break — rejection severely undermines viability):
-${CRITICAL_STAKEHOLDERS.map(s => `- ${s.id}: ${s.name}. ${s.profile}`).join("\n")}
+${getStakeholdersByTier("critical").map(s => `- ${s.id}: ${s.name}. ${s.profile}`).join("\n")}
 
 INFLUENTIAL (important for durability/implementation but not gatekeepers):
 ${getStakeholdersByTier("influential").map(s => `- ${s.id}: ${s.name}. ${s.profile}`).join("\n")}
@@ -451,7 +419,7 @@ Generate a peace deal JSON with these exact keys:
     }
   ],
   "stakeholderCommitments": {
-${CORE_STAKEHOLDERS.map(s => `    "${s.id}": "specific binding commitments ${s.name} makes — be creative about what they PROVIDE not just what they ACCEPT"`).join(",\n")}
+${getCoreStakeholders().map(s => `    "${s.id}": "specific binding commitments ${s.name} makes — be creative about what they PROVIDE not just what they ACCEPT"`).join(",\n")}
   }
 }
 
@@ -465,7 +433,7 @@ Every stakeholder MUST have concrete, specific commitments. Vague statements lik
 
   const sc = terms.stakeholderCommitments || {};
   const defaults = getDefaultTerms(architecture).stakeholderCommitments || {};
-  for (const s of CORE_STAKEHOLDERS) {
+  for (const s of getCoreStakeholders()) {
     if (!sc[s.id] || sc[s.id].trim().length < 10) {
       sc[s.id] = defaults[s.id] || `Participates in grand coalition framework with binding obligations`;
     }
@@ -506,7 +474,7 @@ Output a JSON object mapping stakeholder IDs to their verdict. Each verdict has:
 
   const commitments = terms.stakeholderCommitments ?? {};
 
-  const coreTierLines = CORE_STAKEHOLDERS.map(s => {
+  const coreTierLines = getCoreStakeholders().map(s => {
     const commitment = commitments[s.id];
     return `- ${s.id} [${s.tier.toUpperCase()}]: ${s.name}. ${s.profile}${commitment ? `\n  THEIR COMMITMENTS: ${commitment}` : ""}`;
   }).join("\n");
@@ -548,7 +516,7 @@ Return JSON with ALL stakeholder IDs: { "iran": { verdict, rationale, redLineVio
   const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 2, "evaluation", modelConfig);
 
   const fallback: Record<string, StakeholderVerdict> = {};
-  for (const s of ALL_EVALUATED_STAKEHOLDERS) {
+  for (const s of getAllEvaluatedStakeholders()) {
     fallback[s.id] = {
       verdict: "conditional",
       rationale: `${s.name} has reservations but sees potential for negotiation.`,
@@ -560,7 +528,7 @@ Return JSON with ALL stakeholder IDs: { "iran": { verdict, rationale, redLineVio
   const parsed = parseLLMJson<Record<string, StakeholderVerdict>>(content, fallback);
 
   const normalized: Record<string, StakeholderVerdict> = { ...fallback, ...parsed };
-  for (const s of ALL_EVALUATED_STAKEHOLDERS) {
+  for (const s of getAllEvaluatedStakeholders()) {
     const e = normalized[s.id];
     if (!e || !e.verdict || !["accept", "conditional", "reject"].includes(e.verdict)) {
       normalized[s.id] = fallback[s.id]!;
@@ -1276,6 +1244,7 @@ export async function runFullEvaluation(
   onSubStage?: (subStage: DealSubStage) => void,
 ): Promise<EvaluatedDeal> {
   validateModelConfig(modelConfig);
+  await loadStakeholderRegistryFromDB();
   logger.info({ architecture, models: modelConfig, overrides: Object.keys(pipelineOverrides) }, "Starting enhanced deal evaluation pipeline");
   let totalTokens = 0;
   let totalCost = 0;
@@ -1366,7 +1335,7 @@ export async function runFullEvaluation(
 }
 
 export const DEAL_ARCHITECTURES = ARCHITECTURES;
-export { STAKEHOLDER_REGISTRY, type AcceptanceTier, type StakeholderEntry };
+export { STAKEHOLDER_REGISTRY, loadStakeholderRegistryFromDB, type AcceptanceTier, type StakeholderEntry };
 
 export function isDominatedOnAllDimensions(
   a: DealScores,

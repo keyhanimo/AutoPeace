@@ -417,6 +417,8 @@ export const ListStakeholdersResponse = zod.object({
       preferredOutcomes: zod.string(),
       constraints: zod.string(),
       communicationStyle: zod.string(),
+      tier: zod.string(),
+      profileSummary: zod.string(),
       createdAt: zod.coerce.date(),
       updatedAt: zod.coerce.date(),
     }),
@@ -441,6 +443,8 @@ export const GetStakeholderResponse = zod.object({
   preferredOutcomes: zod.string(),
   constraints: zod.string(),
   communicationStyle: zod.string(),
+  tier: zod.string(),
+  profileSummary: zod.string(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
