@@ -333,7 +333,7 @@ export default function SubmitProposal() {
             ) : (
               <>
                 <Send className="w-4 h-4" aria-hidden="true" />
-                Submit Proposal
+                Submit Proposal for AI Screening
               </>
             )}
           </Button>
