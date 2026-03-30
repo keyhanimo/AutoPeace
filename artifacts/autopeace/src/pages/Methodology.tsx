@@ -42,7 +42,7 @@ export default function Methodology() {
           </p>
           <ul>
             <li><strong>Task A — Bayesian Conflict Forecasting:</strong> Continuously updating probability distributions across eight mutually exclusive conflict outcome states for the Iran-US-Israel conflict complex, using multi-agent LLM debate and hill-climbing calibration optimization.</li>
-            <li><strong>Task B — Autonomous Peace Deal Optimization:</strong> Generating, evaluating, and iteratively refining AI-originated peace deal proposals through an 8-stage multi-agent pipeline that includes stakeholder modeling, adversarial red-teaming, domestic political analysis, negotiation simulation, and multi-model judicial scoring.</li>
+            <li><strong>Task B — Autonomous Peace Deal Optimization:</strong> Generating, evaluating, and iteratively refining AI-originated peace deal proposals through a multi-stage pipeline (Stages 0–8 including sub-stages) that includes creative brainstorming from historical precedents, stakeholder modeling, adversarial red-teaming, domestic political analysis, creative reframing of perceived concessions, Pareto-optimal negotiation search, multi-model judicial scoring, and self-improving prompt evolution.</li>
             <li><strong>Task C — Crowdsourced Proposal Evaluation:</strong> Accepting peace proposals from external sources — both community submissions and real-world proposals automatically extracted from news evidence — and subjecting them to the same rigorous 8-stage multi-agent evaluation pipeline used for AI-generated deals, enabling direct comparison across human and machine-originated proposals on identical scoring dimensions.</li>
           </ul>
           <p>
@@ -75,8 +75,8 @@ export default function Methodology() {
               <p className="text-muted-foreground">AutoPeace defines concrete, computable scoring functions for both tasks. Task A uses Brier scores and log scores against historical backtest records. Task B uses a 7-dimension weighted composite score (feasibility, coherence, evidence grounding, domestic sellability, regional stability, implementability, durability). These replace subjective quality judgments with quantitative optimization targets.</p>
             </div>
             <div className="bg-card p-4 border border-border">
-              <h4 className="font-bold text-foreground mb-1">Self-Diagnosis and Feedback</h4>
-              <p className="text-muted-foreground">Each deal cycle produces a Diagnosis (Stage 8) explaining <em>why</em> a deal failed or underperformed. This diagnosis is injected as input to the <em>next</em> cycle's Proposal Agent, creating a closed feedback loop where the system learns from its own failures — a direct application of the autoresearch principle that iteration state should propagate forward.</p>
+              <h4 className="font-bold text-foreground mb-1">Self-Diagnosis, Feedback, and Prompt Evolution</h4>
+              <p className="text-muted-foreground">Each deal cycle produces a Diagnosis (Stage 8) explaining <em>why</em> a deal failed or underperformed. This diagnosis is injected as input to the <em>next</em> cycle's Proposal Agent, creating a closed feedback loop. Additionally, the Meta-Evaluator (Stage 7) suggests prompt improvements for the pipeline itself — specific modifications to how each stage reasons — which are adopted through a score-gated hill-climbing mechanism. The system doesn't just improve its deals; it improves the <em>process by which it generates and evaluates deals</em>.</p>
             </div>
           </div>
         </Card>
@@ -251,7 +251,7 @@ export default function Methodology() {
             <Target className="w-6 h-6 text-primary" /> 7. Task B: Autonomous Deal Optimization
           </h2>
           <p>
-            Task B is a separate autoresearch loop triggered asynchronously after each forecasting cycle completes. Unlike Task A's champion mutation approach, Task B generates a <strong>fresh proposal</strong> each cycle — informed by the latest evidence and the previous deal's failure diagnosis — then evaluates it through an <strong>8-stage multi-agent pipeline</strong> where different LLM providers are deliberately assigned to different stages to ensure adversarial independence. If the new deal scores higher than the current best, it replaces it.
+            Task B is a separate autoresearch loop triggered asynchronously after each forecasting cycle completes. Unlike Task A's champion mutation approach, Task B generates a <strong>fresh proposal</strong> each cycle — informed by the latest evidence and the previous deal's failure diagnosis — then evaluates it through a <strong>multi-stage pipeline</strong> (Stage 0 through Stage 8, including sub-stages) where different LLM providers are deliberately assigned to different stages to ensure adversarial independence. The pipeline is designed to maximize AI creativity by simultaneously processing many stakeholder preferences, drawing on historical peace deal precedents, finding creative cross-issue linkages, and inventing novel deal mechanisms. If the new deal scores higher than the current best, it replaces it. The pipeline's own prompts evolve over time via a score-gated hill-climbing mechanism.
           </p>
 
           <h3 className="text-xl font-bold font-display text-foreground mt-6">7.1 Deal Architecture Selection</h3>
@@ -268,14 +268,18 @@ export default function Methodology() {
             The system tracks a "stall counter" per architecture within the current branch of the solution tree — if 3 stalled child nodes accumulate for the same architecture under the current parent node, the system automatically branches to the next architecture. This prevents the optimization loop from getting stuck in local optima within a particular solution branch.
           </p>
 
-          <h3 className="text-xl font-bold font-display text-foreground mt-6">7.2 The 8-Stage Pipeline</h3>
+          <h3 className="text-xl font-bold font-display text-foreground mt-6">7.2 The Multi-Stage Pipeline</h3>
           <p>
             Each deal passes through the following stages. The default provider assignments enforce generation/evaluation independence:
           </p>
           <div className="space-y-3 not-prose text-sm">
+            <div className="bg-card p-4 border border-border border-l-2 border-l-emerald-500">
+              <h4 className="font-bold text-foreground mb-1">Stage 0: Innovation Brainstorm <span className="text-xs text-muted-foreground ml-2">(Anthropic Claude — creative pre-stage)</span></h4>
+              <p className="text-muted-foreground">Before formal proposal generation, the system conducts an extended creative brainstorm designed to unlock "superhuman" deal design. This stage mines historical peace deal analogies (Camp David, Good Friday Agreement, JCPOA, etc.) for applicable lessons, generates creative provisions that go beyond standard diplomatic categories, discovers cross-issue linkages where one stakeholder's concession can satisfy another's demand, and explores unconventional approaches like phased sovereignty transitions, digital verification systems, or economic co-dependency mechanisms. The brainstorm output is stored as <code>brainstormInsights</code> and injected into Stage 1 as additional creative context.</p>
+            </div>
             <div className="bg-card p-4 border border-border border-l-2 border-l-violet-500">
               <h4 className="font-bold text-foreground mb-1">Stage 1: Proposal Agent <span className="text-xs text-muted-foreground ml-2">(Anthropic Claude — generation role)</span></h4>
-              <p className="text-muted-foreground">Designs initial deal terms across 7 dimensions: nuclear protocol, sanctions relief, Hormuz arrangements, humanitarian provisions, verification mechanism, timeline, and sequencing. Receives the latest evidence summary, the previous cycle's failure diagnosis, the selected architecture focus, and hard CBA economic data (see Section 8). Outputs a structured JSON deal object.</p>
+              <p className="text-muted-foreground">Designs initial deal terms across 7 standard dimensions plus an <strong>innovativeProvisions</strong> field containing novel mechanisms that go beyond traditional categories. The agent receives the Stage 0 brainstorm insights, the latest evidence summary (expanded to 30 items with 150-character context each), the previous cycle's failure diagnosis, the selected architecture focus, hard CBA economic data (see Section 8), and any evolved pipeline overrides. It is explicitly instructed to create provisions that simultaneously satisfy multiple stakeholders through creative linkages, drawing on the brainstorm's historical analogies and cross-issue discoveries.</p>
             </div>
             <div className="bg-card p-4 border border-border border-l-2 border-l-blue-500">
               <h4 className="font-bold text-foreground mb-1">Stage 2: Stakeholder Evaluator <span className="text-xs text-muted-foreground ml-2">(OpenAI GPT-4o — evaluation role)</span></h4>
@@ -285,13 +289,17 @@ export default function Methodology() {
               <h4 className="font-bold text-foreground mb-1">Stage 3: Domestic Audience Agent <span className="text-xs text-muted-foreground ml-2">(OpenAI GPT-4o — evaluation role)</span></h4>
               <p className="text-muted-foreground">Goes one level deeper than stakeholder evaluation by assessing domestic political sellability. Evaluates 11 domestic audiences across 3 key countries: Iran (Supreme Leader, IRGC, reformists, public), US (Congress, Pentagon, Israel lobby, public), and Israel (Knesset hardliners, security establishment, center-left coalition). Returns a verdict per audience: <code>sellable</code>, <code>difficult</code>, or <code>unsellable</code>.</p>
             </div>
+            <div className="bg-card p-4 border border-border border-l-2 border-l-emerald-500">
+              <h4 className="font-bold text-foreground mb-1">Stage 3.5: Creative Reframing <span className="text-xs text-muted-foreground ml-2">(Anthropic Claude — generation role)</span></h4>
+              <p className="text-muted-foreground">After domestic audience evaluation reveals which audiences find the deal "difficult" or "unsellable," this stage generates clever domestic selling narratives for each problematic audience. Rather than changing the deal terms, it reframes existing provisions as victories within each audience's value framework. For example, a sanctions relief provision might be reframed to US hawks as "leverage extraction" — getting more for less. Each strategy includes a framing narrative, key talking points, a historical analogy (e.g., "Nixon goes to China"), and a risk-of-backfire assessment. Output is stored as <code>domesticFramingStrategies</code>.</p>
+            </div>
             <div className="bg-card p-4 border border-border border-l-2 border-l-red-500">
               <h4 className="font-bold text-foreground mb-1">Stage 4: Red-Team Agent <span className="text-xs text-muted-foreground ml-2">(Google Gemini — adversarial role)</span></h4>
               <p className="text-muted-foreground">Generates 5 adversarial attack scenarios designed to expose fatal flaws in the deal. Each attack specifies: a concrete attack description, a severity level (low/medium/high/critical), how proponents would respond, and whether the deal survives the attack. Examples include IRGC sovereignty objections, Congressional blocking of sanctions relief, and pre-emptive Israeli strikes.</p>
             </div>
             <div className="bg-card p-4 border border-border border-l-2 border-l-violet-500">
-              <h4 className="font-bold text-foreground mb-1">Stage 5: Negotiator Agent <span className="text-xs text-muted-foreground ml-2">(Anthropic Claude — generation role)</span></h4>
-              <p className="text-muted-foreground">Analyzes all rejecting and conditional stakeholders from Stage 2 and proposes targeted amendments designed to bridge gaps <em>without losing existing supporters</em>. Outputs: specific proposed changes per stakeholder (with likelihood estimates), partial term revisions, and an overall negotiation strategy. The revised terms are applied before the Judge scores the deal.</p>
+              <h4 className="font-bold text-foreground mb-1">Stage 5: Creative Negotiator <span className="text-xs text-muted-foreground ml-2">(Anthropic Claude — generation role)</span></h4>
+              <p className="text-muted-foreground">Upgraded from a simple "patch rejections" approach to a creative Pareto-improvement search. The negotiator analyzes rejecting and conditional stakeholders, the domestic framing strategies from Stage 3.5, and the full context of stakeholder interests to search for creative tradeoffs where one party's concession satisfies another party's core demand. It looks for win-win linkages, creative side payments, phased commitments, and face-saving formulations. Outputs include specific <code>creativeTradeoffs</code> (describing what each side gives/gets and why it's a Pareto improvement), targeted amendments per stakeholder, and revised terms.</p>
             </div>
             <div className="bg-card p-4 border border-border border-l-2 border-l-amber-500">
               <h4 className="font-bold text-foreground mb-1">Stage 6: Judge Panel <span className="text-xs text-muted-foreground ml-2">(All 3 providers in parallel — judicial role)</span></h4>
@@ -299,7 +307,7 @@ export default function Methodology() {
             </div>
             <div className="bg-card p-4 border border-border border-l-2 border-l-blue-500">
               <h4 className="font-bold text-foreground mb-1">Stage 7: Meta-Evaluator <span className="text-xs text-muted-foreground ml-2">(OpenAI GPT-4o — meta-evaluation role)</span></h4>
-              <p className="text-muted-foreground">Distinct from the Judge: the Meta-Evaluator assesses the <em>quality of the pipeline's own reasoning process</em>, not the deal itself. Identifies blindspots in the analysis, rates overall pipeline quality (0-1), suggests which architecture to try next, and provides a confidence score in the outcome. This enables the system to self-diagnose reasoning failures.</p>
+              <p className="text-muted-foreground">Distinct from the Judge: the Meta-Evaluator assesses the <em>quality of the pipeline's own reasoning process</em>, not the deal itself. Identifies blindspots in the analysis, rates overall pipeline quality (0-1), suggests which architecture to try next, and provides a confidence score in the outcome. Critically, the Meta-Evaluator also outputs <strong>promptImprovements</strong> — specific suggestions for how each pipeline stage's prompts could be improved (e.g., "the brainstorm stage should weight economic co-dependency mechanisms more heavily"). These suggestions feed into the pipeline hill-climbing mechanism described in Section 7.4.</p>
             </div>
             <div className="bg-card p-4 border border-border border-l-2 border-l-red-500">
               <h4 className="font-bold text-foreground mb-1">Stage 8: Diagnosis Generator <span className="text-xs text-muted-foreground ml-2">(Google Gemini — adversarial/synthesis role)</span></h4>
@@ -319,6 +327,29 @@ export default function Methodology() {
           <p>
             A hard validation check ensures generation and evaluation providers are always different: <code>if (generationProvider === evaluationProvider) throw Error</code>. This is the system's core architectural invariant for preventing self-grading.
           </p>
+
+          <h3 className="text-xl font-bold font-display text-foreground mt-6">7.4 Pipeline Hill-Climbing (Self-Improving Prompts)</h3>
+          <p>
+            Beyond iterating on deal content, the system also iterates on its own prompts. After each deal cycle, the Meta-Evaluator (Stage 7) suggests specific prompt improvements — identifying weaknesses in how each stage reasons and proposing concrete instruction modifications. These suggestions are subject to a <strong>score-gated acceptance criterion</strong> before being adopted:
+          </p>
+          <div className="space-y-3 not-prose text-sm">
+            <div className="bg-card p-4 border border-border">
+              <h4 className="font-bold text-foreground mb-1">Data Collection</h4>
+              <p className="text-muted-foreground">Each pipeline configuration (set of prompt overrides) must produce at least 2 deals before the system considers evolving to the next generation. This prevents premature abandonment of a promising configuration based on a single noisy data point.</p>
+            </div>
+            <div className="bg-card p-4 border border-border">
+              <h4 className="font-bold text-foreground mb-1">Score-Gated Promotion</h4>
+              <p className="text-muted-foreground">New prompt overrides are adopted only when the current cycle's composite score exceeds the running average of the current configuration by a minimum threshold. This ensures the system climbs uphill on deal quality rather than drifting randomly.</p>
+            </div>
+            <div className="bg-card p-4 border border-border">
+              <h4 className="font-bold text-foreground mb-1">Cumulative Overrides</h4>
+              <p className="text-muted-foreground">Accepted improvements are applied as cumulative addenda to stage prompts (e.g., "ADDITIONAL INSTRUCTION (gen 3): weight economic co-dependency mechanisms more heavily"). Each generation builds on the previous, creating a growing set of learned instructions. Override keys map to specific stages: <code>brainstorm_system</code>, <code>proposal_system</code>, <code>framing_system</code>, <code>negotiator_system</code>, etc.</p>
+            </div>
+            <div className="bg-card p-4 border border-border">
+              <h4 className="font-bold text-foreground mb-1">Lineage Tracking</h4>
+              <p className="text-muted-foreground">Each configuration stores its parent config ID, generation number, average composite score, and deal count. This creates a full evolutionary lineage of the pipeline's prompt evolution over time, stored in the <code>pipeline_evolution</code> database table.</p>
+            </div>
+          </div>
         </Card>
 
         <Card className="p-8" id="task-c">
