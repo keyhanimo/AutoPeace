@@ -8,7 +8,7 @@ import {
 
 type NavGroup = {
   label: string;
-  items: { href: string; label: string; icon: React.ComponentType<{ className?: string }> }[];
+  items: { href: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean }[];
 };
 
 const NAV_GROUPS: NavGroup[] = [
@@ -25,7 +25,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Explorer",
     items: [
-      { href: "/stakeholders", label: "Stakeholders", icon: Users },
+      { href: "/stakeholders", label: "Stakeholders", icon: Users, exact: true },
       { href: "/stakeholders/compare", label: "Compare Actors", icon: GitCompare },
       { href: "/stakeholders/lens", label: "Stakeholder Lens", icon: Eye },
       { href: "/evidence", label: "Evidence Explorer", icon: Search },
@@ -57,8 +57,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const isActive = (href: string) =>
-    location.pathname === href || (href !== "/" && location.pathname.startsWith(href));
+  const isActive = (href: string, exact?: boolean) =>
+    location.pathname === href || (!exact && href !== "/" && location.pathname.startsWith(href));
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -81,8 +81,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 {group.label}
               </p>
               <div className="space-y-0.5">
-                {group.items.map(({ href, label, icon: Icon }) => {
-                  const active = isActive(href);
+                {group.items.map(({ href, label, icon: Icon, exact }) => {
+                  const active = isActive(href, exact);
                   return (
                     <Link
                       key={href}
@@ -139,8 +139,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <div key={group.label}>
                 <p className="text-[9px] font-semibold text-muted-foreground/60 uppercase tracking-widest px-3 mb-1">{group.label}</p>
                 <div className="space-y-0.5">
-                  {group.items.map(({ href, label, icon: Icon }) => {
-                    const active = isActive(href);
+                  {group.items.map(({ href, label, icon: Icon, exact }) => {
+                    const active = isActive(href, exact);
                     return (
                       <Link
                         key={href}
