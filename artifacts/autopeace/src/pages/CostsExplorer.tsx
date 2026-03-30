@@ -51,6 +51,7 @@ interface StakeholderCBA {
   warCostPctGdp: number;
   channels: Record<ChannelId, { warCost: number; peaceBenefit: number }>;
   keyFacts: string[];
+  narrative: string;
   displaced: number;
   casualties: number;
   displacedRange?: [number, number];
@@ -76,6 +77,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
       productivity: { warCost: 6.0, peaceBenefit: 19.0 },
     },
     keyFacts: ["$200B+ cumulative sanctions cost since 2018", "Oil exports constrained to ~1.5M bbl/day vs 2.5M potential", "Banking system cut off from SWIFT"],
+    narrative: "Iran bears the largest absolute war cost of any stakeholder — roughly $87.5B/year — through suppressed oil revenues, a banking system cut off from global finance, and severe productivity losses from sanctions-driven industrial decay. A negotiated peace would unlock an estimated $142B/year in benefits: restored oil exports at full capacity, reintegration into SWIFT and global payment systems, and an FDI surge into Iran's large but underutilized energy and manufacturing base. The gap between war cost and peace benefit is the widest of any stakeholder, reflecting how severely Iran's sanctions-constrained economy undershoots its fundamental potential.",
     displaced: 0, casualties: 1500,
     casualtiesRange: [800, 2500],
     iranAttributionPct: 100,
@@ -97,6 +99,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
       productivity: { warCost: 4.0, peaceBenefit: 5.0 },
     },
     keyFacts: ["$25B/yr Iran-linked military deployment cost", "CENTCOM operational tempo at multi-year high", "Sanctions enforcement budget ~$1.2B/yr"],
+    narrative: "The United States bears approximately $52B/year in Iran-conflict costs, dominated by CENTCOM's Iran-focused military deployment ($25B+/yr), sanctions enforcement infrastructure, and suppressed bilateral trade and investment. The peace scenario offers a more modest $38B/year gain — US GDP is large enough that even significant absolute improvements register modestly as a share of output, and gains come mostly from reduced military expenditure rather than market access. The lower peace benefit relative to war cost reflects a structurally defensive US posture: the US absorbs real costs to sustain a containment strategy whose primary beneficiary is regional deterrence rather than direct economic return.",
     displaced: 0, casualties: 50,
     casualtiesRange: [30, 80],
     iranAttributionPct: 100,
@@ -118,6 +121,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
       productivity: { warCost: 4.0, peaceBenefit: 3.5 },
     },
     keyFacts: ["Reserve mobilization costs ~$1.5B/month at peak", "Tourism receipts down 40%", "Sovereign CDS spread doubled since 2023"],
+    narrative: "Israel's conflict costs are disproportionate relative to its GDP — estimated at 8% of annual output — driven by continuous reserve mobilization, defense spending well above peacetime levels, tourism collapse, and a sovereign risk premium that raises borrowing costs across the economy. Peace would deliver roughly $35B/year through demobilization savings, normalization of the northern border (contingent on a Hezbollah ceasefire linked to Iran-US de-escalation), and resumption of tech investment and FDI that has stalled since 2023. The wide confidence intervals on Israel's figures reflect genuine uncertainty about whether a comprehensive Iran deal would translate into reduced Hezbollah and Hamas operational capability.",
     displaced: 200000, casualties: 1400,
     displacedRange: [150000, 250000],
     casualtiesRange: [1200, 1800],
@@ -140,6 +144,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
       productivity: { warCost: 2.0, peaceBenefit: 5.0 },
     },
     keyFacts: ["Vision 2030 investment dampened by regional risk", "Benefits from higher oil prices (transfer, not efficiency)", "Airspace rerouting adds 2-3hr to some flights"],
+    narrative: "Saudi Arabia occupies a dual position in the conflict's economics: it bears genuine costs through defense spending, regional instability risk, and dampened Vision 2030 investment, while simultaneously receiving a fiscal windfall from oil prices elevated by Iranian supply suppression. The $18.5B/year war cost is net of this oil revenue transfer; the $28B/year peace scenario delivers primarily through improved investment confidence, shipping normalization, and a regional security environment that reduces Saudi defense burden. Saudi Arabia's net swing to peace is positive but more muted than peers because oil price normalization reduces some of the fiscal space that currently underpins its transformation agenda.",
     displaced: 0, casualties: 0,
     iranAttributionPct: 0,
     humanitarianAttribution: "No direct conflict displacement or fatalities recorded in this territory from the Iran conflict complex. Economic impact is the primary transmission channel.",
@@ -160,6 +165,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
       productivity: { warCost: 1.0, peaceBenefit: 2.5 },
     },
     keyFacts: ["Dubai logistics hub disrupted by Hormuz risk", "War-risk insurance up 300%+", "Aviation rerouting costs ~$3B/yr"],
+    narrative: "The UAE's Dubai-centric logistics and aviation model is acutely sensitive to Hormuz risk and war-risk insurance spikes — war costs of ~$14B/year reflect insurance premium surges, aviation rerouting overhead, and reduced trade volumes through Jebel Ali. Peace would unlock ~$22B/year by restoring the UAE as the region's premier transshipment hub, normalizing insurance rates, and reigniting tourism and FDI that have been suppressed by conflict risk. The UAE's high peace-benefit-to-war-cost ratio reflects the powerful multiplier effect that open-economy stability has on a service and logistics-driven GDP.",
     displaced: 0, casualties: 0,
     iranAttributionPct: 0,
     humanitarianAttribution: "No direct conflict displacement or fatalities recorded. 2022 Houthi drone/missile attacks on Abu Dhabi targeted infrastructure but caused minimal casualties (3 killed). Economic/logistics disruption is the primary impact channel.",
@@ -180,6 +186,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
       productivity: { warCost: 1.0, peaceBenefit: 4.0 },
     },
     keyFacts: ["LNG price premium ~$2-4/MMBtu from Hormuz risk", "Sanctions compliance cost ~$5B/yr across EU", "Mediterranean shipping rerouted from Suez disruption"],
+    narrative: "Europe bears approximately $42B/year through LNG price premiums, sanctions compliance overhead, Suez-via-Cape shipping rerouting costs, and suppressed investment in Middle Eastern infrastructure projects. The $55B/year peace benefit flows primarily from energy market normalization — eliminating the $2–4/MMBtu Hormuz risk premium on LNG, resuming Iranian market trade, and reducing terrorism and migration pressure linked to regional instability. Europe is unusual among stakeholders in having both high absolute war costs and one of the stronger peace-benefit ratios among non-core principals, reflecting its deep trade and energy links to the region.",
     displaced: 0, casualties: 0,
     iranAttributionPct: 0,
     humanitarianAttribution: "No direct conflict displacement or fatalities in EU/UK territory from the Iran conflict complex. Humanitarian costs are borne through refugee reception from spillover theaters (not counted here to avoid double-counting with origin countries) and economic channels.",
@@ -200,6 +207,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
       productivity: { warCost: 3.5, peaceBenefit: 5.0 },
     },
     keyFacts: ["Imports ~1.5M bbl/day through Hormuz", "BRI infrastructure projects at risk", "Major buyer of sanctioned Iranian oil at discount"],
+    narrative: "China's position is paradoxical: it pays Hormuz energy risk premiums while simultaneously purchasing discounted sanctioned Iranian oil — making its net war cost ($35B/year) larger than raw energy figures suggest. Peace would expand China's access to Iranian oil and gas at normalized prices, accelerate Belt and Road project completion across the region, and reduce shipping insurance overhead borne by Chinese exporters. The $48B/year peace benefit reflects China's status as the world's largest oil importer and its enormous stake in Middle Eastern supply stability — a peace deal would strengthen rather than displace China's regional economic footprint.",
     displaced: 0, casualties: 0,
     iranAttributionPct: 0,
     humanitarianAttribution: "No direct conflict displacement or fatalities recorded in China from the Iran conflict complex. Impact is transmitted through energy price and trade channels.",
@@ -220,6 +228,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
       productivity: { warCost: 1.0, peaceBenefit: 2.0 },
     },
     keyFacts: ["3rd largest oil importer, heavy Hormuz dependence", "Chabahar port project stalled", "Fertilizer import costs up 25%"],
+    narrative: "India pays roughly $22B/year in Iran-conflict-related costs, concentrated in Hormuz energy risk premiums, shipping disruption, and stalled bilateral trade — most visibly the India-Iran Chabahar corridor that remains blocked by US secondary sanctions. The $30B/year peace benefit flows from energy cost normalization, activation of Chabahar as a strategic logistics corridor to Afghanistan and Central Asia, and expanded exports of pharmaceuticals, IT services, and agricultural goods into a post-sanctions Iranian market. India's relatively high war-cost-to-GDP ratio (0.56%) reflects its structural energy import dependence and the degree to which Hormuz disruption feeds through into domestic inflation.",
     displaced: 0, casualties: 0,
     iranAttributionPct: 0,
     humanitarianAttribution: "No direct conflict displacement or fatalities recorded in India from the Iran conflict complex. Impact is transmitted through energy import costs and shipping disruption.",
@@ -240,6 +249,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
       productivity: { warCost: 1.0, peaceBenefit: 1.0 },
     },
     keyFacts: ["~80% of oil imports transit Hormuz", "LNG supply contracts at risk", "Insurance premiums tripled for Gulf-bound vessels"],
+    narrative: "Japan and South Korea are among the world's most Hormuz-dependent economies, with approximately 80% of their oil and LNG imports transiting the strait. Combined war costs of $28B/year are dominated by energy price premiums, war-risk insurance on tankers, and burden-sharing contributions to Gulf security frameworks. Peace would deliver $32B/year primarily through energy cost normalization and a reduction in the implicit security subsidy embedded in both nations' defense commitments to the region — modest as a GDP share but significant in absolute terms for two of the world's largest industrial importers.",
     displaced: 0, casualties: 0,
     iranAttributionPct: 0,
     humanitarianAttribution: "No direct conflict displacement or fatalities recorded from the Iran conflict complex. Energy import dependence on Hormuz transit is the primary risk channel.",
@@ -265,6 +275,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
       "Built and operates Iran's Bushehr nuclear plant — gives Russia leverage in JCPOA diplomacy",
       "Shares Western sanctions adversity with Iran; coordinates on sanctions evasion and dollar alternatives",
     ],
+    narrative: "Russia is the only major stakeholder that is a structural net beneficiary of the Iran conflict complex. Iranian oil export suppression sustains a global price floor worth an estimated $12–15B/year to Russian fiscal revenues, while the Shahed drone supply chain has been strategically critical to Russia's war in Ukraine. Russia's $4B/year nominal war cost reflects only genuine volatility and escalation risks — not economic harm. A peace deal would reduce Russian oil revenues, sever the Iran drone supply chain, and weaken Russia's leverage as a sanctions-coordination partner — giving Russia a strong material interest in obstructing Iran-US normalization.",
     displaced: 0, casualties: 0,
     iranAttributionPct: 5,
     humanitarianAttribution: "No direct conflict displacement or fatalities in Russia attributable to the Iran conflict complex. Russia is primarily an economic and strategic beneficiary of Iran tensions.",
@@ -285,6 +296,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
       productivity: { warCost: 1.0, peaceBenefit: 1.0 },
     },
     keyFacts: ["Iran supplies Russia with Shahed drones used against Ukrainian infrastructure", "Iran peace could reduce Russia's military supply chain leverage", "Energy infrastructure 40%+ damaged — higher global energy prices compound burden", "Grain exports disrupted, compounding global food insecurity"],
+    narrative: "Ukraine's $18B/year conflict cost from the Iran nexus is indirect but devastating: Iranian Shahed drones have destroyed more than 40% of the country's power grid infrastructure, while elevated global energy prices compound the import burden of a wartime economy. A peace deal's $14B/year benefit is slightly below war cost, reflecting that physical infrastructure damage cannot be immediately reversed even after the drone supply chain is severed — but future reconstruction proceeds under materially less hostile conditions. Ukraine is unique among stakeholders in that its peace benefit comes not from economic opportunity but from the cessation of a weapons transfer that has been strategically critical to Russia's campaign.",
     displaced: 6500000, casualties: 40000,
     displacedRange: [6000000, 8000000],
     casualtiesRange: [25000, 60000],
@@ -307,6 +319,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
       productivity: { warCost: 1.0, peaceBenefit: 2.0 },
     },
     keyFacts: ["Direct spillover conflict risk from Iran-backed PMF", "Trade corridor to Iran disrupted", "IDP population linked to post-ISIS and militia activity"],
+    narrative: "Iraq bears $12B/year in conflict costs from Iran-backed PMF activity, disrupted trade corridors, and a foreign investment climate depressed by regional instability — all while being constitutionally dependent on both Iran and the US. Peace would unlock $15B/year through normalized trade flows, a revival of US-aligned investment in Iraq's substantial but underdeveloped energy sector, and a reduction in PMF-related security expenditures. Iraq's complex dual-alignment — simultaneously a US ally and an Iranian partner state — means peace benefits would be distributed across competing domestic factions with different stakes in the outcome.",
     displaced: 1200000, casualties: 3500,
     displacedRange: [1000000, 1500000],
     casualtiesRange: [2000, 5000],
@@ -329,6 +342,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
       productivity: { warCost: 0.0, peaceBenefit: 1.0 },
     },
     keyFacts: ["Key trade corridor and intermediary", "Refugee spillover costs ~$2B/yr", "Reconstruction contracts potential under peace"],
+    narrative: "Turkey bears $10B/year in conflict costs primarily through energy import premiums (Turkey has no domestic oil production), Hormuz-linked insurance increases, and suppressed regional trade. Peace would deliver $16B/year through energy cost normalization, revival of Turkish construction and services exports into a post-sanctions Iran, and reduced refugee pressure from Syria — partly a consequence of Iran's role in sustaining that conflict. Turkey's large construction and services sectors stand to be among the most direct commercial beneficiaries of a regional peace dividend.",
     displaced: 0, casualties: 0,
     iranAttributionPct: 0,
     humanitarianAttribution: "Turkey hosts ~3.6M Syrian refugees but these are counted at origin to avoid double-counting. No direct Iran-complex conflict casualties recorded in Turkish territory.",
@@ -349,6 +363,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
       productivity: { warCost: 1.0, peaceBenefit: 0.5 },
     },
     keyFacts: ["Direct conflict damage to infrastructure from Israel-Hezbollah war", "Sovereign default deepened by war", "1.5M Syrian refugees + new displacement from 2023–2024 escalation"],
+    narrative: "Lebanon's situation is more severe than its $8.5B/year war cost suggests in percentage terms — at approximately 39% of GDP, it represents the most conflict-burdened economy in the dataset outside Yemen. Hezbollah, as Iran's most directly armed and financed proxy, has drawn Lebanon into repeated military confrontations that have destroyed infrastructure, collapsed the currency, and deepened a sovereign default that predates the 2023–2024 escalation. A peace deal reducing Iranian arms flows to Hezbollah could stabilize Lebanon's security environment and unlock IMF financing that has been politically blocked for years.",
     displaced: 1200000, casualties: 2500,
     displacedRange: [900000, 1500000],
     casualtiesRange: [1500, 4000],
@@ -371,6 +386,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
       productivity: { warCost: 0.0, peaceBenefit: 0.0 },
     },
     keyFacts: ["Red Sea / Bab el-Mandeb disruption by Houthi forces", "21M people need humanitarian aid (OCHA 2024)", "Infrastructure largely destroyed after 9 years of war"],
+    narrative: "Yemen has been the principal theater of Iran-backed Houthi conflict, with costs that are catastrophic relative to its tiny formal economy. The Houthi movement, substantially armed and financed by Iran, has sustained a civil war that has destroyed critical infrastructure and produced one of the world's worst humanitarian crises in modern history. Peace benefits are estimated at $4B/year — modest in absolute terms but enormous relative to Yemen's $22B GDP — and depend entirely on a Houthi ceasefire that would only follow an Iran-US deal removing Iran's strategic incentive to sustain the Houthi military capacity.",
     displaced: 4500000, casualties: 150000,
     displacedRange: [4000000, 4700000],
     casualtiesRange: [100000, 377000],
@@ -393,6 +409,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
       productivity: { warCost: 0.0, peaceBenefit: 0.5 },
     },
     keyFacts: ["Suez Canal revenue at risk from rerouting", "Tourism down 15% from regional instability", "Energy import burden increased $2B/yr"],
+    narrative: "Egypt bears $8B/year in Iran-conflict-related costs primarily through Suez Canal revenue loss from Houthi attacks that have diverted $60–80B/year in annual shipping away from the canal, plus elevated energy import costs and suppressed Red Sea tourism. Peace would deliver $12B/year through Suez Canal revenue normalization, reduced energy costs, and recovery of tourism from Gulf and Western visitors deterred by regional instability. Egypt's ownership of the Suez Canal gives it an unusually concrete stake in Hormuz and Red Sea stability — one of the clearest single revenue-channel dependencies in the dataset.",
     displaced: 0, casualties: 0,
     iranAttributionPct: 0,
     humanitarianAttribution: "No direct conflict displacement or fatalities recorded in Egypt from the Iran conflict complex. Suez Canal disruption from Houthi attacks is the primary impact channel. Hosts some refugees from neighboring conflicts (not counted here).",
@@ -413,6 +430,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
       productivity: { warCost: 0.5, peaceBenefit: 1.5 },
     },
     keyFacts: ["LNG price premium benefits Qatar (transfer)", "Aviation hub disrupted by airspace closures", "Diplomacy broker with mediation leverage"],
+    narrative: "Qatar occupies an unusual position: it benefits from elevated LNG prices while simultaneously bearing costs from aviation hub disruption and regional instability risk to its investment portfolio. The net $6B/year war cost reflects real losses that exceed the LNG windfall once shipping insurance, suppressed FDI, and diplomatic overhead are accounted for. Peace would deliver $10B/year through energy market stability, normalization of Qatar's regional diplomatic role — interrupted by the 2017–2021 Gulf blockade and its aftermath — and reduced security premia on Gulf LNG infrastructure that underwriters price into Qatar's project finance.",
     displaced: 0, casualties: 0,
     iranAttributionPct: 0,
     humanitarianAttribution: "No direct conflict displacement or fatalities recorded in Qatar from the Iran conflict complex. Qatar serves as diplomatic mediator; impact is economic (aviation, LNG pricing).",
@@ -433,6 +451,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
       productivity: { warCost: 0.0, peaceBenefit: 0.0 },
     },
     keyFacts: ["Iran-Pakistan pipeline stalled by sanctions", "Energy import costs up $3B/yr", "Hosting Iran talks as regional mediator"],
+    narrative: "Pakistan bears $7B/year in conflict costs through elevated energy import prices and a stalled Iran-Pakistan gas pipeline that has been blocked by US secondary sanctions despite being desperately needed for Pakistan's chronic energy shortfall. Peace would deliver $9B/year — primarily through pipeline activation, which would be transformative for Pakistan's energy-constrained economy, normalized trade with Iran, and reduced border security costs. The Iran-Pakistan gas pipeline represents one of the clearest single-infrastructure benefits that an Iran deal could unlock: a project already partially built, awaiting only sanctions relief to complete.",
     displaced: 0, casualties: 0,
     iranAttributionPct: 0,
     humanitarianAttribution: "No direct conflict displacement or fatalities recorded in Pakistan from the Iran conflict complex. Cross-border Balochistan tensions exist but are not part of the Iran-proxy conflict network tracked here.",
@@ -453,6 +472,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
       productivity: { warCost: 0.0, peaceBenefit: 0.5 },
     },
     keyFacts: ["Hosts 1.3M Syrian refugees", "Trade corridors disrupted", "Tourism down 20% from regional risk"],
+    narrative: "Jordan bears $4B/year in conflict costs concentrated in trade disruption and a regional risk premium that suppresses tourism and foreign investment — significant for an economy whose main exports are services and phosphates. Peace would deliver $5B/year through restored overland trade corridors to Iraq and Syria, normalization of Jordan's strategic transit role, and a recovery in tourism that has been persistently dampened by regional insecurity. Jordan is primarily a passive absorber of regional stability changes rather than a principal actor, with limited leverage over the conflict's trajectory but real exposure to its economic consequences.",
     displaced: 0, casualties: 0,
     iranAttributionPct: 0,
     humanitarianAttribution: "Jordan hosts ~1.3M Syrian and ~65K Iraqi refugees but these are counted at origin to avoid double-counting. No direct Iran-complex conflict casualties recorded in Jordanian territory.",
@@ -473,6 +493,7 @@ const STAKEHOLDERS: StakeholderCBA[] = [
       productivity: { warCost: 2.0, peaceBenefit: 3.0 },
     },
     keyFacts: ["Fuel and fertilizer import burden up 15-25%", "Inflation pass-through 1-2% in vulnerable economies", "Food security at risk for 200M+ people"],
+    narrative: "The Global South energy-importing bloc — representing over $15 trillion in GDP across dozens of developing economies — bears an estimated $45B/year in conflict costs through elevated oil and LNG import prices, food price inflation via petrochemical fertilizer pass-through, and supply chain disruptions. Peace would deliver $55B/year through energy price normalization that reduces inflation, frees import budgets for development spending, and relieves the fiscal deficits that have forced austerity in the most vulnerable economies. These countries bear the economic costs of a conflict they had no role in creating and possess little leverage to resolve — making the Global South the largest aggregate constituency for a peace dividend whose interests are systematically underrepresented in the negotiating room.",
     displaced: 0, casualties: 0,
     iranAttributionPct: 0,
     humanitarianAttribution: "Indirect humanitarian impact through food and energy price inflation. Difficult to separate from other global shocks. Not counted in direct humanitarian totals.",
@@ -794,6 +815,10 @@ function StakeholderRow({ s, isExpanded, onToggle }: { s: StakeholderCBA; isExpa
                     </li>
                   ))}
                 </ul>
+              </div>
+              <div className="mt-4 border-t border-border/40 pt-4">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Analysis</h4>
+                <p className="text-xs text-foreground/75 leading-relaxed">{s.narrative}</p>
               </div>
             </div>
           </motion.div>
