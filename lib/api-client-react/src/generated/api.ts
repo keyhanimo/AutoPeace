@@ -80,6 +80,8 @@ import type {
   ProposalArena,
   ReviewProposalSubmission200,
   ReviewProposalSubmissionBody,
+  ScreenProposal200,
+  ScreenProposalBody,
   Stakeholder,
   SubmitCommunityForecast200,
   SubmitCommunityForecastBody,
@@ -3353,6 +3355,93 @@ export function useGetCommunityForecastAggregate<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Screen a proposal before submission
+ */
+export const getScreenProposalUrl = () => {
+  return `/api/proposals/screen`;
+};
+
+export const screenProposal = async (
+  screenProposalBody: ScreenProposalBody,
+  options?: RequestInit,
+): Promise<ScreenProposal200> => {
+  return customFetch<ScreenProposal200>(getScreenProposalUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(screenProposalBody),
+  });
+};
+
+export const getScreenProposalMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof screenProposal>>,
+    TError,
+    { data: BodyType<ScreenProposalBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof screenProposal>>,
+  TError,
+  { data: BodyType<ScreenProposalBody> },
+  TContext
+> => {
+  const mutationKey = ["screenProposal"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof screenProposal>>,
+    { data: BodyType<ScreenProposalBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return screenProposal(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ScreenProposalMutationResult = NonNullable<
+  Awaited<ReturnType<typeof screenProposal>>
+>;
+export type ScreenProposalMutationBody =
+  BodyType<ScreenProposalBody>;
+export type ScreenProposalMutationError = ErrorType<void>;
+
+/**
+ * @summary Screen a proposal before submission
+ */
+export const useScreenProposal = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof screenProposal>>,
+    TError,
+    { data: BodyType<ScreenProposalBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof screenProposal>>,
+  TError,
+  { data: BodyType<ScreenProposalBody> },
+  TContext
+> => {
+  return useMutation(getScreenProposalMutationOptions(options));
+};
 
 /**
  * @summary Submit a real-world proposal for community review

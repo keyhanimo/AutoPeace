@@ -385,6 +385,7 @@ export interface AdminConfigResponse {
   judgePanelAnthropicModel?: string;
   judgePanelOpenaiModel?: string;
   judgePanelGeminiModel?: string;
+  submissionScreeningModel?: string;
   stage1Provider?: AdminConfigResponseStage1Provider;
   stage1Model?: string;
   stage2Provider?: AdminConfigResponseStage2Provider;
@@ -550,6 +551,7 @@ export interface AdminConfigUpdate {
   judgePanelAnthropicModel?: string;
   judgePanelOpenaiModel?: string;
   judgePanelGeminiModel?: string;
+  submissionScreeningModel?: string;
   stage1Provider?: AdminConfigUpdateStage1Provider;
   stage1Model?: string;
   stage2Provider?: AdminConfigUpdateStage2Provider;
@@ -1084,6 +1086,18 @@ export type GetCommunityForecastAggregate200 = {
   count: number;
   aggregated: GetCommunityForecastAggregate200Aggregated;
   outcomes: string[];
+};
+
+export type ScreenProposalBodyTerms = { [key: string]: unknown };
+
+export type ScreenProposalBody = {
+  summary: string;
+  terms: ScreenProposalBodyTerms;
+};
+
+export type ScreenProposal200 = {
+  eligible: boolean;
+  reason: string;
 };
 
 export type SubmitPublicProposalBodyTerms = { [key: string]: unknown };

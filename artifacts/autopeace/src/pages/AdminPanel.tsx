@@ -15,7 +15,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAdminKey } from "@/hooks/use-admin";
 import { PageHeader, Card, Button, Input, Badge } from "@/components/ui";
-import { Lock, Play, Save, LogOut, Loader2, DollarSign, ToggleLeft, ToggleRight, Handshake, GitBranch, Cpu, Zap, CheckCircle2, AlertCircle, Plus, X, Inbox, CheckSquare, XSquare } from "lucide-react";
+import { Lock, Play, Save, LogOut, Loader2, DollarSign, ToggleLeft, ToggleRight, Handshake, GitBranch, Cpu, Zap, CheckCircle2, AlertCircle, Plus, X, Inbox, CheckSquare, XSquare, ShieldAlert } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatUsd } from "@/lib/utils";
 
@@ -243,6 +243,7 @@ export default function AdminPanel() {
         judgePanelAnthropicModel: config.judgePanelAnthropicModel ?? "",
         judgePanelOpenaiModel: config.judgePanelOpenaiModel ?? "",
         judgePanelGeminiModel: config.judgePanelGeminiModel ?? "",
+        submissionScreeningModel: (config as AdminConfigResponse & Record<string, string | undefined>).submissionScreeningModel ?? "",
         ...stageFields,
       });
     }
@@ -445,6 +446,30 @@ export default function AdminPanel() {
               <Button onClick={handleSaveConfig} disabled={updateConfig.isPending} className="gap-2">
                 {updateConfig.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 Save Judge Panel Config
+              </Button>
+            </div>
+          </Card>
+
+          <Card className="p-6">
+            <h3 className="text-lg font-bold mb-4 border-b border-border/50 pb-2 flex items-center gap-2">
+              <ShieldAlert className="w-5 h-5 text-violet-400" /> Submission Screening
+            </h3>
+            <p className="text-xs text-muted-foreground mb-4">
+              Community-submitted proposals are screened by an AI model before entering the admin review queue. The model checks for seriousness, legitimacy, and uniqueness. Uses the Anthropic API.
+            </p>
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-violet-400">Screening Model (Anthropic)</label>
+              <Input
+                value={(formData as Record<string, unknown>).submissionScreeningModel as string ?? ""}
+                onChange={e => setFormData({ ...formData, submissionScreeningModel: e.target.value })}
+                placeholder="claude-sonnet-4-5-20241022"
+              />
+              <p className="text-[10px] text-muted-foreground">Default: claude-sonnet-4-5-20241022. This model evaluates community proposals for spam, duplicates, and seriousness before they reach the admin queue.</p>
+            </div>
+            <div className="mt-4 flex justify-end">
+              <Button onClick={handleSaveConfig} disabled={updateConfig.isPending} className="gap-2">
+                {updateConfig.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                Save Screening Config
               </Button>
             </div>
           </Card>

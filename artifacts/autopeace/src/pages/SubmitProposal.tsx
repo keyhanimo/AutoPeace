@@ -1,10 +1,12 @@
 import React, { useState } from "react";
-import { useSubmitPublicProposal } from "@workspace/api-client-react";
+import { useSubmitPublicProposal, useScreenProposal } from "@workspace/api-client-react";
 import { Card, PageHeader, Badge, Button } from "@/components/ui";
-import { Send, CheckCircle2, AlertTriangle, FileText, Plus, Trash2 } from "lucide-react";
+import { Send, CheckCircle2, AlertTriangle, FileText, Plus, Trash2, ShieldAlert, Loader2, XCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 type TermEntry = { key: string; value: string };
+
+type ScreeningState = "idle" | "screening" | "rejected" | "passed";
 
 export default function SubmitProposal() {
   const [submitterName, setSubmitterName] = useState("");
@@ -14,8 +16,11 @@ export default function SubmitProposal() {
   const [terms, setTerms] = useState<TermEntry[]>([{ key: "", value: "" }]);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [screeningState, setScreeningState] = useState<ScreeningState>("idle");
+  const [rejectionReason, setRejectionReason] = useState<string | null>(null);
 
-  const { mutateAsync, isPending } = useSubmitPublicProposal();
+  const { mutateAsync: submitMutation, isPending: isSubmitting } = useSubmitPublicProposal();
+  const { mutateAsync: screenMutation } = useScreenProposal();
 
   const addTerm = () => setTerms(prev => [...prev, { key: "", value: "" }]);
   const removeTerm = (i: number) => setTerms(prev => prev.filter((_, idx) => idx !== i));
@@ -37,12 +42,35 @@ export default function SubmitProposal() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setRejectionReason(null);
+    setScreeningState("idle");
     const err = validate();
     if (err) { setError(err); return; }
 
     const termsObj = Object.fromEntries(terms.filter(t => t.key.trim()).map(t => [t.key.trim(), t.value.trim()]));
+
+    setScreeningState("screening");
     try {
-      await mutateAsync({
+      const screenResult = await screenMutation({
+        data: {
+          summary: summary.trim(),
+          terms: termsObj,
+        },
+      });
+
+      if (!screenResult.eligible) {
+        setScreeningState("rejected");
+        setRejectionReason(screenResult.reason);
+        return;
+      }
+
+      setScreeningState("passed");
+    } catch {
+      setScreeningState("passed");
+    }
+
+    try {
+      await submitMutation({
         data: {
           submitterName: submitterName.trim() || undefined,
           sourceUrl: sourceUrl.trim(),
@@ -52,10 +80,23 @@ export default function SubmitProposal() {
         },
       });
       setSubmitted(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Submission failed. Please try again.");
+    } catch (submitErr: unknown) {
+      const apiErr = submitErr as { status?: number; data?: { eligible?: boolean; reason?: string; error?: string } };
+      if (apiErr.status === 422 && apiErr.data?.eligible === false && apiErr.data?.reason) {
+        setScreeningState("rejected");
+        setRejectionReason(apiErr.data.reason);
+        return;
+      }
+      if (submitErr instanceof Error) {
+        setError(submitErr.message);
+      } else {
+        setError("Submission failed. Please try again.");
+      }
+      setScreeningState("idle");
     }
   };
+
+  const isBusy = screeningState === "screening" || isSubmitting;
 
   if (submitted) {
     return (
@@ -70,7 +111,7 @@ export default function SubmitProposal() {
             </p>
             <Button
               variant="outline"
-              onClick={() => { setSubmitted(false); setSourceUrl(""); setSourceName(""); setSummary(""); setTerms([{ key: "", value: "" }]); setSubmitterName(""); }}
+              onClick={() => { setSubmitted(false); setSourceUrl(""); setSourceName(""); setSummary(""); setTerms([{ key: "", value: "" }]); setSubmitterName(""); setScreeningState("idle"); setRejectionReason(null); }}
             >
               Submit Another Proposal
             </Button>
@@ -112,6 +153,56 @@ export default function SubmitProposal() {
             >
               <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" aria-hidden="true" />
               <p className="text-sm text-red-400">{error}</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {screeningState === "rejected" && rejectionReason && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="p-5 rounded-xl border border-red-700/40 bg-red-950/20 space-y-3"
+              role="alert"
+            >
+              <div className="flex items-center gap-2">
+                <XCircle className="w-5 h-5 text-red-400 shrink-0" aria-hidden="true" />
+                <h3 className="font-bold text-sm text-red-400">Proposal Not Eligible for Submission</h3>
+              </div>
+              <p className="text-sm text-red-300/90 pl-7">{rejectionReason}</p>
+              <p className="text-xs text-muted-foreground pl-7">
+                Please revise your proposal and try again. Ensure it is a genuine, real-world peace proposal with concrete terms.
+              </p>
+              <div className="pl-7">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setScreeningState("idle"); setRejectionReason(null); }}
+                  className="text-xs"
+                >
+                  Dismiss and Edit
+                </Button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {screeningState === "screening" && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="p-5 rounded-xl border border-blue-700/40 bg-blue-950/20 flex items-center gap-3"
+              role="status"
+            >
+              <Loader2 className="w-5 h-5 text-blue-400 animate-spin shrink-0" aria-hidden="true" />
+              <div>
+                <h3 className="font-bold text-sm text-blue-400">Screening Your Proposal</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">Our AI is checking your proposal for eligibility before submission...</p>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -233,11 +324,11 @@ export default function SubmitProposal() {
         </Card>
 
         <div className="flex justify-end">
-          <Button type="submit" disabled={isPending} className="gap-2 min-w-[140px]">
-            {isPending ? (
+          <Button type="submit" disabled={isBusy || screeningState === "rejected"} className="gap-2 min-w-[140px]">
+            {isBusy ? (
               <span className="flex items-center gap-2">
                 <span className="w-3 h-3 rounded-full border-2 border-current border-t-transparent animate-spin" aria-hidden="true" />
-                Submitting…
+                {screeningState === "screening" ? "Screening…" : "Submitting…"}
               </span>
             ) : (
               <>

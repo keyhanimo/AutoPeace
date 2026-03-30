@@ -525,6 +525,7 @@ export const UpdateAdminConfigBody = zod.object({
   stage7Model: zod.string().optional(),
   stage8Provider: zod.enum(["anthropic", "openai", "gemini"]).optional(),
   stage8Model: zod.string().optional(),
+  submissionScreeningModel: zod.string().optional(),
 });
 
 export const UpdateAdminConfigResponse = zod.object({

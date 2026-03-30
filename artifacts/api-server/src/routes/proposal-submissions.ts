@@ -16,9 +16,29 @@ import {
   type DealTerms,
 } from "../services/deal-engine";
 import { getModelConfig } from "../services/llm-router";
+import { screenProposal } from "../services/proposal-screening";
 import { logger } from "../lib/logger";
 
 const router = Router();
+
+router.post("/proposals/screen", async (req, res) => {
+  try {
+    const { summary, terms } = req.body as {
+      summary: string;
+      terms: Record<string, unknown>;
+    };
+
+    if (!summary || !terms) {
+      res.status(400).json({ error: "summary and terms are required" });
+      return;
+    }
+
+    const result = await screenProposal(summary, terms);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
 
 router.post("/proposals/submit", async (req, res) => {
   try {
@@ -38,6 +58,16 @@ router.post("/proposals/submit", async (req, res) => {
 
     if (!sourceUrl || !sourceName || !summary || !terms) {
       res.status(400).json({ error: "sourceUrl, sourceName, summary, and terms are required" });
+      return;
+    }
+
+    const screeningResult = await screenProposal(summary, terms);
+    if (!screeningResult.eligible) {
+      res.status(422).json({
+        error: "Proposal did not pass AI screening",
+        reason: screeningResult.reason,
+        eligible: false,
+      });
       return;
     }
 

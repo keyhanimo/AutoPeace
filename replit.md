@@ -156,7 +156,8 @@ All 10 data-displaying pages have peer-reviewed academic-standard sourcing:
 **New API routes**:
 - `POST /api/community-forecasts` — submit probability forecast (sessionId + timeHorizon + estimates)
 - `GET /api/community-forecasts/aggregate` — avg community forecast by time horizon
-- `POST /api/proposals/submit` — public proposal submission (goes to pending queue)
+- `POST /api/proposals/submit` — public proposal submission (AI-screened, then goes to pending queue; returns 422 if rejected by LLM)
+- `POST /api/proposals/screen` — AI screening endpoint (checks seriousness, legitimacy, uniqueness via Anthropic)
 - `GET /admin/proposals/queue` — admin review queue with status filter
 - `PATCH /admin/proposals/queue/{id}` — approve/reject (creates `proposals` entry when approved)
 - `GET /api/changelog.xml` — RSS 2.0 feed of changelog entries
@@ -172,6 +173,16 @@ All 10 data-displaying pages have peer-reviewed academic-standard sourcing:
 **Nav**: Grouped into Research / Explorer / Community / Info sections
 
 **api-zod fix**: Changed `export * from "./generated/types"` → removed to prevent Zod const / TypeScript type name collision for new POST body schemas
+
+## AI Proposal Screening
+
+Before community proposals enter the admin review queue, an LLM screens them for seriousness, legitimacy, and uniqueness. Rejected proposals never enter the database — users receive specific feedback explaining why.
+
+- **Service**: `artifacts/api-server/src/services/proposal-screening.ts` — fetches existing proposal summaries from DB, calls Anthropic API to evaluate
+- **Endpoints**: `POST /api/proposals/screen` (standalone) and integrated into `POST /api/proposals/submit` (returns HTTP 422 with rejection reason)
+- **Admin config key**: `submissionScreeningModel` (default: `claude-sonnet-4-5-20241022`) — configurable in Admin Panel "Submission Screening" card
+- **Frontend**: `SubmitProposal.tsx` shows "Screening Your Proposal…" loading state and rejection card with reason/dismiss; `AdminPanel.tsx` has screening model config
+- **Fail-open**: If the screening API is unavailable (network error), proposals pass through to human review
 
 ## Proposal Extractor Agent
 
