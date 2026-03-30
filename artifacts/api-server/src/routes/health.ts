@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { HealthCheckResponse } from "@workspace/api-zod";
-import { getCycleStatus, cycleEvents, type CycleStatus } from "../services/autoresearch";
+import { getCycleStatus, getNextRunAt, cycleEvents, type CycleStatus } from "../services/autoresearch";
 
 const router: IRouter = Router();
 
@@ -9,7 +9,8 @@ router.get("/healthz", (_req, res) => {
   res.json(data);
 });
 
-function statusPayload(s: CycleStatus) {
+async function statusPayload(s: CycleStatus) {
+  const nextRunAt = s.isRunning ? null : await getNextRunAt();
   return {
     isRunning: s.isRunning,
     cycleId: s.cycleId,
@@ -18,14 +19,15 @@ function statusPayload(s: CycleStatus) {
     cycleStartedAt: s.cycleStartedAt,
     stagesCompleted: s.stagesCompleted,
     lastError: s.lastError,
+    nextRunAt,
   };
 }
 
-router.get("/status", (_req, res) => {
-  res.json(statusPayload(getCycleStatus()));
+router.get("/status", async (_req, res) => {
+  res.json(await statusPayload(getCycleStatus()));
 });
 
-router.get("/status/stream", (req, res) => {
+router.get("/status/stream", async (req, res) => {
   res.writeHead(200, {
     "Content-Type": "text/event-stream",
     "Cache-Control": "no-cache",
@@ -33,13 +35,14 @@ router.get("/status/stream", (req, res) => {
     "X-Accel-Buffering": "no",
   });
 
-  const send = (status: CycleStatus) => {
-    res.write(`data: ${JSON.stringify(statusPayload(status))}\n\n`);
+  const send = async (status: CycleStatus) => {
+    const payload = await statusPayload(status);
+    res.write(`data: ${JSON.stringify(payload)}\n\n`);
   };
 
-  send(getCycleStatus());
+  await send(getCycleStatus());
 
-  const onChange = (status: CycleStatus) => send(status);
+  const onChange = (status: CycleStatus) => { void send(status); };
   cycleEvents.on("change", onChange);
 
   const keepAlive = setInterval(() => {

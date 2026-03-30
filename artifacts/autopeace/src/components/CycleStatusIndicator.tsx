@@ -30,6 +30,7 @@ type StatusData = {
   cycleStartedAt: number | null;
   stagesCompleted: string[];
   lastError: string | null;
+  nextRunAt: number | null;
 };
 
 function useCycleStatus(): StatusData | null {
@@ -75,15 +76,34 @@ function useCycleStatus(): StatusData | null {
 
 export { useCycleStatus };
 
+function formatCountdown(ms: number): string {
+  if (ms <= 0) return "any moment";
+  const totalSec = Math.floor(ms / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+
+function formatElapsed(ms: number): string {
+  const s = Math.round(ms / 1000);
+  if (s < 60) return `${s}s`;
+  return `${Math.floor(s / 60)}m ${s % 60}s`;
+}
+
 export function CycleStatusIndicator() {
   const data = useCycleStatus();
   const [now, setNow] = useState(Date.now());
 
+  const needsTick = data !== null && (data.isRunning || data.nextRunAt !== null);
+
   useEffect(() => {
-    if (!data?.isRunning) return;
+    if (!needsTick) return;
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
-  }, [data?.isRunning]);
+  }, [needsTick]);
 
   if (!data) {
     return (
@@ -94,18 +114,47 @@ export function CycleStatusIndicator() {
     );
   }
 
-  const { isRunning, stage, stagesCompleted } = data;
+  const { isRunning, stage, stagesCompleted, nextRunAt } = data;
 
   if (!isRunning && stage !== "completed" && stage !== "failed") {
+    if (nextRunAt !== null) {
+      const remaining = nextRunAt - now;
+      return (
+        <div className="bg-secondary/30 border border-border/30 p-3">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">Pipeline</p>
+            <span className="text-[9px] text-muted-foreground font-mono">{formatCountdown(remaining)}</span>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">Next cycle in {formatCountdown(remaining)}</p>
+          <div className="mt-1.5 h-1 bg-muted-foreground/10 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-muted-foreground/30 rounded-full transition-all duration-1000"
+              style={{ width: `${Math.max(0, Math.min(100, 100 - (remaining / 3600000) * 100))}%` }}
+            />
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="bg-secondary/30 border border-border/30 p-3">
         <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">Pipeline</p>
-        <p className="text-xs text-muted-foreground mt-0.5">Idle — awaiting next cycle</p>
+        <p className="text-xs text-muted-foreground mt-0.5">Manual mode</p>
       </div>
     );
   }
 
   if (stage === "failed") {
+    if (nextRunAt !== null) {
+      const remaining = nextRunAt - now;
+      return (
+        <div className="bg-red-950/30 border border-red-900/40 p-3">
+          <p className="text-[10px] text-red-400/80 uppercase tracking-widest font-semibold">Pipeline</p>
+          <p className="text-xs text-red-400 mt-0.5">Last cycle failed</p>
+          <p className="text-[9px] text-muted-foreground mt-1">Retry in {formatCountdown(remaining)}</p>
+        </div>
+      );
+    }
     return (
       <div className="bg-red-950/30 border border-red-900/40 p-3">
         <p className="text-[10px] text-red-400/80 uppercase tracking-widest font-semibold">Pipeline</p>
@@ -115,6 +164,19 @@ export function CycleStatusIndicator() {
   }
 
   if (stage === "completed" && !isRunning) {
+    if (nextRunAt !== null) {
+      const remaining = nextRunAt - now;
+      return (
+        <div className="bg-emerald-950/20 border border-emerald-900/30 p-3">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] text-emerald-400/80 uppercase tracking-widest font-semibold">Pipeline</p>
+            <span className="text-[9px] text-muted-foreground font-mono">{formatCountdown(remaining)}</span>
+          </div>
+          <p className="text-xs text-emerald-400 mt-0.5">Cycle complete</p>
+          <p className="text-[9px] text-muted-foreground mt-0.5">Next cycle in {formatCountdown(remaining)}</p>
+        </div>
+      );
+    }
     return (
       <div className="bg-emerald-950/20 border border-emerald-900/30 p-3">
         <p className="text-[10px] text-emerald-400/80 uppercase tracking-widest font-semibold">Pipeline</p>
@@ -126,16 +188,13 @@ export function CycleStatusIndicator() {
   const completedSet = new Set(stagesCompleted);
   const progress = Math.round((completedSet.size / PIPELINE_STAGES.length) * 100);
 
-  const elapsed = data.cycleStartedAt
-    ? Math.round((now - data.cycleStartedAt) / 1000)
-    : 0;
-  const elapsedStr = elapsed < 60 ? `${elapsed}s` : `${Math.floor(elapsed / 60)}m ${elapsed % 60}s`;
+  const elapsed = data.cycleStartedAt ? now - data.cycleStartedAt : 0;
 
   return (
     <div className="bg-primary/5 border border-primary/20 p-3 space-y-2">
       <div className="flex items-center justify-between">
         <p className="text-[10px] text-primary/80 uppercase tracking-widest font-semibold">Pipeline</p>
-        <span className="text-[9px] text-muted-foreground font-mono">{elapsedStr}</span>
+        <span className="text-[9px] text-muted-foreground font-mono">{formatElapsed(elapsed)}</span>
       </div>
 
       <div className="flex items-center gap-1.5">

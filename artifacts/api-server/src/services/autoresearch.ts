@@ -89,6 +89,47 @@ export function isRunning() {
   return runningCycleId !== null;
 }
 
+export async function getNextRunAt(): Promise<number | null> {
+  try {
+    const cadence = await getConfigValue("cadence", "daily");
+    const isPaused = await getConfigValue("isPaused", "false");
+    if (isPaused === "true" || cadence === "manual") return null;
+
+    const now = new Date();
+
+    if (cadence === "hourly") {
+      const next = new Date(now);
+      next.setUTCMinutes(0, 0, 0);
+      next.setUTCHours(next.getUTCHours() + 1);
+      return next.getTime();
+    }
+
+    if (cadence === "daily") {
+      const next = new Date(now);
+      next.setUTCHours(6, 0, 0, 0);
+      if (next.getTime() <= now.getTime()) {
+        next.setUTCDate(next.getUTCDate() + 1);
+      }
+      return next.getTime();
+    }
+
+    if (cadence === "weekly") {
+      const next = new Date(now);
+      next.setUTCHours(6, 0, 0, 0);
+      const daysUntilMonday = (8 - next.getUTCDay()) % 7 || 7;
+      if (next.getUTCDay() === 1 && next.getTime() > now.getTime()) {
+        return next.getTime();
+      }
+      next.setUTCDate(next.getUTCDate() + daysUntilMonday);
+      return next.getTime();
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export async function runCycleNow(): Promise<string> {
   if (runningCycleId) return runningCycleId;
 
