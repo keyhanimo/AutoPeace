@@ -625,7 +625,7 @@ function StakeholderWaterfallChart({ stakeholders }: { stakeholders: Stakeholder
       </p>
       <div className="h-[480px]">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }} layout="vertical" barGap={3} barCategoryGap="25%">
+          <BarChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }} layout="vertical" barGap={3} barCategoryGap="25%">
             <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={false} />
             <XAxis
               type="number"
@@ -633,7 +633,7 @@ function StakeholderWaterfallChart({ stakeholders }: { stakeholders: Stakeholder
               tick={{ fontSize: 10, fill: '#94a3b8' }}
               tickFormatter={v => `$${Math.abs(v)}B`}
             />
-            <YAxis dataKey="name" type="category" tick={{ fontSize: 10, fill: '#94a3b8' }} width={130} />
+            <YAxis dataKey="name" type="category" tick={{ fontSize: 10, fill: '#94a3b8' }} width={170} />
             <Tooltip
               contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', fontSize: '11px', color: '#f8fafc' }}
               formatter={(v: number, name: string) => {
