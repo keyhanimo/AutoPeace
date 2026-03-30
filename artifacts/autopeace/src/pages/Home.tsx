@@ -132,6 +132,17 @@ function calculatePeaceProbability(forecasts: Forecast[]): number {
     .reduce((a, b) => a + b, 0)) * 100;
 }
 
+const OUTCOME_LABELS: Record<string, string> = {
+  continued_conflict: 'Continued Conflict',
+  major_escalation: 'Major Escalation',
+  informal_deescalation: 'Informal De-escalation',
+  limited_ceasefire: 'Limited Ceasefire',
+  humanitarian_mini_deal: 'Humanitarian Deal',
+  sanctions_partial_deal: 'Sanctions Deal',
+  regional_framework: 'Regional Framework',
+  broad_settlement: 'Broad Settlement',
+};
+
 function OutcomeSparkbar({ forecasts }: { forecasts: Forecast[] }) {
   const f90 = forecasts.find(f => f.timeHorizon === '90d');
   if (!f90) return null;
@@ -140,14 +151,14 @@ function OutcomeSparkbar({ forecasts }: { forecasts: Forecast[] }) {
     .slice(0, 5);
 
   return (
-    <div className="space-y-2 w-full">
-      <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">90-Day Outcome Dist.</p>
+    <div className="space-y-2.5 w-full">
+      <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">90-Day Outcome Distribution</p>
       {probs.map(([key, val]) => (
-        <div key={key} className="flex items-center gap-2">
-          <div className="w-24 shrink-0 text-xs text-muted-foreground truncate capitalize">{key.replace(/_/g, ' ')}</div>
-          <div className="flex-1 bg-secondary/50 h-2 overflow-hidden">
+        <div key={key} className="flex items-center gap-3">
+          <div className="w-40 shrink-0 text-xs text-muted-foreground capitalize">{OUTCOME_LABELS[key] ?? key.replace(/_/g, ' ')}</div>
+          <div className="flex-1 bg-secondary/50 h-2.5 overflow-hidden rounded-sm">
             <motion.div
-              className="h-full"
+              className="h-full rounded-sm"
               style={{ backgroundColor: OUTCOME_COLORS[key] ?? '#94a3b8' }}
               initial={{ width: 0 }}
               animate={{ width: `${(val * 100).toFixed(1)}%` }}
@@ -457,9 +468,9 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-card border border-border p-4 flex flex-col items-center rounded-sm">
-                <div className="relative w-24 h-24">
+            <div className="bg-card border border-border p-5 rounded-sm flex flex-col sm:flex-row gap-6 items-center">
+              <div className="flex flex-col items-center shrink-0">
+                <div className="relative w-28 h-28">
                   <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
                     <circle cx="50" cy="50" r="42" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-border" />
                     {!forecastLoading && (
@@ -477,13 +488,15 @@ export default function Home() {
                     )}
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <div className="text-lg font-bold">{forecastLoading ? "--" : peaceProb.toFixed(0)}<span className="text-xs">%</span></div>
+                    <div className="text-xl font-bold">{forecastLoading ? "--" : peaceProb.toFixed(0)}<span className="text-sm">%</span></div>
                     <div className="text-[11px] text-muted-foreground text-center leading-tight uppercase tracking-wider font-bold">Peace<br/>Outlook</div>
                   </div>
                 </div>
-                <span className="text-xs text-muted-foreground mt-1 uppercase tracking-widest font-bold">30d Horizon</span>
+                <span className="text-xs text-muted-foreground mt-2 uppercase tracking-widest font-bold">30d Horizon</span>
+                <span className="text-[10px] text-muted-foreground/70 mt-1 text-center max-w-[140px] leading-tight">Sum of 4 peace-outcome probabilities from AI forecast</span>
               </div>
-              <div className="bg-card border border-border p-4 rounded-sm">
+              <div className="w-px h-24 bg-border/50 hidden sm:block shrink-0" />
+              <div className="flex-1 min-w-0 w-full">
                 {forecastLoading ? <div className="animate-pulse text-xs text-muted-foreground">Loading...</div> : <OutcomeSparkbar forecasts={forecasts} />}
               </div>
             </div>

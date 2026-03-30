@@ -657,25 +657,29 @@ export default function ForecastDashboard() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="p-4 text-center">
               <div className="text-3xl font-display font-bold text-primary">{peaceProb.toFixed(1)}%</div>
-              <div className="text-xs text-muted-foreground mt-1">Peace Probability</div>
+              <div className="text-xs text-muted-foreground mt-1 font-semibold">Peace Probability</div>
+              <div className="text-[10px] text-muted-foreground/70 mt-1.5 leading-relaxed">Sum of humanitarian deal, sanctions deal, regional framework, and broad settlement probabilities</div>
             </Card>
             <Card className="p-4 text-center">
               <div className="text-3xl font-display font-bold text-destructive">
                 {((getProbs(activeForecast)['continued_conflict'] ?? 0) * 100).toFixed(1)}%
               </div>
-              <div className="text-xs text-muted-foreground mt-1">Continued Conflict</div>
+              <div className="text-xs text-muted-foreground mt-1 font-semibold">Continued Conflict</div>
+              <div className="text-[10px] text-muted-foreground/70 mt-1.5 leading-relaxed">Model-estimated probability that the current conflict trajectory persists with no meaningful change</div>
             </Card>
             <Card className="p-4 text-center">
               <div className="text-3xl font-display font-bold text-amber-400">
                 {uncertaintyRange?.entropy ?? '—'}
               </div>
-              <div className="text-xs text-muted-foreground mt-1">Shannon Entropy</div>
+              <div className="text-xs text-muted-foreground mt-1 font-semibold">Shannon Entropy</div>
+              <div className="text-[10px] text-muted-foreground/70 mt-1.5 leading-relaxed">Information-theoretic measure of forecast uncertainty (0 = certain, ~3 = maximum spread across 8 outcomes)</div>
             </Card>
             <Card className="p-4 text-center">
               <div className="text-3xl font-display font-bold text-blue-400">
                 {activeForecast.brierScore?.toFixed(3) ?? '—'}
               </div>
-              <div className="text-xs text-muted-foreground mt-1">Brier Score</div>
+              <div className="text-xs text-muted-foreground mt-1 font-semibold">Brier Score</div>
+              <div className="text-[10px] text-muted-foreground/70 mt-1.5 leading-relaxed">Calibration accuracy (0 = perfect, 1 = worst). Measures how close predicted probabilities are to observed outcomes</div>
             </Card>
           </div>
 
