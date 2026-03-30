@@ -3,7 +3,7 @@ import { db } from "@workspace/db";
 import { adminConfigTable, evidenceSourcesTable, dealsTable } from "@workspace/db/schema";
 import { eq, desc, sql } from "drizzle-orm";
 import { adminAuth } from "../lib/admin-auth";
-import { runCycleNow, isRunning } from "../services/autoresearch";
+import { runCycleNow, isRunning, getCycleStatus } from "../services/autoresearch";
 import { runDealCycleNow, isDealCycleRunning } from "../services/deal-autoresearch";
 import { UpdateAdminConfigBody, UpdateEvidenceSourceBody } from "@workspace/api-zod";
 import {
@@ -202,6 +202,10 @@ router.post("/admin/config", async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }
+});
+
+router.get("/admin/cycle-status", async (_req, res) => {
+  res.json(getCycleStatus());
 });
 
 router.post("/admin/run", async (_req, res) => {

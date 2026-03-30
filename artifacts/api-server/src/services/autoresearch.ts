@@ -26,6 +26,55 @@ import { callLLM, getModelConfig, getConfigValue } from "./llm-router";
 
 let runningCycleId: string | null = null;
 
+export type CycleStage =
+  | "starting"
+  | "evidence_ingestion"
+  | "proposal_extraction"
+  | "forecasting"
+  | "red_team"
+  | "hill_climbing"
+  | "what_if_scenarios"
+  | "deal_engine"
+  | "changelog"
+  | "completed"
+  | "failed";
+
+export interface CycleStatus {
+  isRunning: boolean;
+  cycleId: string | null;
+  stage: CycleStage | null;
+  stageStartedAt: number | null;
+  cycleStartedAt: number | null;
+  stagesCompleted: string[];
+  lastError: string | null;
+}
+
+let currentStage: CycleStage | null = null;
+let stageStartedAt: number | null = null;
+let cycleStartedAt: number | null = null;
+let stagesCompleted: string[] = [];
+let lastCycleError: string | null = null;
+
+function setStage(stage: CycleStage) {
+  if (currentStage && currentStage !== "starting" && currentStage !== "failed" && currentStage !== "completed") {
+    stagesCompleted.push(currentStage);
+  }
+  currentStage = stage;
+  stageStartedAt = Date.now();
+}
+
+export function getCycleStatus(): CycleStatus {
+  return {
+    isRunning: runningCycleId !== null,
+    cycleId: runningCycleId,
+    stage: currentStage,
+    stageStartedAt,
+    cycleStartedAt,
+    stagesCompleted: [...stagesCompleted],
+    lastError: lastCycleError,
+  };
+}
+
 export function isRunning() {
   return runningCycleId !== null;
 }
@@ -35,6 +84,11 @@ export async function runCycleNow(): Promise<string> {
 
   const cycleId = randomUUID();
   runningCycleId = cycleId;
+  currentStage = "starting";
+  stageStartedAt = Date.now();
+  cycleStartedAt = Date.now();
+  stagesCompleted = [];
+  lastCycleError = null;
 
   await db.insert(cyclesTable).values({
     id: cycleId,
@@ -60,13 +114,16 @@ async function runCycleAsync(cycleId: string): Promise<void> {
     if (isPaused === "true") {
       logger.info({ cycleId }, "Cycle paused by admin config");
       await db.update(cyclesTable).set({ status: "completed", completedAt: new Date() }).where(eq(cyclesTable.id, cycleId));
+      setStage("completed");
       runningCycleId = null;
       return;
     }
 
+    setStage("evidence_ingestion");
     const ingestedCount = await ingestAllSources();
     logger.info({ cycleId, ingestedCount }, "Evidence ingestion complete");
 
+    setStage("proposal_extraction");
     try {
       const extractedProposals = await extractProposalsFromEvidence(cycleId);
       logger.info({ cycleId, extractedProposals }, "Proposal extraction from evidence complete");
@@ -74,6 +131,7 @@ async function runCycleAsync(cycleId: string): Promise<void> {
       logger.warn({ err: extractErr, cycleId }, "Proposal extraction failed (non-critical)");
     }
 
+    setStage("forecasting");
     const evidencePackVersion = new Date().toISOString().slice(0, 10);
     const baseForecast = await generateForecasts(cycleId, evidencePackVersion);
 
@@ -114,6 +172,7 @@ async function runCycleAsync(cycleId: string): Promise<void> {
       logger.info({ cycleId, primaryForecastId }, "Evidence items linked to cycle");
     }
 
+    setStage("hill_climbing");
     const hillClimbResults = await runHillClimbing(cycleId, baseForecast);
     experimentsRun = hillClimbResults.experimentsRun;
     experimentsRetained = hillClimbResults.experimentsRetained;
@@ -135,6 +194,7 @@ async function runCycleAsync(cycleId: string): Promise<void> {
       logger.info({ cycleId, experimentsRetained }, "Champion state persisted to admin_config");
     }
 
+    setStage("changelog");
     const primaryForecast = hillClimbResults.champion ?? baseForecast.find(f => f.timeHorizon === "90d");
     if (primaryForecast) {
       const headline = generateHeadline(primaryForecast.probabilities);
@@ -161,6 +221,7 @@ async function runCycleAsync(cycleId: string): Promise<void> {
 
     logger.info({ cycleId, experimentsRun, experimentsRetained }, "Autoresearch cycle completed successfully");
 
+    setStage("what_if_scenarios");
     try {
       await computeAndStoreWhatIfScenarios(cycleId);
       logger.info({ cycleId }, "What-if scenario variants updated");
@@ -168,6 +229,7 @@ async function runCycleAsync(cycleId: string): Promise<void> {
       logger.warn({ err: scenarioErr }, "What-if scenario update failed (non-critical)");
     }
 
+    setStage("deal_engine");
     try {
       if (isDealCycleRunning()) {
         logger.info({ cycleId }, "Deal cycle already running — skipping deal optimization this cycle");
@@ -179,8 +241,11 @@ async function runCycleAsync(cycleId: string): Promise<void> {
     } catch (dealErr) {
       logger.warn({ err: dealErr, cycleId }, "Deal optimization failed (non-critical — forecasts still updated)");
     }
+    setStage("completed");
   } catch (err) {
     logger.error({ err, cycleId }, "Autoresearch cycle error");
+    lastCycleError = String(err);
+    setStage("failed");
     await db.update(cyclesTable).set({
       status: "failed",
       completedAt: new Date(),

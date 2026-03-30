@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   useGetAdminConfig, 
   useUpdateAdminConfig, 
@@ -13,13 +13,18 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAdminKey } from "@/hooks/use-admin";
 import { PageHeader, Card, Button, Input, Badge } from "@/components/ui";
-import { Lock, Play, Save, LogOut, Loader2, ToggleLeft, ToggleRight, Handshake, GitBranch, Cpu, Zap, CheckCircle2, AlertCircle, Plus, X, Inbox, CheckSquare, XSquare, ShieldAlert, BookOpen, Copy, Check } from "lucide-react";
+import { Lock, Play, Save, LogOut, Loader2, ToggleLeft, ToggleRight, Handshake, GitBranch, Cpu, Zap, CheckCircle2, AlertCircle, Plus, X, Inbox, CheckSquare, XSquare, ShieldAlert, BookOpen, Copy, Check, Activity } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function AdminPanel() {
   const { adminKey, saveKey, clearKey } = useAdminKey();
   const [inputKey, setInputKey] = useState("");
   const { toast } = useToast();
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => setTick(t => t + 1), 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const authHeaders = { 'X-Admin-Key': adminKey };
 
@@ -35,6 +40,26 @@ export default function AdminPanel() {
   const runTrigger = useTriggerRun({ request: { headers: authHeaders } });
   const { data: currentDeal } = useGetCurrentDeal();
   const { data: proposalsData, refetch: refetchProposals } = useListProposals();
+
+  type CycleStatusData = {
+    isRunning: boolean;
+    cycleId: string | null;
+    stage: string | null;
+    stageStartedAt: number | null;
+    cycleStartedAt: number | null;
+    stagesCompleted: string[];
+    lastError: string | null;
+  };
+  const { data: cycleStatus } = useQuery<CycleStatusData>({
+    queryKey: ['/api/admin/cycle-status', adminKey],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/cycle-status', { headers: { 'X-Admin-Key': adminKey } });
+      if (!res.ok) throw new Error('Failed to fetch cycle status');
+      return res.json() as Promise<CycleStatusData>;
+    },
+    enabled: !!adminKey,
+    refetchInterval: 2000,
+  });
 
   type DealCycle = {
     cycleId: string; status: string; dealsCount: number;
@@ -319,6 +344,81 @@ export default function AdminPanel() {
           <Button variant="outline" onClick={clearKey} title="Log out"><LogOut className="w-4 h-4" /></Button>
         </div>
       </PageHeader>
+
+      {(cycleStatus?.isRunning || cycleStatus?.stage === "completed" || cycleStatus?.stage === "failed") && (() => {
+        const STAGES = [
+          { key: "evidence_ingestion", label: "Evidence Ingestion" },
+          { key: "proposal_extraction", label: "Proposal Extraction" },
+          { key: "forecasting", label: "Forecasting" },
+          { key: "hill_climbing", label: "Hill Climbing" },
+          { key: "changelog", label: "Changelog" },
+          { key: "what_if_scenarios", label: "What-If Scenarios" },
+          { key: "deal_engine", label: "Deal Engine" },
+        ];
+        const elapsed = cycleStatus.cycleStartedAt ? Math.round((Date.now() - cycleStatus.cycleStartedAt) / 1000) : 0;
+        const stageElapsed = cycleStatus.stageStartedAt ? Math.round((Date.now() - cycleStatus.stageStartedAt) / 1000) : 0;
+        const isFailed = cycleStatus.stage === "failed";
+        const isComplete = cycleStatus.stage === "completed";
+        const formatTime = (s: number) => s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`;
+
+        return (
+          <Card className={`p-6 border-l-4 ${isFailed ? "border-l-red-500" : isComplete ? "border-l-green-500" : "border-l-blue-500"}`}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                {cycleStatus.isRunning ? (
+                  <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
+                ) : isComplete ? (
+                  <CheckCircle2 className="w-5 h-5 text-green-400" />
+                ) : (
+                  <AlertCircle className="w-5 h-5 text-red-400" />
+                )}
+                <h3 className="font-bold text-lg">
+                  {cycleStatus.isRunning ? "Cycle Running" : isComplete ? "Last Cycle Completed" : "Last Cycle Failed"}
+                </h3>
+              </div>
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                {cycleStatus.isRunning && (
+                  <span className="font-mono">{formatTime(elapsed)} elapsed</span>
+                )}
+                <Badge variant="outline" className="text-[10px] font-mono">
+                  {cycleStatus.cycleId?.slice(0, 8)}
+                </Badge>
+              </div>
+            </div>
+            <div className="grid grid-cols-7 gap-1">
+              {STAGES.map((s) => {
+                const isDone = cycleStatus.stagesCompleted.includes(s.key);
+                const isCurrent = cycleStatus.stage === s.key;
+                return (
+                  <div key={s.key} className="flex flex-col items-center gap-1.5">
+                    <div className={`w-full h-2 rounded-full transition-all duration-300 ${
+                      isDone ? "bg-green-500" :
+                      isCurrent ? "bg-blue-500 animate-pulse" :
+                      isFailed && isCurrent ? "bg-red-500" :
+                      "bg-muted"
+                    }`} />
+                    <span className={`text-[10px] text-center leading-tight ${
+                      isCurrent ? "text-blue-400 font-bold" :
+                      isDone ? "text-green-400/70" :
+                      "text-muted-foreground/50"
+                    }`}>
+                      {s.label}
+                    </span>
+                    {isCurrent && cycleStatus.isRunning && (
+                      <span className="text-[9px] text-blue-300 font-mono">{formatTime(stageElapsed)}</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {isFailed && cycleStatus.lastError && (
+              <div className="mt-4 p-3 bg-red-950/30 border border-red-900/50 rounded text-xs text-red-300 font-mono break-all">
+                {cycleStatus.lastError}
+              </div>
+            )}
+          </Card>
+        );
+      })()}
 
       <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
