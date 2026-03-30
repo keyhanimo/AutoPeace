@@ -344,14 +344,8 @@ export async function seedStakeholders(): Promise<void> {
         role: sql`excluded.role`,
         region: sql`excluded.region`,
         flag: sql`excluded.flag`,
-        goals: sql`excluded.goals`,
-        redLines: sql`excluded.red_lines`,
-        preferredOutcomes: sql`excluded.preferred_outcomes`,
-        constraints: sql`excluded.constraints`,
-        communicationStyle: sql`excluded.communication_style`,
         tier: sql`excluded.tier`,
-        profileSummary: sql`excluded.profile_summary`,
-        updatedAt: sql`now()`,
+        communicationStyle: sql`excluded.communication_style`,
       },
     });
   }
