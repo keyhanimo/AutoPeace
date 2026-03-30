@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useListStakeholders, type Stakeholder } from "@workspace/api-client-react";
 import { Card, PageHeader, Badge } from "@/components/ui";
-import { Users, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2, Shield, Globe, Info } from "lucide-react";
+import { Users, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2, Shield, Globe, Info, Clock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { DataSourceNote } from "@/components/DataSourceNote";
 
@@ -60,6 +60,27 @@ const ROLE_COLORS: Record<string, string> = {
   internal_faction: "text-orange-400 border-orange-400/30",
 };
 
+const TIER_LABELS: Record<string, { label: string; color: string }> = {
+  required: { label: "Required", color: "text-red-400 border-red-400/30 bg-red-400/10" },
+  critical: { label: "Critical", color: "text-amber-400 border-amber-400/30 bg-amber-400/10" },
+  influential: { label: "Influential", color: "text-sky-400 border-sky-400/30 bg-sky-400/10" },
+  contextual: { label: "Contextual", color: "text-zinc-400 border-zinc-400/30 bg-zinc-400/10" },
+};
+
+function formatRelativeTime(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return "just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 30) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+}
+
 function parseTextField(value: unknown): string[] {
   if (Array.isArray(value)) return value as string[];
   if (typeof value === "string" && value.trim()) {
@@ -91,11 +112,24 @@ function StakeholderCard({ stakeholder }: { stakeholder: Stakeholder }) {
             <Badge variant="outline" className={`text-[10px] ${roleColor}`}>
               {ROLE_LABELS[stakeholder.role] ?? stakeholder.role.replace(/_/g, " ")}
             </Badge>
+            {stakeholder.tier && TIER_LABELS[stakeholder.tier] && (
+              <Badge variant="outline" className={`text-[10px] ${TIER_LABELS[stakeholder.tier].color}`}>
+                {TIER_LABELS[stakeholder.tier].label}
+              </Badge>
+            )}
             <span className="text-[10px] text-muted-foreground">{stakeholder.region}</span>
           </div>
-          {definition && (
-            <p className="text-xs text-muted-foreground line-clamp-2">{definition}</p>
-          )}
+          <div className="flex items-center gap-3">
+            {definition && (
+              <p className="text-xs text-muted-foreground line-clamp-2 flex-1">{definition}</p>
+            )}
+            {stakeholder.updatedAt && (
+              <span className="text-[10px] text-muted-foreground flex items-center gap-1 shrink-0" title={`Last updated: ${new Date(stakeholder.updatedAt).toLocaleString()}`}>
+                <Clock className="w-3 h-3" />
+                {formatRelativeTime(stakeholder.updatedAt)}
+              </span>
+            )}
+          </div>
         </div>
         <div className="text-muted-foreground shrink-0">
           {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -118,6 +152,15 @@ function StakeholderCard({ stakeholder }: { stakeholder: Stakeholder }) {
                     <Info className="w-3 h-3" /> Definition
                   </h4>
                   <p className="text-xs text-foreground/80 leading-relaxed">{definition}</p>
+                </div>
+              )}
+
+              {stakeholder.profileSummary && (
+                <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
+                  <h4 className="text-xs font-bold text-primary uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                    <Users className="w-3 h-3" /> AI Profile Summary
+                  </h4>
+                  <p className="text-xs text-foreground/80 leading-relaxed">{stakeholder.profileSummary}</p>
                 </div>
               )}
 

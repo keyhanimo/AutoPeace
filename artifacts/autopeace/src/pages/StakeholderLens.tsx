@@ -10,7 +10,7 @@ import {
 import { Card, PageHeader, Badge } from "@/components/ui";
 import {
   Eye, TrendingUp, AlertTriangle,
-  CheckCircle2, XCircle, Shield, DollarSign, BarChart2,
+  CheckCircle2, XCircle, Shield, DollarSign, BarChart2, Clock,
 } from "lucide-react";
 import { DataSourceNote } from "@/components/DataSourceNote";
 const OUTCOME_LABELS: Record<string, string> = {
@@ -58,9 +58,19 @@ function StakeholderOverview({ stakeholder }: { stakeholder: Stakeholder }) {
     <Card className="p-5 space-y-4">
       <div className="flex items-center gap-3">
         <span className="text-3xl">{icon}</span>
-        <div>
-          <h2 className="text-lg font-bold">{stakeholder.name}</h2>
-          <Badge variant="outline" className="text-[10px]">{stakeholder.role}</Badge>
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-bold">{stakeholder.name}</h2>
+            <Badge variant="outline" className="text-[10px]">{stakeholder.role}</Badge>
+            {stakeholder.tier && (
+              <Badge variant="outline" className="text-[10px]">{stakeholder.tier}</Badge>
+            )}
+          </div>
+          {stakeholder.updatedAt && (
+            <span className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5" title={new Date(stakeholder.updatedAt).toLocaleString()}>
+              <Clock className="w-3 h-3" /> Last updated {new Date(stakeholder.updatedAt).toLocaleDateString()}
+            </span>
+          )}
         </div>
       </div>
       {stakeholder.communicationStyle && (
