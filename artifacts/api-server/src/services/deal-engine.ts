@@ -714,11 +714,11 @@ Output JSON only.`;
   };
 
   const framingContext = Object.keys(domesticFramingStrategies).length > 0
-    ? `\nDOMESTIC FRAMING INSIGHTS (use these to inform your amendments):\n${Object.entries(domesticFramingStrategies).map(([key, s]) => `- ${key}: ${s.framingNarrative.slice(0, 100)}`).join("\n")}`
+    ? `\nDOMESTIC FRAMING INSIGHTS (use these to inform your amendments):\n${Object.entries(domesticFramingStrategies).map(([key, s]) => `- ${key}: ${(s.framingNarrative ?? "").slice(0, 100)}`).join("\n")}`
     : "";
 
   const innovativeContext = terms.innovativeProvisions?.length
-    ? `\nEXISTING INNOVATIVE PROVISIONS:\n${terms.innovativeProvisions.map(p => `- ${p.title}: ${p.description.slice(0, 100)}`).join("\n")}`
+    ? `\nEXISTING INNOVATIVE PROVISIONS:\n${terms.innovativeProvisions.map(p => `- ${p.title ?? "Provision"}: ${(p.description ?? "").slice(0, 100)}`).join("\n")}`
     : "";
 
   const prompt = `Negotiate creative improvements for this Iran peace deal:
