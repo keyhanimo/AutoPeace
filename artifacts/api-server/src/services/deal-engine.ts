@@ -329,7 +329,7 @@ const CORE_STAKEHOLDERS = [
   { id: "iran", name: "Iran", profile: "Seeks sanctions relief, nuclear recognition, no regime change threat. Red lines: denuclearization, regime change, loss of deterrence." },
   { id: "us", name: "United States", profile: "Seeks verifiable denuclearization, regional security. Red lines: nuclear weapons capability, Hormuz blockade." },
   { id: "israel", name: "Israel", profile: "Opposes any deal that leaves Iran with enrichment capacity. Red line: any path to Iranian nuclear weapon." },
-  { id: "saudi-arabia", name: "Saudi Arabia", profile: "Seeks regional security guarantees, economic normalization. Concerned about Iranian influence in Yemen, Lebanon." },
+  { id: "saudi_arabia", name: "Saudi Arabia", profile: "Seeks regional security guarantees, economic normalization. Concerned about Iranian influence in Yemen, Lebanon." },
   { id: "iaea", name: "IAEA", profile: "Supports verification mechanisms, snap inspections, continuous monitoring." },
   { id: "russia", name: "Russia", profile: "Supports Iranian sovereignty, opposes Western-led sanctions." },
   { id: "china", name: "China", profile: "Values economic ties with Iran, opposes sanctions, supports negotiated solution." },

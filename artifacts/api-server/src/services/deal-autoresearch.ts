@@ -72,7 +72,7 @@ async function getEvidenceSummary(): Promise<string> {
     })
       .from(evidenceItemsTable)
       .orderBy(desc(evidenceItemsTable.publishedAt))
-      .limit(10);
+      .limit(20);
     return items.map(i => `${i.title}: ${i.text?.slice(0, 100)}`).join("\n");
   } catch {
     return "Recent evidence: Iran-US tensions remain elevated. Diplomatic back-channels active. Nuclear enrichment ongoing.";

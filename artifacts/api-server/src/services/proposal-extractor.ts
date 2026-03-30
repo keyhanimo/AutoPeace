@@ -5,7 +5,12 @@ import { createHash } from "node:crypto";
 import { logger } from "../lib/logger";
 import {
   evaluateStakeholders,
+  evaluateDomesticAudiences,
+  runRedTeam,
+  runNegotiator,
   judgeAndScore,
+  runMetaEvaluator,
+  generateDiagnosis,
   computeWhatWouldItTake,
   type ModelConfig,
   type DealTerms,
@@ -252,10 +257,21 @@ export async function extractProposalsFromEvidence(cycleId?: string): Promise<nu
 
       try {
         const { evaluations: aiEvals } = await evaluateStakeholders(terms, modelConfig);
-        const [{ scores: aiScores }, rawWwit] = await Promise.all([
-          judgeAndScore(terms, aiEvals, [], {}, modelConfig),
-          computeWhatWouldItTake(terms, aiEvals, modelConfig),
-        ]);
+        const { evaluations: domesticEvals } = await evaluateDomesticAudiences(terms, modelConfig);
+        const { results: redTeamResults } = await runRedTeam(terms, modelConfig);
+        const { result: negotiatorResult } = await runNegotiator(terms, aiEvals, modelConfig);
+
+        const revisedTerms: DealTerms = {
+          ...terms,
+          ...(negotiatorResult.revisedTermsPartial as Partial<DealTerms>),
+        };
+
+        const { scores: aiScores } = await judgeAndScore(revisedTerms, aiEvals, redTeamResults, domesticEvals, modelConfig);
+
+        await runMetaEvaluator(terms, aiScores, negotiatorResult, aiEvals, modelConfig);
+        await generateDiagnosis(terms, aiEvals, redTeamResults, aiScores, modelConfig);
+
+        const rawWwit = await computeWhatWouldItTake(terms, aiEvals, modelConfig);
 
         const whatWouldItTake = rawWwit.map(item => ({
           dimension: item.stakeholder,
@@ -273,7 +289,7 @@ export async function extractProposalsFromEvidence(cycleId?: string): Promise<nu
           })
           .where(eq(proposalsTable.id, proposalId));
 
-        logger.info({ proposalId, composite: aiScores.composite }, "Auto-extracted proposal evaluated successfully");
+        logger.info({ proposalId, composite: aiScores.composite }, "Auto-extracted proposal evaluated with full pipeline");
       } catch (evalErr) {
         logger.warn({ proposalId, err: evalErr }, "AI evaluation failed for auto-extracted proposal");
       }

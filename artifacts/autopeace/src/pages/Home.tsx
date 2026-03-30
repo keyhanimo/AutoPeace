@@ -273,11 +273,11 @@ function CostOfWarSection() {
         </div>
         <div className="flex gap-4 text-right">
           <div>
-            <div className="text-xl font-display font-bold text-red-400">$466B</div>
+            <div className="text-xl font-display font-bold text-red-400">$450B</div>
             <div className="text-[10px] text-muted-foreground uppercase tracking-widest">War Cost/yr</div>
           </div>
           <div>
-            <div className="text-xl font-display font-bold text-emerald-400">$576B</div>
+            <div className="text-xl font-display font-bold text-emerald-400">$560B</div>
             <div className="text-[10px] text-muted-foreground uppercase tracking-widest">Peace Gain/yr</div>
           </div>
         </div>

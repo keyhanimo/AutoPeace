@@ -6,26 +6,32 @@ import { randomUUID } from "crypto";
 import { adminAuth } from "../lib/admin-auth";
 import {
   evaluateStakeholders,
+  evaluateDomesticAudiences,
+  runRedTeam,
+  runNegotiator,
   judgeAndScore,
+  runMetaEvaluator,
+  generateDiagnosis,
   computeWhatWouldItTake,
   type ModelConfig,
   type DealTerms,
 } from "../services/deal-engine";
+import { logger } from "../lib/logger";
 
 async function getDefaultModelConfig(): Promise<ModelConfig> {
   const cfg = await db.select().from(adminConfigTable);
   const map = Object.fromEntries(cfg.map(r => [r.key, r.value]));
   const openaiModel = map["openaiModel"] ?? "gpt-4o";
   return {
-    anthropicModel: map["anthropicModel"] ?? "claude-opus-4-5",
+    anthropicModel: map["anthropicModel"] ?? "claude-sonnet-4-5",
     openaiModel,
-    geminiModel: map["geminiModel"] ?? "gemini-2.5-pro",
+    geminiModel: map["geminiModel"] ?? "gemini-2.5-flash",
     generationProvider: (map["generationProvider"] ?? "anthropic") as "anthropic" | "openai" | "gemini",
-    generationModel: map["generationModel"] ?? "claude-opus-4-5",
+    generationModel: map["generationModel"] ?? "claude-sonnet-4-5",
     evaluationProvider: (map["evaluationProvider"] ?? "openai") as "anthropic" | "openai" | "gemini",
     evaluationModel: map["evaluationModel"] ?? openaiModel,
-    adversarialProvider: (map["adversarialProvider"] ?? "anthropic") as "anthropic" | "openai" | "gemini",
-    adversarialModel: map["adversarialModel"] ?? "claude-opus-4-5",
+    adversarialProvider: (map["adversarialProvider"] ?? "gemini") as "anthropic" | "openai" | "gemini",
+    adversarialModel: map["adversarialModel"] ?? "gemini-2.5-flash",
     judgePanelAnthropicModel: map["judgePanelAnthropicModel"] || undefined,
     judgePanelOpenaiModel: map["judgePanelOpenaiModel"] || undefined,
     judgePanelGeminiModel: map["judgePanelGeminiModel"] || undefined,
@@ -179,12 +185,36 @@ router.patch("/admin/proposals/queue/:id", adminAuth, async (req, res) => {
       (async () => {
         try {
           const modelConfig = await getDefaultModelConfig();
-          const { evaluations: stakeholderEvaluations } = await evaluateStakeholders(terms, modelConfig);
 
-          const [{ scores }, whatWouldItTakeList] = await Promise.all([
-            judgeAndScore(terms, stakeholderEvaluations, [], {}, modelConfig),
-            computeWhatWouldItTake(terms, stakeholderEvaluations, modelConfig),
-          ]);
+          logger.info({ pid, submissionId: id }, "Starting full 8-stage evaluation for community proposal");
+
+          const { evaluations: stakeholderEvaluations } = await evaluateStakeholders(terms, modelConfig);
+          logger.info({ pid, stage: 2 }, "Stakeholder evaluation complete");
+
+          const { evaluations: domesticEvaluations } = await evaluateDomesticAudiences(terms, modelConfig);
+          logger.info({ pid, stage: 3 }, "Domestic audience evaluation complete");
+
+          const { results: redTeamResults } = await runRedTeam(terms, modelConfig);
+          logger.info({ pid, stage: 4 }, "Red-team evaluation complete");
+
+          const { result: negotiatorResult } = await runNegotiator(terms, stakeholderEvaluations, modelConfig);
+          logger.info({ pid, stage: 5 }, "Negotiator amendments complete");
+
+          const revisedTerms: DealTerms = {
+            ...terms,
+            ...(negotiatorResult.revisedTermsPartial as Partial<DealTerms>),
+          };
+
+          const { scores } = await judgeAndScore(revisedTerms, stakeholderEvaluations, redTeamResults, domesticEvaluations, modelConfig);
+          logger.info({ pid, stage: 6, composite: scores.composite }, "Judge panel scoring complete");
+
+          const { result: metaResult } = await runMetaEvaluator(terms, scores, negotiatorResult, stakeholderEvaluations, modelConfig);
+          logger.info({ pid, stage: 7 }, "Meta-evaluation complete");
+
+          const { diagnosis } = await generateDiagnosis(terms, stakeholderEvaluations, redTeamResults, scores, modelConfig);
+          logger.info({ pid, stage: 8 }, "Diagnosis generation complete");
+
+          const whatWouldItTakeList = await computeWhatWouldItTake(terms, stakeholderEvaluations, modelConfig);
 
           const proposalScores = {
             feasibility: scores.feasibility,
@@ -224,10 +254,10 @@ router.patch("/admin/proposals/queue/:id", adminAuth, async (req, res) => {
             })
             .where(eq(proposalsTable.id, pid));
 
-          console.info(`[proposal-eval] Evaluation complete for proposal ${pid} (submission ${id})`);
+          logger.info({ pid, composite: scores.composite }, "Full 8-stage evaluation complete for community proposal");
         } catch (evalErr: unknown) {
           const errMsg = evalErr instanceof Error ? evalErr.message : String(evalErr);
-          console.error(`[proposal-eval] Evaluation FAILED for proposal ${pid} (submission ${id}): ${errMsg}`);
+          logger.error({ pid, submissionId: id, err: errMsg }, "Community proposal evaluation FAILED");
           try {
             await db.update(proposalsTable)
               .set({ scores: { evaluationError: errMsg } as unknown as Record<string, number> })

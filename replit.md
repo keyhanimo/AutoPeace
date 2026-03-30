@@ -163,7 +163,9 @@ All 10 data-displaying pages have peer-reviewed academic-standard sourcing:
 
 Auto-scans ingested diplomatic evidence items for real-world peace proposals using Anthropic Claude. Runs after evidence ingestion in each autoresearch cycle (non-blocking — failures don't stop the cycle).
 
-**Pipeline**: Batch unprocessed diplomatic evidence → LLM extraction → validate + deduplicate → insert proposal → run full AI evaluation (stakeholder evaluations + 3-model judge panel + what-would-it-take).
+**Pipeline**: Batch unprocessed diplomatic evidence → LLM extraction → validate + deduplicate → insert proposal → run full 8-stage AI evaluation (stakeholder evaluations, domestic audience assessment, red-team stress testing, negotiator amendments, 3-model judge panel, meta-evaluation, diagnosis + what-would-it-take).
+
+**Community proposals** also receive the same full 8-stage evaluation upon admin approval, ensuring parity with AI-generated and auto-extracted proposals.
 
 **Key files**: `artifacts/api-server/src/services/proposal-extractor.ts`
 
