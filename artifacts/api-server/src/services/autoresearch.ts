@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { EventEmitter } from "node:events";
 import { db } from "@workspace/db";
 import {
   cyclesTable,
@@ -60,12 +61,16 @@ let cycleStartedAt: number | null = null;
 let stagesCompleted: string[] = [];
 let lastCycleError: string | null = null;
 
+export const cycleEvents = new EventEmitter();
+cycleEvents.setMaxListeners(100);
+
 function setStage(stage: CycleStage) {
   if (currentStage && currentStage !== "starting" && currentStage !== "failed" && currentStage !== "completed") {
     stagesCompleted.push(currentStage);
   }
   currentStage = stage;
   stageStartedAt = Date.now();
+  cycleEvents.emit("change", getCycleStatus());
 }
 
 export function getCycleStatus(): CycleStatus {
@@ -250,6 +255,7 @@ async function runCycleAsync(cycleId: string): Promise<void> {
     }).where(eq(cyclesTable.id, cycleId));
   } finally {
     runningCycleId = null;
+    cycleEvents.emit("change", getCycleStatus());
   }
 }
 

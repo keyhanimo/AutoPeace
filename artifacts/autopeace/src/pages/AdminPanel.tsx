@@ -13,6 +13,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAdminKey } from "@/hooks/use-admin";
 import { PageHeader, Card, Button, Input, Badge } from "@/components/ui";
+import { useCycleStatus } from "@/components/CycleStatusIndicator";
 import { Lock, Play, Save, LogOut, Loader2, ToggleLeft, ToggleRight, Handshake, GitBranch, Cpu, Zap, CheckCircle2, AlertCircle, Plus, X, Inbox, CheckSquare, XSquare, ShieldAlert, BookOpen, Copy, Check, Activity } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -41,25 +42,7 @@ export default function AdminPanel() {
   const { data: currentDeal } = useGetCurrentDeal();
   const { data: proposalsData, refetch: refetchProposals } = useListProposals();
 
-  type CycleStatusData = {
-    isRunning: boolean;
-    cycleId: string | null;
-    stage: string | null;
-    stageStartedAt: number | null;
-    cycleStartedAt: number | null;
-    stagesCompleted: string[];
-    lastError: string | null;
-  };
-  const { data: cycleStatus } = useQuery<CycleStatusData>({
-    queryKey: ['/api/admin/cycle-status', adminKey],
-    queryFn: async () => {
-      const res = await fetch('/api/admin/cycle-status', { headers: { 'X-Admin-Key': adminKey } });
-      if (!res.ok) throw new Error('Failed to fetch cycle status');
-      return res.json() as Promise<CycleStatusData>;
-    },
-    enabled: !!adminKey,
-    refetchInterval: (query) => (query.state.data?.isRunning ? 5000 : 30000),
-  });
+  const cycleStatus = useCycleStatus();
 
   type DealCycle = {
     cycleId: string; status: string; dealsCount: number;

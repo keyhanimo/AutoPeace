@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { HealthCheckResponse } from "@workspace/api-zod";
-import { getCycleStatus } from "../services/autoresearch";
+import { getCycleStatus, cycleEvents, type CycleStatus } from "../services/autoresearch";
 
 const router: IRouter = Router();
 
@@ -9,13 +9,46 @@ router.get("/healthz", (_req, res) => {
   res.json(data);
 });
 
+function statusPayload(s: CycleStatus) {
+  return {
+    isRunning: s.isRunning,
+    cycleId: s.cycleId,
+    stage: s.stage,
+    stageStartedAt: s.stageStartedAt,
+    cycleStartedAt: s.cycleStartedAt,
+    stagesCompleted: s.stagesCompleted,
+    lastError: s.lastError,
+  };
+}
+
 router.get("/status", (_req, res) => {
-  const status = getCycleStatus();
-  res.json({
-    isRunning: status.isRunning,
-    stage: status.stage,
-    stagesCompleted: status.stagesCompleted,
-    cycleStartedAt: status.cycleStartedAt,
+  res.json(statusPayload(getCycleStatus()));
+});
+
+router.get("/status/stream", (req, res) => {
+  res.writeHead(200, {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
+    "X-Accel-Buffering": "no",
+  });
+
+  const send = (status: CycleStatus) => {
+    res.write(`data: ${JSON.stringify(statusPayload(status))}\n\n`);
+  };
+
+  send(getCycleStatus());
+
+  const onChange = (status: CycleStatus) => send(status);
+  cycleEvents.on("change", onChange);
+
+  const keepAlive = setInterval(() => {
+    res.write(": keepalive\n\n");
+  }, 30_000);
+
+  req.on("close", () => {
+    cycleEvents.off("change", onChange);
+    clearInterval(keepAlive);
   });
 });
 
