@@ -560,9 +560,12 @@ function GlobalSummaryCards() {
 function ChannelBreakdownChart() {
   const data = GLOBAL_CHANNEL_DATA.map(ch => ({
     name: ch.label.split(" & ")[0].split(" (")[0],
-    warCost: ch.warCost,
+    warCost: -ch.warCost,
     peaceBenefit: ch.peaceBenefit,
   }));
+
+  const maxAbsVal = Math.max(...data.flatMap(d => [Math.abs(d.warCost), d.peaceBenefit]));
+  const domainMax = Math.ceil(maxAbsVal / 10) * 10 + 10;
 
   return (
     <Card className="p-6">
@@ -570,20 +573,33 @@ function ChannelBreakdownChart() {
         <BarChart3 className="w-4 h-4 text-primary" />
         Channel-by-Channel Decomposition
       </h3>
-      <p className="text-xs text-muted-foreground mb-4">Annual global impact by economic channel (USD billions). War costs shown in red, peace benefits in green.</p>
-      <div className="h-72">
+      <p className="text-xs text-muted-foreground mb-1">Annual global impact by economic channel (USD billions).</p>
+      <p className="text-xs text-muted-foreground mb-4">
+        <span className="text-red-400 font-medium">← War cost (left)</span> and <span className="text-emerald-400 font-medium">peace benefit (right) →</span>, both from the center zero line.
+      </p>
+      <div className="h-[340px]">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }} barGap={2}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-            <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#94a3b8' }} angle={-30} textAnchor="end" height={60} />
-            <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} label={{ value: 'USD Billions', angle: -90, position: 'insideLeft', style: { fontSize: 10, fill: '#94a3b8' }, offset: 0 }} />
+          <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 0, bottom: 5 }} barGap={3} barCategoryGap="25%">
+            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={false} />
+            <XAxis
+              type="number"
+              domain={[-domainMax, domainMax]}
+              tick={{ fontSize: 10, fill: '#94a3b8' }}
+              tickFormatter={v => `$${Math.abs(v)}B`}
+            />
+            <YAxis dataKey="name" type="category" tick={{ fontSize: 10, fill: '#94a3b8' }} width={100} />
             <Tooltip
               contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', fontSize: '11px', color: '#f8fafc' }}
-              formatter={(v: number, name: string) => [`$${v.toFixed(1)}B`, name === 'warCost' ? 'War Cost' : 'Peace Benefit']}
+              formatter={(v: number, name: string) => {
+                if (name === 'warCost') return [`$${Math.abs(v).toFixed(1)}B/yr`, 'War Cost'];
+                if (name === 'peaceBenefit') return [`$${(v as number).toFixed(1)}B/yr`, 'Peace Benefit'];
+                return [`$${Math.abs(v).toFixed(1)}B`, name];
+              }}
             />
             <Legend formatter={(v: string) => v === 'warCost' ? 'War Cost' : 'Peace Benefit'} wrapperStyle={{ fontSize: 11 }} />
-            <Bar dataKey="warCost" fill="#ef4444" radius={[2, 2, 0, 0]} />
-            <Bar dataKey="peaceBenefit" fill="#10b981" radius={[2, 2, 0, 0]} />
+            <ReferenceLine x={0} stroke="#475569" strokeWidth={1.5} />
+            <Bar dataKey="warCost" name="warCost" fill="#ef4444" radius={[0, 2, 2, 0]} barSize={10} />
+            <Bar dataKey="peaceBenefit" name="peaceBenefit" fill="#10b981" radius={[0, 2, 2, 0]} barSize={10} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -949,14 +965,14 @@ export default function CostsExplorer() {
       <GlobalSummaryCards />
 
 
-      <ChannelBreakdownChart />
-
       <ChannelCards />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ChannelBreakdownChart />
         <StakeholderWaterfallChart stakeholders={STAKEHOLDERS} />
-        <CostTreemap />
       </div>
+
+      <CostTreemap />
 
       <MethodologyNote />
 
