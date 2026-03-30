@@ -203,6 +203,14 @@ const STAKEHOLDERS = [
     communicationStyle: "Cautious US alignment, economic engagement",
   },
   {
+    id: "ukraine", name: "Ukraine", role: "external_power", region: "Europe", flag: "🇺🇦",
+    goals: "End Russian aggression, restore territorial integrity, weaken Russia's military supply chain",
+    redLines: "Any deal legitimizing Russian occupation, Iranian drone supply continuation",
+    preferredOutcomes: "Iran peace reducing Russian access to Iranian military hardware (Shahed drones), weakening Russia's war capacity",
+    constraints: "Active war with Russia, energy infrastructure 40%+ destroyed, Western aid dependency",
+    communicationStyle: "Direct appeals to Western allies, Zelensky personal diplomacy, public accountability framing",
+  },
+  {
     id: "global_north", name: "Global North Bloc", role: "global_bloc", region: "Global", flag: "🌐",
     goals: "Rules-based order, non-proliferation norms, energy price stability",
     redLines: "Nuclear weapons use, mass atrocities",

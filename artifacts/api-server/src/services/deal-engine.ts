@@ -364,6 +364,11 @@ ${previousDiagnosis ? `Previous deal failed because: ${previousDiagnosis}` : "De
 
 Architecture approach: ${architecture}
 
+COST-BENEFIT CONTEXT (annual estimates, USD billions):
+The ongoing conflict costs the world ~$450B/yr in GDP-equivalent losses. A durable peace could generate ~$560B/yr in benefits. Key channels: Trade & Sanctions ($75B war cost, $122B peace gain), Energy Markets ($113B/$133B — includes transfers), Shipping & Insurance ($55B/$69B), Finance & Banking ($55B/$82B), Defense & Security ($72B/$39B), Aviation & Tourism ($30B/$45B), Humanitarian ($28B/$26B), Productivity & FDI ($28B/$56B).
+Most affected: Iran ($87B cost, $142B peace benefit), US ($52B/$38B), Israel ($43B/$35B), Europe ($42B/$55B), China ($35B/$48B).
+Your deal should address the channels where the largest economic gains are achievable and ensure stakeholders who bear the highest costs have clear incentives to participate.
+
 Generate a peace deal JSON with these exact keys:
 {
   "nuclearProtocol": "string describing nuclear terms",
@@ -606,6 +611,8 @@ DEAL SUMMARY (post-negotiator amendments applied):
 STAKEHOLDER RESULTS: ${acceptCount}/${totalStakeholders} accept, ${rejectCount} reject
 RED-TEAM SURVIVAL: ${survivedCount}/${totalRedTeam} attacks survived
 DOMESTIC SELLABILITY: ${domesticSellable}/${domesticTotal} sellable, ${domesticUnsellable} unsellable
+
+ECONOMIC CONTEXT: This conflict costs ~$450B/yr globally. A durable peace could yield ~$560B/yr in benefits — a $1T/yr swing. The largest economic channels are energy markets, trade/sanctions, and finance/banking. Consider whether the deal terms adequately address these economic incentives when scoring regionalStability and feasibility.
 
 Return JSON with scores and rationale for each dimension:
 {

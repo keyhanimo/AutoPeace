@@ -266,15 +266,19 @@ function CostOfWarSection() {
         <div className="flex items-center gap-3">
           <div className="w-0.5 h-8 bg-red-500 rounded-full" />
           <div>
-            <h2 className="text-base font-bold">Cost of War</h2>
-            <p className="text-xs text-muted-foreground">Economic burden across all tracked stakeholders</p>
+            <h2 className="text-base font-bold">Cost-Benefit Analysis</h2>
+            <p className="text-xs text-muted-foreground">War costs vs. peace benefits across stakeholders</p>
           </div>
         </div>
-        <div className="text-right">
-          <div className="text-2xl font-display font-bold text-red-400">
-            ${(totalUsd / 1e9).toFixed(1)}B
+        <div className="flex gap-4 text-right">
+          <div>
+            <div className="text-xl font-display font-bold text-red-400">$466B</div>
+            <div className="text-[10px] text-muted-foreground uppercase tracking-widest">War Cost/yr</div>
           </div>
-          <div className="text-[10px] text-muted-foreground uppercase tracking-widest">Total Est. USD</div>
+          <div>
+            <div className="text-xl font-display font-bold text-emerald-400">$576B</div>
+            <div className="text-[10px] text-muted-foreground uppercase tracking-widest">Peace Gain/yr</div>
+          </div>
         </div>
       </div>
 
@@ -299,15 +303,12 @@ function CostOfWarSection() {
           })}
         </div>
 
-      {topCost && (
-        <p className="text-[10px] text-muted-foreground mt-4 italic border-t border-border/50 pt-3">
-          Largest burden: <strong className="text-foreground">{topCost.stakeholderId}</strong> — Economic cost ${(topCost.economic.totalUsd / 1e9).toFixed(1)}B
-          {topCost.humanitarian.casualtiesEstimate ? `, ~${topCost.humanitarian.casualtiesEstimate.toLocaleString()} casualties est.` : ''}
-        </p>
-      )}
+      <p className="text-[10px] text-muted-foreground mt-4 italic border-t border-border/50 pt-3">
+        A durable peace could swing the global economy by over <strong className="text-amber-400">$1T/yr</strong> — through trade normalization, energy risk reduction, shipping/insurance savings, and restored investment confidence.
+      </p>
 
       <div className="mt-3 text-right">
-        <Link to="/costs" className="text-xs text-primary hover:underline underline-offset-2">Explore all costs →</Link>
+        <Link to="/costs" className="text-xs text-primary hover:underline underline-offset-2">Full cost-benefit analysis →</Link>
       </div>
     </Card>
   );
