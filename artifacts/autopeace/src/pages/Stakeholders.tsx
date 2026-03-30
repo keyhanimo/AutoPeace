@@ -3,6 +3,7 @@ import { useListStakeholders, type Stakeholder } from "@workspace/api-client-rea
 import { Card, PageHeader, Badge } from "@/components/ui";
 import { Users, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2, Shield } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { DataSourceNote } from "@/components/DataSourceNote";
 
 const STAKEHOLDER_ICONS: Record<string, string> = {
   "us-government": "🇺🇸",
@@ -180,6 +181,23 @@ export default function Stakeholders() {
           ))}
         </div>
       )}
+
+      <DataSourceNote
+        compact
+        title="Stakeholder Data Sources"
+        methodology="Stakeholder profiles are compiled from academic and policy literature. Goals, red lines, constraints, and preferred outcomes are derived from official government positions, think tank analyses (ICG, IISS, Brookings, CSIS), and published diplomatic frameworks. Communication styles reflect documented negotiation patterns. Profiles are seeded in the database and updated when significant policy shifts occur."
+        sources={[
+          { label: "International Crisis Group (ICG)", detail: "Conflict analysis and policy briefs" },
+          { label: "IISS", detail: "International Institute for Strategic Studies — strategic assessments" },
+          { label: "Brookings Institution", detail: "US foreign policy analysis" },
+          { label: "CSIS", detail: "Center for Strategic and International Studies" },
+          { label: "Official government statements", detail: "State Department, MOFA Iran, Israeli MFA, etc." },
+        ]}
+        limitations={[
+          "Profiles represent simplified models of complex institutional actors. Internal factional dynamics are not fully captured.",
+          "Red lines and goals may shift with leadership changes — profiles require periodic manual review.",
+        ]}
+      />
     </div>
   );
 }

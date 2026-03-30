@@ -3,6 +3,7 @@ import { useListEvidence, type EvidenceItem } from "@workspace/api-client-react"
 import { Card, PageHeader, Badge, Button } from "@/components/ui";
 import { Search, Filter, ExternalLink, ChevronDown, ChevronUp, Newspaper, Shield, DollarSign, Heart, Globe, Calendar, Users, TrendingUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { DataSourceNote } from "@/components/DataSourceNote";
 
 const TYPE_ICONS: Record<string, React.ReactNode> = {
   military: <Shield className="w-3 h-3" />,
@@ -365,6 +366,27 @@ export default function EvidenceExplorer() {
           )}
         </>
       )}
+
+      <DataSourceNote
+        compact
+        title="Evidence Corpus Methodology"
+        methodology="Evidence items are ingested from 5 RSS feeds (Reuters, AP, Guardian, BBC, Al Jazeera), ACLED conflict event data, and GDELT global event database. Items are filtered by Iran-conflict keywords (nuclear, IRGC, sanctions, Hormuz, Hezbollah, etc.), deduplicated by URL hash, and classified by type (military, diplomatic, economic, humanitarian) using NLP. Items that directly influenced a forecast cycle are marked with an 'Influenced forecast' badge and linked to the specific cycle."
+        sources={[
+          { label: "Reuters", detail: "Wire service — global diplomatic/military coverage" },
+          { label: "AP News", detail: "Wire service — verified breaking news" },
+          { label: "The Guardian", detail: "Analysis and investigative reporting" },
+          { label: "BBC News", detail: "Global broadcast journalism" },
+          { label: "Al Jazeera", detail: "Middle East regional coverage" },
+          { label: "ACLED", detail: "Armed Conflict Location & Event Data Project" },
+          { label: "GDELT", detail: "Global Database of Events, Language, and Tone" },
+        ]}
+        limitations={[
+          "English-language sources only. Persian, Arabic, and Hebrew primary sources are not directly ingested.",
+          "Classification by evidence type is automated (LLM-based) and may contain errors.",
+          "Source selection introduces potential Western media bias — regional and non-English sources are underrepresented.",
+        ]}
+        updateFrequency="Each research cycle (configurable: hourly/daily/weekly)"
+      />
     </div>
   );
 }

@@ -456,6 +456,8 @@ export async function startScheduler(): Promise<void> {
     const now = new Date();
     const hour = now.getUTCHours();
 
+    if (cadence === "manual") return;
+
     if (cadence === "hourly") {
       await runCycleNow();
     } else if (cadence === "daily" && hour === 6) {

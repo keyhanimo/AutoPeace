@@ -12,6 +12,7 @@ import {
   LineChart, Line, Legend, ReferenceLine, ScatterChart, Scatter, CartesianGrid,
 } from "recharts";
 import { AlertCircle, Clock, CheckCircle2, FileText, Target, TrendingUp, BarChart2, Users, Zap, Send } from "lucide-react";
+import { DataSourceNote, DataFreshness } from "@/components/DataSourceNote";
 
 const TIME_HORIZONS = ['30d', '90d', '180d', '1y'] as const;
 
@@ -812,6 +813,26 @@ export default function ForecastDashboard() {
             <CalibrationScorecard forecasts={allForecasts} />
             <PredictionMarketComparison activeForecast={activeForecast} />
           </div>
+
+          <DataSourceNote
+            title="Forecasting Methodology & Sources"
+            methodology="Forecasts are generated using a Bayesian multi-model pipeline. Claude produces initial probability distributions across 8 mutually exclusive, collectively exhaustive (MECE) outcome states for 4 time horizons (30d, 90d, 180d, 1y). Gemini red-teams the 90d forecast with adversarial mutations. GPT-4o evaluates whether mutations improve calibration. Only mutations that pass evaluation are retained (Hill Climbing optimization). Probabilities are conditioned on the 30 most recent evidence items from RSS feeds (Reuters, AP, Guardian, BBC, Al Jazeera), ACLED, and GDELT."
+            sources={[
+              { label: "Evidence corpus", detail: "RSS (Reuters, AP, Guardian, BBC, Al Jazeera), ACLED conflict data, GDELT event database" },
+              { label: "Forecasting model", detail: "Anthropic Claude (base forecast generation)" },
+              { label: "Red-team model", detail: "Google Gemini (adversarial challenge)" },
+              { label: "Evaluation model", detail: "OpenAI GPT-4o (mutation quality assessment)" },
+              { label: "Calibration metric", detail: "Brier score — quadratic scoring rule for probabilistic accuracy" },
+            ]}
+            confidenceNote={`Shannon entropy: ${uncertaintyRange?.entropy ?? '—'} bits. Higher entropy indicates greater uncertainty across outcomes. Entropy of 3.0 (uniform over 8 states) means maximum uncertainty; values near 0 indicate high confidence in a single outcome.`}
+            limitations={[
+              "AI-generated probabilities — not validated against realized outcomes at scale. Brier scores measure internal consistency, not ground truth calibration.",
+              "Evidence ingestion is limited to English-language sources. Persian, Arabic, and Hebrew sources are not directly analyzed.",
+              "Prediction market comparison uses static snapshot data (Dec 2024) and is not live-linked.",
+            ]}
+            lastUpdated={activeForecast.createdAt}
+            updateFrequency="Each research cycle (configurable: hourly/daily/weekly)"
+          />
         </>
       )}
     </div>

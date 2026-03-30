@@ -118,6 +118,22 @@ Scheduler: hourly cron check, runs at UTC 6am daily by default.
 | `/methodology` | Methodology — Bayesian approach, 8-state MECE taxonomy |
 | `/admin` | Admin Panel — password-gated (X-Admin-Key); model/provider config, proposal management, deal engine trigger |
 
+## Academic Rigor & Data Sourcing
+
+All 10 data-displaying pages have peer-reviewed academic-standard sourcing:
+
+**Reusable components** (`artifacts/autopeace/src/components/DataSourceNote.tsx`):
+- `DataSourceNote` — expandable methodology panel with title, methodology, sources list, confidence notes, limitations, last-updated timestamp
+- `DataFreshness` — inline data freshness indicator
+
+**Coverage**: Home, ForecastDashboard, DealDashboard, ProposalArena, StakeholderLens, StakeholderComparison, Stakeholders, ExperimentLog, EvidenceExplorer all use `DataSourceNote`. CostsExplorer has its own extensive built-in `MethodologyNote` and `HumanitarianBanner` with full attribution methodology and source citations.
+
+**Auto-update pipeline** (`artifacts/api-server/src/services/autoresearch.ts`):
+- Hourly cron scheduler reads cadence from admin config (`getConfigValue("cadence", "daily")`)
+- Cadence options: hourly (every tick), daily (06:00 UTC), weekly (Monday 06:00 UTC), manual (no auto-run)
+- Admin panel dropdown (`AdminPanel.tsx`) shows descriptive labels with helper text explaining the pipeline
+- Pipeline: RSS/ACLED/GDELT ingestion → multi-model forecasting → deal evaluation refresh
+
 ## Phase 3 — Interactive Explorer & Community
 
 **New DB tables**: `community_forecasts`, `proposal_submissions`

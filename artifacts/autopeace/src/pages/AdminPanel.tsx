@@ -339,17 +339,18 @@ export default function AdminPanel() {
             <h3 className="text-lg font-bold mb-4 border-b border-border/50 pb-2">Pipeline Configuration</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground">Cadence</label>
+                <label className="text-sm font-medium text-muted-foreground">Auto-Update Frequency</label>
                 <select 
                   className="w-full h-10 border border-border bg-background/50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   value={formData.cadence ?? 'daily'}
                   onChange={e => setFormData({...formData, cadence: e.target.value as AdminConfigResponse['cadence']})}
                 >
-                  <option value="hourly">Hourly</option>
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="manual">Manual Only</option>
+                  <option value="hourly">Hourly — ingest news & update forecasts every hour</option>
+                  <option value="daily">Daily — run at 6:00 AM UTC each day</option>
+                  <option value="weekly">Weekly — run Mondays at 6:00 AM UTC</option>
+                  <option value="manual">Manual Only — no automatic updates</option>
                 </select>
+                <p className="text-[10px] text-muted-foreground leading-relaxed">Controls how often the autoresearch pipeline runs: ingests new evidence from RSS/ACLED/GDELT, updates forecasts via multi-model pipeline, and refreshes deal evaluations. All data on the platform updates with each cycle.</p>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-muted-foreground">Budget Cap (USD)</label>

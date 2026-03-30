@@ -19,6 +19,7 @@ import {
   ExternalLink, ChevronDown, ChevronUp, Globe, TrendingUp, Target, Code, Brain,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { DataSourceNote } from "@/components/DataSourceNote";
 
 const SCORE_DIMENSIONS: { key: keyof DealScores; label: string; color: string; weight: number; description: string }[] = [
   { key: "feasibility", label: "Feasibility", color: "#10b981", weight: 0.20, description: "Likelihood the deal gets signed by all parties" },
@@ -686,6 +687,21 @@ export default function ProposalArena() {
             ))}
           </div>
         )}
+
+        <DataSourceNote
+          title="Proposal Evaluation Methodology"
+          methodology="Each proposal is evaluated by a 3-model judge panel (Anthropic, OpenAI, Gemini) scoring 7 dimensions. The composite score is a weighted average: Feasibility (20%), Domestic Sellability (20%), Coherence (15%), Regional Stability (15%), Evidence Grounding (10%), Implementability (10%), Durability (10%). Stakeholder verdicts are simulated based on each actor's documented goals, red lines, and constraints. 'What Would It Take' analysis identifies minimum viable changes for rejecting stakeholders."
+          sources={[
+            { label: "Judge panel", detail: "3 independent LLM providers score each dimension independently" },
+            { label: "Stakeholder profiles", detail: "Goals, red lines, and constraints from academic/policy sources" },
+            { label: "Scoring weights", detail: "Calibrated to prioritize political feasibility and domestic sellability" },
+          ]}
+          confidenceNote="Multi-model scoring reduces single-model bias. Standard deviation across judges measures inter-model agreement — high deviation flags contentious dimensions."
+          limitations={[
+            "AI-simulated evaluations — not validated against real diplomatic negotiation outcomes.",
+            "Proposals from external sources (US 15-point, Iran 5-point) are evaluated with the same pipeline as AI-generated deals.",
+          ]}
+        />
       </div>
     </div>
   );

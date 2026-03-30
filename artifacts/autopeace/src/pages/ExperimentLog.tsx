@@ -3,6 +3,7 @@ import { useListExperiments, useGetExperimentStats } from "@workspace/api-client
 import { PageHeader, Card, Badge, Button } from "@/components/ui";
 import { formatUsd } from "@/lib/utils";
 import { CheckCircle2, XCircle, Cpu, Coins, ChevronLeft, ChevronRight, Search, Filter } from "lucide-react";
+import { DataSourceNote } from "@/components/DataSourceNote";
 
 type TaskFilter = "all" | "A" | "B" | "both";
 type RetainedFilter = "all" | "true" | "false";
@@ -205,6 +206,18 @@ export default function ExperimentLog() {
           </div>
         </div>
       </Card>
+
+      <DataSourceNote
+        compact
+        title="Evolution Methodology"
+        methodology="Each research cycle, the agent mutates its own prompt instructions (optimistic, pessimistic, or base-rate adjustments). Gemini generates the mutation; GPT-4o evaluates whether the mutated prompt produces better Brier scores than the current champion. Only mutations that improve calibration are retained. Retention rate measures the fraction of mutations accepted. Cost is computed from actual token usage at per-provider pricing."
+        sources={[
+          { label: "Mutation types", detail: "Optimistic bias, Pessimistic bias, Base-rate anchoring" },
+          { label: "Evaluation metric", detail: "Brier score (quadratic proper scoring rule)" },
+          { label: "Cost accounting", detail: "Actual token usage × provider pricing (Anthropic, OpenAI, Gemini)" },
+        ]}
+        limitations={["Brier scores are computed against the model's own prior — not external ground truth outcomes."]}
+      />
     </div>
   );
 }

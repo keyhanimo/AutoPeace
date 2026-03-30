@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { useListStakeholders, useGetCurrentDeal, useListCosts, type Stakeholder } from "@workspace/api-client-react";
 import { Card, PageHeader, Badge } from "@/components/ui";
 import { CheckCircle2, XCircle, AlertTriangle, Users, Share2, DollarSign } from "lucide-react";
+import { DataSourceNote } from "@/components/DataSourceNote";
 
 const VERDICT_ICONS: Record<string, React.ReactNode> = {
   accept: <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" aria-label="Accept" />,
@@ -405,6 +406,18 @@ export default function StakeholderComparison() {
           </Card>
         </div>
       )}
+
+      <DataSourceNote
+        compact
+        title="Comparison Methodology"
+        methodology="Side-by-side comparison uses data from the stakeholder profiles database, the deal evaluation pipeline (verdicts, red-line violations, conditions), and the CBA economic model (cost data for Iran/US/Israel from DB; other stakeholders from client-side model). All scores are AI-generated through the multi-agent pipeline."
+        sources={[
+          { label: "Stakeholder profiles", detail: "Database-seeded from ICG, IISS, Brookings analyses" },
+          { label: "Deal verdicts", detail: "Multi-agent pipeline evaluation (Claude/GPT-4o/Gemini)" },
+          { label: "Cost data", detail: "IMF WEO 2024 + modeled war-peace estimates" },
+        ]}
+        limitations={["Comparison is limited to current deal and proposal evaluations — no historical trend comparison across deal iterations."]}
+      />
     </div>
   );
 }
