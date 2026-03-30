@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { ArrowRight, Crosshair, Cpu, TrendingDown, Gauge, Handshake, Swords, Trophy, Users } from "lucide-react";
 import { useGetExperimentStats, useGetLatestForecasts, useListCosts, useGetCurrentDeal, useListProposals, type Forecast, type DealScores, type Proposal } from "@workspace/api-client-react";
 import { Card, Button, Badge } from "@/components/ui";
@@ -74,53 +74,6 @@ function AIvsHumanChart({ aiDeal, humanProposals }: { aiDeal: { scores: unknown;
   );
 }
 
-const TICKER_ITEMS = [
-  "Anthropic Claude generating 90-day forecasts...",
-  "Gemini red-teaming optimistic scenario...",
-  "OpenAI GPT-4o evaluating champion...",
-  "Ingesting GDELT articles...",
-  "Computing Brier scores against 2024 backtest...",
-  "Hill-climbing: challenger retained as champion",
-  "Storing forecast probabilities to DB...",
-];
-
-function LiveTicker() {
-  const [idx, setIdx] = useState(0);
-  const [visible, setVisible] = useState(true);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setVisible(false);
-      setTimeout(() => {
-        setIdx(i => (i + 1) % TICKER_ITEMS.length);
-        setVisible(true);
-      }, 400);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <div className="flex items-center gap-2 px-3 bg-primary/5 border-l-2 border-l-primary text-xs text-primary font-mono w-full h-8 overflow-hidden">
-      <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse shrink-0" />
-      <div className="relative flex-1 h-full overflow-hidden">
-        <AnimatePresence mode="wait">
-          {visible && (
-            <motion.span
-              key={idx}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.3 }}
-              className="absolute inset-0 flex items-center truncate"
-            >
-              {TICKER_ITEMS[idx]}
-            </motion.span>
-          )}
-        </AnimatePresence>
-      </div>
-    </div>
-  );
-}
 
 function calculatePeaceProbability(forecasts: Forecast[]): number {
   if (!forecasts || forecasts.length === 0) return 0;
@@ -427,16 +380,15 @@ export default function Home() {
             <p className="text-lg text-muted-foreground max-w-xl">
               AutoPeace continuously generates and stress-tests peace proposals for the Iran conflict using a multi-agent AI pipeline — then scores them against real-world human proposals on the same 7 dimensions. See how they compare.
             </p>
-            <LiveTicker />
-            <div className="flex flex-wrap gap-4 pt-2">
+            <div className="flex flex-wrap gap-3">
               <Link to="/arena">
-                <Button size="lg" className="w-full sm:w-auto gap-2 rounded-sm">
-                  Compare in Proposal Arena <ArrowRight className="w-5 h-5" />
+                <Button size="sm" className="gap-1.5 rounded-sm">
+                  Proposal Arena <ArrowRight className="w-4 h-4" />
                 </Button>
               </Link>
               <Link to="/methodology">
-                <Button variant="outline" size="lg" className="w-full sm:w-auto bg-background/50 backdrop-blur-sm rounded-sm">
-                  Read Methodology
+                <Button variant="outline" size="sm" className="bg-background/50 backdrop-blur-sm rounded-sm">
+                  Methodology
                 </Button>
               </Link>
             </div>
