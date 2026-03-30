@@ -195,9 +195,6 @@ function CommunityForecastPanel({ activeForecast }: { activeForecast: Forecast }
 
   const baseProbs = getProbs(activeForecast);
 
-  const total = Object.values(estimates).reduce((a, b) => a + b, 0);
-  const remainder = parseFloat((100 - total).toFixed(1));
-
   const chartData = useMemo(() => {
     if (!data?.aggregated) return [];
     return CATEGORIES.map(cat => ({
@@ -209,11 +206,30 @@ function CommunityForecastPanel({ activeForecast }: { activeForecast: Forecast }
   }, [data, baseProbs]);
 
   const handleEstimateChange = (key: string, val: number) => {
-    setEstimates(prev => ({ ...prev, [key]: Math.max(0, Math.min(100, val)) }));
+    const clamped = Math.max(0, Math.min(100, isNaN(val) ? 0 : val));
+    setEstimates(prev => {
+      const remaining = parseFloat((100 - clamped).toFixed(1));
+      const otherKeys = CATEGORIES.map(c => c.key).filter(k => k !== key);
+      const othersTotal = otherKeys.reduce((sum, k) => sum + (prev[k] ?? 0), 0);
+      const next: Record<string, number> = { ...prev, [key]: clamped };
+      if (othersTotal === 0) {
+        const share = parseFloat((remaining / otherKeys.length).toFixed(1));
+        for (const k of otherKeys) next[k] = share;
+      } else {
+        for (const k of otherKeys) {
+          next[k] = parseFloat(((prev[k] ?? 0) / othersTotal * remaining).toFixed(1));
+        }
+      }
+      const drift = parseFloat((100 - Object.values(next).reduce((a, b) => a + b, 0)).toFixed(1));
+      if (drift !== 0) {
+        const anchor = otherKeys.find(k => (next[k] ?? 0) + drift >= 0) ?? otherKeys[0];
+        if (anchor) next[anchor] = parseFloat(((next[anchor] ?? 0) + drift).toFixed(1));
+      }
+      return next;
+    });
   };
 
   const handleSubmit = async () => {
-    if (Math.abs(remainder) > 0.5) return;
     try {
       await mutateAsync({ data: { sessionId, timeHorizon: horizon, estimates } });
       markSubmitted(horizon);
@@ -311,9 +327,9 @@ function CommunityForecastPanel({ activeForecast }: { activeForecast: Forecast }
               One submission per person per time horizon per day.
             </p>
           </div>
-          <div className={`flex items-center justify-between mb-2 text-xs ${Math.abs(remainder) <= 0.5 ? "text-emerald-400" : "text-amber-400"}`}>
-            <span>Allocate probability across 8 outcomes</span>
-            <span className="font-mono font-bold">{total.toFixed(1)}% / 100%</span>
+          <div className="flex items-center justify-between mb-2 text-xs text-emerald-400">
+            <span className="text-muted-foreground">Drag a bar — the rest adjust automatically</span>
+            <span className="font-mono font-bold">100% ✓</span>
           </div>
           {CATEGORIES.map(cat => (
             <div key={cat.key} className="flex items-center gap-2">
@@ -346,12 +362,12 @@ function CommunityForecastPanel({ activeForecast }: { activeForecast: Forecast }
           )}
           <button
             onClick={handleSubmit}
-            disabled={isPending || Math.abs(remainder) > 0.5}
+            disabled={isPending}
             className="mt-2 w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-primary/20 border border-primary/40 text-primary text-xs font-medium hover:bg-primary/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Submit community forecast"
           >
             {isPending ? <span className="w-3 h-3 rounded-full border-2 border-current border-t-transparent animate-spin" /> : <Send className="w-3 h-3" />}
-            {Math.abs(remainder) > 0.5 ? `Adjust to reach 100% (${remainder > 0 ? "+" : ""}${remainder.toFixed(1)}%)` : "Submit Forecast"}
+            Submit Forecast
           </button>
         </div>
       )}
