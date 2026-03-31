@@ -23,11 +23,55 @@ export async function getRecentEvidenceSummary(): Promise<string> {
     const items = await db.select({
       title: evidenceItemsTable.title,
       text: evidenceItemsTable.text,
+      publishedAt: evidenceItemsTable.publishedAt,
+      evidenceType: evidenceItemsTable.evidenceType,
+      source: evidenceItemsTable.source,
     })
       .from(evidenceItemsTable)
       .orderBy(desc(evidenceItemsTable.publishedAt))
       .limit(30);
-    return items.map(i => `${i.title}: ${i.text?.slice(0, 150)}`).join("\n");
+
+    if (items.length === 0) return "";
+
+    const grouped: Record<string, typeof items> = {};
+    for (const item of items) {
+      const type = item.evidenceType || "other";
+      if (!grouped[type]) grouped[type] = [];
+      grouped[type]!.push(item);
+    }
+
+    const dateRange = (() => {
+      const dates = items.filter(i => i.publishedAt).map(i => new Date(i.publishedAt!));
+      if (dates.length === 0) return "";
+      const newest = new Date(Math.max(...dates.map(d => d.getTime())));
+      const oldest = new Date(Math.min(...dates.map(d => d.getTime())));
+      const fmt = (d: Date) => d.toISOString().slice(0, 10);
+      return ` covering ${fmt(oldest)} to ${fmt(newest)}`;
+    })();
+
+    const typeOrder = ["military", "diplomatic", "economic", "humanitarian", "other"];
+    const typeLabels: Record<string, string> = {
+      military: "MILITARY & SECURITY",
+      diplomatic: "DIPLOMATIC & POLITICAL",
+      economic: "ECONOMIC & SANCTIONS",
+      humanitarian: "HUMANITARIAN",
+      other: "OTHER",
+    };
+
+    let summary = `RECENT GEOPOLITICAL INTELLIGENCE BRIEFING (${items.length} items${dateRange}):\n`;
+
+    for (const type of typeOrder) {
+      const group = grouped[type];
+      if (!group || group.length === 0) continue;
+      summary += `\n${typeLabels[type] ?? type.toUpperCase()} (${group.length}):\n`;
+      for (const item of group) {
+        const date = item.publishedAt ? new Date(item.publishedAt).toISOString().slice(0, 10) : "undated";
+        const snippet = item.text?.slice(0, 120)?.replace(/\n/g, " ") ?? "";
+        summary += `- [${date}] ${item.title}${snippet ? ". " + snippet : ""}\n`;
+      }
+    }
+
+    return summary.trim();
   } catch (err) {
     logger.warn({ error: err instanceof Error ? err.message : String(err) }, "Failed to retrieve recent evidence summary — evaluation stages will proceed without evidence context");
     return "";
