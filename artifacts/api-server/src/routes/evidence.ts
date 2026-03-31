@@ -7,6 +7,36 @@ import { sendValidated } from "../lib/validate-response";
 
 const router = Router();
 
+router.get("/evidence/summary", async (_req, res) => {
+  try {
+    const items = await db.select({
+      title: evidenceItemsTable.title,
+      text: evidenceItemsTable.text,
+      publishedAt: evidenceItemsTable.publishedAt,
+      evidenceType: evidenceItemsTable.evidenceType,
+      source: evidenceItemsTable.source,
+    })
+      .from(evidenceItemsTable)
+      .orderBy(desc(evidenceItemsTable.publishedAt))
+      .limit(30);
+
+    const summary = items.map(i => `${i.title}: ${i.text?.slice(0, 150)}`).join("\n");
+    res.json({
+      summary,
+      itemCount: items.length,
+      items: items.map(i => ({
+        title: i.title,
+        snippet: i.text?.slice(0, 150) ?? "",
+        publishedAt: i.publishedAt,
+        evidenceType: i.evidenceType,
+        source: i.source,
+      })),
+    });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
 router.get("/evidence", async (req, res) => {
   try {
     const limit = Math.min(Number(req.query["limit"]) || 20, 100);

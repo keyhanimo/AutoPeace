@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useListEvidence, type EvidenceItem } from "@workspace/api-client-react";
 import { Card, PageHeader, Badge, Button } from "@/components/ui";
-import { Search, Filter, ExternalLink, ChevronDown, ChevronUp, Newspaper, Shield, DollarSign, Heart, Globe, Calendar, Users, TrendingUp } from "lucide-react";
+import { Search, Filter, ExternalLink, ChevronDown, ChevronUp, Newspaper, Shield, DollarSign, Heart, Globe, Calendar, Users, TrendingUp, FileText, Copy, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { DataSourceNote } from "@/components/DataSourceNote";
 
@@ -118,6 +118,108 @@ function EvidenceCard({ item }: { item: EvidenceItem }) {
   );
 }
 
+type SummaryItem = {
+  title: string;
+  snippet: string;
+  publishedAt: string | null;
+  evidenceType: string;
+  source: string;
+};
+
+function EvidenceSummaryPanel() {
+  const [data, setData] = useState<{ summary: string; itemCount: number; items: SummaryItem[] } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    const base = window.location.origin + import.meta.env.BASE_URL.replace(/\/$/, "");
+    fetch(`${base}/api/evidence/summary`)
+      .then(r => r.json())
+      .then(d => { setData(d); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const handleCopy = () => {
+    if (!data?.summary) return;
+    navigator.clipboard.writeText(data.summary).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  if (loading) {
+    return (
+      <Card className="p-5 animate-pulse">
+        <div className="h-5 w-48 bg-secondary/60 rounded mb-3" />
+        <div className="h-24 bg-secondary/40 rounded" />
+      </Card>
+    );
+  }
+
+  if (!data || data.itemCount === 0) return null;
+
+  return (
+    <Card className="p-5 border-primary/20">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <FileText className="w-4 h-4 text-primary" />
+          <h2 className="text-sm font-bold text-foreground">Pipeline Evidence Context</h2>
+          <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-primary/30 text-primary">
+            {data.itemCount} items
+          </Badge>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={handleCopy}
+            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-secondary/60 transition-colors"
+            title="Copy raw summary text"
+          >
+            {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+            {copied ? "Copied" : "Copy"}
+          </button>
+          <button
+            onClick={() => setExpanded(v => !v)}
+            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-secondary/60 transition-colors"
+          >
+            {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+            {expanded ? "Collapse" : "Expand"}
+          </button>
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground mb-3">
+        This is the evidence summary currently injected into all deal evaluation stages (stakeholder evaluation, domestic audience assessment, red-team stress testing, and judge panel scoring). It contains the 30 most recent evidence items.
+      </p>
+      {expanded ? (
+        <div className="space-y-1.5 max-h-[400px] overflow-y-auto">
+          {data.items.map((item, i) => (
+            <div key={i} className="flex items-start gap-2 text-xs p-2 rounded-lg bg-secondary/30 border border-border/30">
+              <span className={`shrink-0 mt-0.5 ${TYPE_COLORS[item.evidenceType] ?? "text-muted-foreground"}`}>
+                {TYPE_ICONS[item.evidenceType] ?? <Newspaper className="w-3 h-3" />}
+              </span>
+              <div className="min-w-0 flex-1">
+                <span className="font-medium text-foreground">{item.title}</span>
+                {item.snippet && <span className="text-muted-foreground">: {item.snippet}</span>}
+                <div className="flex gap-2 mt-0.5 text-[10px] text-muted-foreground/70">
+                  {item.source && <span>{item.source}</span>}
+                  {item.publishedAt && <span>{new Date(item.publishedAt).toLocaleDateString()}</span>}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-xs text-muted-foreground bg-secondary/20 rounded-lg p-3 font-mono leading-relaxed max-h-[120px] overflow-hidden relative">
+          <div className="whitespace-pre-wrap">{data.summary.slice(0, 500)}{data.summary.length > 500 ? "…" : ""}</div>
+          {data.summary.length > 500 && (
+            <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-secondary/80 to-transparent" />
+          )}
+        </div>
+      )}
+    </Card>
+  );
+}
+
 export default function EvidenceExplorer() {
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
@@ -228,6 +330,8 @@ export default function EvidenceExplorer() {
           {items.length} items
         </Badge>
       </PageHeader>
+
+      <EvidenceSummaryPanel />
 
       <div className="flex flex-col gap-3">
         <div className="relative">
