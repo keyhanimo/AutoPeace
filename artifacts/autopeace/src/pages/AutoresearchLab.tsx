@@ -95,8 +95,7 @@ function ImprovementTimeline() {
 }
 
 function ChampionLineage() {
-  const [taskFilter, setTaskFilter] = useState<"all" | "A" | "B">("all");
-  const { data, isLoading } = useGetChampionLineage({ task: taskFilter, limit: 30 });
+  const { data, isLoading } = useGetChampionLineage({ task: "all", limit: 30 });
 
   if (isLoading) return <div className="text-sm text-muted-foreground animate-pulse py-8 text-center">Loading lineage...</div>;
 
@@ -104,23 +103,12 @@ function ChampionLineage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2 bg-secondary/30 p-1 rounded-sm">
-          {(["all", "A", "B"] as const).map(t => (
-            <button
-              key={t}
-              onClick={() => setTaskFilter(t)}
-              className={`px-3 py-1.5 text-xs font-medium transition-colors rounded-sm ${
-                taskFilter === t ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {t === "all" ? "All Tasks" : t === "A" ? "Forecasting" : "Deals"}
-            </button>
-          ))}
-        </div>
-        <div className="text-xs text-muted-foreground">
+      <div className="flex items-center gap-2">
+        <Trophy className="w-4 h-4 text-primary" />
+        <span className="text-sm font-bold uppercase tracking-wider">Retained Champions</span>
+        <span className="text-xs text-muted-foreground ml-2">
           <span className="font-bold text-foreground">{data?.totalRetained ?? 0}</span> retained / <span className="font-bold text-foreground">{data?.totalExperiments ?? 0}</span> total
-        </div>
+        </span>
       </div>
 
       {champions.length === 0 ? (
@@ -158,7 +146,7 @@ function ChampionLineage() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <Badge variant="outline" className={`text-[9px] ${c.task === "A" ? "border-blue-500/40 text-blue-400" : c.task === "both" ? "border-violet-500/40 text-violet-400" : "border-amber-500/40 text-amber-400"}`}>
-                          {c.task === "A" ? "Forecast" : c.task === "both" ? "Both" : "Deal"}
+                          {c.task === "A" ? "Forecast" : c.task === "both" ? "Forecast + Deal" : "Deal"}
                         </Badge>
                         <span className="text-[10px] text-muted-foreground font-mono">#{c.cycleId.slice(0, 8)}</span>
                         {improvement !== null && (
