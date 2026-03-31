@@ -163,7 +163,7 @@ export default function Home() {
                 Can AI Design a <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-primary">Better Peace Deal</span> Than Humans?
               </h1>
               <p className="text-sm text-muted-foreground max-w-lg">
-                AutoPeace continuously generates and stress-tests peace proposals for the Iran conflict using a multi-agent AI pipeline — then scores them against real-world human proposals on the same 7 dimensions.
+                AutoPeace uses multi-agent AI systems to continuously forecast conflict outcomes, generate novel peace proposals, and rigorously evaluate them through a 9-stage pipeline of adversarial stress-testing, stakeholder simulation, and independent judicial scoring — then crafts tailored strategies for selling each proposal to 23 different stakeholders.
               </p>
               <div className="flex flex-wrap gap-2">
                 <Link to="/deals">
