@@ -61,10 +61,10 @@ function ImprovementTimeline() {
           <h3 className="text-sm font-bold uppercase tracking-wider">Forecast Score Over Time</h3>
         </div>
         {forecastChartData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={280}>
+          <ResponsiveContainer width="100%" height={340}>
             <LineChart data={forecastChartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-              <XAxis dataKey="label" tick={(props: any) => { const { x, y, payload } = props; return (<g transform={`translate(${x},${y})`}><text x={0} y={0} dy={12} textAnchor="end" fill="hsl(var(--muted-foreground))" fontSize={9} transform="rotate(-35)">{payload.value}</text></g>); }} height={50} stroke="hsl(var(--muted-foreground))" />
+              <XAxis dataKey="label" tick={(props: any) => { const { x, y, payload } = props; return (<g transform={`translate(${x},${y})`}><text x={0} y={0} dy={12} textAnchor="end" fill="hsl(var(--muted-foreground))" fontSize={9} transform="rotate(-35)">{payload.value}</text></g>); }} height={80} stroke="hsl(var(--muted-foreground))" />
               <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" domain={["auto", "auto"]} />
               <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 4, fontSize: 12 }} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
@@ -83,10 +83,10 @@ function ImprovementTimeline() {
           <h3 className="text-sm font-bold uppercase tracking-wider">Deal Composite Score Over Time</h3>
         </div>
         {dealChartData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={280}>
+          <ResponsiveContainer width="100%" height={340}>
             <BarChart data={dealChartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-              <XAxis dataKey="label" tick={(props: any) => { const { x, y, payload } = props; return (<g transform={`translate(${x},${y})`}><text x={0} y={0} dy={12} textAnchor="end" fill="hsl(var(--muted-foreground))" fontSize={9} transform="rotate(-35)">{payload.value}</text></g>); }} height={50} stroke="hsl(var(--muted-foreground))" />
+              <XAxis dataKey="label" tick={(props: any) => { const { x, y, payload } = props; return (<g transform={`translate(${x},${y})`}><text x={0} y={0} dy={12} textAnchor="end" fill="hsl(var(--muted-foreground))" fontSize={9} transform="rotate(-35)">{payload.value}</text></g>); }} height={80} stroke="hsl(var(--muted-foreground))" />
               <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
               <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 4, fontSize: 12 }} formatter={(v: number) => [`${v}%`, "Composite"]} />
               <Bar dataKey="composite" name="Composite %" radius={[2, 2, 0, 0]}>
