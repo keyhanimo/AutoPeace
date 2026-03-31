@@ -146,6 +146,10 @@ export default function Methodology() {
               <div><strong className="text-foreground">Evidence Ingestion</strong> — Ingest from RSS feeds, ACLED, and GDELT; filter for Iran-relevance; classify by type (military, diplomatic, economic, humanitarian, political).</div>
             </li>
             <li className="bg-card p-3 border border-border flex items-start gap-3">
+              <span className="bg-primary/20 text-primary font-mono text-xs px-2 py-1 shrink-0">Step 1b</span>
+              <div><strong className="text-foreground">Stakeholder Profile Updates</strong> — After evidence ingestion, newly ingested items are grouped by stakeholder relevance and fed to an LLM that proposes updates to each stakeholder's goals, red lines, constraints, and profile summary based on the latest developments. Updates are written back to the database, ensuring that subsequent pipeline stages (deal generation, stakeholder evaluation) use the most current stakeholder intelligence.</div>
+            </li>
+            <li className="bg-card p-3 border border-border flex items-start gap-3">
               <span className="bg-primary/20 text-primary font-mono text-xs px-2 py-1 shrink-0">Step 2</span>
               <div><strong className="text-foreground">Proposal Extraction</strong> — Scan ingested evidence for real-world peace proposals mentioned in news; extract structured deal terms and run them through the full evaluation pipeline.</div>
             </li>
@@ -331,7 +335,7 @@ export default function Methodology() {
             </div>
             <div className="bg-card p-4 border border-border border-l-2 border-l-blue-500">
               <h4 className="font-bold text-foreground mb-1">Stage 2: Stakeholder Evaluator <span className="text-xs text-muted-foreground ml-2">(currently: {stm(2, "evaluation")} — evaluation role)</span></h4>
-              <p className="text-muted-foreground">Assesses how each of <strong>23 stakeholders across 4 acceptance tiers</strong> would respond to the proposed deal. <strong>Required tier</strong> (Iran, US) — both must accept for the deal to be implementable; rejection caps the feasibility score at 0.15. <strong>Critical tier</strong> (Israel) — rejection caps feasibility at 0.35. <strong>Influential tier</strong> (Saudi Arabia, IAEA, Russia, China, EU3) — affects deal durability and regional stability scores. <strong>Contextual tier</strong> (UAE, Qatar, Oman, Turkey, Iraq, Egypt, India, Japan, South Korea, Jordan, Pakistan, Ukraine, Global North Bloc, Global South Energy Importers, Global South Energy Exporters) — affects regional stability assessment. Each stakeholder has a predefined profile with interests and red lines. The agent returns a verdict per stakeholder: <code>accept</code>, <code>conditional</code>, or <code>reject</code>, with rationale and specific red-line violations cited.</p>
+              <p className="text-muted-foreground">Assesses how each of <strong>23 stakeholders across 4 acceptance tiers</strong> would respond to the proposed deal. Stakeholder profiles are <strong>loaded from the database</strong> at pipeline start, reflecting the latest evidence-driven updates (see Step 1b in Section 3). <strong>Required tier</strong> (Iran, US) — both must accept for the deal to be implementable; rejection triggers graduated penalties on feasibility, implementability, and durability scores. <strong>Critical tier</strong> (Israel) — rejection triggers graduated penalties on feasibility, durability, and regional stability. <strong>Influential tier</strong> (Saudi Arabia, IAEA, Russia, China, EU3) — affects deal durability and regional stability scores. <strong>Contextual tier</strong> (UAE, Qatar, Oman, Turkey, Iraq, Egypt, India, Japan, South Korea, Jordan, Pakistan, Ukraine, Global North Bloc, Global South Energy Importers, Global South Energy Exporters) — affects regional stability assessment. The agent returns a verdict per stakeholder: <code>accept</code>, <code>conditional</code>, or <code>reject</code>, with rationale and specific red-line violations cited.</p>
             </div>
             <div className="bg-card p-4 border border-border border-l-2 border-l-blue-500">
               <h4 className="font-bold text-foreground mb-1">Stage 3: Domestic Audience Agent <span className="text-xs text-muted-foreground ml-2">(currently: {stm(3, "evaluation")} — evaluation role)</span></h4>
@@ -432,9 +436,13 @@ export default function Methodology() {
               <h4 className="font-bold text-foreground mb-1">Step 1: Submission</h4>
               <p className="text-muted-foreground">Users provide: submitter name (optional), source name and URL, a summary (minimum 50 characters), and a set of key-value term pairs describing specific policy provisions (e.g., "Uranium enrichment cap" → "3.67%"). The frontend validates completeness and URL format before submission.</p>
             </div>
+            <div className="bg-card p-4 border border-border border-l-2 border-l-violet-500">
+              <h4 className="font-bold text-foreground mb-1">Step 1.5: AI Screening</h4>
+              <p className="text-muted-foreground">Before reaching the admin queue, every community submission is automatically screened by an LLM (configurable in the Admin Panel; default: Anthropic Claude) for seriousness and uniqueness. The screening model checks whether the proposal contains substantive policy content (rejecting joke submissions, vague platitudes, or off-topic entries) and compares it against existing proposals for near-duplicates. If the proposal fails screening, the user receives specific feedback explaining why and the submission is blocked without entering the admin queue.</p>
+            </div>
             <div className="bg-card p-4 border border-border border-l-2 border-l-amber-500">
               <h4 className="font-bold text-foreground mb-1">Step 2: Admin Review Queue</h4>
-              <p className="text-muted-foreground">Submissions enter a <code>pending</code> state in the admin review queue. Administrators can edit the summary and terms to standardize formatting before deciding. This moderation step prevents low-quality or spam submissions from consuming evaluation resources.</p>
+              <p className="text-muted-foreground">Submissions that pass AI screening enter a <code>pending</code> state in the admin review queue. Administrators can edit the summary and terms to standardize formatting before deciding. This two-layer moderation (AI screening + human review) prevents low-quality or spam submissions from consuming evaluation resources.</p>
             </div>
             <div className="bg-card p-4 border border-border border-l-2 border-l-emerald-500">
               <h4 className="font-bold text-foreground mb-1">Step 3: Approval &amp; Evaluation</h4>
@@ -447,7 +455,7 @@ export default function Methodology() {
             A critical design principle of Task C is <strong>evaluation parity</strong>: community-submitted and news-extracted proposals go through the identical evaluation pipeline as AI-generated deals from Task B. Specifically:
           </p>
           <ul>
-            <li>The same 23 stakeholders across 4 acceptance tiers (Required: Iran, US; Critical: Israel; Influential: Saudi Arabia, IAEA, Russia, China, EU3; Contextual: 15 regional and global actors) evaluate every proposal using identical profiles, red lines, and tier-based feasibility caps</li>
+            <li>The same 23 stakeholders across 4 acceptance tiers (Required: Iran, US; Critical: Israel; Influential: Saudi Arabia, IAEA, Russia, China, EU3; Contextual: 15 regional and global actors) evaluate every proposal using identical database-driven profiles, red lines, and graduated acceptance penalties</li>
             <li>The same 11 domestic audiences across 3 countries assess political sellability</li>
             <li>The same adversarial red-team generates 5 attack scenarios per proposal</li>
             <li>The same negotiator agent proposes amendments for rejecting stakeholders</li>
@@ -563,13 +571,13 @@ export default function Methodology() {
                 </tr>
               </thead>
               <tbody className="text-muted-foreground">
-                <tr className="border-b border-border/50"><td className="p-2 font-medium text-foreground">Feasibility</td><td className="text-right p-2">20%</td><td className="p-2">Likelihood the deal gets signed by all required parties. Capped at 15% if a Required-tier stakeholder rejects; capped at 35% if the Critical-tier stakeholder rejects.</td></tr>
+                <tr className="border-b border-border/50"><td className="p-2 font-medium text-foreground">Feasibility</td><td className="text-right p-2">15%</td><td className="p-2">Likelihood the deal gets signed by all required parties.</td></tr>
                 <tr className="border-b border-border/50"><td className="p-2 font-medium text-foreground">Coherence</td><td className="text-right p-2">15%</td><td className="p-2">Do the terms form a logically consistent, non-contradictory package?</td></tr>
-                <tr className="border-b border-border/50"><td className="p-2 font-medium text-foreground">Evidence Grounding</td><td className="text-right p-2">10%</td><td className="p-2">Are the terms responsive to current geopolitical reality?</td></tr>
-                <tr className="border-b border-border/50"><td className="p-2 font-medium text-foreground">Domestic Sellability</td><td className="text-right p-2">20%</td><td className="p-2">Could domestic political audiences in key states accept this?</td></tr>
-                <tr className="border-b border-border/50"><td className="p-2 font-medium text-foreground">Regional Stability</td><td className="text-right p-2">15%</td><td className="p-2">Does this deal reduce regional conflict risk and address economic incentives?</td></tr>
-                <tr className="border-b border-border/50"><td className="p-2 font-medium text-foreground">Implementability</td><td className="text-right p-2">10%</td><td className="p-2">Can the terms be practically implemented and sequenced?</td></tr>
-                <tr className="border-b border-border/50"><td className="p-2 font-medium text-foreground">Durability</td><td className="text-right p-2">10%</td><td className="p-2">Will this deal hold under stress and changing political conditions?</td></tr>
+                <tr className="border-b border-border/50"><td className="p-2 font-medium text-foreground">Evidence Grounding</td><td className="text-right p-2">12%</td><td className="p-2">Are the terms responsive to current geopolitical reality?</td></tr>
+                <tr className="border-b border-border/50"><td className="p-2 font-medium text-foreground">Domestic Sellability</td><td className="text-right p-2">15%</td><td className="p-2">Could domestic political audiences in key states accept this?</td></tr>
+                <tr className="border-b border-border/50"><td className="p-2 font-medium text-foreground">Regional Stability</td><td className="text-right p-2">13%</td><td className="p-2">Does this deal reduce regional conflict risk and address economic incentives?</td></tr>
+                <tr className="border-b border-border/50"><td className="p-2 font-medium text-foreground">Implementability</td><td className="text-right p-2">15%</td><td className="p-2">Can the terms be practically implemented and sequenced?</td></tr>
+                <tr className="border-b border-border/50"><td className="p-2 font-medium text-foreground">Durability</td><td className="text-right p-2">15%</td><td className="p-2">Will this deal hold under stress and changing political conditions?</td></tr>
               </tbody>
             </table>
           </div>
@@ -577,7 +585,7 @@ export default function Methodology() {
             The <strong>composite score</strong> is the weighted sum: <code>Composite = Σ(dimensionᵢ × weightᵢ)</code>. This is the primary optimization target for the deal autoresearch loop. Scores are classified into three quality tiers: <strong className="text-emerald-400">Viable</strong> (≥65%), <strong className="text-amber-400">Marginal</strong> (45% to &lt;65%), and <strong className="text-red-400">Weak</strong> (&lt;45%). A deal scoring below 35% composite is marked as "stalled," which increments the stall counter for that architecture.
           </p>
           <p>
-            <strong>Tier-based feasibility caps</strong> enforce the acceptance hierarchy: if a Required-tier stakeholder (Iran or US) rejects the deal, feasibility is capped at 15%. If the Critical-tier stakeholder (Israel) rejects, feasibility is capped at 35%. These hard caps severely penalize deals that lack buy-in from the most essential parties, making it extremely difficult to achieve a Viable composite score without Required and Critical tier acceptance.
+            <strong>Graduated acceptance penalties</strong> enforce the acceptance hierarchy using multiplicative scaling rather than hard caps. If a Required-tier stakeholder (Iran or US) rejects, feasibility and durability are scaled to 40% of their LLM-assigned values, and implementability to 45%. If the Critical-tier stakeholder (Israel) rejects, feasibility is scaled to 60%, durability to 55%, and regional stability to 60%. After per-dimension penalties, the composite score itself receives an additional viability multiplier: ×0.80 for Required-tier rejection and ×0.90 for Critical-tier rejection. This graduated approach preserves differentiation between deals within the same rejection scenario — a better-structured deal still scores meaningfully higher than a weaker one — while ensuring that deals lacking essential-party buy-in cannot outrank deals with broader acceptance.
           </p>
           <p>
             Each judge provides per-dimension rationale, which is merged across providers using pipe-delimited concatenation for full transparency into each model's reasoning. The Deal Dashboard and Proposal Arena both display per-dimension scores with individual model tabs, allowing users to compare how each LLM judge scored each dimension independently.
@@ -621,7 +629,7 @@ export default function Methodology() {
           <ul className="space-y-2 text-sm text-muted-foreground mt-4 list-disc list-inside">
             <li>Forecasts are <strong>probabilistic estimates</strong> produced by AI models and are not verified ground truth. All probabilities should be interpreted with appropriate epistemic humility.</li>
             <li>Evidence is sourced from public RSS feeds, GDELT, and ACLED — all subject to reporting lag, bias, and incompleteness. Classified intelligence, private diplomatic channels, and real-time military data are not available to the system.</li>
-            <li>LLM forecasters (Anthropic Claude, Gemini, GPT-4o) may exhibit hallucination, anchoring bias, or training cutoff limitations. The adversarial multi-provider architecture mitigates but cannot eliminate these risks.</li>
+            <li>LLM forecasters (Anthropic Claude, OpenAI GPT, Google Gemini) may exhibit hallucination, anchoring bias, or training cutoff limitations. The adversarial multi-provider architecture mitigates but cannot eliminate these risks.</li>
             <li>The Task A hill-climbing loop uses Brier score on a limited historical seed corpus to calibrate <em>forecast probabilities</em> only. Deal and proposal evaluation (Tasks B and C) does not use historical backtesting — it relies entirely on forward-looking CBA modeling and multi-agent LLM stakeholder simulations.</li>
             <li>CBA figures are estimates derived from publicly available economic models and should be treated as order-of-magnitude guides rather than precise values.</li>
             <li>Deal proposals are generated by language models and have not been vetted by real negotiators, diplomats, or subject-matter experts. They represent computationally plausible frameworks, not actionable policy recommendations.</li>
