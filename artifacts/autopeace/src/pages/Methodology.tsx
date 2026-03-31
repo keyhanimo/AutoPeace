@@ -65,7 +65,7 @@ export default function Methodology() {
 
       <Card className="p-8 text-center space-y-4">
         <h1 className="text-2xl md:text-3xl font-bold font-display text-foreground leading-tight">
-          AutoPeace: A Triple-Loop Autoresearch Architecture for Bayesian Conflict Forecasting, Autonomous Peace Deal Optimization, and Crowdsourced Proposal Evaluation
+          AutoPeace: Multi-Agent Automated Research for Bayesian Conflict Forecasting, Autonomous Peace Deal Optimization, and Crowdsourced Proposal Evaluation
         </h1>
         <div className="space-y-1">
           <p className="text-base text-foreground font-medium">Mohammad Keyhani</p>
