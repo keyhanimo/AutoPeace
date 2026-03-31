@@ -111,7 +111,6 @@ router.get("/autoresearch/champion-lineage", async (req, res) => {
     const cycleDealMap: Record<string, { compositeScore: number; architecture: string; isCurrent: boolean }> = {};
     if (champions.length > 0) {
       const allDeals = await db.select({
-        id: dealsTable.id,
         scores: dealsTable.scores,
         architecture: dealsTable.architecture,
         isCurrent: dealsTable.isCurrent,
@@ -121,20 +120,30 @@ router.get("/autoresearch/champion-lineage", async (req, res) => {
         .where(eq(dealsTable.generatedBy, "ai"))
         .orderBy(dealsTable.createdAt);
 
+      const cycleFirstExp: Record<string, number> = {};
       for (const champion of champions) {
-        if (cycleDealMap[champion.cycleId]) continue;
-        const ts = champion.timestamp;
-        const closestDeal = allDeals.reduce<typeof allDeals[0] | null>((best, d) => {
-          const diff = Math.abs(d.createdAt.getTime() - ts.getTime());
-          const bestDiff = best ? Math.abs(best.createdAt.getTime() - ts.getTime()) : Infinity;
-          return diff < bestDiff && diff < 3600000 ? d : best;
-        }, null);
-        if (closestDeal) {
-          const scores = closestDeal.scores as Record<string, number> | null;
-          cycleDealMap[champion.cycleId] = {
+        const t = champion.timestamp.getTime();
+        if (!cycleFirstExp[champion.cycleId] || t < cycleFirstExp[champion.cycleId]) {
+          cycleFirstExp[champion.cycleId] = t;
+        }
+      }
+
+      for (const [cycleId, expTime] of Object.entries(cycleFirstExp)) {
+        let bestDeal: typeof allDeals[0] | null = null;
+        let bestGap = Infinity;
+        for (const deal of allDeals) {
+          const gap = Math.abs(deal.createdAt.getTime() - expTime);
+          if (gap < bestGap) {
+            bestGap = gap;
+            bestDeal = deal;
+          }
+        }
+        if (bestDeal) {
+          const scores = bestDeal.scores as Record<string, number> | null;
+          cycleDealMap[cycleId] = {
             compositeScore: scores?.composite ?? 0,
-            architecture: closestDeal.architecture ?? "unknown",
-            isCurrent: closestDeal.isCurrent ?? false,
+            architecture: bestDeal.architecture ?? "unknown",
+            isCurrent: bestDeal.isCurrent ?? false,
           };
         }
       }
