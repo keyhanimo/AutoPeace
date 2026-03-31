@@ -7,7 +7,7 @@ import {
   runFullEvaluation,
   isDominatedOnAllDimensions,
   DEAL_ARCHITECTURES,
-  getRecentEvidenceSummary,
+  getFullEvidenceContext,
   type DealScores,
   type DealTerms,
   type MetaEvaluatorResult,
@@ -32,8 +32,8 @@ const STANDARD_ARCHITECTURES = ["balanced", "nuclear-first", "hormuz-first", "hu
 const RADICAL_ARCHITECTURES = ["radical-restructure", "asymmetric-grand-bargain", "incremental-confidence"] as const;
 const RADICAL_EXPLORATION_PROBABILITY = 0.3;
 
-async function getEvidenceSummary(): Promise<string> {
-  return getRecentEvidenceSummary();
+async function getEvidenceSummary(modelConfig?: import("./llm-router").ModelConfig): Promise<{ context: string; strategicTokens: number }> {
+  return getFullEvidenceContext(modelConfig);
 }
 
 async function getCurrentBestDiagnosis(): Promise<string> {
@@ -422,7 +422,9 @@ async function runDealCycleAsync(cycleId: string): Promise<void> {
 
     await ingestAllSources().catch(() => 0);
 
-    const evidenceSummary = await getEvidenceSummary();
+    const modelConfig = await getModelConfig();
+    const { context: evidenceSummary, strategicTokens } = await getEvidenceSummary(modelConfig);
+    logger.info({ cycleId, strategicTokens, evidenceContextLength: evidenceSummary.length }, "Generated two-layer evidence context (strategic + tactical)");
     const previousDiagnosis = await getCurrentBestDiagnosis();
 
     const [currentBest] = await db.select()
@@ -470,7 +472,6 @@ async function runDealCycleAsync(cycleId: string): Promise<void> {
       provisionInsights: dealMemory.provisionInsights.length,
     }, "Using pipeline configuration with deal memory");
 
-    const modelConfig = await getModelConfig();
     const evaluated = await runFullEvaluation(evidenceSummary, previousDiagnosis, chosenArch, modelConfig, pipelineOverrides, setDealSubStage, dealMemory);
 
     const dealId = randomUUID();

@@ -113,6 +113,15 @@ Each cycle (triggered manually or by cron):
 
 Scheduler: hourly cron check, runs at UTC 6am daily by default.
 
+### Two-Layer Evidence Context
+
+The deal pipeline uses a two-layer evidence context system to give LLMs both structural and tactical awareness:
+
+1. **Strategic Situation Assessment** — LLM-synthesized ~500-word narrative covering conflict trajectory, military situation, diplomatic landscape, sanctions/economic context, humanitarian conditions, and key structural factors. Generated from up to 150 evidence items across the full corpus using the extraction provider. Regenerated every pipeline cycle. Cached in `admin_config` (key: `latestStrategicSummary`).
+2. **Recent Tactical Developments** — 30 most recent evidence items grouped by type (military, diplomatic, economic, humanitarian). Raw structured briefing with dated entries.
+
+Both layers are concatenated and injected into stages 0-4 and 6 of the deal pipeline (brainstorm, proposal, stakeholder eval, domestic audience, red-team, judge panel). Evidence context is capped at 8000 chars per prompt to manage context windows. The `/api/evidence/summary` endpoint returns both layers for display in the Evidence Explorer.
+
 ## Frontend Pages
 
 | Route | Page |

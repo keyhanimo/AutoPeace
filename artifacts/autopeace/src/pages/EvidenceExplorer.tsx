@@ -118,56 +118,39 @@ function EvidenceCard({ item }: { item: EvidenceItem }) {
   );
 }
 
-function EvidenceSummaryPanel() {
-  const [summary, setSummary] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+function CollapsibleBriefing({ title, icon, description, text, accentClass = "border-primary/20" }: {
+  title: string;
+  icon: React.ReactNode;
+  description: string;
+  text: string;
+  accentClass?: string;
+}) {
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    const base = window.location.origin + import.meta.env.BASE_URL.replace(/\/$/, "");
-    fetch(`${base}/api/evidence/summary`)
-      .then(r => r.json())
-      .then(d => { setSummary(d.summary ?? ""); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, []);
-
   const handleCopy = () => {
-    if (!summary) return;
-    navigator.clipboard.writeText(summary).then(() => {
+    navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
   };
 
-  if (loading) {
-    return (
-      <Card className="p-5 animate-pulse">
-        <div className="h-5 w-48 bg-secondary/60 rounded mb-3" />
-        <div className="h-24 bg-secondary/40 rounded" />
-      </Card>
-    );
-  }
-
-  if (!summary) return null;
-
-  const COLLAPSED_LINES = 12;
-  const lines = summary.split("\n");
+  const COLLAPSED_LINES = 10;
+  const lines = text.split("\n");
   const isLong = lines.length > COLLAPSED_LINES;
-  const displayText = expanded ? summary : lines.slice(0, COLLAPSED_LINES).join("\n");
+  const displayText = expanded ? text : lines.slice(0, COLLAPSED_LINES).join("\n");
 
   return (
-    <Card className="p-5 border-primary/20">
+    <Card className={`p-5 ${accentClass}`}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <FileText className="w-4 h-4 text-primary" />
-          <h2 className="text-sm font-bold text-foreground">Pipeline Evidence Context</h2>
+          {icon}
+          <h2 className="text-sm font-bold text-foreground">{title}</h2>
         </div>
         <div className="flex items-center gap-1.5">
           <button
             onClick={handleCopy}
             className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-secondary/60 transition-colors"
-            title="Copy the exact text injected into pipeline prompts"
           >
             {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
             {copied ? "Copied" : "Copy"}
@@ -183,9 +166,7 @@ function EvidenceSummaryPanel() {
           )}
         </div>
       </div>
-      <p className="text-xs text-muted-foreground mb-3">
-        This is the exact structured briefing injected into all deal evaluation prompts — stakeholder evaluation, domestic audience assessment, red-team stress testing, and judge panel scoring. Evidence is grouped by type and ordered by date.
-      </p>
+      <p className="text-xs text-muted-foreground mb-3">{description}</p>
       <div className="relative">
         <pre className="text-xs text-muted-foreground bg-secondary/20 rounded-lg p-4 font-mono leading-relaxed whitespace-pre-wrap overflow-x-hidden max-h-[500px] overflow-y-auto">{displayText}</pre>
         {!expanded && isLong && (
@@ -193,6 +174,67 @@ function EvidenceSummaryPanel() {
         )}
       </div>
     </Card>
+  );
+}
+
+function EvidenceSummaryPanel() {
+  const [recentBriefing, setRecentBriefing] = useState<string | null>(null);
+  const [strategicSummary, setStrategicSummary] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const base = window.location.origin + import.meta.env.BASE_URL.replace(/\/$/, "");
+    fetch(`${base}/api/evidence/summary`)
+      .then(r => r.json())
+      .then(d => {
+        setRecentBriefing(d.summary ?? "");
+        setStrategicSummary(d.strategicSummary ?? "");
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <Card className="p-5 animate-pulse">
+          <div className="h-5 w-48 bg-secondary/60 rounded mb-3" />
+          <div className="h-24 bg-secondary/40 rounded" />
+        </Card>
+      </div>
+    );
+  }
+
+  const hasStrategic = !!strategicSummary;
+  const hasRecent = !!recentBriefing;
+  if (!hasStrategic && !hasRecent) return null;
+
+  return (
+    <div className="space-y-4">
+      {hasStrategic && (
+        <CollapsibleBriefing
+          title="Strategic Situation Assessment"
+          icon={<Globe className="w-4 h-4 text-amber-400" />}
+          description="LLM-synthesized strategic overview of the full conflict trajectory. Regenerated every pipeline cycle from the entire evidence corpus. This gives deal generation and evaluation the structural context they need."
+          text={strategicSummary}
+          accentClass="border-amber-500/20"
+        />
+      )}
+      {hasRecent && (
+        <CollapsibleBriefing
+          title="Recent Tactical Developments"
+          icon={<FileText className="w-4 h-4 text-primary" />}
+          description="Latest evidence items grouped by type. This raw tactical feed complements the strategic summary with breaking developments from the last 48 hours."
+          text={recentBriefing}
+          accentClass="border-primary/20"
+        />
+      )}
+      {hasStrategic && hasRecent && (
+        <p className="text-xs text-muted-foreground/60 text-center">
+          Both layers are combined and injected into all pipeline prompts — strategic context for structural grounding, tactical feed for recency.
+        </p>
+      )}
+    </div>
   );
 }
 

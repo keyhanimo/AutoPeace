@@ -4,14 +4,17 @@ import { evidenceItemsTable } from "@workspace/db/schema";
 import { eq, desc, and, count, sql } from "drizzle-orm";
 import { ListEvidenceResponse } from "@workspace/api-zod";
 import { sendValidated } from "../lib/validate-response";
-import { getRecentEvidenceSummary } from "../services/deal-engine";
+import { getRecentEvidenceSummary, getCachedStrategicSummary } from "../services/deal-engine";
 
 const router = Router();
 
 router.get("/evidence/summary", async (_req, res) => {
   try {
-    const summary = await getRecentEvidenceSummary();
-    res.json({ summary });
+    const [recentBriefing, strategicSummary] = await Promise.all([
+      getRecentEvidenceSummary(),
+      getCachedStrategicSummary(),
+    ]);
+    res.json({ summary: recentBriefing, strategicSummary });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }

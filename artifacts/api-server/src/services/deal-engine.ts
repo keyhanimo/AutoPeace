@@ -13,8 +13,8 @@ import {
   type CallLLMOptions,
 } from "./llm-router";
 import { db } from "@workspace/db";
-import { stakeholdersTable } from "@workspace/db/schema";
-import { inArray, desc } from "drizzle-orm";
+import { stakeholdersTable, adminConfigTable } from "@workspace/db/schema";
+import { inArray, desc, eq } from "drizzle-orm";
 import { PIPELINE_STAKEHOLDER_IDS } from "./stakeholder-updater";
 
 export async function getRecentEvidenceSummary(): Promise<string> {
@@ -76,6 +76,117 @@ export async function getRecentEvidenceSummary(): Promise<string> {
     logger.warn({ error: err instanceof Error ? err.message : String(err) }, "Failed to retrieve recent evidence summary — evaluation stages will proceed without evidence context");
     return "";
   }
+}
+
+export async function generateStrategicSummary(modelConfig?: ModelConfig): Promise<{ summary: string; tokens: number }> {
+  try {
+    const { evidenceItemsTable } = await import("@workspace/db/schema");
+    const items = await db.select({
+      title: evidenceItemsTable.title,
+      text: evidenceItemsTable.text,
+      publishedAt: evidenceItemsTable.publishedAt,
+      evidenceType: evidenceItemsTable.evidenceType,
+    })
+      .from(evidenceItemsTable)
+      .orderBy(desc(evidenceItemsTable.publishedAt))
+      .limit(150);
+
+    if (items.length === 0) return { summary: "", tokens: 0 };
+
+    const dates = items.filter(i => i.publishedAt).map(i => new Date(i.publishedAt!));
+    const newest = dates.length ? new Date(Math.max(...dates.map(d => d.getTime()))).toISOString().slice(0, 10) : "unknown";
+    const oldest = dates.length ? new Date(Math.min(...dates.map(d => d.getTime()))).toISOString().slice(0, 10) : "unknown";
+
+    const evidenceBlock = items.map(item => {
+      const date = item.publishedAt ? new Date(item.publishedAt).toISOString().slice(0, 10) : "undated";
+      const type = item.evidenceType || "other";
+      const snippet = item.text?.slice(0, 200)?.replace(/\n/g, " ") ?? "";
+      return `[${date}][${type}] ${item.title}. ${snippet}`;
+    }).join("\n");
+
+    const systemPrompt = `You are a senior geopolitical intelligence analyst producing a strategic situation assessment for the Iran-US-Israel conflict complex. Your assessment will be used by an AI peace deal optimization system to ground its proposals in reality.`;
+
+    const prompt = `Below is a corpus of ${items.length} evidence items spanning ${oldest} to ${newest} from news feeds, conflict trackers, and diplomatic sources.
+
+Synthesize this into a STRATEGIC SITUATION ASSESSMENT of approximately 500 words. Structure it as follows:
+
+1. CONFLICT TRAJECTORY: How the conflict started, key escalation milestones, and current phase (escalating/de-escalating/stalemate)
+2. MILITARY SITUATION: Current state of military operations, force deployments, and battlefield dynamics
+3. DIPLOMATIC LANDSCAPE: Active diplomatic channels, negotiations, stated positions of key parties (Iran, US, Israel, regional actors)
+4. SANCTIONS & ECONOMIC CONTEXT: Current sanctions regime, economic pressures, energy market impacts
+5. HUMANITARIAN SITUATION: Civilian impact, displacement, humanitarian access
+6. KEY STRUCTURAL FACTORS: Underlying dynamics that constrain or enable peace (domestic politics, alliance structures, nuclear capabilities)
+
+Be factual and analytical. Cite specific events with dates where relevant. Distinguish between established facts and emerging trends. Flag any contradictions in the evidence.
+
+EVIDENCE CORPUS:
+${evidenceBlock}`;
+
+    const config = modelConfig ?? await sharedGetModelConfig();
+    const { content, tokens } = await callLLM(
+      prompt,
+      systemPrompt,
+      config.extractionProvider,
+      config.extractionModel ?? config.anthropicModel,
+      { maxTokens: 2000 },
+    );
+
+    const summary = `STRATEGIC SITUATION ASSESSMENT (synthesized from ${items.length} items, ${oldest} to ${newest}):\n\n${content.trim()}`;
+
+    await cacheStrategicSummary(summary);
+
+    return { summary, tokens };
+  } catch (err) {
+    logger.warn({ error: err instanceof Error ? err.message : String(err) }, "Failed to generate strategic summary");
+    return { summary: "", tokens: 0 };
+  }
+}
+
+async function cacheStrategicSummary(summary: string): Promise<void> {
+  try {
+    const key = "latestStrategicSummary";
+    const value = JSON.stringify({ summary, generatedAt: new Date().toISOString() });
+    const existing = await db.select().from(adminConfigTable).where(eq(adminConfigTable.key, key));
+    if (existing.length > 0) {
+      await db.update(adminConfigTable).set({ value, updatedAt: new Date() }).where(eq(adminConfigTable.key, key));
+    } else {
+      await db.insert(adminConfigTable).values({ key, value });
+    }
+  } catch (err) {
+    logger.warn({ error: err instanceof Error ? err.message : String(err) }, "Failed to cache strategic summary");
+  }
+}
+
+export async function getCachedStrategicSummary(): Promise<string> {
+  try {
+    const rows = await db.select().from(adminConfigTable).where(eq(adminConfigTable.key, "latestStrategicSummary"));
+    if (rows.length === 0) return "";
+    const parsed = JSON.parse(rows[0]!.value!);
+    return parsed.summary ?? "";
+  } catch {
+    return "";
+  }
+}
+
+export async function getFullEvidenceContext(modelConfig?: ModelConfig): Promise<{ context: string; strategicTokens: number }> {
+  const [recentBriefing, { summary: strategicSummary, tokens: strategicTokens }] = await Promise.all([
+    getRecentEvidenceSummary(),
+    generateStrategicSummary(modelConfig),
+  ]);
+
+  if (!strategicSummary && !recentBriefing) return { context: "", strategicTokens: 0 };
+
+  let context = "";
+
+  if (strategicSummary) {
+    context += strategicSummary;
+  }
+
+  if (recentBriefing) {
+    context += `\n\n---\n\n${recentBriefing}`;
+  }
+
+  return { context: context.trim(), strategicTokens };
 }
 
 export type InnovativeProvision = {
@@ -419,7 +530,7 @@ RADICAL EXPLORATION MODE: You are brainstorming for a "${architecture}" approach
 
   const prompt = `${overrideUser}
 CURRENT GEOPOLITICAL EVIDENCE:
-${evidenceSummary.slice(0, 4000)}
+${evidenceSummary.slice(0, 8000)}
 
 ${previousDiagnosis ? `PREVIOUS DEAL DIAGNOSIS (what went wrong and must be overcome):
 ${previousDiagnosis}` : "This is the first brainstorm for a fresh deal search."}
@@ -579,7 +690,7 @@ ${architecture === "incremental-confidence" ? "- Design dozens of small, indepen
 ` : "";
 
   const prompt = `${overrideUser}Based on current evidence:
-${evidenceSummary.slice(0, 4000)}
+${evidenceSummary.slice(0, 8000)}
 
 ${previousDiagnosis ? `Previous deal failed because: ${previousDiagnosis}` : "Design an initial deal proposal."}
 ${proposalDealMemoryBlock}${radicalProposalInstructions}
@@ -707,7 +818,7 @@ Output a JSON object mapping stakeholder IDs to their verdict. Each verdict has:
 
   const evidenceBlock = evidenceSummary
     ? `\nRECENT GEOPOLITICAL DEVELOPMENTS (these are the latest developments — they may or may not have major bearing on stakeholder positions, but you must consider them):
-${evidenceSummary.slice(0, 4000)}\n`
+${evidenceSummary.slice(0, 8000)}\n`
     : "";
 
   const prompt = `Evaluate how these stakeholders would respond to this peace deal, considering both what they receive and what they are asked to commit:
@@ -979,7 +1090,7 @@ Output a JSON object with keys like "iran_supreme_leader", "us_congress", etc.`;
 
   const evidenceBlock = evidenceSummary
     ? `\nRECENT DEVELOPMENTS (these are the latest developments — they may or may not significantly affect domestic political dynamics and audience reactions):
-${evidenceSummary.slice(0, 4000)}\n`
+${evidenceSummary.slice(0, 8000)}\n`
     : "";
 
   const prompt = `Assess the domestic political sellability of this peace deal to these audiences:
@@ -1029,7 +1140,7 @@ Generate 5 adversarial attacks that could collapse this deal. Output as JSON arr
 
   const evidenceBlock = evidenceSummary
     ? `\nRECENT DEVELOPMENTS (use these to identify timely, situation-specific attack vectors — these may or may not reveal new vulnerabilities):
-${evidenceSummary.slice(0, 4000)}\n`
+${evidenceSummary.slice(0, 8000)}\n`
     : "";
 
   const prompt = `Red-team this peace deal:
@@ -1123,7 +1234,7 @@ Output JSON only.`;
 
   const evidenceBlock = evidenceSummary
     ? `\nRECENT GEOPOLITICAL EVIDENCE (use this to score "evidenceGrounding" — assess how well the deal accounts for these developments — and factor current conditions into feasibility, durability, and other dimensions where relevant):
-${evidenceSummary.slice(0, 4000)}\n`
+${evidenceSummary.slice(0, 8000)}\n`
     : "";
 
   const prompt = `Score this peace deal (0.0-1.0 per dimension) and explain each score:
