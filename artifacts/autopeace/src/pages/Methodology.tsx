@@ -90,6 +90,7 @@ export default function Methodology() {
             <li><a href="#task-a" className="hover:text-primary transition-colors">Task A: Bayesian Conflict Forecasting</a></li>
             <li><a href="#hill-climbing" className="hover:text-primary transition-colors">Hill-Climbing Self-Improvement Loop</a></li>
             <li><a href="#task-b" className="hover:text-primary transition-colors">Task B: Autonomous Deal Optimization</a></li>
+            <li><a href="#deal-memory" className="hover:text-primary transition-colors">Deal Memory &amp; Provision-Level Learning</a></li>
             <li><a href="#task-c" className="hover:text-primary transition-colors">Task C: Crowdsourced Proposal Evaluation</a></li>
             <li><a href="#cba" className="hover:text-primary transition-colors">Cost-Benefit Analysis Modeling</a></li>
             <li><a href="#scoring" className="hover:text-primary transition-colors">Scoring &amp; Evaluation Framework</a></li>
@@ -110,7 +111,7 @@ export default function Methodology() {
           </p>
           <ul>
             <li><strong>Task A — Bayesian Conflict Forecasting:</strong> Continuously updating probability distributions across eight mutually exclusive conflict outcome states for the Iran-US-Israel conflict complex, using multi-agent LLM debate and hill-climbing calibration optimization.</li>
-            <li><strong>Task B — Autonomous Peace Deal Optimization:</strong> Generating, evaluating, and iteratively refining AI-originated peace deal proposals through a multi-stage pipeline (Stages 0–8 including sub-stages) that includes creative brainstorming from historical precedents, stakeholder modeling, adversarial red-teaming, domestic political analysis, creative reframing of perceived concessions, Pareto-optimal negotiation search, multi-model judicial scoring, and self-improving prompt evolution.</li>
+            <li><strong>Task B — Autonomous Peace Deal Optimization:</strong> Generating, evaluating, and iteratively refining AI-originated peace deal proposals through a multi-stage pipeline (Stages 0–8 including sub-stages) that includes creative brainstorming from historical precedents, stakeholder modeling, adversarial red-teaming, domestic political analysis, creative reframing of perceived concessions, Pareto-optimal negotiation search, multi-model judicial scoring, self-improving prompt evolution, deal memory with provision-level learning, and radical architecture exploration.</li>
             <li><strong>Task C — Crowdsourced Proposal Evaluation:</strong> Accepting peace proposals from external sources — both community submissions and real-world proposals automatically extracted from news evidence — and subjecting them to the same rigorous 8-stage multi-agent evaluation pipeline used for AI-generated deals, enabling direct comparison across human and machine-originated proposals on identical scoring dimensions.</li>
           </ul>
           <p>
@@ -319,21 +320,28 @@ export default function Methodology() {
             <Target className="w-6 h-6 text-primary" /> 7. Task B: Autonomous Deal Optimization
           </h2>
           <p>
-            Task B is a separate autoresearch loop triggered asynchronously after each forecasting cycle completes. Unlike Task A's champion mutation approach, Task B generates a <strong>fresh proposal</strong> each cycle — informed by the latest evidence and the previous deal's failure diagnosis — then evaluates it through a <strong>multi-stage pipeline</strong> (Stage 0 through Stage 8, including sub-stages) where different LLM providers are deliberately assigned to different stages to ensure adversarial independence. The pipeline is designed to maximize AI creativity by simultaneously processing many stakeholder preferences, drawing on historical peace deal precedents, finding creative cross-issue linkages, and inventing novel deal mechanisms. If the new deal scores higher than the current best, it replaces it. The pipeline's own prompts evolve over time via a score-gated hill-climbing mechanism.
+            Task B is a separate autoresearch loop triggered asynchronously after each forecasting cycle completes. Unlike Task A's champion mutation approach, Task B generates a <strong>fresh proposal</strong> each cycle — informed by the latest evidence, the previous deal's failure diagnosis, and a <strong>deal memory context</strong> that encodes lessons from all prior deals — then evaluates it through a <strong>multi-stage pipeline</strong> (Stage 0 through Stage 8, including sub-stages) where different LLM providers are deliberately assigned to different stages to ensure adversarial independence. The pipeline selects from <strong>7 deal architectures</strong> (4 standard + 3 radical), with a 30% probability of exploring radical unconventional approaches each cycle and automatic radical branching when conventional approaches stall. It is designed to maximize AI creativity by simultaneously processing many stakeholder preferences, drawing on historical peace deal precedents, finding creative cross-issue linkages, inventing novel deal mechanisms, and learning from provision-level performance data across past iterations. If the new deal scores higher than the current best, it replaces it. The pipeline's own prompts evolve over time via a score-gated hill-climbing mechanism.
           </p>
 
           <h3 className="text-xl font-bold font-display text-foreground mt-6">7.1 Deal Architecture Selection</h3>
           <p>
-            Each cycle selects one of four deal architectures, which determine the primary sequencing and emphasis of the generated proposal:
+            Each cycle selects one of seven deal architectures, divided into four standard and three radical categories. The architecture determines the primary sequencing, emphasis, and creative approach of the generated proposal:
           </p>
+          <h4 className="text-lg font-bold font-display text-foreground mt-4 mb-2">Standard Architectures</h4>
           <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm not-prose list-none p-0">
             <li className="bg-card p-3 border border-border"><strong className="text-foreground">Balanced:</strong> Equal priority across nuclear, sanctions, and maritime dimensions.</li>
             <li className="bg-card p-3 border border-border"><strong className="text-foreground">Nuclear-First:</strong> Comprehensive nuclear rollback as the prerequisite for any relief.</li>
             <li className="bg-card p-3 border border-border"><strong className="text-foreground">Hormuz-First:</strong> Maritime security framework as the foundation enabling economic normalization.</li>
             <li className="bg-card p-3 border border-border"><strong className="text-foreground">Humanitarian-First:</strong> Immediate humanitarian corridor as the trust-building prerequisite.</li>
           </ul>
+          <h4 className="text-lg font-bold font-display text-foreground mt-4 mb-2">Radical Architectures</h4>
+          <ul className="grid grid-cols-1 gap-2 text-sm not-prose list-none p-0">
+            <li className="bg-card p-3 border border-border border-l-2 border-l-violet-500"><strong className="text-foreground">Radical Restructure:</strong> Rejects incremental diplomacy entirely. Proposes fundamental paradigm shifts — novel governance structures, unprecedented institutional frameworks, or entirely new categories of agreement that don't fit traditional arms-control or sanctions-relief templates.</li>
+            <li className="bg-card p-3 border border-border border-l-2 border-l-amber-500"><strong className="text-foreground">Asymmetric Grand Bargain:</strong> Creates deliberately lopsided exchanges where one party makes a bold, disproportionate concession in exchange for asymmetric gains elsewhere. Exploits the fact that parties value different things at different magnitudes — what costs one side little may be worth enormously more to the other.</li>
+            <li className="bg-card p-3 border border-border border-l-2 border-l-emerald-500"><strong className="text-foreground">Incremental Confidence-Building:</strong> Designs a sequence of micro-steps, each independently reversible and low-risk, that collectively build the trust infrastructure needed for larger agreements. Focuses on confidence-building measures (CBMs), verification protocols, and graduated reciprocity rather than comprehensive packages.</li>
+          </ul>
           <p className="mt-4">
-            The system tracks a "stall counter" per architecture within the current branch of the solution tree — if 3 stalled child nodes accumulate for the same architecture under the current parent node, the system automatically branches to the next architecture. This prevents the optimization loop from getting stuck in local optima within a particular solution branch.
+            Architecture selection uses a dual mechanism: <strong>30% random radical exploration</strong> probability per cycle ensures the system regularly ventures beyond conventional approaches, while <strong>stall-triggered branching</strong> automatically switches to a radical architecture when 3 or more consecutive cycles fail to improve scores. This prevents the optimization loop from getting stuck in local optima and ensures the system explores fundamentally different negotiation paradigms rather than only iterating within familiar frameworks.
           </p>
 
           <h3 className="text-xl font-bold font-display text-foreground mt-6">7.2 The Multi-Stage Pipeline</h3>
@@ -343,11 +351,11 @@ export default function Methodology() {
           <div className="space-y-3 not-prose text-sm">
             <div className="bg-card p-4 border border-border border-l-2 border-l-emerald-500">
               <h4 className="font-bold text-foreground mb-1">Stage 0: Innovation Brainstorm <span className="text-xs text-muted-foreground ml-2">(currently: {stm(null, "generation")} — generation role)</span></h4>
-              <p className="text-muted-foreground">Before formal proposal generation, the system conducts an extended creative brainstorm designed to unlock "superhuman" deal design. This stage mines historical peace deal analogies (Camp David, Good Friday Agreement, JCPOA, etc.) for applicable lessons, generates creative provisions that go beyond standard diplomatic categories, discovers cross-issue linkages where one stakeholder's concession can satisfy another's demand, and explores unconventional approaches like phased sovereignty transitions, digital verification systems, or economic co-dependency mechanisms. The brainstorm output is stored as <code>brainstormInsights</code> and injected into Stage 1 as additional creative context.</p>
+              <p className="text-muted-foreground">Before formal proposal generation, the system conducts an extended creative brainstorm designed to unlock "superhuman" deal design. This stage receives <strong>deal memory context</strong> from past cycles — including which provisions historically improved or hurt scores, stakeholder verdict patterns, and dimension-level performance data (see Section 7.5). It mines historical peace deal analogies (Camp David, Good Friday Agreement, JCPOA, etc.) for applicable lessons, generates creative provisions that go beyond standard diplomatic categories, discovers cross-issue linkages where one stakeholder's concession can satisfy another's demand, and explores unconventional approaches like phased sovereignty transitions, digital verification systems, or economic co-dependency mechanisms. When a radical architecture is selected, the brainstorm receives architecture-specific creative directives (e.g., "reject all incremental approaches" for Radical Restructure, or "design micro-step sequences" for Incremental Confidence-Building). The brainstorm output is stored as <code>brainstormInsights</code> and injected into Stage 1 as additional creative context.</p>
             </div>
             <div className="bg-card p-4 border border-border border-l-2 border-l-violet-500">
               <h4 className="font-bold text-foreground mb-1">Stage 1: Proposal Agent <span className="text-xs text-muted-foreground ml-2">(currently: {stm(1, "generation")} — generation role)</span></h4>
-              <p className="text-muted-foreground">Designs initial deal terms across 7 standard dimensions plus an <strong>innovativeProvisions</strong> field containing novel mechanisms that go beyond traditional categories. The agent receives the Stage 0 brainstorm insights, the latest evidence summary (expanded to 30 items with 150-character context each), the previous cycle's failure diagnosis, the selected architecture focus, hard CBA economic data (see Section 8), and any evolved pipeline overrides. It is explicitly instructed to create provisions that simultaneously satisfy multiple stakeholders through creative linkages, drawing on the brainstorm's historical analogies and cross-issue discoveries.</p>
+              <p className="text-muted-foreground">Designs initial deal terms across 7 standard dimensions plus an <strong>innovativeProvisions</strong> field containing novel mechanisms that go beyond traditional categories. The agent receives the Stage 0 brainstorm insights, <strong>deal memory context</strong> (including top-performing past deals, successful vs. harmful provisions with score delta data, and stakeholder verdict patterns — see Section 7.5), the latest evidence summary (expanded to 30 items with 150-character context each), the previous cycle's failure diagnosis, the selected architecture focus, hard CBA economic data (see Section 8), and any evolved pipeline overrides. It is explicitly instructed to create provisions that simultaneously satisfy multiple stakeholders through creative linkages, drawing on the brainstorm's historical analogies and cross-issue discoveries.</p>
             </div>
             <div className="bg-card p-4 border border-border border-l-2 border-l-blue-500">
               <h4 className="font-bold text-foreground mb-1">Stage 2: Stakeholder Evaluator <span className="text-xs text-muted-foreground ml-2">(currently: {stm(2, "evaluation")} — evaluation role)</span></h4>
@@ -418,6 +426,66 @@ export default function Methodology() {
               <p className="text-muted-foreground">Each configuration stores its parent config ID, generation number, average composite score, and deal count. This creates a full evolutionary lineage of the pipeline's prompt evolution over time, stored in the <code>pipeline_evolution</code> database table.</p>
             </div>
           </div>
+        </Card>
+
+        <Card className="p-8" id="deal-memory">
+          <h2 className="text-2xl font-bold font-display text-foreground mt-0 flex items-center gap-3">
+            <Brain className="w-6 h-6 text-primary" /> 7.5 Deal Memory &amp; Provision-Level Learning
+          </h2>
+          <p>
+            Beyond iterating on prompts (Section 7.4), the system also learns from the <strong>substantive content</strong> of past deals. Each cycle, before generating a new proposal, the system builds a structured memory context from its entire deal history and injects it into the brainstorm (Stage 0) and proposal generation (Stage 1) stages.
+          </p>
+
+          <h3 className="text-xl font-bold font-display text-foreground mt-6">7.5.1 Deal History Context</h3>
+          <p>
+            The system queries the top 5 highest-scoring deals from the database and extracts structured context for each:
+          </p>
+          <ul className="text-sm">
+            <li>Architecture used and composite score achieved</li>
+            <li>Key deal terms (nuclear protocol, sanctions relief, sequencing, Hormuz arrangements)</li>
+            <li>Innovative provisions with their historical performance data (score delta vs. parent deal)</li>
+            <li>Stakeholder verdicts and rationale from each evaluating party</li>
+            <li>Diagnosis text explaining what worked and what failed</li>
+          </ul>
+          <p>
+            This context allows the brainstorm and proposal stages to reason about <em>what has actually worked</em> in past iterations rather than generating proposals in a vacuum. The prompt explicitly highlights provisions that historically improved scores ("What worked") and those that hurt scores, enabling the LLM to make informed decisions about which mechanisms to retain, adapt, or avoid.
+          </p>
+
+          <h3 className="text-xl font-bold font-display text-foreground mt-6">7.5.2 Provision-Level Learning</h3>
+          <p>
+            The system tracks the performance of individual innovative provisions across all deals in a dedicated <code>provision_outcomes</code> database table. After each deal cycle completes, the system records for each provision:
+          </p>
+          <div className="space-y-3 not-prose text-sm">
+            <div className="bg-card p-4 border border-border">
+              <h4 className="font-bold text-foreground mb-1">Score Delta</h4>
+              <p className="text-muted-foreground">The difference between the deal's composite score and its parent deal's score. A positive delta indicates the provision appeared in a deal that improved on its predecessor.</p>
+            </div>
+            <div className="bg-card p-4 border border-border">
+              <h4 className="font-bold text-foreground mb-1">Dimension-Level Deltas</h4>
+              <p className="text-muted-foreground">Per-dimension score changes across all 7 scoring dimensions (feasibility, coherence, evidence grounding, domestic sellability, regional stability, implementability, durability). This reveals which dimensions a provision helps or hurts — a provision might boost feasibility while undermining durability.</p>
+            </div>
+            <div className="bg-card p-4 border border-border">
+              <h4 className="font-bold text-foreground mb-1">Stakeholder Reactions</h4>
+              <p className="text-muted-foreground">A record of how each stakeholder responded (accept, conditional, reject) when this provision was part of the deal. Over multiple cycles, this builds a picture of which provisions attract support or opposition from specific actors.</p>
+            </div>
+            <div className="bg-card p-4 border border-border">
+              <h4 className="font-bold text-foreground mb-1">Category &amp; Architecture</h4>
+              <p className="text-muted-foreground">Provisions are categorized (nuclear, economic, security, humanitarian, governance, verification, or novel) and tagged with the architecture that produced them. This enables the system to identify which architectures produce the most effective provisions in each category.</p>
+            </div>
+          </div>
+
+          <h3 className="text-xl font-bold font-display text-foreground mt-6">7.5.3 Aggregated Provision Insights</h3>
+          <p>
+            The system aggregates provision-level data into actionable insights that are injected into the brainstorm and proposal prompts:
+          </p>
+          <ul className="text-sm">
+            <li><strong>Usage count:</strong> How many times a provision type has been tried across all deals</li>
+            <li><strong>Average score delta:</strong> Whether including this provision tends to improve or worsen overall deal quality</li>
+            <li><strong>Best and worst dimensions:</strong> Which scoring dimensions benefit most and least from this provision</li>
+          </ul>
+          <p>
+            These insights create a genuine learning signal: the system can identify, for example, that "digital verification protocols" have appeared in 4 deals with an average score improvement of +3.2 percentage points (strongest on implementability, weakest on domestic sellability), while "immediate full sanctions removal" has appeared in 3 deals with an average score decrease of -5.1 percentage points. This data-driven feedback replaces the previous approach of generating proposals with no memory of what has been tried before.
+          </p>
         </Card>
 
         <Card className="p-8" id="task-c">
@@ -624,7 +692,7 @@ export default function Methodology() {
             The <strong>composite score</strong> is the weighted sum: <code>Composite = Σ(dimensionᵢ × weightᵢ)</code>. This is the primary optimization target for the deal autoresearch loop. Scores are classified into three quality tiers: <strong className="text-emerald-400">Viable</strong> (≥65%), <strong className="text-amber-400">Marginal</strong> (45% to &lt;65%), and <strong className="text-red-400">Weak</strong> (&lt;45%). A deal scoring below 35% composite is marked as "stalled," which increments the stall counter for that architecture.
           </p>
           <p>
-            <strong>Graduated acceptance penalties</strong> enforce the acceptance hierarchy using multiplicative scaling rather than hard caps. If a Required-tier stakeholder (Iran or US) rejects, feasibility and durability are scaled to 40% of their LLM-assigned values, and implementability to 45%. If the Critical-tier stakeholder (Israel) rejects, feasibility is scaled to 60%, durability to 55%, and regional stability to 60%. After per-dimension penalties, the composite score itself receives an additional viability multiplier: ×0.80 for Required-tier rejection and ×0.90 for Critical-tier rejection. This graduated approach preserves differentiation between deals within the same rejection scenario — a better-structured deal still scores meaningfully higher than a weaker one — while ensuring that deals lacking essential-party buy-in cannot outrank deals with broader acceptance.
+            <strong>Graduated acceptance penalties</strong> enforce the acceptance hierarchy using a <strong>diminishing floor model</strong> rather than multiplicative scaling. Each penalty is computed as <code>diminish(score, floor, strength) = floor + (score − floor) × strength</code>, which compresses a dimension toward a floor value without collapsing it to near-zero. For Required-tier stakeholder (Iran or US) rejection: feasibility and durability are compressed toward a floor of 0.10 with strength 0.35, and implementability toward 0.15 with strength 0.40. For Critical-tier stakeholder (Israel) rejection: feasibility is compressed toward 0.20 with strength 0.50, durability toward 0.25 with strength 0.55, and regional stability toward 0.20 with strength 0.50. After per-dimension penalties, the composite score receives additive offsets: −0.10 for any Required-tier rejection and −0.05 for Critical-tier rejection (with a floor of 0.0). This approach preserves meaningful differentiation between deals facing the same rejection pattern — a deal scoring 0.70 on feasibility with a Required rejection compresses to 0.31 while a deal scoring 0.50 compresses to 0.24, maintaining a visible quality gap — while ensuring deals lacking essential-party buy-in are still materially penalized.
           </p>
           <p>
             Each judge provides per-dimension rationale, which is merged across providers using pipe-delimited concatenation for full transparency into each model's reasoning. The Deal Dashboard and Proposal Arena both display per-dimension scores with individual model tabs, allowing users to compare how each LLM judge scored each dimension independently.
@@ -650,7 +718,7 @@ export default function Methodology() {
           </p>
           <ul className="text-sm">
             <li>Parent node (the deal it was derived from)</li>
-            <li>Architecture used (balanced, nuclear-first, hormuz-first, humanitarian-first)</li>
+            <li>Architecture used (balanced, nuclear-first, hormuz-first, humanitarian-first, radical-restructure, asymmetric-grand-bargain, incremental-confidence)</li>
             <li>Depth in the tree (number of iterations from root)</li>
             <li>Whether it's stalled (composite &lt; 0.35)</li>
             <li>Whether it's the best in its branch</li>
