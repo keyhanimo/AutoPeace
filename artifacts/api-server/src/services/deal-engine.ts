@@ -28,7 +28,8 @@ export async function getRecentEvidenceSummary(): Promise<string> {
       .orderBy(desc(evidenceItemsTable.publishedAt))
       .limit(30);
     return items.map(i => `${i.title}: ${i.text?.slice(0, 150)}`).join("\n");
-  } catch {
+  } catch (err) {
+    logger.warn({ error: err instanceof Error ? err.message : String(err) }, "Failed to retrieve recent evidence summary — evaluation stages will proceed without evidence context");
     return "";
   }
 }

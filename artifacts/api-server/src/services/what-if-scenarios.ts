@@ -71,6 +71,8 @@ async function computeProposalImpactsViaScoring(
     .filter(p => p.scores !== null && p.scores !== undefined)
     .slice(0, maxProposals);
 
+  const evidenceSummary = await getRecentEvidenceSummary();
+
   const results = await Promise.all(scored.map(async (p) => {
     const baseScores = p.scores as Record<string, number> | null | undefined;
     const baseComposite = baseScores?.composite ?? 0;
@@ -80,7 +82,6 @@ async function computeProposalImpactsViaScoring(
         ...terms,
         nuclearProtocol: `[SCENARIO: ${scenarioDef.name} — ${scenarioDef.description}]\n\n${terms.nuclearProtocol}`,
       };
-      const evidenceSummary = await getRecentEvidenceSummary();
       const { evaluations: stakeholderEvaluations } = await evaluateStakeholders(enrichedTerms, modelConfig, evidenceSummary);
       const { scores } = await judgeAndScore(enrichedTerms, stakeholderEvaluations, [], {}, modelConfig, evidenceSummary);
       const projectedComposite = Math.round((scores.composite ?? baseComposite) * 100) / 100;
