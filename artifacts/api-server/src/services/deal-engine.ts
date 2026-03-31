@@ -111,6 +111,20 @@ export type BrainstormInsights = {
   unconventionalApproaches: string[];
 };
 
+export type DealMemoryEntry = {
+  architecture: string;
+  compositeScore: number;
+  terms: Partial<DealTerms>;
+  topProvisions: Array<{ title: string; description: string; scoreDelta?: number }>;
+  stakeholderVerdicts: Record<string, { verdict: string; rationale: string }>;
+  diagnosis: string;
+};
+
+export type DealMemoryContext = {
+  topDeals: DealMemoryEntry[];
+  provisionInsights: Array<{ title: string; avgScoreDelta: number; bestDimension: string; worstDimension: string; count: number }>;
+};
+
 export type DomesticFramingStrategy = {
   audience: string;
   framingNarrative: string;
@@ -146,7 +160,7 @@ export type EvaluatedDeal = {
   costUsd: number;
 };
 
-const ARCHITECTURES = ["balanced", "nuclear-first", "hormuz-first", "humanitarian-first"] as const;
+const ARCHITECTURES = ["balanced", "nuclear-first", "hormuz-first", "humanitarian-first", "radical-restructure", "asymmetric-grand-bargain", "incremental-confidence"] as const;
 type Architecture = typeof ARCHITECTURES[number];
 
 const DEFAULT_MODELS = MODEL_DEFAULTS;
@@ -195,6 +209,24 @@ function getDefaultTerms(architecture: Architecture): DealTerms {
   } else if (architecture === "humanitarian-first") {
     base.humanitarianProvisions = "Immediate comprehensive humanitarian corridor as trust-building prerequisite";
     base.sequencing = "Humanitarian access guaranteed immediately; nuclear talks begin within 60 days";
+  } else if (architecture === "radical-restructure") {
+    base.nuclearProtocol = "Replace bilateral enrichment limits with a multinational enrichment consortium (Iran, Saudi Arabia, UAE, Turkey) under IAEA governance — transforms nuclear from zero-sum to regional shared asset";
+    base.sanctionsRelief = "Comprehensive day-one sanctions suspension (not relief) contingent on consortium participation; permanent removal after 2-year verification period";
+    base.hormuzArrangements = "Hormuz internationalized as a UN-administered maritime zone with revenue-sharing among littoral states";
+    base.sequencing = "All parties act simultaneously on day one — no sequential confidence building. Mutual vulnerability creates mutual commitment";
+    base.timelineYears = 3;
+  } else if (architecture === "asymmetric-grand-bargain") {
+    base.nuclearProtocol = "Iran retains enrichment rights up to 20% but places all facilities under 24/7 IAEA livestream monitoring; US provides civilian nuclear technology transfer as quid pro quo";
+    base.sanctionsRelief = "Asymmetric timeline: US lifts financial sanctions immediately, Iran phases nuclear transparency over 18 months; each side gives what is cheap for them but valuable to the other";
+    base.hormuzArrangements = "Iran guarantees Hormuz passage in exchange for formal US recognition of Iran's legitimate security interests in the Persian Gulf";
+    base.sequencing = "Grand bargain: everything is agreed in one package but implemented in interlocking phases where each side's concessions unlock the other's";
+    base.timelineYears = 4;
+  } else if (architecture === "incremental-confidence") {
+    base.nuclearProtocol = "Micro-agreements: start with IAEA inspector access to one declared facility, expand access as each step succeeds; enrichment caps are earned through verified compliance, not demanded upfront";
+    base.sanctionsRelief = "Granular sanctions relief: each verified compliance step unlocks a specific sanctions category (humanitarian → financial → energy → technology)";
+    base.hormuzArrangements = "Incremental maritime cooperation: joint weather/rescue operations first, then shared navigation protocols, then full freedom of navigation framework";
+    base.sequencing = "50 small steps over 5 years, each independently verifiable and reversible. No single failure kills the process";
+    base.timelineYears = 7;
   }
 
   return base;
@@ -268,6 +300,7 @@ export async function runInnovationBrainstorm(
   architecture: Architecture = "balanced",
   modelConfig: ModelConfig = DEFAULT_MODELS,
   pipelineOverrides: Record<string, string> = {},
+  dealMemory: DealMemoryContext | null = null,
 ): Promise<{ insights: BrainstormInsights; tokens: number }> {
   await ensureRegistryLoaded();
   const overridePrompt = pipelineOverrides["brainstorm_system"] || "";
@@ -287,14 +320,36 @@ KEY CREATIVE MANDATE:
 ${overridePrompt}
 Output valid JSON only.`;
 
+  const dealMemoryBlock = dealMemory && dealMemory.topDeals.length > 0 ? `
+LESSONS FROM PREVIOUS DEALS (build on what worked, avoid what failed):
+${dealMemory.topDeals.slice(0, 3).map((d, i) => `
+Deal ${i + 1} (${d.architecture}, score: ${(d.compositeScore * 100).toFixed(1)}%):
+- Nuclear approach: ${(d.terms.nuclearProtocol || "").slice(0, 300)}
+- What worked: ${d.topProvisions.filter(p => (p.scoreDelta ?? 0) > 0).map(p => p.title).join(", ") || "N/A"}
+- What failed: ${Object.entries(d.stakeholderVerdicts).filter(([, v]) => v.verdict === "reject").map(([id, v]) => `${id} rejected: ${v.rationale.slice(0, 100)}`).join("; ") || "No rejections"}
+- Diagnosis: ${d.diagnosis.slice(0, 200)}`).join("\n")}
+${dealMemory.provisionInsights.length > 0 ? `
+PROVISION TRACK RECORD (which mechanisms have correlated with better scores):
+${dealMemory.provisionInsights.slice(0, 8).map(p => `- "${p.title}" (used ${p.count}x, avg delta: ${p.avgScoreDelta > 0 ? "+" : ""}${(p.avgScoreDelta * 100).toFixed(1)}pp, best for: ${p.bestDimension}, weakest for: ${p.worstDimension})`).join("\n")}` : ""}
+` : "";
+
+  const radicalInstructions = ["radical-restructure", "asymmetric-grand-bargain", "incremental-confidence"].includes(architecture) ? `
+RADICAL EXPLORATION MODE: You are brainstorming for a "${architecture}" approach. This means you should:
+- REJECT conventional diplomatic framing entirely. Do not default to JCPOA-like structures.
+- Think about fundamentally different ways to structure the problem — what if the nuclear issue is not the central axis? What if economic integration precedes political agreement? What if the deal creates new institutions rather than modifying existing ones?
+- Consider approaches that traditional diplomats would dismiss as "unrealistic" — those are often the most creative.
+- Generate at least 3 ideas rated "breakthrough" novelty level.
+` : "";
+
   const prompt = `${overrideUser}
 CURRENT GEOPOLITICAL EVIDENCE:
 ${evidenceSummary.slice(0, 4000)}
 
 ${previousDiagnosis ? `PREVIOUS DEAL DIAGNOSIS (what went wrong and must be overcome):
 ${previousDiagnosis}` : "This is the first brainstorm for a fresh deal search."}
-
+${dealMemoryBlock}
 ARCHITECTURE LENS: ${architecture}
+${radicalInstructions}
 
 ALL STAKEHOLDERS AND THEIR DEEP PROFILES:
 ${STAKEHOLDER_REGISTRY.map(s => `- ${s.id} [${s.tier.toUpperCase()}]: ${s.name}. ${s.profile}`).join("\n")}
@@ -356,6 +411,7 @@ export async function generateProposal(
   modelConfig: ModelConfig = DEFAULT_MODELS,
   brainstormInsights: BrainstormInsights | null = null,
   pipelineOverrides: Record<string, string> = {},
+  dealMemory: DealMemoryContext | null = null,
 ): Promise<{ terms: DealTerms; tokens: number }> {
   await ensureRegistryLoaded();
   const overridePrompt = pipelineOverrides["proposal_system"] || "";
@@ -390,11 +446,33 @@ CRITICAL PRINCIPLES:
 ${overridePrompt}
 Output valid JSON only, no prose.`;
 
+  const proposalDealMemoryBlock = dealMemory && dealMemory.topDeals.length > 0 ? `
+PREVIOUS DEAL HISTORY (learn from these — build on successful elements, fix failures):
+${dealMemory.topDeals.slice(0, 3).map((d, i) => `
+Deal ${i + 1} (${d.architecture}, ${(d.compositeScore * 100).toFixed(1)}% composite):
+- Nuclear: ${(d.terms.nuclearProtocol || "").slice(0, 250)}
+- Sanctions: ${(d.terms.sanctionsRelief || "").slice(0, 250)}
+- Successful provisions: ${d.topProvisions.filter(p => (p.scoreDelta ?? 0) >= 0).map(p => `"${p.title}"`).join(", ") || "None identified"}
+- Stakeholder rejections: ${Object.entries(d.stakeholderVerdicts).filter(([, v]) => v.verdict === "reject").map(([id, v]) => `${id}: ${v.rationale.slice(0, 80)}`).join("; ") || "None"}
+- Key weakness: ${d.diagnosis.slice(0, 150)}`).join("\n")}
+${dealMemory.provisionInsights.length > 0 ? `
+PROVEN PROVISIONS (incorporate the ones that work, avoid the ones that don't):
+${dealMemory.provisionInsights.slice(0, 6).map(p => `- "${p.title}": ${p.avgScoreDelta > 0 ? "HELPS" : "HURTS"} (${p.avgScoreDelta > 0 ? "+" : ""}${(p.avgScoreDelta * 100).toFixed(1)}pp avg, strongest on ${p.bestDimension})`).join("\n")}` : ""}
+` : "";
+
+  const radicalProposalInstructions = ["radical-restructure", "asymmetric-grand-bargain", "incremental-confidence"].includes(architecture) ? `
+RADICAL MODE — ${architecture.toUpperCase()}:
+You MUST NOT produce a deal that resembles a traditional JCPOA-style framework. Instead:
+${architecture === "radical-restructure" ? "- Restructure the problem entirely. Consider multilateral consortiums, new institutions, or bundling issues that are normally kept separate. The nuclear question might not be the starting point." : ""}
+${architecture === "asymmetric-grand-bargain" ? "- Design a deal where each party gives what is CHEAP for them but VALUABLE to the other. Find the asymmetries. One big package, not sequential steps." : ""}
+${architecture === "incremental-confidence" ? "- Design dozens of small, independently verifiable steps. No single step should be a deal-breaker. Build trust through accumulated micro-successes." : ""}
+` : "";
+
   const prompt = `${overrideUser}Based on current evidence:
 ${evidenceSummary.slice(0, 4000)}
 
 ${previousDiagnosis ? `Previous deal failed because: ${previousDiagnosis}` : "Design an initial deal proposal."}
-
+${proposalDealMemoryBlock}${radicalProposalInstructions}
 Architecture approach: ${architecture}
 ${brainstormContext}
 
@@ -897,13 +975,18 @@ Output JSON only.`;
     ? `\nINNOVATIVE PROVISIONS (novel mechanisms that may improve coherence, durability, or sellability scores):\n${terms.innovativeProvisions.map(p => `- ${p.title}: ${p.description}`).join("\n")}`
     : "";
 
+  const truncField = (s: string, max = 1500) => s.length > max ? s.slice(0, max) + "…" : s;
+
   const prompt = `Score this peace deal (0.0-1.0 per dimension) and explain each score:
 
 DEAL SUMMARY (post-negotiator amendments applied):
-- Nuclear protocol: ${terms.nuclearProtocol.slice(0, 200)}
-- Sanctions: ${terms.sanctionsRelief.slice(0, 200)}
+- Nuclear protocol: ${truncField(terms.nuclearProtocol)}
+- Sanctions: ${truncField(terms.sanctionsRelief)}
+- Maritime/Hormuz: ${truncField(terms.hormuzArrangements || "")}
+- Humanitarian: ${truncField(terms.humanitarianProvisions || "")}
+- Verification: ${truncField(terms.verificationMechanism || "")}
 - Timeline: ${terms.timelineYears} years
-- Sequencing: ${terms.sequencing.slice(0, 200)}
+- Sequencing: ${truncField(terms.sequencing)}
 ${commitmentsBlock}${innovativeBlock}
 
 STAKEHOLDER ACCEPTANCE BY TIER:
@@ -1027,15 +1110,19 @@ Return JSON with scores and rationale for each dimension:
     judgePrompt: `[SYSTEM]\n${systemPrompt}\n\n[USER]\n${prompt}`,
   };
 
+  const diminish = (score: number, floor: number, strength: number) => {
+    return floor + (score - floor) * strength;
+  };
+
   if (!requiredAccept) {
-    scores.feasibility *= 0.40;
-    scores.implementability *= 0.45;
-    scores.durability *= 0.40;
+    scores.feasibility = diminish(scores.feasibility, 0.10, 0.45);
+    scores.implementability = diminish(scores.implementability, 0.10, 0.50);
+    scores.durability = diminish(scores.durability, 0.10, 0.45);
   }
   if (!israelAccepts) {
-    scores.feasibility *= 0.60;
-    scores.durability *= 0.55;
-    scores.regionalStability *= 0.60;
+    scores.feasibility = diminish(scores.feasibility, 0.12, 0.55);
+    scores.durability = diminish(scores.durability, 0.12, 0.55);
+    scores.regionalStability = diminish(scores.regionalStability, 0.12, 0.55);
   }
 
   scores.composite = (
@@ -1049,11 +1136,12 @@ Return JSON with scores and rationale for each dimension:
   );
 
   if (!requiredAccept) {
-    scores.composite *= 0.80;
+    scores.composite -= 0.10;
   }
   if (!israelAccepts) {
-    scores.composite *= 0.90;
+    scores.composite -= 0.05;
   }
+  scores.composite = Math.max(0, scores.composite);
 
   return { scores, tokens: totalTokens };
 }
@@ -1268,22 +1356,23 @@ export async function runFullEvaluation(
   modelConfig: ModelConfig = DEFAULT_MODELS,
   pipelineOverrides: Record<string, string> = {},
   onSubStage?: (subStage: DealSubStage) => void,
+  dealMemory: DealMemoryContext | null = null,
 ): Promise<EvaluatedDeal> {
   validateModelConfig(modelConfig);
   await loadStakeholderRegistryFromDB();
-  logger.info({ architecture, models: modelConfig, overrides: Object.keys(pipelineOverrides) }, "Starting enhanced deal evaluation pipeline");
+  logger.info({ architecture, models: modelConfig, overrides: Object.keys(pipelineOverrides), hasDealMemory: !!dealMemory, topDealsCount: dealMemory?.topDeals.length ?? 0 }, "Starting enhanced deal evaluation pipeline");
   let totalTokens = 0;
   let totalCost = 0;
 
   // Stage 0: Innovation Brainstorm — creative pre-generation
   onSubStage?.("brainstorm");
-  const { insights: brainstormInsights, tokens: t0 } = await runInnovationBrainstorm(evidenceSummary, previousDiagnosis, architecture, modelConfig, pipelineOverrides);
+  const { insights: brainstormInsights, tokens: t0 } = await runInnovationBrainstorm(evidenceSummary, previousDiagnosis, architecture, modelConfig, pipelineOverrides, dealMemory);
   totalTokens += t0;
   logger.info({ stage: "brainstorm", analogies: brainstormInsights.historicalAnalogies.length, provisions: brainstormInsights.creativeProvisions.length, tokens: t0 }, "Stage 0 complete");
 
   // Stage 1: Proposal Agent — generates deal terms using brainstorm insights
   onSubStage?.("proposal");
-  const { terms, tokens: t1 } = await generateProposal(evidenceSummary, previousDiagnosis, architecture, modelConfig, brainstormInsights, pipelineOverrides);
+  const { terms, tokens: t1 } = await generateProposal(evidenceSummary, previousDiagnosis, architecture, modelConfig, brainstormInsights, pipelineOverrides, dealMemory);
   totalTokens += t1;
   logger.info({ stage: "proposal", innovativeProvisions: terms.innovativeProvisions?.length ?? 0, tokens: t1 }, "Stage 1 complete");
 

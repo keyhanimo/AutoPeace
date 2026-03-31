@@ -120,7 +120,28 @@ export const selectDealSchema = createSelectSchema(dealsTable);
 export type InsertDeal = z.infer<typeof insertDealSchema>;
 export type Deal = typeof dealsTable.$inferSelect;
 
+export const provisionOutcomesTable = pgTable("provision_outcomes", {
+  id: text("id").primaryKey(),
+  dealId: text("deal_id").notNull(),
+  provisionTitle: text("provision_title").notNull(),
+  provisionDescription: text("provision_description").notNull(),
+  category: text("category").notNull().default("general"),
+  compositeScore: real("composite_score"),
+  parentCompositeScore: real("parent_composite_score"),
+  scoreDelta: real("score_delta"),
+  dimensionDeltas: jsonb("dimension_deltas").$type<Record<string, number>>(),
+  stakeholderReactions: jsonb("stakeholder_reactions").$type<Record<string, string>>(),
+  architecture: text("architecture").notNull().default("balanced"),
+  appearedInTopDeal: boolean("appeared_in_top_deal").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const insertPipelineEvolutionSchema = createInsertSchema(pipelineEvolutionTable).omit({ createdAt: true });
 export const selectPipelineEvolutionSchema = createSelectSchema(pipelineEvolutionTable);
 export type InsertPipelineEvolution = z.infer<typeof insertPipelineEvolutionSchema>;
 export type PipelineEvolution = typeof pipelineEvolutionTable.$inferSelect;
+
+export const insertProvisionOutcomeSchema = createInsertSchema(provisionOutcomesTable).omit({ createdAt: true });
+export const selectProvisionOutcomeSchema = createSelectSchema(provisionOutcomesTable);
+export type InsertProvisionOutcome = z.infer<typeof insertProvisionOutcomeSchema>;
+export type ProvisionOutcome = typeof provisionOutcomesTable.$inferSelect;

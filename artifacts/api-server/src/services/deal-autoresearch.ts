@@ -1,14 +1,18 @@
 import { randomUUID } from "node:crypto";
 import { db } from "@workspace/db";
-import { dealsTable, solutionTreeTable, adminConfigTable, pipelineEvolutionTable, changelogEntriesTable } from "@workspace/db/schema";
-import { desc, eq, isNull, and } from "drizzle-orm";
+import { dealsTable, solutionTreeTable, adminConfigTable, pipelineEvolutionTable, changelogEntriesTable, provisionOutcomesTable } from "@workspace/db/schema";
+import { desc, eq, isNull, and, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import {
   runFullEvaluation,
   isDominatedOnAllDimensions,
   DEAL_ARCHITECTURES,
   type DealScores,
+  type DealTerms,
   type MetaEvaluatorResult,
+  type DealMemoryContext,
+  type DealMemoryEntry,
+  type StakeholderVerdict,
 } from "./deal-engine";
 import { setDealSubStage, type DealSubStage } from "../lib/cycle-status";
 import { getModelConfig } from "./llm-router";
@@ -22,6 +26,10 @@ export function isDealCycleRunning() {
 
 const STALL_THRESHOLD = 3;
 const PIPELINE_EVOLUTION_WINDOW = 3;
+
+const STANDARD_ARCHITECTURES = ["balanced", "nuclear-first", "hormuz-first", "humanitarian-first"] as const;
+const RADICAL_ARCHITECTURES = ["radical-restructure", "asymmetric-grand-bargain", "incremental-confidence"] as const;
+const RADICAL_EXPLORATION_PROBABILITY = 0.3;
 
 async function getEvidenceSummary(): Promise<string> {
   try {
@@ -49,6 +57,160 @@ async function getCurrentBestDiagnosis(): Promise<string> {
   } catch {
     return "";
   }
+}
+
+async function buildDealMemory(): Promise<DealMemoryContext> {
+  try {
+    const topDeals = await db.select()
+      .from(dealsTable)
+      .orderBy(desc(sql`(${dealsTable.scores}->>'composite')::float`))
+      .limit(5);
+
+    const dealMemoryEntries: DealMemoryEntry[] = topDeals.map(d => {
+      const scores = d.scores as DealScores | null;
+      const terms = d.terms as Partial<DealTerms> | null;
+      const stakeholderEvals = d.stakeholderEvaluations as Record<string, StakeholderVerdict> | null;
+      const provisions = terms?.innovativeProvisions ?? [];
+
+      return {
+        architecture: d.architecture,
+        compositeScore: scores?.composite ?? 0,
+        terms: {
+          nuclearProtocol: terms?.nuclearProtocol,
+          sanctionsRelief: terms?.sanctionsRelief,
+          sequencing: terms?.sequencing,
+          hormuzArrangements: terms?.hormuzArrangements,
+        },
+        topProvisions: provisions.map(p => ({ title: p.title, description: p.description })),
+        stakeholderVerdicts: Object.fromEntries(
+          Object.entries(stakeholderEvals ?? {}).map(([id, v]) => [id, { verdict: v.verdict, rationale: v.rationale }])
+        ),
+        diagnosis: d.diagnosis ?? "",
+      };
+    });
+
+    const provisionRows = await db.select()
+      .from(provisionOutcomesTable)
+      .orderBy(desc(provisionOutcomesTable.createdAt))
+      .limit(100);
+
+    const provisionMap = new Map<string, { deltas: number[]; dimensions: Record<string, number[]>; count: number }>();
+    for (const row of provisionRows) {
+      const key = row.provisionTitle;
+      if (!provisionMap.has(key)) {
+        provisionMap.set(key, { deltas: [], dimensions: {}, count: 0 });
+      }
+      const entry = provisionMap.get(key)!;
+      entry.count++;
+      if (row.scoreDelta != null) {
+        entry.deltas.push(row.scoreDelta);
+      }
+      if (row.dimensionDeltas) {
+        for (const [dim, val] of Object.entries(row.dimensionDeltas)) {
+          if (!entry.dimensions[dim]) entry.dimensions[dim] = [];
+          entry.dimensions[dim].push(val as number);
+        }
+      }
+    }
+
+    const provisionInsights = Array.from(provisionMap.entries()).map(([title, data]) => {
+      const avgScoreDelta = data.deltas.length > 0
+        ? data.deltas.reduce((a, b) => a + b, 0) / data.deltas.length
+        : 0;
+
+      let bestDimension = "none";
+      let worstDimension = "none";
+      let bestAvg = -Infinity;
+      let worstAvg = Infinity;
+
+      for (const [dim, vals] of Object.entries(data.dimensions)) {
+        const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+        if (avg > bestAvg) { bestAvg = avg; bestDimension = dim; }
+        if (avg < worstAvg) { worstAvg = avg; worstDimension = dim; }
+      }
+
+      return { title, avgScoreDelta, bestDimension, worstDimension, count: data.count };
+    }).sort((a, b) => b.avgScoreDelta - a.avgScoreDelta);
+
+    for (const entry of dealMemoryEntries) {
+      for (const prov of entry.topProvisions) {
+        const insight = provisionMap.get(prov.title);
+        if (insight && insight.deltas.length > 0) {
+          prov.scoreDelta = insight.deltas.reduce((a, b) => a + b, 0) / insight.deltas.length;
+        }
+      }
+    }
+
+    return { topDeals: dealMemoryEntries, provisionInsights };
+  } catch (err) {
+    logger.warn({ err }, "Failed to build deal memory — proceeding without it");
+    return { topDeals: [], provisionInsights: [] };
+  }
+}
+
+async function recordProvisionOutcomes(
+  dealId: string,
+  terms: DealTerms,
+  scores: DealScores,
+  parentScores: DealScores | null,
+  architecture: string,
+  isBest: boolean,
+  stakeholderEvals: Record<string, StakeholderVerdict>,
+): Promise<void> {
+  try {
+    const provisions = terms.innovativeProvisions ?? [];
+    if (provisions.length === 0) return;
+
+    const parentComposite = parentScores?.composite ?? 0;
+    const currentComposite = scores.composite ?? 0;
+    const scoreDelta = currentComposite - parentComposite;
+
+    const dimensionDeltas: Record<string, number> = {};
+    const dims = ["feasibility", "coherence", "evidenceGrounding", "domesticSellability", "regionalStability", "implementability", "durability"] as const;
+    for (const dim of dims) {
+      dimensionDeltas[dim] = (scores[dim] ?? 0) - (parentScores?.[dim] ?? 0);
+    }
+
+    const stakeholderReactions: Record<string, string> = {};
+    for (const [id, v] of Object.entries(stakeholderEvals)) {
+      stakeholderReactions[id] = v.verdict;
+    }
+
+    for (const provision of provisions) {
+      const category = categorizeProvision(provision.title, provision.description);
+      await db.insert(provisionOutcomesTable).values({
+        id: randomUUID(),
+        dealId,
+        provisionTitle: provision.title,
+        provisionDescription: provision.description,
+        category,
+        compositeScore: currentComposite,
+        parentCompositeScore: parentComposite,
+        scoreDelta,
+        dimensionDeltas,
+        stakeholderReactions,
+        architecture,
+        appearedInTopDeal: isBest,
+      });
+    }
+
+    logger.info({ dealId, provisionCount: provisions.length }, "Recorded provision outcomes");
+  } catch (err) {
+    logger.warn({ err, dealId }, "Failed to record provision outcomes");
+  }
+}
+
+function categorizeProvision(title: string, description: string): string {
+  const text = `${title} ${description}`.toLowerCase();
+  if (text.includes("economic") || text.includes("fund") || text.includes("trade") || text.includes("investment")) return "economic-integration";
+  if (text.includes("water") || text.includes("climate") || text.includes("environment") || text.includes("energy")) return "environmental-cooperation";
+  if (text.includes("technology") || text.includes("tech") || text.includes("cyber") || text.includes("digital")) return "technology-sharing";
+  if (text.includes("cultural") || text.includes("education") || text.includes("university") || text.includes("exchange")) return "cultural-exchange";
+  if (text.includes("verification") || text.includes("monitor") || text.includes("inspect") || text.includes("iaea")) return "verification-innovation";
+  if (text.includes("maritime") || text.includes("hormuz") || text.includes("shipping") || text.includes("naval")) return "maritime-security";
+  if (text.includes("humanitarian") || text.includes("refugee") || text.includes("medical") || text.includes("food")) return "humanitarian";
+  if (text.includes("security") || text.includes("military") || text.includes("defense") || text.includes("arms")) return "security-arrangement";
+  return "general";
 }
 
 async function updateParetoFrontier(): Promise<void> {
@@ -231,6 +393,19 @@ async function updatePipelineStats(configId: string, compositeScore: number): Pr
   }
 }
 
+function selectArchitecture(
+  currentArchIdx: number,
+  stallCount: number,
+  totalDeals: number,
+): typeof DEAL_ARCHITECTURES[number] {
+  if (stallCount >= STALL_THRESHOLD || (totalDeals > 0 && Math.random() < RADICAL_EXPLORATION_PROBABILITY)) {
+    const radicalIdx = Math.floor(Math.random() * RADICAL_ARCHITECTURES.length);
+    return RADICAL_ARCHITECTURES[radicalIdx] ?? "radical-restructure";
+  }
+
+  return DEAL_ARCHITECTURES[currentArchIdx % STANDARD_ARCHITECTURES.length] ?? "balanced";
+}
+
 export async function runDealCycleNow(): Promise<string> {
   if (dealCycleRunning) {
     const [recent] = await db.select({ cycleId: dealsTable.cycleId })
@@ -262,11 +437,12 @@ async function runDealCycleAsync(cycleId: string): Promise<void> {
       .where(eq(dealsTable.isCurrent, true))
       .limit(1);
 
+    const totalDeals = await db.select({ count: sql<number>`count(*)` }).from(dealsTable);
+    const dealCount = totalDeals[0]?.count ?? 0;
+
     const currentArchIdx = currentBest
       ? DEAL_ARCHITECTURES.indexOf(currentBest.architecture as typeof DEAL_ARCHITECTURES[number])
       : 0;
-
-    let chosenArch = DEAL_ARCHITECTURES[currentArchIdx % DEAL_ARCHITECTURES.length] ?? "balanced";
 
     const [currentBestNode] = currentBest
       ? await db.select({ id: solutionTreeTable.id, depth: solutionTreeTable.depth })
@@ -276,24 +452,33 @@ async function runDealCycleAsync(cycleId: string): Promise<void> {
           .limit(1)
       : [undefined];
 
-    const stallCount = await getStallCount(chosenArch, currentBestNode?.id ?? null);
+    const stallCount = await getStallCount(
+      DEAL_ARCHITECTURES[currentArchIdx % DEAL_ARCHITECTURES.length] ?? "balanced",
+      currentBestNode?.id ?? null,
+    );
+
+    const chosenArch = selectArchitecture(currentArchIdx, stallCount, dealCount);
 
     if (stallCount >= STALL_THRESHOLD) {
-      chosenArch = DEAL_ARCHITECTURES[(currentArchIdx + 1) % DEAL_ARCHITECTURES.length] ?? "balanced";
-      logger.info({ cycleId, chosenArch }, "Branching to new architecture due to stall");
+      logger.info({ cycleId, chosenArch, stallCount }, "Branching to new architecture due to stall");
     }
 
     const pipelineConfig = await getCurrentPipelineConfig();
     const pipelineOverrides = pipelineConfig?.overrides ?? {};
 
+    const dealMemory = await buildDealMemory();
+
     logger.info({
       cycleId,
+      chosenArch,
       pipelineGeneration: pipelineConfig?.generation ?? 0,
       overrideKeys: Object.keys(pipelineOverrides),
-    }, "Using pipeline configuration");
+      dealMemoryDeals: dealMemory.topDeals.length,
+      provisionInsights: dealMemory.provisionInsights.length,
+    }, "Using pipeline configuration with deal memory");
 
     const modelConfig = await getModelConfig();
-    const evaluated = await runFullEvaluation(evidenceSummary, previousDiagnosis, chosenArch, modelConfig, pipelineOverrides, setDealSubStage);
+    const evaluated = await runFullEvaluation(evidenceSummary, previousDiagnosis, chosenArch, modelConfig, pipelineOverrides, setDealSubStage, dealMemory);
 
     const dealId = randomUUID();
     const isBetterThanCurrent = !currentBest?.scores ||
@@ -347,6 +532,17 @@ async function runDealCycleAsync(cycleId: string): Promise<void> {
     });
 
     await updateParetoFrontier();
+
+    const parentScores = currentBest?.scores ? (currentBest.scores as DealScores) : null;
+    await recordProvisionOutcomes(
+      dealId,
+      evaluated.terms,
+      evaluated.scores,
+      parentScores,
+      chosenArch,
+      isBetterThanCurrent,
+      evaluated.stakeholderEvaluations,
+    );
 
     if (pipelineConfig?.id) {
       await updatePipelineStats(pipelineConfig.id, compositeScore);
@@ -410,6 +606,7 @@ async function runDealCycleAsync(cycleId: string): Promise<void> {
       pipelineGeneration: pipelineConfig?.generation ?? 0,
       innovativeProvisions: evaluated.terms.innovativeProvisions?.length ?? 0,
       framingStrategies: Object.keys(evaluated.domesticFramingStrategies).length,
+      dealMemoryUsed: dealMemory.topDeals.length > 0,
     }, "Enhanced deal cycle complete");
 
   } catch (err) {

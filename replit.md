@@ -61,6 +61,7 @@ artifacts-monorepo/
 - **changelog_entries** — auto-generated headlines summarizing each forecast cycle and deal engine cycle (includes `scoreDelta` for deals, `forecastDelta` for forecasts)
 - **admin_config** — key/value config (isPaused, cadence, etc.)
 - **deals** — includes `innovativeProvisions` (jsonb), `domesticFramingStrategies` (jsonb), `brainstormInsights` (jsonb), `pipelineConfig` (jsonb) columns for enhanced pipeline data
+- **provision_outcomes** — tracks per-provision performance: score deltas, dimension deltas, stakeholder reactions, category. Used by deal memory system for provision-level learning.
 - **pipeline_evolution** — tracks cumulative prompt overrides per stage key for pipeline hill-climbing
 
 Run migrations: `pnpm --filter @workspace/db run push`
@@ -216,14 +217,31 @@ Enhanced multi-agent pipeline (`deal-engine.ts`) with **grand coalition** cooper
 7. **Meta-Evaluator** (evaluation role) — pipeline reasoning quality + next architecture suggestion + `promptImprovements` for pipeline hill-climbing
 8. **Diagnosis Generator** (adversarial role) — tier-aware diagnosis with required/critical rejection warnings
 
+**Deal Memory & Learning System** (`deal-autoresearch.ts`):
+- `buildDealMemory()` queries top 5 past deals + provision outcomes from `provision_outcomes` table
+- Provides brainstorm/proposal stages with: which provisions helped/hurt scores, stakeholder verdict patterns, dimension-level insights
+- `recordProvisionOutcomes()` saves per-provision performance after each deal cycle
+- Provisions cross-referenced with historical data to populate `scoreDelta` for filtering effective vs harmful provisions
+
+**Architecture Selection** (7 total):
+- **Standard** (4): `balanced`, `nuclear-first`, `hormuz-first`, `humanitarian-first`
+- **Radical** (3): `radical-restructure` (fundamental paradigm shifts), `asymmetric-grand-bargain` (bold asymmetric swaps), `incremental-confidence` (micro-step CBMs)
+- 30% random radical exploration probability per cycle; also triggered on stall detection (3+ consecutive non-improving cycles)
+
+**Stakeholder Rejection Penalties** (diminishing floor model, not multiplicative):
+- `diminish(score, floor, strength)` = `floor + (score - floor) * strength`
+- Required rejection: floor 0.10, strength 0.35 + additive composite offset -0.10
+- Critical rejection: floor 0.20, strength 0.50 + additive composite offset -0.05
+- Influential/contextual: lighter penalties preserving score differentiation
+
 **Pipeline Hill-Climbing** (`pipelineEvolutionTable` in DB):
 - Meta-evaluator suggests specific prompt improvements after each cycle
 - `evolvePipeline()` in autoresearch stores cumulative overrides keyed by stage (`brainstorm_system`, `proposal_system`, `framing_system`, `negotiator_system`, etc.)
 - Future pipeline runs apply these overrides, enabling the AI to iteratively improve its own deal generation prompts over time
 
 **Tiered Stakeholder Acceptance System** (DB-driven, loaded via `loadStakeholderRegistryFromDB()` at pipeline start):
-- **Required** (Iran, US) — both must accept for deal to be implementable; rejection caps feasibility at 0.15
-- **Critical** (Israel) — rejection severely undermines viability; caps feasibility at 0.35
+- **Required** (Iran, US) — both must accept for deal to be implementable
+- **Critical** (Israel) — rejection severely undermines viability
 - **Influential** (Saudi Arabia, EU3, Russia, China, IAEA) — affects durability but not gatekeepers
 - **Contextual** (UAE, Qatar, Turkey, Iraq, Egypt, India, Japan, South Korea, Jordan, Pakistan, Ukraine, Oman, Global North, Global South Energy Exporters, Global South Energy Importers) — affects regional stability
 - Profiles updated each autoresearch cycle via `stakeholder-updater.ts` (LLM analyzes recent evidence for material position shifts)

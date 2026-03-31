@@ -359,7 +359,7 @@ function DealDetailView({ deal, isHistorical }: { deal: Deal; isHistorical?: boo
                 <span className="text-sm font-bold text-emerald-300 block mb-2">{strategy.audience}</span>
                 <p className="text-xs text-foreground mb-2 italic">"{strategy.framingNarrative}"</p>
                 <div className="space-y-1 mb-2">
-                  {strategy.keyTalkingPoints.map((pt: string, i: number) => (
+                  {(strategy.keyTalkingPoints ?? []).map((pt: string, i: number) => (
                     <div key={i} className="flex gap-2 text-xs text-muted-foreground">
                       <span className="text-emerald-500 shrink-0">•</span>
                       <span>{pt}</span>
