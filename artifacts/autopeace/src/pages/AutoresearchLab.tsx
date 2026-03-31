@@ -157,8 +157,8 @@ function ChampionLineage() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <Badge variant="outline" className={`text-[9px] ${c.task === "A" ? "border-blue-500/40 text-blue-400" : "border-amber-500/40 text-amber-400"}`}>
-                          {c.task === "A" ? "Forecast" : "Deal"}
+                        <Badge variant="outline" className={`text-[9px] ${c.task === "A" ? "border-blue-500/40 text-blue-400" : c.task === "both" ? "border-violet-500/40 text-violet-400" : "border-amber-500/40 text-amber-400"}`}>
+                          {c.task === "A" ? "Forecast" : c.task === "both" ? "Both" : "Deal"}
                         </Badge>
                         <span className="text-[10px] text-muted-foreground font-mono">#{c.cycleId.slice(0, 8)}</span>
                         {improvement !== null && (

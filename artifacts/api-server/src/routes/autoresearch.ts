@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { cyclesTable, experimentsTable, forecastsTable, dealsTable, pipelineEvolutionTable } from "@workspace/db/schema";
-import { eq, desc, and, count, isNotNull } from "drizzle-orm";
+import { eq, desc, and, count, isNotNull, inArray } from "drizzle-orm";
 
 const router = Router();
 
@@ -86,8 +86,10 @@ router.get("/autoresearch/champion-lineage", async (req, res) => {
     const limit = Math.min(Number(req.query["limit"]) || 30, 100);
 
     const conditions = [eq(experimentsTable.retained, true)];
-    if (taskFilter !== "all") {
-      conditions.push(eq(experimentsTable.task, taskFilter));
+    if (taskFilter === "A") {
+      conditions.push(inArray(experimentsTable.task, ["A", "both"]));
+    } else if (taskFilter === "B") {
+      conditions.push(inArray(experimentsTable.task, ["B", "both"]));
     }
 
     const champions = await db.select({
