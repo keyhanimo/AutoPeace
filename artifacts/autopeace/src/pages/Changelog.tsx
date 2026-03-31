@@ -111,14 +111,7 @@ function ChangelogEntryDetail({ id }: { id: string }) {
   const hasKeyEvidence = entry.keyEvidence && Array.isArray(entry.keyEvidence) && entry.keyEvidence.length > 0;
   const hasNotes = !!entry.notes;
 
-  const scoreDelta = entry.scoreDelta && typeof entry.scoreDelta === 'object'
-    ? Object.entries(entry.scoreDelta as Record<string, unknown>)
-        .filter(([, v]) => typeof v === 'number')
-        .map(([k, v]) => ({ key: k, value: (v as number) * 100 }))
-        .sort((a, b) => a.key === 'composite' ? -1 : b.key === 'composite' ? 1 : b.value - a.value)
-    : [];
-
-  if (!hasKeyEvidence && !hasNotes && scoreDelta.length === 0) {
+  if (!hasKeyEvidence && !hasNotes) {
     return (
       <div className="mt-3 pt-3 border-t border-border/50">
         <p className="text-xs text-muted-foreground italic">No additional details available for this entry.</p>
@@ -135,10 +128,6 @@ function ChangelogEntryDetail({ id }: { id: string }) {
           </p>
           <p className="text-xs text-muted-foreground leading-relaxed">{entry.notes}</p>
         </div>
-      )}
-
-      {isDeal && scoreDelta.length > 0 && (
-        <ScoreBar entries={scoreDelta} />
       )}
 
       {hasKeyEvidence && (
