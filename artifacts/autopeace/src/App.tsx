@@ -47,7 +47,7 @@ function Router() {
         <Route path="/forecasts" element={<ForecastDashboard />} />
         <Route path="/costs" element={<CostsExplorer />} />
         <Route path="/lab" element={<AutoresearchLab />} />
-        <Route path="/experiments" element={<ExperimentLog />} />
+        <Route path="/experiments" element={<AutoresearchLab />} />
         <Route path="/evidence" element={<EvidenceExplorer />} />
         <Route path="/submit" element={<SubmitProposal />} />
         <Route path="/data" element={<DataPortal />} />

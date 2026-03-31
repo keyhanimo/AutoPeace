@@ -31,7 +31,6 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/stakeholders/lens", label: "Stakeholder Lens", icon: Eye },
       { href: "/evidence", label: "Evidence Explorer", icon: Search },
       { href: "/lab", label: "Autoresearch Lab", icon: Microscope },
-      { href: "/experiments", label: "Experiment Log", icon: FlaskConical },
     ],
   },
   {

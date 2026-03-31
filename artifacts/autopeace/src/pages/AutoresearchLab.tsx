@@ -12,9 +12,9 @@ import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
   BarChart, Bar, Cell,
 } from "recharts";
-import { TrendingUp, Trophy, GitBranch, Radio, ArrowRight, CheckCircle2, XCircle, Cpu, Zap } from "lucide-react";
+import { TrendingUp, Trophy, GitBranch, Radio, ArrowRight, CheckCircle2, XCircle, Cpu, Zap, ChevronDown, ChevronRight } from "lucide-react";
 import { CycleStatusIndicator, useCycleStatus } from "@/components/CycleStatusIndicator";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 function ImprovementTimeline() {
   const { data, isLoading } = useGetAutoresearchTimeline({ limit: 50 });
@@ -136,6 +136,15 @@ function ChampionLineage() {
               ? Object.keys(scoresAfter).some(k => (scoresAfter[k] ?? 0) > (scoresBefore[k] ?? 0))
               : null;
 
+            const scoreDeltas = scoresBefore && scoresAfter
+              ? Object.keys(scoresAfter).filter(k => k !== "composite").map(k => ({
+                  key: k,
+                  before: scoresBefore[k] ?? 0,
+                  after: scoresAfter[k] ?? 0,
+                  delta: (scoresAfter[k] ?? 0) - (scoresBefore[k] ?? 0),
+                }))
+              : [];
+
             return (
               <motion.div
                 key={c.id}
@@ -162,6 +171,21 @@ function ChampionLineage() {
                       {c.diagnosis && (
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{c.diagnosis}</p>
                       )}
+                      {scoreDeltas.length > 0 && (
+                        <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1">
+                          {scoreDeltas.map(sd => (
+                            <div key={sd.key} className="flex items-center gap-1.5 text-[10px]">
+                              <span className="text-muted-foreground truncate capitalize">{sd.key.replace(/_/g, " ")}</span>
+                              <span className="font-mono text-muted-foreground/60">{Math.round(sd.before * 100)}</span>
+                              <ArrowRight className="w-2.5 h-2.5 text-muted-foreground/40" />
+                              <span className="font-mono text-foreground">{Math.round(sd.after * 100)}</span>
+                              <span className={`font-mono font-bold ${sd.delta > 0 ? "text-emerald-400" : sd.delta < 0 ? "text-red-400" : "text-muted-foreground"}`}>
+                                {sd.delta > 0 ? "+" : ""}{Math.round(sd.delta * 100)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <div className="text-right shrink-0">
                       <p className="text-[10px] text-muted-foreground">
@@ -184,6 +208,7 @@ function ChampionLineage() {
 
 function PipelineEvolutionView() {
   const { data, isLoading } = useGetPipelineEvolution();
+  const [expandedGen, setExpandedGen] = useState<string | null>(null);
 
   if (isLoading) return <div className="text-sm text-muted-foreground animate-pulse py-8 text-center">Loading evolution...</div>;
 
@@ -203,41 +228,65 @@ function PipelineEvolutionView() {
         </Card>
       ) : (
         <div className="grid gap-3">
-          {generations.map((g) => (
-            <Card key={g.id} className={`p-4 ${g.isCurrent ? "border-primary/40 bg-primary/5" : ""}`}>
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-bold text-foreground">Gen {g.generation}</span>
-                    {g.isCurrent && <Badge className="text-[9px] bg-primary/20 text-primary border-primary/30">Current</Badge>}
-                    {g.parentConfigId && (
-                      <span className="text-[10px] text-muted-foreground">← from {g.parentConfigId.slice(0, 8)}</span>
-                    )}
-                  </div>
-                  <p className="text-sm text-foreground">{g.description}</p>
-                  {Object.keys(g.promptOverrides ?? {}).length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {Object.keys(g.promptOverrides).slice(0, 4).map(k => (
-                        <Badge key={k} variant="outline" className="text-[9px] font-mono">{k}</Badge>
-                      ))}
-                      {Object.keys(g.promptOverrides).length > 4 && (
-                        <Badge variant="outline" className="text-[9px]">+{Object.keys(g.promptOverrides).length - 4} more</Badge>
+          {generations.map((g) => {
+            const overrides = (g.promptOverrides as Record<string, string> | null) ?? {};
+            const overrideKeys = Object.keys(overrides);
+            const isExpanded = expandedGen === g.id;
+
+            return (
+              <Card key={g.id} className={`p-4 ${g.isCurrent ? "border-primary/40 bg-primary/5" : ""}`}>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-bold text-foreground">Gen {g.generation}</span>
+                      {g.isCurrent && <Badge className="text-[9px] bg-primary/20 text-primary border-primary/30">Current</Badge>}
+                      {g.parentConfigId && (
+                        <span className="text-[10px] text-muted-foreground">← from {g.parentConfigId.slice(0, 8)}</span>
                       )}
                     </div>
-                  )}
+                    <p className="text-sm text-foreground">{g.description}</p>
+                    {overrideKeys.length > 0 && (
+                      <button
+                        onClick={() => setExpandedGen(isExpanded ? null : g.id)}
+                        className="mt-2 flex items-center gap-1 text-[10px] text-primary hover:text-primary/80 transition-colors"
+                      >
+                        {isExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                        <span className="font-medium">{overrideKeys.length} prompt override{overrideKeys.length !== 1 ? "s" : ""}</span>
+                      </button>
+                    )}
+                    <AnimatePresence>
+                      {isExpanded && overrideKeys.length > 0 && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="mt-2 space-y-2 border-l-2 border-primary/20 pl-3">
+                            {overrideKeys.map(k => (
+                              <div key={k}>
+                                <p className="text-[10px] font-mono font-bold text-primary/80 uppercase">{k}</p>
+                                <p className="text-[11px] text-muted-foreground mt-0.5 whitespace-pre-wrap">{overrides[k]}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                  <div className="text-right shrink-0 space-y-1">
+                    {g.avgCompositeScore != null && (
+                      <p className="text-sm font-bold font-mono">{Math.round(g.avgCompositeScore * 100)}%</p>
+                    )}
+                    <p className="text-[10px] text-muted-foreground">{g.dealCount} deals</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {new Date(g.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    </p>
+                  </div>
                 </div>
-                <div className="text-right shrink-0 space-y-1">
-                  {g.avgCompositeScore != null && (
-                    <p className="text-sm font-bold font-mono">{Math.round(g.avgCompositeScore * 100)}%</p>
-                  )}
-                  <p className="text-[10px] text-muted-foreground">{g.dealCount} deals</p>
-                  <p className="text-[10px] text-muted-foreground">
-                    {new Date(g.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                  </p>
-                </div>
-              </div>
-            </Card>
-          ))}
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
@@ -248,9 +297,16 @@ function LiveStatus() {
   const status = useCycleStatus();
   const { data: stats } = useGetExperimentStats();
 
+  const elapsed = status?.cycleStartedAt
+    ? Math.floor((Date.now() - status.cycleStartedAt) / 1000)
+    : null;
+  const elapsedLabel = elapsed != null
+    ? elapsed < 60 ? `${elapsed}s` : `${Math.floor(elapsed / 60)}m ${elapsed % 60}s`
+    : null;
+
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <Card className="p-5">
           <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-2">Cycles Run</p>
           <p className="text-3xl font-bold font-display">{stats?.cyclesRun ?? "--"}</p>
@@ -261,10 +317,24 @@ function LiveStatus() {
           <p className="text-[10px] text-muted-foreground mt-1">{stats?.retained} / {stats?.total} retained</p>
         </Card>
         <Card className="p-5">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-2">Tokens Consumed</p>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-2">Total Tokens</p>
           <p className="text-3xl font-bold font-display">
             {stats ? new Intl.NumberFormat("en-US", { notation: "compact", compactDisplay: "short" }).format(stats.totalTokensConsumed) : "--"}
           </p>
+        </Card>
+        <Card className={`p-5 ${status?.isRunning ? "border-primary/40 bg-primary/5" : ""}`}>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-2">Current Cycle</p>
+          {status?.isRunning ? (
+            <>
+              <p className="text-lg font-bold font-display capitalize">{status.stage?.replace(/_/g, " ") ?? "Running"}</p>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                {status.stagesCompleted.length} stages done
+                {elapsedLabel && <> · {elapsedLabel} elapsed</>}
+              </p>
+            </>
+          ) : (
+            <p className="text-lg font-bold font-display text-muted-foreground">Idle</p>
+          )}
         </Card>
       </div>
 
