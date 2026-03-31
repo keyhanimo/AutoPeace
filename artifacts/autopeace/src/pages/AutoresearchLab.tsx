@@ -21,24 +21,34 @@ function ImprovementTimeline() {
 
   const forecastChartData = useMemo(() => {
     if (!data?.forecastTimeline) return [];
-    return data.forecastTimeline.map((d, i) => ({
-      cycle: i + 1,
-      cycleId: d.cycleId.slice(0, 8),
-      brier: d.brierScore != null ? Number(d.brierScore.toFixed(4)) : null,
-      log: d.logScore != null ? Number(d.logScore.toFixed(4)) : null,
-      retained: d.experimentsRetained,
-      run: d.experimentsRun,
-    }));
+    return data.forecastTimeline.map((d, i) => {
+      const t = new Date(d.timestamp);
+      const time = !isNaN(t.getTime()) ? t.toLocaleTimeString("en-US", { hour12: false }) : "";
+      return {
+        cycle: i + 1,
+        label: `#${i + 1} ${time}`,
+        cycleId: d.cycleId.slice(0, 8),
+        brier: d.brierScore != null ? Number(d.brierScore.toFixed(4)) : null,
+        log: d.logScore != null ? Number(d.logScore.toFixed(4)) : null,
+        retained: d.experimentsRetained,
+        run: d.experimentsRun,
+      };
+    });
   }, [data]);
 
   const dealChartData = useMemo(() => {
     if (!data?.dealTimeline) return [];
-    return data.dealTimeline.map((d, i) => ({
-      deal: i + 1,
-      composite: Math.round(d.compositeScore * 100),
-      architecture: d.architecture,
-      isCurrent: d.isCurrent,
-    }));
+    return data.dealTimeline.map((d, i) => {
+      const t = new Date(d.timestamp);
+      const time = !isNaN(t.getTime()) ? t.toLocaleTimeString("en-US", { hour12: false }) : "";
+      return {
+        deal: i + 1,
+        label: `#${i + 1} ${time}`,
+        composite: Math.round(d.compositeScore * 100),
+        architecture: d.architecture,
+        isCurrent: d.isCurrent,
+      };
+    });
   }, [data]);
 
   if (isLoading) return <div className="text-sm text-muted-foreground animate-pulse py-8 text-center">Loading timeline...</div>;
@@ -54,7 +64,7 @@ function ImprovementTimeline() {
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={forecastChartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-              <XAxis dataKey="cycle" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" label={{ value: "Cycle", position: "insideBottomRight", offset: -5, fontSize: 11 }} />
+              <XAxis dataKey="label" tick={{ fontSize: 9, angle: -35 }} textAnchor="end" height={50} stroke="hsl(var(--muted-foreground))" />
               <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" domain={["auto", "auto"]} />
               <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 4, fontSize: 12 }} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
@@ -76,7 +86,7 @@ function ImprovementTimeline() {
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={dealChartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-              <XAxis dataKey="deal" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" label={{ value: "Deal #", position: "insideBottomRight", offset: -5, fontSize: 11 }} />
+              <XAxis dataKey="label" tick={{ fontSize: 9, angle: -35 }} textAnchor="end" height={50} stroke="hsl(var(--muted-foreground))" />
               <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
               <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 4, fontSize: 12 }} formatter={(v: number) => [`${v}%`, "Composite"]} />
               <Bar dataKey="composite" name="Composite %" radius={[2, 2, 0, 0]}>

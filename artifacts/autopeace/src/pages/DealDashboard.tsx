@@ -204,7 +204,7 @@ function DealDetailView({ deal, isHistorical }: { deal: Deal; isHistorical?: boo
               {deal.architecture} Architecture
             </span>
             <span className="text-xs text-muted-foreground ml-3">
-              {new Date(deal.createdAt).toLocaleDateString()} · {deal.generatedBy}
+              {new Date(deal.createdAt).toLocaleDateString()} {new Date(deal.createdAt).toLocaleTimeString("en-US", { hour12: false })} · {deal.generatedBy}
             </span>
           </div>
           {scores && (
@@ -507,14 +507,18 @@ export default function DealDashboard() {
   }, [historyRes]);
 
   const historyBarData = useMemo(() => {
-    return historyDeals.map((d, i) => ({
-      name: `Deal #${i + 1}`,
-      index: i + 1,
-      composite: Math.round((d.scores.composite ?? 0) * 100),
-      architecture: d.architecture,
-      isCurrent: d.isCurrent,
-      id: d.id,
-    }));
+    return historyDeals.map((d, i) => {
+      const t = new Date(d.createdAt);
+      const time = !isNaN(t.getTime()) ? t.toLocaleTimeString("en-US", { hour12: false }) : "";
+      return {
+        name: `#${i + 1} ${time}`,
+        index: i + 1,
+        composite: Math.round((d.scores.composite ?? 0) * 100),
+        architecture: d.architecture,
+        isCurrent: d.isCurrent,
+        id: d.id,
+      };
+    });
   }, [historyDeals]);
 
   const paretoDeals = paretoRes?.data ?? [];
@@ -759,7 +763,7 @@ export default function DealDashboard() {
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={historyBarData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                    <XAxis dataKey="name" tick={{ fontSize: 9, fill: "#94a3b8" }} />
+                    <XAxis dataKey="name" tick={{ fontSize: 8, fill: "#94a3b8", angle: -35 }} textAnchor="end" height={50} />
                     <YAxis tick={{ fontSize: 9, fill: "#94a3b8" }} tickFormatter={(v: number) => `${v}%`} domain={[0, 100]} />
                     <Tooltip
                       contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "8px", fontSize: "11px" }}
@@ -821,7 +825,7 @@ export default function DealDashboard() {
                     <div className={`font-bold ${scoreColor(s?.composite ?? 0)}`}>
                       {s ? `${((s.composite ?? 0) * 100).toFixed(0)}% composite` : "—"}
                     </div>
-                    <div className="text-muted-foreground/60">{new Date(d.createdAt).toLocaleDateString()}</div>
+                    <div className="text-muted-foreground/60">{new Date(d.createdAt).toLocaleDateString()} {new Date(d.createdAt).toLocaleTimeString("en-US", { hour12: false })}</div>
                   </button>
                 );
               })}
