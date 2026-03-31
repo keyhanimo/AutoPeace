@@ -218,82 +218,80 @@ function DealDetailView({ deal, isHistorical }: { deal: Deal; isHistorical?: boo
         </div>
       )}
 
+      <Card className="p-6">
+        <h3 className="text-lg font-bold mb-4">Deal Terms</h3>
+        <div className="space-y-3 text-sm">
+          {[
+            { label: "Nuclear Protocol", key: "nuclearProtocol" },
+            { label: "Sanctions Relief", key: "sanctionsRelief" },
+            { label: "Maritime Security", key: "hormuzArrangements" },
+            { label: "Humanitarian", key: "humanitarianProvisions" },
+            { label: "Verification", key: "verificationMechanism" },
+            { label: "Timeline", key: "timelineYears" },
+            { label: "Sequencing", key: "sequencing" },
+          ].map(({ label, key }) => (
+            <div key={key} className="border-b border-border/30 pb-2 last:border-0">
+              <span className="text-xs text-primary font-semibold uppercase tracking-wider block">{label}</span>
+              <span className="text-xs text-muted-foreground">
+                {key === "timelineYears" ? `${terms[key] ?? "?"} years` : String(terms[key] ?? "—")}
+              </span>
+            </div>
+          ))}
+          {Boolean(terms.stakeholderCommitments && typeof terms.stakeholderCommitments === "object" && Object.keys(terms.stakeholderCommitments as Record<string, unknown>).length > 0) && (
+            <div className="border-t border-border/50 pt-3 mt-3">
+              <span className="text-xs text-cyan-400 font-semibold uppercase tracking-wider block mb-2">Grand Coalition Commitments</span>
+              <div className="space-y-1.5">
+                {Object.entries(terms.stakeholderCommitments as Record<string, string>).map(([id, commitment]) => (
+                  <div key={id} className="flex gap-2 text-xs">
+                    <span className="text-primary font-semibold capitalize shrink-0 w-24">{id.replace(/_/g, " ")}</span>
+                    <span className="text-muted-foreground">{String(commitment)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {Boolean(Array.isArray((terms as Record<string, unknown>).innovativeProvisions) && ((terms as Record<string, unknown>).innovativeProvisions as unknown[]).length > 0) && (
+            <div className="border-t border-border/50 pt-3 mt-3">
+              <span className="text-xs text-violet-400 font-semibold uppercase tracking-wider block mb-2">Innovative Provisions</span>
+              <div className="space-y-3">
+                {((terms as Record<string, unknown>).innovativeProvisions as Array<{ title: string; description: string; rationale: string; historicalPrecedent?: string }>).map((prov, idx) => (
+                  <div key={idx} className="p-3 rounded-lg border border-violet-800/30 bg-violet-950/10">
+                    <span className="text-xs font-bold text-violet-300 block mb-1">{prov.title}</span>
+                    <p className="text-xs text-muted-foreground mb-1">{prov.description}</p>
+                    <p className="text-xs text-violet-300 italic">{prov.rationale}</p>
+                    {prov.historicalPrecedent && (
+                      <p className="text-xs text-muted-foreground mt-1">Precedent: {prov.historicalPrecedent}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </Card>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {scores && SCORE_DIMENSIONS.map(d => (
           <ScoreCard key={d.key} dimension={d} score={scores[d.key] ?? 0} />
         ))}
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        <Card className="p-6">
-          <h3 className="text-lg font-bold mb-2">Score Radar</h3>
-          <p className="text-xs text-muted-foreground mb-3">
-            Visual comparison of all 7 scoring dimensions. The composite score ({scores ? ((scores.composite ?? 0) * 100).toFixed(0) : "—"}%) is a weighted average.
-          </p>
-          <div className="h-56">
-            <ResponsiveContainer width="100%" height="100%">
-              <RadarChart data={radarData}>
-                <PolarGrid stroke="#1e293b" />
-                <PolarAngleAxis dataKey="dimension" tick={{ fontSize: 9, fill: "#94a3b8" }} />
-                <Radar name="Score" dataKey="score" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.25} />
-                <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "8px", fontSize: "11px" }} formatter={(v: number) => [`${v}%`]} />
-              </RadarChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
-
-        <Card className="p-6">
-          <h3 className="text-lg font-bold mb-4">Deal Terms</h3>
-          <div className="space-y-3 text-sm">
-            {[
-              { label: "Nuclear Protocol", key: "nuclearProtocol" },
-              { label: "Sanctions Relief", key: "sanctionsRelief" },
-              { label: "Maritime Security", key: "hormuzArrangements" },
-              { label: "Humanitarian", key: "humanitarianProvisions" },
-              { label: "Verification", key: "verificationMechanism" },
-              { label: "Timeline", key: "timelineYears" },
-              { label: "Sequencing", key: "sequencing" },
-            ].map(({ label, key }) => (
-              <div key={key} className="border-b border-border/30 pb-2 last:border-0">
-                <span className="text-xs text-primary font-semibold uppercase tracking-wider block">{label}</span>
-                <span className="text-xs text-muted-foreground">
-                  {key === "timelineYears" ? `${terms[key] ?? "?"} years` : String(terms[key] ?? "—")}
-                </span>
-              </div>
-            ))}
-            {Boolean(terms.stakeholderCommitments && typeof terms.stakeholderCommitments === "object" && Object.keys(terms.stakeholderCommitments as Record<string, unknown>).length > 0) && (
-              <div className="border-t border-border/50 pt-3 mt-3">
-                <span className="text-xs text-cyan-400 font-semibold uppercase tracking-wider block mb-2">Grand Coalition Commitments</span>
-                <div className="space-y-1.5">
-                  {Object.entries(terms.stakeholderCommitments as Record<string, string>).map(([id, commitment]) => (
-                    <div key={id} className="flex gap-2 text-xs">
-                      <span className="text-primary font-semibold capitalize shrink-0 w-24">{id.replace(/_/g, " ")}</span>
-                      <span className="text-muted-foreground">{String(commitment)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            {Boolean(Array.isArray((terms as Record<string, unknown>).innovativeProvisions) && ((terms as Record<string, unknown>).innovativeProvisions as unknown[]).length > 0) && (
-              <div className="border-t border-border/50 pt-3 mt-3">
-                <span className="text-xs text-violet-400 font-semibold uppercase tracking-wider block mb-2">Innovative Provisions</span>
-                <div className="space-y-3">
-                  {((terms as Record<string, unknown>).innovativeProvisions as Array<{ title: string; description: string; rationale: string; historicalPrecedent?: string }>).map((prov, idx) => (
-                    <div key={idx} className="p-3 rounded-lg border border-violet-800/30 bg-violet-950/10">
-                      <span className="text-xs font-bold text-violet-300 block mb-1">{prov.title}</span>
-                      <p className="text-xs text-muted-foreground mb-1">{prov.description}</p>
-                      <p className="text-xs text-violet-300 italic">{prov.rationale}</p>
-                      {prov.historicalPrecedent && (
-                        <p className="text-xs text-muted-foreground mt-1">Precedent: {prov.historicalPrecedent}</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </Card>
-      </div>
+      <Card className="p-6">
+        <h3 className="text-lg font-bold mb-2">Score Radar</h3>
+        <p className="text-xs text-muted-foreground mb-3">
+          Visual comparison of all 7 scoring dimensions. The composite score ({scores ? ((scores.composite ?? 0) * 100).toFixed(0) : "—"}%) is a weighted average.
+        </p>
+        <div className="h-56">
+          <ResponsiveContainer width="100%" height="100%">
+            <RadarChart data={radarData}>
+              <PolarGrid stroke="#1e293b" />
+              <PolarAngleAxis dataKey="dimension" tick={{ fontSize: 9, fill: "#94a3b8" }} />
+              <Radar name="Score" dataKey="score" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.25} />
+              <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "8px", fontSize: "11px" }} formatter={(v: number) => [`${v}%`]} />
+            </RadarChart>
+          </ResponsiveContainer>
+        </div>
+      </Card>
 
       {scores && (
         <Card className="p-6">
