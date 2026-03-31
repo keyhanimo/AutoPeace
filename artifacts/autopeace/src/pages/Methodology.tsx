@@ -542,6 +542,29 @@ export default function Methodology() {
           <p className="mt-2">
             The third ledger is conceptually critical: it prevents naive overestimation of peace benefits by recognizing that some actors (particularly Iran) derive strategic value from the conflict status quo that a peace deal must compensate for. These considerations are embedded in the prompt context rather than as separate computational modules.
           </p>
+
+          <h3 className="text-xl font-bold font-display text-foreground mt-6">9.5 CBA Integration Scope Across the System</h3>
+          <p>
+            To clarify how the CBA data flows through the system and where it does not:
+          </p>
+          <div className="not-prose text-sm space-y-2 mt-2">
+            <div className="bg-card p-3 border border-border rounded">
+              <strong className="text-foreground">Task B (Deal Optimization) — uses CBA data.</strong>
+              <span className="text-muted-foreground"> The deal engine embeds CBA summary figures as static prompt context at multiple stages: Stage 0 (Innovation Brainstorm) receives high-level economic context highlighting the largest single-country cost-benefit asymmetries as creative leverage points; Stage 1 (Proposal Generation) receives detailed per-channel and per-stakeholder breakdowns to guide deal design toward economically viable provisions; and Stage 6 (Judge Panel) receives aggregate economic context to ground its scoring of feasibility and regional stability.</span>
+            </div>
+            <div className="bg-card p-3 border border-border rounded">
+              <strong className="text-foreground">Task C (Crowdsourced Proposal Evaluation) — uses CBA data.</strong>
+              <span className="text-muted-foreground"> Community-submitted and news-sourced proposals pass through the same evaluation pipeline as AI-generated deals, so they receive the same CBA context at Stage 6 (Judge Panel). This ensures evaluation parity between AI-generated and human-originated proposals.</span>
+            </div>
+            <div className="bg-card p-3 border border-border rounded">
+              <strong className="text-foreground">Task A (Conflict Forecasting) — does not use CBA data.</strong>
+              <span className="text-muted-foreground"> The forecasting pipeline is entirely independent of economic modeling. It relies on evidence ingestion (RSS, ACLED, GDELT), Bayesian probability estimation across 8 outcome states, and calibration scoring (Brier and Log scores) against historical outcomes. No cost-benefit figures are included in forecasting prompts or scoring functions.</span>
+            </div>
+            <div className="bg-card p-3 border border-border rounded">
+              <strong className="text-foreground">Costs Explorer page — independent visualization layer.</strong>
+              <span className="text-muted-foreground"> The interactive CBA page provides a standalone analytical tool for exploring the economic case for peace, with detailed per-stakeholder breakdowns, channel decomposition charts, treemaps, and radar visualizations. Its frontend calculations are performed independently and are not programmatically consumed by any backend pipeline. The CBA figures embedded in the deal engine's prompts are aligned with but maintained separately from the Costs Explorer's dataset — if one is updated, the other must be updated manually to stay in sync.</span>
+            </div>
+          </div>
         </Card>
 
         <Card className="p-8" id="scoring">
