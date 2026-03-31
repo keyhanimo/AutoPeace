@@ -108,6 +108,38 @@ router.get("/autoresearch/champion-lineage", async (req, res) => {
       .orderBy(experimentsTable.timestamp)
       .limit(limit);
 
+    const cycleDealMap: Record<string, { compositeScore: number; architecture: string; isCurrent: boolean }> = {};
+    if (champions.length > 0) {
+      const allDeals = await db.select({
+        id: dealsTable.id,
+        scores: dealsTable.scores,
+        architecture: dealsTable.architecture,
+        isCurrent: dealsTable.isCurrent,
+        createdAt: dealsTable.createdAt,
+      })
+        .from(dealsTable)
+        .where(eq(dealsTable.generatedBy, "ai"))
+        .orderBy(dealsTable.createdAt);
+
+      for (const champion of champions) {
+        if (cycleDealMap[champion.cycleId]) continue;
+        const ts = champion.timestamp;
+        const closestDeal = allDeals.reduce<typeof allDeals[0] | null>((best, d) => {
+          const diff = Math.abs(d.createdAt.getTime() - ts.getTime());
+          const bestDiff = best ? Math.abs(best.createdAt.getTime() - ts.getTime()) : Infinity;
+          return diff < bestDiff && diff < 3600000 ? d : best;
+        }, null);
+        if (closestDeal) {
+          const scores = closestDeal.scores as Record<string, number> | null;
+          cycleDealMap[champion.cycleId] = {
+            compositeScore: scores?.composite ?? 0,
+            architecture: closestDeal.architecture ?? "unknown",
+            isCurrent: closestDeal.isCurrent ?? false,
+          };
+        }
+      }
+    }
+
     const [totalRetainedResult] = await db.select({ count: count() })
       .from(experimentsTable)
       .where(eq(experimentsTable.retained, true));
@@ -118,6 +150,7 @@ router.get("/autoresearch/champion-lineage", async (req, res) => {
     const data = champions.map(c => ({
       ...c,
       timestamp: c.timestamp.toISOString(),
+      dealInfo: cycleDealMap[c.cycleId] ?? null,
     }));
 
     res.json({

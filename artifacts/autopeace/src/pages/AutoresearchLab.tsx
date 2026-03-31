@@ -159,19 +159,42 @@ function ChampionLineage() {
                       {c.diagnosis && (
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{c.diagnosis}</p>
                       )}
-                      {scoreDeltas.length > 0 && (
-                        <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1">
-                          {scoreDeltas.map(sd => (
-                            <div key={sd.key} className="flex items-center gap-1.5 text-[10px]">
-                              <span className="text-muted-foreground truncate capitalize">{sd.key.replace(/_/g, " ")}</span>
-                              <span className="font-mono text-muted-foreground/60">{Math.round(sd.before * 100)}</span>
-                              <ArrowRight className="w-2.5 h-2.5 text-muted-foreground/40" />
-                              <span className="font-mono text-foreground">{Math.round(sd.after * 100)}</span>
-                              <span className={`font-mono font-bold ${sd.delta > 0 ? "text-emerald-400" : sd.delta < 0 ? "text-red-400" : "text-muted-foreground"}`}>
-                                {sd.delta > 0 ? "+" : ""}{Math.round(sd.delta * 100)}
-                              </span>
+                      {(scoreDeltas.length > 0 || (c as any).dealInfo) && (
+                        <div className="mt-2 space-y-2">
+                          {scoreDeltas.length > 0 && (
+                            <div>
+                              <p className="text-[9px] text-blue-400/80 uppercase tracking-wider font-bold mb-1">Forecast Outcome Probabilities</p>
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1">
+                                {scoreDeltas.map(sd => (
+                                  <div key={sd.key} className="flex items-center gap-1.5 text-[10px]">
+                                    <span className="text-muted-foreground truncate capitalize">{sd.key.replace(/_/g, " ")}</span>
+                                    <span className="font-mono text-muted-foreground/60">{Math.round(sd.before * 100)}</span>
+                                    <ArrowRight className="w-2.5 h-2.5 text-muted-foreground/40" />
+                                    <span className="font-mono text-foreground">{Math.round(sd.after * 100)}</span>
+                                    <span className={`font-mono font-bold ${sd.delta > 0 ? "text-emerald-400" : sd.delta < 0 ? "text-red-400" : "text-muted-foreground"}`}>
+                                      {sd.delta > 0 ? "+" : ""}{Math.round(sd.delta * 100)}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
-                          ))}
+                          )}
+                          {(c as any).dealInfo && (
+                            <div>
+                              <p className="text-[9px] text-amber-400/80 uppercase tracking-wider font-bold mb-1">Deal Composite Score</p>
+                              <div className="flex items-center gap-3 text-[10px]">
+                                <span className="text-muted-foreground">
+                                  Composite: <strong className="font-mono text-foreground">{Math.round((c as any).dealInfo.compositeScore * 100)}%</strong>
+                                </span>
+                                <span className="text-muted-foreground">
+                                  Architecture: <strong className="text-foreground capitalize">{(c as any).dealInfo.architecture}</strong>
+                                </span>
+                                {(c as any).dealInfo.isCurrent && (
+                                  <Badge className="text-[8px] bg-amber-500/20 text-amber-400 border-amber-500/30">Current Best</Badge>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
