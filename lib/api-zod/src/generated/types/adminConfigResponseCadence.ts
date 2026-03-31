@@ -10,6 +10,8 @@ export type AdminConfigResponseCadence =
   (typeof AdminConfigResponseCadence)[keyof typeof AdminConfigResponseCadence];
 
 export const AdminConfigResponseCadence = {
+  every15m: "every15m",
+  every30m: "every30m",
   hourly: "hourly",
   daily: "daily",
   weekly: "weekly",

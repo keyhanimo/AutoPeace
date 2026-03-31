@@ -534,7 +534,14 @@ export const GetStakeholderResponse = zod.object({
  * @summary Get admin configuration
  */
 export const GetAdminConfigResponse = zod.object({
-  cadence: zod.enum(["hourly", "daily", "weekly", "manual"]),
+  cadence: zod.enum([
+    "every15m",
+    "every30m",
+    "hourly",
+    "daily",
+    "weekly",
+    "manual",
+  ]),
   budgetCapUsd: zod.number(),
   isPaused: zod.boolean(),
   anthropicModel: zod.string(),
@@ -575,7 +582,9 @@ export const GetAdminConfigResponse = zod.object({
  * @summary Update admin configuration
  */
 export const UpdateAdminConfigBody = zod.object({
-  cadence: zod.enum(["hourly", "daily", "weekly", "manual"]).optional(),
+  cadence: zod
+    .enum(["every15m", "every30m", "hourly", "daily", "weekly", "manual"])
+    .optional(),
   budgetCapUsd: zod.number().optional(),
   isPaused: zod.boolean().optional(),
   anthropicModel: zod.string().optional(),
@@ -613,7 +622,14 @@ export const UpdateAdminConfigBody = zod.object({
 });
 
 export const UpdateAdminConfigResponse = zod.object({
-  cadence: zod.enum(["hourly", "daily", "weekly", "manual"]),
+  cadence: zod.enum([
+    "every15m",
+    "every30m",
+    "hourly",
+    "daily",
+    "weekly",
+    "manual",
+  ]),
   budgetCapUsd: zod.number(),
   isPaused: zod.boolean(),
   anthropicModel: zod.string(),

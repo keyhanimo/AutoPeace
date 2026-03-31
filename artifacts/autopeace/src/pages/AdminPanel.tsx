@@ -414,6 +414,8 @@ export default function AdminPanel() {
                   value={formData.cadence ?? 'daily'}
                   onChange={e => setFormData({...formData, cadence: e.target.value as AdminConfigResponse['cadence']})}
                 >
+                  <option value="every15m">Every 15 Minutes — fastest iteration cycle</option>
+                  <option value="every30m">Every 30 Minutes — rapid iteration</option>
                   <option value="hourly">Hourly — ingest news & update forecasts every hour</option>
                   <option value="daily">Daily — run at 6:00 AM UTC each day</option>
                   <option value="weekly">Weekly — run Mondays at 6:00 AM UTC</option>

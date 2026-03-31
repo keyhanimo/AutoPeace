@@ -58,6 +58,22 @@ export async function getNextRunAt(): Promise<number | null> {
 
     const now = new Date();
 
+    if (cadence === "every15m") {
+      const next = new Date(now);
+      const mins = next.getUTCMinutes();
+      const nextSlot = Math.ceil((mins + 1) / 15) * 15;
+      next.setUTCMinutes(nextSlot, 0, 0);
+      return next.getTime();
+    }
+
+    if (cadence === "every30m") {
+      const next = new Date(now);
+      const mins = next.getUTCMinutes();
+      const nextSlot = Math.ceil((mins + 1) / 30) * 30;
+      next.setUTCMinutes(nextSlot, 0, 0);
+      return next.getTime();
+    }
+
     if (cadence === "hourly") {
       const next = new Date(now);
       next.setUTCMinutes(0, 0, 0);
@@ -477,7 +493,7 @@ function generateHeadline(probs: Record<string, number>): string {
 export async function startScheduler(): Promise<void> {
   const cron = await import("node-cron");
 
-  cron.schedule("0 * * * *", async () => {
+  cron.schedule("*/15 * * * *", async () => {
     const cadence = await getConfigValue("cadence", "daily");
     const isPaused = await getConfigValue("isPaused", "false");
 
@@ -486,14 +502,19 @@ export async function startScheduler(): Promise<void> {
 
     const now = new Date();
     const hour = now.getUTCHours();
+    const minute = now.getUTCMinutes();
 
     if (cadence === "manual") return;
 
-    if (cadence === "hourly") {
+    if (cadence === "every15m") {
       await runCycleNow();
-    } else if (cadence === "daily" && hour === 6) {
+    } else if (cadence === "every30m" && minute % 30 < 15) {
       await runCycleNow();
-    } else if (cadence === "weekly" && now.getUTCDay() === 1 && hour === 6) {
+    } else if (cadence === "hourly" && minute < 15) {
+      await runCycleNow();
+    } else if (cadence === "daily" && hour === 6 && minute < 15) {
+      await runCycleNow();
+    } else if (cadence === "weekly" && now.getUTCDay() === 1 && hour === 6 && minute < 15) {
       await runCycleNow();
     }
   });

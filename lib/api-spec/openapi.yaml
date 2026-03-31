@@ -2125,7 +2125,7 @@ components:
       properties:
         cadence:
           type: string
-          enum: [hourly, daily, weekly, manual]
+          enum: [every15m, every30m, hourly, daily, weekly, manual]
         budgetCapUsd:
           type: number
         isPaused:
@@ -2230,7 +2230,7 @@ components:
       properties:
         cadence:
           type: string
-          enum: [hourly, daily, weekly, manual]
+          enum: [every15m, every30m, hourly, daily, weekly, manual]
         budgetCapUsd:
           type: number
         isPaused:
