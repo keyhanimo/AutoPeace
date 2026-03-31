@@ -13,6 +13,7 @@ import {
   runMetaEvaluator,
   generateDiagnosis,
   computeWhatWouldItTake,
+  getRecentEvidenceSummary,
   type DealTerms,
 } from "../services/deal-engine";
 import { getModelConfig } from "../services/llm-router";
@@ -195,16 +196,17 @@ router.patch("/admin/proposals/queue/:id", adminAuth, async (req, res) => {
       (async () => {
         try {
           const modelConfig = await getModelConfig();
+          const evidenceSummary = await getRecentEvidenceSummary();
 
           logger.info({ pid, submissionId: id }, "Starting full 8-stage evaluation for community proposal");
 
-          const { evaluations: stakeholderEvaluations } = await evaluateStakeholders(terms, modelConfig);
+          const { evaluations: stakeholderEvaluations } = await evaluateStakeholders(terms, modelConfig, evidenceSummary);
           logger.info({ pid, stage: 2 }, "Stakeholder evaluation complete");
 
-          const { evaluations: domesticEvaluations } = await evaluateDomesticAudiences(terms, modelConfig);
+          const { evaluations: domesticEvaluations } = await evaluateDomesticAudiences(terms, modelConfig, evidenceSummary);
           logger.info({ pid, stage: 3 }, "Domestic audience evaluation complete");
 
-          const { results: redTeamResults } = await runRedTeam(terms, modelConfig);
+          const { results: redTeamResults } = await runRedTeam(terms, modelConfig, evidenceSummary);
           logger.info({ pid, stage: 4 }, "Red-team evaluation complete");
 
           const { result: negotiatorResult } = await runNegotiator(terms, stakeholderEvaluations, {}, modelConfig);
@@ -215,7 +217,7 @@ router.patch("/admin/proposals/queue/:id", adminAuth, async (req, res) => {
             ...(negotiatorResult.revisedTermsPartial as Partial<DealTerms>),
           };
 
-          const { scores } = await judgeAndScore(revisedTerms, stakeholderEvaluations, redTeamResults, domesticEvaluations, modelConfig);
+          const { scores } = await judgeAndScore(revisedTerms, stakeholderEvaluations, redTeamResults, domesticEvaluations, modelConfig, evidenceSummary);
           logger.info({ pid, stage: 6, composite: scores.composite }, "Judge panel scoring complete");
 
           const { result: metaResult } = await runMetaEvaluator(terms, scores, negotiatorResult, stakeholderEvaluations, null, {}, modelConfig);

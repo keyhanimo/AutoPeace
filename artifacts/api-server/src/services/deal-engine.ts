@@ -14,8 +14,24 @@ import {
 } from "./llm-router";
 import { db } from "@workspace/db";
 import { stakeholdersTable } from "@workspace/db/schema";
-import { inArray } from "drizzle-orm";
+import { inArray, desc } from "drizzle-orm";
 import { PIPELINE_STAKEHOLDER_IDS } from "./stakeholder-updater";
+
+export async function getRecentEvidenceSummary(): Promise<string> {
+  try {
+    const { evidenceItemsTable } = await import("@workspace/db/schema");
+    const items = await db.select({
+      title: evidenceItemsTable.title,
+      text: evidenceItemsTable.text,
+    })
+      .from(evidenceItemsTable)
+      .orderBy(desc(evidenceItemsTable.publishedAt))
+      .limit(30);
+    return items.map(i => `${i.title}: ${i.text?.slice(0, 150)}`).join("\n");
+  } catch {
+    return "";
+  }
+}
 
 export type InnovativeProvision = {
   title: string;
@@ -614,6 +630,7 @@ Every stakeholder MUST have concrete, specific commitments. Vague statements lik
 export async function evaluateStakeholders(
   terms: DealTerms,
   modelConfig: ModelConfig = DEFAULT_MODELS,
+  evidenceSummary: string = "",
 ): Promise<{ evaluations: Record<string, StakeholderVerdict>; tokens: number }> {
   await ensureRegistryLoaded();
   const systemPrompt = `You are a geopolitical analyst evaluating how stakeholders will respond to a peace proposal.
@@ -624,6 +641,7 @@ Each stakeholder has a specific acceptance tier that determines their importance
 - CONTEXTUAL: Affected parties whose support strengthens the deal
 
 Evaluate whether each would accept given what they must commit AND what they receive in return.
+You must consider any recent geopolitical developments provided — they may significantly shift stakeholder positions, red lines, or willingness to negotiate. Factor them into your assessment where relevant.
 Output a JSON object mapping stakeholder IDs to their verdict. Each verdict has:
 { "verdict": "accept"|"conditional"|"reject", "rationale": "string", "redLineViolations": [], "conditions": [] }`;
 
@@ -642,8 +660,13 @@ Output a JSON object mapping stakeholder IDs to their verdict. Each verdict has:
     ? `\nINNOVATIVE PROVISIONS (novel deal elements that create new value — factor these into each stakeholder's assessment):\n${terms.innovativeProvisions.map(p => `- ${p.title}: ${p.description}`).join("\n")}`
     : "";
 
-  const prompt = `Evaluate how these stakeholders would respond to this peace deal, considering both what they receive and what they are asked to commit:
+  const evidenceBlock = evidenceSummary
+    ? `\nRECENT GEOPOLITICAL DEVELOPMENTS (these are the latest developments — they may or may not have major bearing on stakeholder positions, but you must consider them):
+${evidenceSummary.slice(0, 4000)}\n`
+    : "";
 
+  const prompt = `Evaluate how these stakeholders would respond to this peace deal, considering both what they receive and what they are asked to commit:
+${evidenceBlock}
 DEAL TERMS:
 - Nuclear: ${terms.nuclearProtocol}
 - Sanctions: ${terms.sanctionsRelief}
@@ -894,8 +917,10 @@ CREATIVE MANDATE: Include at least 2 creative tradeoffs even if no stakeholders 
 export async function evaluateDomesticAudiences(
   terms: DealTerms,
   modelConfig: ModelConfig = DEFAULT_MODELS,
+  evidenceSummary: string = "",
 ): Promise<{ evaluations: Record<string, DomesticVerdict>; tokens: number }> {
   const systemPrompt = `You are a political analyst assessing domestic political sellability of a peace deal.
+Consider any recent developments provided — they may shift domestic political dynamics, public opinion, or leader positioning, making the deal easier or harder to sell to specific audiences.
 For each audience, return: { "audience": "label", "verdict": "sellable|difficult|unsellable", "rationale": "1-2 sentences" }
 Output a JSON object with keys like "iran_supreme_leader", "us_congress", etc.`;
 
@@ -907,8 +932,13 @@ Output a JSON object with keys like "iran_supreme_leader", "us_congress", etc.`;
     ? `\nINNOVATIVE PROVISIONS (novel deal elements — consider how each audience would react to these):\n${terms.innovativeProvisions.map(p => `- ${p.title}: ${p.description}`).join("\n")}`
     : "";
 
-  const prompt = `Assess the domestic political sellability of this peace deal to these audiences:
+  const evidenceBlock = evidenceSummary
+    ? `\nRECENT DEVELOPMENTS (these are the latest developments — they may or may not significantly affect domestic political dynamics and audience reactions):
+${evidenceSummary.slice(0, 4000)}\n`
+    : "";
 
+  const prompt = `Assess the domestic political sellability of this peace deal to these audiences:
+${evidenceBlock}
 DEAL TERMS:
 - Nuclear: ${terms.nuclearProtocol}
 - Sanctions: ${terms.sanctionsRelief}
@@ -942,15 +972,23 @@ Return JSON where each key maps to { "audience": "label", "verdict": "sellable|d
 export async function runRedTeam(
   terms: DealTerms,
   modelConfig: ModelConfig = DEFAULT_MODELS,
+  evidenceSummary: string = "",
 ): Promise<{ results: RedTeamResult[]; tokens: number }> {
   const systemPrompt = `You are an adversarial red-team analyst trying to find fatal flaws in a peace deal.
+Consider any recent developments provided — they may reveal new vulnerabilities, spoiler dynamics, or destabilizing events that create attack vectors against this deal. Your attacks should reflect the current situation, not just generic risks.
 Generate 5 adversarial attacks that could collapse this deal. Output as JSON array.`;
 
   const innovativeContext = terms.innovativeProvisions?.length
     ? `\nINNOVATIVE PROVISIONS (also stress-test these novel elements):\n${terms.innovativeProvisions.map(p => `- ${p.title}: ${p.description}`).join("\n")}`
     : "";
 
+  const evidenceBlock = evidenceSummary
+    ? `\nRECENT DEVELOPMENTS (use these to identify timely, situation-specific attack vectors — these may or may not reveal new vulnerabilities):
+${evidenceSummary.slice(0, 4000)}\n`
+    : "";
+
   const prompt = `Red-team this peace deal:
+${evidenceBlock}
 Nuclear: ${terms.nuclearProtocol}
 Sanctions: ${terms.sanctionsRelief}
 Sequencing: ${terms.sequencing}${innovativeContext}
@@ -986,6 +1024,7 @@ export async function judgeAndScore(
   redTeamResults: RedTeamResult[],
   domesticEvaluations: Record<string, DomesticVerdict>,
   modelConfig: ModelConfig = DEFAULT_MODELS,
+  evidenceSummary: string = "",
 ): Promise<{ scores: DealScores; tokens: number }> {
   const getVerdict = (id: string) => stakeholderEvaluations[id]?.verdict;
   const iranVerdict = getVerdict("iran");
@@ -1037,8 +1076,13 @@ Output JSON only.`;
 
   const truncField = (s: string, max = 1500) => s.length > max ? s.slice(0, max) + "…" : s;
 
-  const prompt = `Score this peace deal (0.0-1.0 per dimension) and explain each score:
+  const evidenceBlock = evidenceSummary
+    ? `\nRECENT GEOPOLITICAL EVIDENCE (use this to score "evidenceGrounding" — assess how well the deal accounts for these developments — and factor current conditions into feasibility, durability, and other dimensions where relevant):
+${evidenceSummary.slice(0, 4000)}\n`
+    : "";
 
+  const prompt = `Score this peace deal (0.0-1.0 per dimension) and explain each score:
+${evidenceBlock}
 DEAL SUMMARY (post-negotiator amendments applied):
 - Nuclear protocol: ${truncField(terms.nuclearProtocol)}
 - Sanctions: ${truncField(terms.sanctionsRelief)}
@@ -1438,13 +1482,13 @@ export async function runFullEvaluation(
 
   // Stage 2: Stakeholder Evaluation Agent (OpenAI — evaluation role)
   onSubStage?.("stakeholders");
-  const { evaluations: stakeholderEvaluations, tokens: t2 } = await evaluateStakeholders(terms, modelConfig);
+  const { evaluations: stakeholderEvaluations, tokens: t2 } = await evaluateStakeholders(terms, modelConfig, evidenceSummary);
   totalTokens += t2;
   logger.info({ stage: "stakeholders", tokens: t2 }, "Stage 2 complete");
 
   // Stage 3: Domestic Audience Agent (OpenAI — evaluation role)
   onSubStage?.("domestic");
-  const { evaluations: domesticEvaluations, tokens: t3 } = await evaluateDomesticAudiences(terms, modelConfig);
+  const { evaluations: domesticEvaluations, tokens: t3 } = await evaluateDomesticAudiences(terms, modelConfig, evidenceSummary);
   totalTokens += t3;
   logger.info({ stage: "domestic", tokens: t3 }, "Stage 3 complete");
 
@@ -1456,7 +1500,7 @@ export async function runFullEvaluation(
 
   // Stage 4: Red-Team Agent (Gemini — adversarial role)
   onSubStage?.("redteam");
-  const { results: redTeamResults, tokens: t4 } = await runRedTeam(terms, modelConfig);
+  const { results: redTeamResults, tokens: t4 } = await runRedTeam(terms, modelConfig, evidenceSummary);
   totalTokens += t4;
   logger.info({ stage: "redteam", tokens: t4 }, "Stage 4 complete");
 
@@ -1474,7 +1518,7 @@ export async function runFullEvaluation(
 
   // Stage 6: Judge Agent (OpenAI — scoring role) uses revised terms + domestic evaluations
   onSubStage?.("judge");
-  const { scores, tokens: t6 } = await judgeAndScore(revisedTerms, stakeholderEvaluations, redTeamResults, domesticEvaluations, modelConfig);
+  const { scores, tokens: t6 } = await judgeAndScore(revisedTerms, stakeholderEvaluations, redTeamResults, domesticEvaluations, modelConfig, evidenceSummary);
   totalTokens += t6;
   logger.info({ stage: "judge", composite: scores.composite.toFixed(3), tokens: t6 }, "Stage 6 complete");
 

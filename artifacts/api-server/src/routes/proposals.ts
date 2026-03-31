@@ -8,6 +8,7 @@ import {
   evaluateStakeholders,
   computeWhatWouldItTake,
   judgeAndScore,
+  getRecentEvidenceSummary,
   type DealTerms,
 } from "../services/deal-engine";
 import { getModelConfig } from "../services/llm-router";
@@ -70,11 +71,12 @@ router.post("/admin/proposals/:id/evaluate", adminAuth, async (req, res) => {
 
     const modelConfig = await getModelConfig();
     const terms = proposal.terms as DealTerms;
+    const evidenceSummary = await getRecentEvidenceSummary();
 
-    const { evaluations: stakeholderEvaluations } = await evaluateStakeholders(terms, modelConfig);
+    const { evaluations: stakeholderEvaluations } = await evaluateStakeholders(terms, modelConfig, evidenceSummary);
 
     const [{ scores }, whatWouldItTakeList] = await Promise.all([
-      judgeAndScore(terms, stakeholderEvaluations, [], {}, modelConfig),
+      judgeAndScore(terms, stakeholderEvaluations, [], {}, modelConfig, evidenceSummary),
       computeWhatWouldItTake(terms, stakeholderEvaluations, modelConfig),
     ]);
 

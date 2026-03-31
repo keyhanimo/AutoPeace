@@ -12,6 +12,7 @@ import {
   runMetaEvaluator,
   generateDiagnosis,
   computeWhatWouldItTake,
+  getRecentEvidenceSummary,
   type DealTerms,
 } from "./deal-engine";
 import { callLLM, getModelConfig, type ModelConfig } from "./llm-router";
@@ -222,9 +223,10 @@ export async function extractProposalsFromEvidence(cycleId?: string): Promise<nu
       logger.info({ proposalId, name: proposal.name }, "Auto-extracted proposal created — running AI evaluation");
 
       try {
-        const { evaluations: aiEvals } = await evaluateStakeholders(terms, modelConfig);
-        const { evaluations: domesticEvals } = await evaluateDomesticAudiences(terms, modelConfig);
-        const { results: redTeamResults } = await runRedTeam(terms, modelConfig);
+        const evidenceSummary = await getRecentEvidenceSummary();
+        const { evaluations: aiEvals } = await evaluateStakeholders(terms, modelConfig, evidenceSummary);
+        const { evaluations: domesticEvals } = await evaluateDomesticAudiences(terms, modelConfig, evidenceSummary);
+        const { results: redTeamResults } = await runRedTeam(terms, modelConfig, evidenceSummary);
         const { result: negotiatorResult } = await runNegotiator(terms, aiEvals, {}, modelConfig);
 
         const revisedTerms: DealTerms = {
@@ -232,7 +234,7 @@ export async function extractProposalsFromEvidence(cycleId?: string): Promise<nu
           ...(negotiatorResult.revisedTermsPartial as Partial<DealTerms>),
         };
 
-        const { scores: aiScores } = await judgeAndScore(revisedTerms, aiEvals, redTeamResults, domesticEvals, modelConfig);
+        const { scores: aiScores } = await judgeAndScore(revisedTerms, aiEvals, redTeamResults, domesticEvals, modelConfig, evidenceSummary);
 
         await runMetaEvaluator(terms, aiScores, negotiatorResult, aiEvals, null, {}, modelConfig);
         await generateDiagnosis(terms, aiEvals, redTeamResults, aiScores, modelConfig);

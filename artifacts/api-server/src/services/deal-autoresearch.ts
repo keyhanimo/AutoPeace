@@ -7,6 +7,7 @@ import {
   runFullEvaluation,
   isDominatedOnAllDimensions,
   DEAL_ARCHITECTURES,
+  getRecentEvidenceSummary,
   type DealScores,
   type DealTerms,
   type MetaEvaluatorResult,
@@ -32,19 +33,7 @@ const RADICAL_ARCHITECTURES = ["radical-restructure", "asymmetric-grand-bargain"
 const RADICAL_EXPLORATION_PROBABILITY = 0.3;
 
 async function getEvidenceSummary(): Promise<string> {
-  try {
-    const { evidenceItemsTable } = await import("@workspace/db/schema");
-    const items = await db.select({
-      title: evidenceItemsTable.title,
-      text: evidenceItemsTable.text,
-    })
-      .from(evidenceItemsTable)
-      .orderBy(desc(evidenceItemsTable.publishedAt))
-      .limit(30);
-    return items.map(i => `${i.title}: ${i.text?.slice(0, 150)}`).join("\n");
-  } catch {
-    return "Recent evidence: Iran-US tensions remain elevated. Diplomatic back-channels active. Nuclear enrichment ongoing.";
-  }
+  return getRecentEvidenceSummary();
 }
 
 async function getCurrentBestDiagnosis(): Promise<string> {

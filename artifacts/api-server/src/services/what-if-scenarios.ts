@@ -5,6 +5,7 @@ import { generateScenarioForecast, type ScenarioInput, type ForecastProbabilitie
 import {
   evaluateStakeholders,
   judgeAndScore,
+  getRecentEvidenceSummary,
   type DealTerms,
 } from "./deal-engine";
 import { getModelConfig, type ModelConfig } from "./llm-router";
@@ -79,8 +80,9 @@ async function computeProposalImpactsViaScoring(
         ...terms,
         nuclearProtocol: `[SCENARIO: ${scenarioDef.name} — ${scenarioDef.description}]\n\n${terms.nuclearProtocol}`,
       };
-      const { evaluations: stakeholderEvaluations } = await evaluateStakeholders(enrichedTerms, modelConfig);
-      const { scores } = await judgeAndScore(enrichedTerms, stakeholderEvaluations, [], {}, modelConfig);
+      const evidenceSummary = await getRecentEvidenceSummary();
+      const { evaluations: stakeholderEvaluations } = await evaluateStakeholders(enrichedTerms, modelConfig, evidenceSummary);
+      const { scores } = await judgeAndScore(enrichedTerms, stakeholderEvaluations, [], {}, modelConfig, evidenceSummary);
       const projectedComposite = Math.round((scores.composite ?? baseComposite) * 100) / 100;
       const viabilityDelta = Math.round((projectedComposite - baseComposite) * 100) / 100;
       const favorabilityNote = viabilityDelta > 0.05
