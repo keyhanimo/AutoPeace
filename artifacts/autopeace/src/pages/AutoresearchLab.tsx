@@ -466,9 +466,6 @@ export default function AutoresearchLab() {
       </Tabs>
 
       <div className="flex gap-3">
-        <Link to="/experiments" className="text-xs text-primary hover:text-primary/80 transition-colors flex items-center gap-1">
-          Full Experiment Log <ArrowRight className="w-3 h-3" />
-        </Link>
         <Link to="/changelog" className="text-xs text-primary hover:text-primary/80 transition-colors flex items-center gap-1">
           Changelog <ArrowRight className="w-3 h-3" />
         </Link>
