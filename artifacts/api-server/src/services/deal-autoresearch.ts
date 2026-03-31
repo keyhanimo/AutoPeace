@@ -400,10 +400,14 @@ function selectArchitecture(
 ): typeof DEAL_ARCHITECTURES[number] {
   if (stallCount >= STALL_THRESHOLD || (totalDeals > 0 && Math.random() < RADICAL_EXPLORATION_PROBABILITY)) {
     const radicalIdx = Math.floor(Math.random() * RADICAL_ARCHITECTURES.length);
+    logger.info({ radicalIdx, stallCount, totalDeals }, "Selecting radical architecture");
     return RADICAL_ARCHITECTURES[radicalIdx] ?? "radical-restructure";
   }
 
-  return DEAL_ARCHITECTURES[currentArchIdx % STANDARD_ARCHITECTURES.length] ?? "balanced";
+  const nextIdx = (currentArchIdx + 1 + Math.floor(Math.random() * (STANDARD_ARCHITECTURES.length - 1))) % STANDARD_ARCHITECTURES.length;
+  const arch = STANDARD_ARCHITECTURES[nextIdx] ?? "balanced";
+  logger.info({ currentArchIdx, nextIdx, arch, totalDeals }, "Selecting standard architecture (cycling, not repeating current)");
+  return arch;
 }
 
 export async function runDealCycleNow(): Promise<string> {

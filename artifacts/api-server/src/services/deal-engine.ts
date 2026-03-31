@@ -168,12 +168,17 @@ const DEFAULT_MODELS = MODEL_DEFAULTS;
 const callLLM = sharedCallLLM;
 const callLLMForStage = sharedCallLLMForStage;
 
-function parseLLMJson<T>(text: string, fallback: T): T {
+function parseLLMJson<T>(text: string, fallback: T, label?: string): T {
   try {
     const match = text.match(/```(?:json)?\s*([\s\S]*?)```/) ?? text.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
-    const raw = match?.[1] ?? text;
+    let raw = match?.[1] ?? text;
+    raw = raw.replace(/,\s*([}\]])/g, "$1");
+    raw = raw.replace(/[\x00-\x1f\x7f]/g, (c) => c === "\n" || c === "\r" || c === "\t" ? c : "");
     return JSON.parse(raw) as T;
-  } catch {
+  } catch (err) {
+    if (label) {
+      logger.warn({ label, err: (err as Error).message, textSnippet: text.slice(0, 300) }, "parseLLMJson fallback triggered — LLM response not valid JSON");
+    }
     return fallback;
   }
 }
@@ -320,8 +325,17 @@ KEY CREATIVE MANDATE:
 ${overridePrompt}
 Output valid JSON only.`;
 
+  const allPastProvisionTitles = dealMemory?.topDeals
+    .flatMap(d => d.topProvisions.map(p => p.title))
+    .filter((t, i, arr) => arr.indexOf(t) === i) ?? [];
+  const overusedProvisions = allPastProvisionTitles.length > 0
+    ? `\nDO NOT REPEAT these provisions (they have already been explored in previous deals — invent entirely NEW mechanisms):
+${allPastProvisionTitles.map(t => `- "${t}"`).join("\n")}
+Instead, brainstorm NOVEL provisions that have NOT been tried before. Creativity means generating ideas the system has never seen.`
+    : "";
+
   const dealMemoryBlock = dealMemory && dealMemory.topDeals.length > 0 ? `
-LESSONS FROM PREVIOUS DEALS (build on what worked, avoid what failed):
+LESSONS FROM PREVIOUS DEALS (learn from patterns, but do NOT copy their provisions):
 ${dealMemory.topDeals.slice(0, 3).map((d, i) => `
 Deal ${i + 1} (${d.architecture}, score: ${(d.compositeScore * 100).toFixed(1)}%):
 - Nuclear approach: ${(d.terms.nuclearProtocol || "").slice(0, 300)}
@@ -331,6 +345,7 @@ Deal ${i + 1} (${d.architecture}, score: ${(d.compositeScore * 100).toFixed(1)}%
 ${dealMemory.provisionInsights.length > 0 ? `
 PROVISION TRACK RECORD (which mechanisms have correlated with better scores):
 ${dealMemory.provisionInsights.slice(0, 8).map(p => `- "${p.title}" (used ${p.count}x, avg delta: ${p.avgScoreDelta > 0 ? "+" : ""}${(p.avgScoreDelta * 100).toFixed(1)}pp, best for: ${p.bestDimension}, weakest for: ${p.worstDimension})`).join("\n")}` : ""}
+${overusedProvisions}
 ` : "";
 
   const radicalInstructions = ["radical-restructure", "asymmetric-grand-bargain", "incremental-confidence"].includes(architecture) ? `
@@ -380,21 +395,48 @@ Generate at least 4 historical analogies, 5 creative provisions (at least 2 at '
 
   const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 1, "generation", modelConfig);
 
+  const PROVISION_POOL: BrainstormInsights["creativeProvisions"] = [
+    { idea: "Regional Water-Energy Nexus Agreement linking Gulf desalination tech to Iranian gas exports", rationale: "Creates economic interdependence that raises cost of conflict", noveltyLevel: "breakthrough" },
+    { idea: "Joint Iran-Gulf States Earthquake Early Warning Network with shared seismological data", rationale: "Non-political cooperation builds institutional trust infrastructure", noveltyLevel: "significant" },
+    { idea: "Persian Gulf Environmental Protection Fund with mandatory polluter-pays contributions", rationale: "Environmental cooperation creates shared governance precedents applicable to security", noveltyLevel: "significant" },
+    { idea: "Digital Enrichment Transparency Platform with real-time centrifuge monitoring via blockchain-verified sensor data", rationale: "Technology-driven verification eliminates ambiguity without sovereignty intrusion", noveltyLevel: "breakthrough" },
+    { idea: "Iran-US-Israel Joint Pandemic Preparedness Center building on COVID cooperation channels", rationale: "Health security cooperation as politically neutral trust-building mechanism", noveltyLevel: "significant" },
+    { idea: "Multilateral Hormuz Maritime Insurance Consortium reducing shipping premiums through collective security", rationale: "Financial incentives align commercial interests with peace maintenance", noveltyLevel: "breakthrough" },
+    { idea: "Cross-border Special Economic Zone at Iran-Iraq-Turkey junction with extraterritorial trade rules", rationale: "Creates economic constituency for peace with tangible local benefits", noveltyLevel: "breakthrough" },
+    { idea: "Regional Cyber Non-Aggression Pact with mutual forensic transparency obligations", rationale: "Addresses modern threat vector while building verification culture", noveltyLevel: "significant" },
+    { idea: "Graduated Sovereignty-Sharing Protocol for disputed maritime zones with revenue-sharing", rationale: "Transforms zero-sum territorial disputes into positive-sum economic arrangements", noveltyLevel: "breakthrough" },
+    { idea: "Cultural Heritage Protection Treaty with joint UNESCO site management across borders", rationale: "Leverages shared Persian-Arab-Jewish cultural heritage as peace infrastructure", noveltyLevel: "incremental" },
+    { idea: "Iran Re-integration Scholarship Fund placing Iranian students in Western universities in exchange for transparency commitments", rationale: "Creates human capital ties that make conflict costly for future generations", noveltyLevel: "significant" },
+    { idea: "Asymmetric De-escalation Ladder where each side pre-commits to proportional responses rather than escalation", rationale: "Reduces miscalculation risk through transparent signaling framework", noveltyLevel: "breakthrough" },
+  ];
+  const shuffled = [...PROVISION_POOL].sort(() => Math.random() - 0.5);
+  const selectedProvisions = shuffled.slice(0, 3 + Math.floor(Math.random() * 3));
+
+  const ANALOGY_POOL = [
+    { dealName: "JCPOA (2015)", relevantLesson: "Phased sanctions relief tied to verifiable nuclear rollback created momentum", applicability: "Core framework can be revived with stronger verification" },
+    { dealName: "Good Friday Agreement", relevantLesson: "Constructive ambiguity on sovereignty allowed both sides to claim victory", applicability: "Iran's 'nuclear rights' vs US 'non-proliferation' can use similar framing" },
+    { dealName: "Camp David Accords (1978)", relevantLesson: "Bilateral deal between enemies enabled by superpower security guarantees and economic incentives", applicability: "US security guarantees to both Iran and Israel could unlock bilateral concessions" },
+    { dealName: "Dayton Agreement (1995)", relevantLesson: "Complex multi-ethnic power-sharing architecture designed under extreme time pressure", applicability: "Regional power-sharing frameworks for Gulf security governance" },
+    { dealName: "Abraham Accords (2020)", relevantLesson: "Economic normalization without resolving core political disputes", applicability: "Iran-Gulf economic integration could proceed before nuclear resolution" },
+    { dealName: "ASEAN Treaty of Amity and Cooperation", relevantLesson: "Non-aggression norms established through regional institution-building", applicability: "Gulf equivalent could provide framework for Iran inclusion in regional security" },
+  ];
+  const selectedAnalogies = [...ANALOGY_POOL].sort(() => Math.random() - 0.5).slice(0, 3);
+
   const fallback: BrainstormInsights = {
-    historicalAnalogies: [
-      { dealName: "JCPOA (2015)", relevantLesson: "Phased sanctions relief tied to verifiable nuclear rollback created momentum", applicability: "Core framework can be revived with stronger verification" },
-      { dealName: "Good Friday Agreement", relevantLesson: "Constructive ambiguity on sovereignty allowed both sides to claim victory", applicability: "Iran's 'nuclear rights' vs US 'non-proliferation' can use similar framing" },
-    ],
-    creativeProvisions: [
-      { idea: "Regional Water-Energy Nexus Agreement linking Gulf desalination tech to Iranian gas exports", rationale: "Creates economic interdependence that raises cost of conflict", noveltyLevel: "breakthrough" },
-    ],
+    historicalAnalogies: selectedAnalogies,
+    creativeProvisions: selectedProvisions,
     crossIssueLinkages: [
       { linkage: "Iran's Chabahar port development funded by India/Japan in exchange for Hormuz navigation guarantees", stakeholdersHelped: ["iran", "india", "japan"] },
+      { linkage: "Saudi-Iran shared Red Sea/Persian Gulf shipping corridor reducing insurance costs for both", stakeholdersHelped: ["iran", "saudi_arabia", "china", "india"] },
     ],
-    unconventionalApproaches: ["Citizen diplomacy track with joint Iran-US-Israel university research programs on shared challenges (earthquakes, water scarcity)"],
+    unconventionalApproaches: [
+      "Citizen diplomacy track with joint Iran-US-Israel university research programs on shared challenges",
+      "Economic integration before political resolution — trade normalization as prerequisite to nuclear talks",
+      "Technology-driven verification replacing human inspectors with tamper-proof sensor networks",
+    ],
   };
 
-  const insights = parseLLMJson<BrainstormInsights>(content, fallback);
+  const insights = parseLLMJson<BrainstormInsights>(content, fallback, "brainstorm");
   return { insights, tokens };
 }
 
@@ -446,8 +488,12 @@ CRITICAL PRINCIPLES:
 ${overridePrompt}
 Output valid JSON only, no prose.`;
 
+  const pastProposalProvisions = dealMemory?.topDeals
+    .flatMap(d => d.topProvisions.map(p => p.title))
+    .filter((t, i, arr) => arr.indexOf(t) === i) ?? [];
+
   const proposalDealMemoryBlock = dealMemory && dealMemory.topDeals.length > 0 ? `
-PREVIOUS DEAL HISTORY (learn from these — build on successful elements, fix failures):
+PREVIOUS DEAL HISTORY (learn from patterns, but generate NEW provisions — do NOT copy):
 ${dealMemory.topDeals.slice(0, 3).map((d, i) => `
 Deal ${i + 1} (${d.architecture}, ${(d.compositeScore * 100).toFixed(1)}% composite):
 - Nuclear: ${(d.terms.nuclearProtocol || "").slice(0, 250)}
@@ -456,8 +502,11 @@ Deal ${i + 1} (${d.architecture}, ${(d.compositeScore * 100).toFixed(1)}% compos
 - Stakeholder rejections: ${Object.entries(d.stakeholderVerdicts).filter(([, v]) => v.verdict === "reject").map(([id, v]) => `${id}: ${v.rationale.slice(0, 80)}`).join("; ") || "None"}
 - Key weakness: ${d.diagnosis.slice(0, 150)}`).join("\n")}
 ${dealMemory.provisionInsights.length > 0 ? `
-PROVEN PROVISIONS (incorporate the ones that work, avoid the ones that don't):
+PROVISION TRACK RECORD (learn the PRINCIPLES behind what works, but invent NEW provisions):
 ${dealMemory.provisionInsights.slice(0, 6).map(p => `- "${p.title}": ${p.avgScoreDelta > 0 ? "HELPS" : "HURTS"} (${p.avgScoreDelta > 0 ? "+" : ""}${(p.avgScoreDelta * 100).toFixed(1)}pp avg, strongest on ${p.bestDimension})`).join("\n")}` : ""}
+${pastProposalProvisions.length > 0 ? `
+ALREADY-TRIED PROVISIONS (do NOT reuse these exact titles — create NOVEL alternatives):
+${pastProposalProvisions.map(t => `- "${t}"`).join("\n")}` : ""}
 ` : "";
 
   const radicalProposalInstructions = ["radical-restructure", "asymmetric-grand-bargain", "incremental-confidence"].includes(architecture) ? `
@@ -517,13 +566,14 @@ ${getCoreStakeholders().map(s => `    "${s.id}": "specific binding commitments $
   }
 }
 
-CREATIVE MANDATE: Include at least 3 innovative provisions that go beyond traditional nuclear/sanctions/verification categories. Think about economic integration mechanisms, technology-sharing frameworks, regional development funds, environmental cooperation, cultural exchange programs, or entirely novel constructs. The best peace deals create new value, not just redistribute concessions.
+CREATIVE MANDATE: You MUST include at least 3 innovative provisions that go beyond traditional nuclear/sanctions/verification categories. Think about economic integration mechanisms, technology-sharing frameworks, regional development funds, environmental cooperation, cultural exchange programs, or entirely novel constructs. The best peace deals create new value, not just redistribute concessions.
+Each provision MUST have a unique title and address a DIFFERENT domain (e.g., one economic, one technological, one environmental, one cultural). Do NOT repeat the same provision across deals.
 
 IMPORTANT: Iran and the US are the two REQUIRED parties — without both accepting, no deal is implementable. Israel is CRITICAL — its rejection would severely undermine any deal.
 Every stakeholder MUST have concrete, specific commitments. Vague statements like "supports the deal" are insufficient. Each commitment should specify what the stakeholder will DO, PROVIDE, or GUARANTEE.`;
 
   const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 1, "generation", modelConfig);
-  const terms = parseLLMJson<DealTerms>(content, getDefaultTerms(architecture));
+  const terms = parseLLMJson<DealTerms>(content, getDefaultTerms(architecture), "proposal");
 
   const sc = terms.stakeholderCommitments || {};
   const defaults = getDefaultTerms(architecture).stakeholderCommitments || {};
@@ -535,9 +585,19 @@ Every stakeholder MUST have concrete, specific commitments. Vague statements lik
   terms.stakeholderCommitments = sc;
 
   if (!terms.innovativeProvisions || terms.innovativeProvisions.length === 0) {
-    terms.innovativeProvisions = [
+    const FALLBACK_PROVISIONS: InnovativeProvision[] = [
       { title: "Regional Economic Integration Fund", description: "A multilateral development fund seeded by sanctions-relief dividends, financing joint infrastructure projects across Iran, Gulf states, and broader region", rationale: "Creates economic interdependence that raises the cost of returning to conflict for all parties", historicalPrecedent: "European Coal and Steel Community (1951) — economic integration as peace architecture" },
+      { title: "Digital Verification Network", description: "Tamper-proof IoT sensor grid at nuclear facilities streaming encrypted data to all parties simultaneously, eliminating information asymmetry", rationale: "Technology-driven trust removes the need for politically sensitive human inspections", historicalPrecedent: "Open Skies Treaty (1992) — transparency through technology" },
+      { title: "Gulf Maritime Insurance Consortium", description: "Multilateral shipping insurance pool that reduces premiums for vessels transiting the Strait of Hormuz, funded by littoral states", rationale: "Aligns commercial shipping interests with regional stability, creating a financial constituency for peace", historicalPrecedent: "P&I Clubs pooling maritime risk across adversaries" },
+      { title: "Trilateral Water-Energy Exchange", description: "Iran supplies natural gas to Gulf desalination plants at preferential rates; Gulf states share desalinated water and agricultural technology with Iran", rationale: "Addresses Iran's water crisis and Gulf energy needs simultaneously through bilateral dependency", historicalPrecedent: "Jordan-Israel water sharing arrangements" },
+      { title: "Regional Youth Exchange & Research Network", description: "Scholarship and university collaboration program placing students across former adversary nations for joint research on shared challenges", rationale: "Creates generational constituency for peace through personal relationships and shared intellectual capital", historicalPrecedent: "Franco-German Youth Office (1963) — post-reconciliation people-to-people ties" },
+      { title: "Graduated De-escalation Protocol", description: "Pre-agreed proportional response ladder where each party commits to specific maximum responses to specific provocations, with third-party monitoring", rationale: "Reduces miscalculation and unintended escalation through transparent signaling", historicalPrecedent: "US-Soviet hotline and incidents-at-sea agreements" },
+      { title: "Cross-Border Special Economic Zone", description: "Extraterritorial trade zone at Iran-Iraq border with simplified customs, shared infrastructure, and joint governance", rationale: "Creates immediate economic benefits and a governance cooperation precedent", historicalPrecedent: "Shenzhen SEZ (1980) — economic opening through geographic containment" },
+      { title: "Persian Gulf Environmental Restoration Compact", description: "Joint marine conservation program addressing coral reef destruction, oil spill prevention, and fisheries management across the Gulf", rationale: "Non-political cooperation on shared ecological crisis builds institutional trust", historicalPrecedent: "Mediterranean Action Plan — environmental cooperation among adversaries" },
     ];
+    const picked = [...FALLBACK_PROVISIONS].sort(() => Math.random() - 0.5).slice(0, 2 + Math.floor(Math.random() * 2));
+    terms.innovativeProvisions = picked;
+    logger.warn({ count: picked.length, titles: picked.map(p => p.title) }, "Using randomized fallback provisions — LLM did not generate innovativeProvisions");
   }
 
   return { terms, tokens };
