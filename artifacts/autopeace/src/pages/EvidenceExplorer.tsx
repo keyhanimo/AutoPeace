@@ -168,7 +168,7 @@ function CollapsibleBriefing({ title, icon, description, text, accentClass = "bo
       </div>
       <p className="text-xs text-muted-foreground mb-3">{description}</p>
       <div className="relative">
-        <pre className="text-xs text-muted-foreground bg-secondary/20 rounded-lg p-4 font-mono leading-relaxed whitespace-pre-wrap overflow-x-hidden max-h-[500px] overflow-y-auto">{displayText}</pre>
+        <pre className={`text-xs text-muted-foreground bg-secondary/20 rounded-lg p-4 font-mono leading-relaxed whitespace-pre-wrap overflow-x-hidden ${expanded ? "" : "max-h-[500px]"} overflow-y-auto`}>{displayText}</pre>
         {!expanded && isLong && (
           <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-card to-transparent rounded-b-lg" />
         )}
