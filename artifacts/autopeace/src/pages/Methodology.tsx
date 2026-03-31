@@ -60,8 +60,24 @@ export default function Methodology() {
     <div className="max-w-5xl mx-auto space-y-10 animate-fade-in pb-12">
       <PageHeader
         title="Methodology"
-        description="A comprehensive technical description of AutoPeace — a triple-loop autoresearch system for Bayesian conflict forecasting, autonomous peace deal optimization, and crowdsourced proposal evaluation."
+        description=""
       />
+
+      <Card className="p-8 text-center space-y-4">
+        <h1 className="text-2xl md:text-3xl font-bold font-display text-foreground leading-tight">
+          AutoPeace: A Triple-Loop Autoresearch Architecture for Bayesian Conflict Forecasting, Autonomous Peace Deal Optimization, and Crowdsourced Proposal Evaluation
+        </h1>
+        <div className="space-y-1">
+          <p className="text-base text-foreground font-medium">Mohammad Keyhani</p>
+          <p className="text-sm text-muted-foreground">University of Calgary</p>
+        </div>
+        <div className="flex flex-wrap justify-center gap-4 text-sm">
+          <a href="mailto:mkeyhani@ucalgary.ca" className="text-primary hover:underline transition-colors">mkeyhani@ucalgary.ca</a>
+          <a href="https://profiles.ucalgary.ca/mohammad-keyhani" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline transition-colors flex items-center gap-1">Institutional Profile <ExternalLink className="w-3 h-3" /></a>
+          <a href="https://www.linkedin.com/in/keyhanimo/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline transition-colors flex items-center gap-1">LinkedIn <ExternalLink className="w-3 h-3" /></a>
+          <a href="https://www.digitvibe.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline transition-colors flex items-center gap-1">Blog <ExternalLink className="w-3 h-3" /></a>
+        </div>
+      </Card>
 
       <nav className="not-prose">
         <Card className="p-6">
