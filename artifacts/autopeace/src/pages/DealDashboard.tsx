@@ -29,6 +29,9 @@ const ARCHITECTURE_COLORS: Record<string, string> = {
   "nuclear-first": "#f59e0b",
   "hormuz-first": "#0284c7",
   "humanitarian-first": "#ec4899",
+  "radical-restructure": "#a855f7",
+  "asymmetric-grand-bargain": "#f97316",
+  "incremental-confidence": "#14b8a6",
 };
 
 function scoreColor(score: number): string {
@@ -637,7 +640,7 @@ export default function DealDashboard() {
               <p className="text-xs text-muted-foreground text-center py-4">No deals to compare yet. Run more deal cycles.</p>
             ) : (
               <>
-                <div className="h-72">
+                <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={[...historyDeals]
@@ -654,13 +657,13 @@ export default function DealDashboard() {
                             isCurrent: d.isCurrent,
                           };
                         })}
-                      margin={{ top: 10, right: 10, left: 0, bottom: 50 }}
+                      margin={{ top: 25, right: 10, left: 0, bottom: 60 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis dataKey="name" angle={-35} textAnchor="end" tick={{ fontSize: 9, fill: "#94a3b8" }} />
+                      <XAxis dataKey="name" angle={-35} textAnchor="end" tick={{ fontSize: 9, fill: "#94a3b8" }} height={70} />
                       <YAxis tick={{ fontSize: 9, fill: "#94a3b8" }} tickFormatter={(v: number) => `${v}%`} domain={[0, 100]} />
                       <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "8px", fontSize: "11px" }} formatter={(v: number) => [`${v}%`]} />
-                      <Legend wrapperStyle={{ fontSize: "10px" }} />
+                      <Legend verticalAlign="top" wrapperStyle={{ fontSize: "10px", paddingBottom: "8px" }} />
                       <Bar dataKey="composite" name="Composite" fill="#f59e0b" radius={[2, 2, 0, 0]} />
                       <Bar dataKey="feasibility" name="Feasibility" fill="#10b981" radius={[2, 2, 0, 0]} />
                       <Bar dataKey="domestic" name="Domestic" fill="#8b5cf6" radius={[2, 2, 0, 0]} />
@@ -725,7 +728,7 @@ export default function DealDashboard() {
             {paretoDeals.length === 0 ? (
               <p className="text-center text-muted-foreground py-4">No Pareto frontier computed yet.</p>
             ) : (
-              <div className="h-64">
+              <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={paretoDeals.map((d, i) => {
                     const s = d.scores as DealScores | null;
@@ -735,11 +738,11 @@ export default function DealDashboard() {
                       feasibility: s ? Math.round((s.feasibility ?? 0) * 100) : 0,
                       domestic: s ? Math.round((s.domesticSellability ?? 0) * 100) : 0,
                     };
-                  })} margin={{ top: 10, right: 10, left: 0, bottom: 40 }}>
-                    <XAxis dataKey="name" angle={-35} textAnchor="end" tick={{ fontSize: 10, fill: "#94a3b8" }} />
+                  })} margin={{ top: 25, right: 10, left: 0, bottom: 60 }}>
+                    <XAxis dataKey="name" angle={-35} textAnchor="end" tick={{ fontSize: 9, fill: "#94a3b8" }} height={70} />
                     <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} tickFormatter={(v: number) => `${v}%`} />
                     <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "8px", fontSize: "11px" }} formatter={(v: number) => [`${v}%`]} />
-                    <Legend wrapperStyle={{ fontSize: "10px" }} />
+                    <Legend verticalAlign="top" wrapperStyle={{ fontSize: "10px", paddingBottom: "8px" }} />
                     <Bar dataKey="composite" name="Composite" fill="#f59e0b" radius={[2, 2, 0, 0]} />
                     <Bar dataKey="feasibility" name="Feasibility" fill="#10b981" radius={[2, 2, 0, 0]} />
                     <Bar dataKey="domestic" name="Domestic" fill="#8b5cf6" radius={[2, 2, 0, 0]} />
@@ -759,43 +762,67 @@ export default function DealDashboard() {
               Composite scores for each AI deal iteration. Click a bar to view full details of that deal below.
             </p>
             {historyBarData.length > 0 ? (
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={historyBarData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                    <XAxis dataKey="name" tick={(props: any) => { const { x, y, payload } = props; return (<g transform={`translate(${x},${y})`}><text x={0} y={0} dy={12} textAnchor="end" fill="#94a3b8" fontSize={8} transform="rotate(-35)">{payload.value}</text></g>); }} height={80} />
-                    <YAxis tick={{ fontSize: 9, fill: "#94a3b8" }} tickFormatter={(v: number) => `${v}%`} domain={[0, 100]} />
-                    <Tooltip
-                      contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "8px", fontSize: "11px" }}
-                      formatter={(v: number, _: unknown, entry: { payload?: { architecture?: string } }) => [
-                        `${v}% (${entry.payload?.architecture ?? ""})`,
-                        "Composite"
-                      ]}
-                    />
-                    <Bar
-                      dataKey="composite"
-                      name="Composite Score"
-                      radius={[3, 3, 0, 0]}
-                      cursor="pointer"
-                      onClick={(data: { id?: string }) => {
-                        if (data.id) {
-                          const deal = historyDeals.find(d => d.id === data.id);
-                          if (deal) setSelectedHistoryDeal(deal);
-                        }
-                      }}
-                    >
-                      {historyBarData.map((entry) => (
-                        <Cell
-                          key={entry.id}
-                          fill={entry.isCurrent ? "#f59e0b" : ARCHITECTURE_COLORS[entry.architecture] ?? "#64748b"}
-                          stroke={selectedHistoryDeal?.id === entry.id ? "#f59e0b" : "transparent"}
-                          strokeWidth={2}
-                        />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+              <>
+                <div className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={historyBarData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                      <XAxis dataKey="name" tick={(props: any) => { const { x, y, payload } = props; return (<g transform={`translate(${x},${y})`}><text x={0} y={0} dy={12} textAnchor="end" fill="#94a3b8" fontSize={8} transform="rotate(-35)">{payload.value}</text></g>); }} height={80} />
+                      <YAxis tick={{ fontSize: 9, fill: "#94a3b8" }} tickFormatter={(v: number) => `${v}%`} domain={[0, 100]} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "8px", fontSize: "11px" }}
+                        formatter={(v: number, _: unknown, entry: { payload?: { architecture?: string; isCurrent?: boolean } }) => [
+                          `${v}% (${entry.payload?.architecture ?? ""}${entry.payload?.isCurrent ? " — champion" : ""})`,
+                          "Composite"
+                        ]}
+                      />
+                      <Bar
+                        dataKey="composite"
+                        name="Composite Score"
+                        radius={[3, 3, 0, 0]}
+                        cursor="pointer"
+                        onClick={(data: { id?: string }) => {
+                          if (data.id) {
+                            const deal = historyDeals.find(d => d.id === data.id);
+                            if (deal) setSelectedHistoryDeal(deal);
+                          }
+                        }}
+                      >
+                        {historyBarData.map((entry) => (
+                          <Cell
+                            key={entry.id}
+                            fill={ARCHITECTURE_COLORS[entry.architecture] ?? "#64748b"}
+                            stroke={entry.isCurrent ? "#fbbf24" : selectedHistoryDeal?.id === entry.id ? "#94a3b8" : "transparent"}
+                            strokeWidth={entry.isCurrent ? 2.5 : selectedHistoryDeal?.id === entry.id ? 2 : 0}
+                            strokeDasharray={entry.isCurrent ? "" : ""}
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3 px-1">
+                  {(() => {
+                    const seen = new Set<string>();
+                    return historyBarData.reduce<React.ReactNode[]>((acc, entry) => {
+                      if (!seen.has(entry.architecture)) {
+                        seen.add(entry.architecture);
+                        acc.push(
+                          <span key={entry.architecture} className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                            <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: ARCHITECTURE_COLORS[entry.architecture] ?? "#64748b" }} />
+                            <span className="capitalize">{entry.architecture}</span>
+                          </span>
+                        );
+                      }
+                      return acc;
+                    }, []);
+                  })()}
+                  <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground ml-2 pl-2 border-l border-border/50">
+                    <span className="w-2.5 h-2.5 rounded-sm shrink-0 border-2 border-amber-400 bg-transparent" />
+                    <span>Current Champion</span>
+                  </span>
+                </div>
+              </>
             ) : (
               <p className="text-xs text-muted-foreground text-center py-4">No history yet. Run more deal cycles to see evolution.</p>
             )}
