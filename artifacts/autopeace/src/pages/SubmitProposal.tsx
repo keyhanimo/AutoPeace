@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useSubmitPublicProposal, useScreenProposal } from "@workspace/api-client-react";
+import { useSubmitPublicProposal } from "@workspace/api-client-react";
 import { Card, PageHeader, Badge, Button } from "@/components/ui";
 import { Send, CheckCircle2, AlertTriangle, FileText, Plus, Trash2, ShieldAlert, Loader2, XCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -20,7 +20,15 @@ export default function SubmitProposal() {
   const [rejectionReason, setRejectionReason] = useState<string | null>(null);
 
   const { mutateAsync: submitMutation, isPending: isSubmitting } = useSubmitPublicProposal();
-  const { mutateAsync: screenMutation } = useScreenProposal();
+  const screenMutation = async (args: { data: { summary: string; terms: Record<string, string> } }) => {
+    const res = await fetch(`${import.meta.env.BASE_URL}api/proposals/screen`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(args.data),
+    });
+    if (!res.ok) throw new Error("Screening failed");
+    return res.json() as Promise<{ eligible: boolean; reason: string }>;
+  };
 
   const addTerm = () => setTerms(prev => [...prev, { key: "", value: "" }]);
   const removeTerm = (i: number) => setTerms(prev => prev.filter((_, idx) => idx !== i));

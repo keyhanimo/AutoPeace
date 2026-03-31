@@ -17,6 +17,8 @@ export interface Stakeholder {
   preferredOutcomes: string;
   constraints: string;
   communicationStyle: string;
+  tier: string;
+  profileSummary: string;
   createdAt: Date;
   updatedAt: Date;
 }

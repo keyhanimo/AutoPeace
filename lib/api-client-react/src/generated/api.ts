@@ -17,7 +17,6 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
-  AdminComputeScenarios200,
   AdminConfigResponse,
   AdminConfigUpdate,
   AdminListSubscribers200,
@@ -42,6 +41,10 @@ import type {
   EvidenceSourceUpdate,
   ExperimentStats,
   Forecast,
+  GetAutoresearchTimeline200,
+  GetAutoresearchTimelineParams,
+  GetChampionLineage200,
+  GetChampionLineageParams,
   GetCommunityForecastAggregate200,
   GetCommunityForecastAggregateParams,
   GetDealHistory200,
@@ -53,6 +56,7 @@ import type {
   GetLatestForecasts200,
   GetParetoDeals200,
   GetPipelineConfig200,
+  GetPipelineEvolution200,
   GetProposalQueue200,
   GetProposalQueueParams,
   GetSolutionTree200,
@@ -75,13 +79,10 @@ import type {
   ListProposals200,
   ListStakeholders200,
   ListStakeholdersParams,
-  ListWhatIfScenarios200,
   Proposal,
   ProposalArena,
   ReviewProposalSubmission200,
   ReviewProposalSubmissionBody,
-  ScreenProposal200,
-  ScreenProposalBody,
   Stakeholder,
   SubmitCommunityForecast200,
   SubmitCommunityForecastBody,
@@ -427,6 +428,284 @@ export function useGetForecast<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetForecastQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Aggregated score history across research cycles for both forecasting and deal tasks
+ */
+export const getGetAutoresearchTimelineUrl = (
+  params?: GetAutoresearchTimelineParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/autoresearch/timeline?${stringifiedParams}`
+    : `/api/autoresearch/timeline`;
+};
+
+export const getAutoresearchTimeline = async (
+  params?: GetAutoresearchTimelineParams,
+  options?: RequestInit,
+): Promise<GetAutoresearchTimeline200> => {
+  return customFetch<GetAutoresearchTimeline200>(
+    getGetAutoresearchTimelineUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetAutoresearchTimelineQueryKey = (
+  params?: GetAutoresearchTimelineParams,
+) => {
+  return [`/api/autoresearch/timeline`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetAutoresearchTimelineQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAutoresearchTimeline>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetAutoresearchTimelineParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAutoresearchTimeline>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetAutoresearchTimelineQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getAutoresearchTimeline>>
+  > = ({ signal }) =>
+    getAutoresearchTimeline(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAutoresearchTimeline>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAutoresearchTimelineQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAutoresearchTimeline>>
+>;
+export type GetAutoresearchTimelineQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Aggregated score history across research cycles for both forecasting and deal tasks
+ */
+
+export function useGetAutoresearchTimeline<
+  TData = Awaited<ReturnType<typeof getAutoresearchTimeline>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetAutoresearchTimelineParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAutoresearchTimeline>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAutoresearchTimelineQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Ordered list of retained experiments showing the champion evolution
+ */
+export const getGetChampionLineageUrl = (params?: GetChampionLineageParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/autoresearch/champion-lineage?${stringifiedParams}`
+    : `/api/autoresearch/champion-lineage`;
+};
+
+export const getChampionLineage = async (
+  params?: GetChampionLineageParams,
+  options?: RequestInit,
+): Promise<GetChampionLineage200> => {
+  return customFetch<GetChampionLineage200>(getGetChampionLineageUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetChampionLineageQueryKey = (
+  params?: GetChampionLineageParams,
+) => {
+  return [
+    `/api/autoresearch/champion-lineage`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetChampionLineageQueryOptions = <
+  TData = Awaited<ReturnType<typeof getChampionLineage>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetChampionLineageParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getChampionLineage>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetChampionLineageQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getChampionLineage>>
+  > = ({ signal }) => getChampionLineage(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getChampionLineage>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetChampionLineageQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getChampionLineage>>
+>;
+export type GetChampionLineageQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Ordered list of retained experiments showing the champion evolution
+ */
+
+export function useGetChampionLineage<
+  TData = Awaited<ReturnType<typeof getChampionLineage>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetChampionLineageParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getChampionLineage>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetChampionLineageQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Pipeline evolution history showing prompt overrides and score progression
+ */
+export const getGetPipelineEvolutionUrl = () => {
+  return `/api/autoresearch/pipeline-evolution`;
+};
+
+export const getPipelineEvolution = async (
+  options?: RequestInit,
+): Promise<GetPipelineEvolution200> => {
+  return customFetch<GetPipelineEvolution200>(getGetPipelineEvolutionUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetPipelineEvolutionQueryKey = () => {
+  return [`/api/autoresearch/pipeline-evolution`] as const;
+};
+
+export const getGetPipelineEvolutionQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPipelineEvolution>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getPipelineEvolution>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetPipelineEvolutionQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getPipelineEvolution>>
+  > = ({ signal }) => getPipelineEvolution({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPipelineEvolution>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPipelineEvolutionQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPipelineEvolution>>
+>;
+export type GetPipelineEvolutionQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Pipeline evolution history showing prompt overrides and score progression
+ */
+
+export function useGetPipelineEvolution<
+  TData = Awaited<ReturnType<typeof getPipelineEvolution>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getPipelineEvolution>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPipelineEvolutionQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -3357,93 +3636,6 @@ export function useGetCommunityForecastAggregate<
 }
 
 /**
- * @summary Screen a proposal before submission
- */
-export const getScreenProposalUrl = () => {
-  return `/api/proposals/screen`;
-};
-
-export const screenProposal = async (
-  screenProposalBody: ScreenProposalBody,
-  options?: RequestInit,
-): Promise<ScreenProposal200> => {
-  return customFetch<ScreenProposal200>(getScreenProposalUrl(), {
-    ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(screenProposalBody),
-  });
-};
-
-export const getScreenProposalMutationOptions = <
-  TError = ErrorType<void>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof screenProposal>>,
-    TError,
-    { data: BodyType<ScreenProposalBody> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof screenProposal>>,
-  TError,
-  { data: BodyType<ScreenProposalBody> },
-  TContext
-> => {
-  const mutationKey = ["screenProposal"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof screenProposal>>,
-    { data: BodyType<ScreenProposalBody> }
-  > = (props) => {
-    const { data } = props ?? {};
-
-    return screenProposal(data, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type ScreenProposalMutationResult = NonNullable<
-  Awaited<ReturnType<typeof screenProposal>>
->;
-export type ScreenProposalMutationBody =
-  BodyType<ScreenProposalBody>;
-export type ScreenProposalMutationError = ErrorType<void>;
-
-/**
- * @summary Screen a proposal before submission
- */
-export const useScreenProposal = <
-  TError = ErrorType<void>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof screenProposal>>,
-    TError,
-    { data: BodyType<ScreenProposalBody> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationResult<
-  Awaited<ReturnType<typeof screenProposal>>,
-  TError,
-  { data: BodyType<ScreenProposalBody> },
-  TContext
-> => {
-  return useMutation(getScreenProposalMutationOptions(options));
-};
-
-/**
  * @summary Submit a real-world proposal for community review
  */
 export const getSubmitPublicProposalUrl = () => {
@@ -3716,166 +3908,6 @@ export const useReviewProposalSubmission = <
   TContext
 > => {
   return useMutation(getReviewProposalSubmissionMutationOptions(options));
-};
-
-/**
- * Returns the latest batch of what-if scenario snapshots generated during the most recent research cycle. If no snapshots have been computed yet, returns an empty array with status "not_ready". Does NOT trigger any LLM computation.
-
- * @summary List pre-computed what-if scenario snapshots
- */
-export const getListWhatIfScenariosUrl = () => {
-  return `/api/scenarios`;
-};
-
-export const listWhatIfScenarios = async (
-  options?: RequestInit,
-): Promise<ListWhatIfScenarios200> => {
-  return customFetch<ListWhatIfScenarios200>(getListWhatIfScenariosUrl(), {
-    ...options,
-    method: "GET",
-  });
-};
-
-export const getListWhatIfScenariosQueryKey = () => {
-  return [`/api/scenarios`] as const;
-};
-
-export const getListWhatIfScenariosQueryOptions = <
-  TData = Awaited<ReturnType<typeof listWhatIfScenarios>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof listWhatIfScenarios>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getListWhatIfScenariosQueryKey();
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof listWhatIfScenarios>>
-  > = ({ signal }) => listWhatIfScenarios({ signal, ...requestOptions });
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof listWhatIfScenarios>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
-
-export type ListWhatIfScenariosQueryResult = NonNullable<
-  Awaited<ReturnType<typeof listWhatIfScenarios>>
->;
-export type ListWhatIfScenariosQueryError = ErrorType<unknown>;
-
-/**
- * @summary List pre-computed what-if scenario snapshots
- */
-
-export function useListWhatIfScenarios<
-  TData = Awaited<ReturnType<typeof listWhatIfScenarios>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof listWhatIfScenarios>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getListWhatIfScenariosQueryOptions(options);
-
-  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
-    queryKey: QueryKey;
-  };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-/**
- * Runs the full what-if scenario pipeline (LLM probability generation + stakeholder evaluation + judge scoring for top proposals) and stores results. This is the only endpoint that triggers live LLM calls for scenario computation.
-
- * @summary Trigger LLM-based what-if scenario computation (admin only)
- */
-export const getAdminComputeScenariosUrl = () => {
-  return `/api/admin/scenarios/compute`;
-};
-
-export const adminComputeScenarios = async (
-  options?: RequestInit,
-): Promise<AdminComputeScenarios200> => {
-  return customFetch<AdminComputeScenarios200>(getAdminComputeScenariosUrl(), {
-    ...options,
-    method: "POST",
-  });
-};
-
-export const getAdminComputeScenariosMutationOptions = <
-  TError = ErrorType<void>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof adminComputeScenarios>>,
-    TError,
-    void,
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof adminComputeScenarios>>,
-  TError,
-  void,
-  TContext
-> => {
-  const mutationKey = ["adminComputeScenarios"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof adminComputeScenarios>>,
-    void
-  > = () => {
-    return adminComputeScenarios(requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type AdminComputeScenariosMutationResult = NonNullable<
-  Awaited<ReturnType<typeof adminComputeScenarios>>
->;
-
-export type AdminComputeScenariosMutationError = ErrorType<void>;
-
-/**
- * @summary Trigger LLM-based what-if scenario computation (admin only)
- */
-export const useAdminComputeScenarios = <
-  TError = ErrorType<void>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof adminComputeScenarios>>,
-    TError,
-    void,
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationResult<
-  Awaited<ReturnType<typeof adminComputeScenarios>>,
-  TError,
-  void,
-  TContext
-> => {
-  return useMutation(getAdminComputeScenariosMutationOptions(options));
 };
 
 /**

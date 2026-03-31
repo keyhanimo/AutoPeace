@@ -6,7 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 
-/**
- * Absolute probabilities under this scenario (0-1 fractions)
- */
-export type WhatIfScenarioAbsoluteProbabilities = { [key: string]: number };
+export type GetChampionLineage200ChampionsItemScoresAfter = {
+  [key: string]: unknown;
+} | null;

@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import { AlertCircle, Clock, CheckCircle2, FileText, Target, TrendingUp, BarChart2, Users, Send } from "lucide-react";
 import { DataSourceNote, DataFreshness } from "@/components/DataSourceNote";
+import { ForecastAutoresearchBadge } from "@/components/AutoresearchBadge";
 
 const TIME_HORIZONS = ['30d', '90d', '180d', '1y'] as const;
 
@@ -521,6 +522,8 @@ export default function ForecastDashboard() {
           ))}
         </div>
       </PageHeader>
+
+      <ForecastAutoresearchBadge />
 
       {!activeForecast ? (
         <Card className="p-12 text-center flex flex-col items-center">

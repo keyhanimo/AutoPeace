@@ -122,6 +122,87 @@ export const GetForecastResponse = zod.object({
 });
 
 /**
+ * @summary Aggregated score history across research cycles for both forecasting and deal tasks
+ */
+export const getAutoresearchTimelineQueryLimitDefault = 50;
+
+export const GetAutoresearchTimelineQueryParams = zod.object({
+  limit: zod.coerce.number().default(getAutoresearchTimelineQueryLimitDefault),
+});
+
+export const GetAutoresearchTimelineResponse = zod.object({
+  forecastTimeline: zod.array(
+    zod.object({
+      cycleId: zod.string(),
+      timestamp: zod.coerce.date(),
+      brierScore: zod.number().nullish(),
+      logScore: zod.number().nullish(),
+      experimentsRun: zod.number(),
+      experimentsRetained: zod.number(),
+    }),
+  ),
+  dealTimeline: zod.array(
+    zod.object({
+      dealId: zod.string(),
+      timestamp: zod.coerce.date(),
+      compositeScore: zod.number(),
+      architecture: zod.string(),
+      generation: zod.number(),
+      isCurrent: zod.boolean(),
+    }),
+  ),
+});
+
+/**
+ * @summary Ordered list of retained experiments showing the champion evolution
+ */
+export const getChampionLineageQueryTaskDefault = `all`;
+export const getChampionLineageQueryLimitDefault = 30;
+
+export const GetChampionLineageQueryParams = zod.object({
+  task: zod.enum(["A", "B", "all"]).default(getChampionLineageQueryTaskDefault),
+  limit: zod.coerce.number().default(getChampionLineageQueryLimitDefault),
+});
+
+export const GetChampionLineageResponse = zod.object({
+  champions: zod.array(
+    zod.object({
+      id: zod.string(),
+      cycleId: zod.string(),
+      timestamp: zod.coerce.date(),
+      task: zod.string(),
+      changeDescription: zod.string(),
+      scoresBefore: zod.object({}).passthrough().nullish(),
+      scoresAfter: zod.object({}).passthrough().nullish(),
+      diagnosis: zod.string().nullish(),
+      tokensConsumed: zod.number(),
+    }),
+  ),
+  totalRetained: zod.number(),
+  totalExperiments: zod.number(),
+});
+
+/**
+ * @summary Pipeline evolution history showing prompt overrides and score progression
+ */
+export const GetPipelineEvolutionResponse = zod.object({
+  generations: zod.array(
+    zod.object({
+      id: zod.string(),
+      parentConfigId: zod.string().nullish(),
+      generation: zod.number(),
+      promptOverrides: zod.object({}).passthrough(),
+      description: zod.string(),
+      avgCompositeScore: zod.number().nullish(),
+      dealCount: zod.number(),
+      isCurrent: zod.boolean(),
+      createdAt: zod.coerce.date(),
+    }),
+  ),
+  currentGeneration: zod.number(),
+});
+
+/**
  * @summary List experiments
  */
 export const listExperimentsQueryLimitDefault = 20;
@@ -529,7 +610,6 @@ export const UpdateAdminConfigBody = zod.object({
   stage7Model: zod.string().optional(),
   stage8Provider: zod.enum(["anthropic", "openai", "gemini"]).optional(),
   stage8Model: zod.string().optional(),
-  submissionScreeningModel: zod.string().optional(),
 });
 
 export const UpdateAdminConfigResponse = zod.object({
@@ -1556,61 +1636,6 @@ export const ReviewProposalSubmissionBody = zod.object({
 export const ReviewProposalSubmissionResponse = zod.object({
   message: zod.string(),
   approvedProposalId: zod.string().nullish(),
-});
-
-/**
- * Returns the latest batch of what-if scenario snapshots generated during the most recent research cycle. If no snapshots have been computed yet, returns an empty array with status "not_ready". Does NOT trigger any LLM computation.
-
- * @summary List pre-computed what-if scenario snapshots
- */
-export const ListWhatIfScenariosResponse = zod.object({
-  data: zod.array(
-    zod.object({
-      id: zod.string(),
-      name: zod.string(),
-      description: zod.string(),
-      triggerCondition: zod.string(),
-      basedOnCycleId: zod.string().nullish(),
-      probabilityDeltas: zod
-        .record(zod.string(), zod.number())
-        .describe(
-          "Per-outcome probability shifts vs baseline (signed fractions)",
-        ),
-      absoluteProbabilities: zod
-        .record(zod.string(), zod.number())
-        .describe("Absolute probabilities under this scenario (0-1 fractions)"),
-      proposalImpacts: zod
-        .array(
-          zod.object({
-            proposalId: zod.string().optional(),
-            proposalName: zod.string().optional(),
-            viabilityDelta: zod.number().optional(),
-            projectedComposite: zod.number().optional(),
-            favorabilityNote: zod.string().optional(),
-          }),
-        )
-        .nullish(),
-      updatedAt: zod.coerce.date(),
-    }),
-  ),
-  status: zod
-    .enum(["not_ready"])
-    .optional()
-    .describe(
-      "Present only when data is empty and snapshots are not yet available",
-    ),
-  message: zod.string().optional(),
-});
-
-/**
- * Runs the full what-if scenario pipeline (LLM probability generation + stakeholder evaluation + judge scoring for top proposals) and stores results. This is the only endpoint that triggers live LLM calls for scenario computation.
-
- * @summary Trigger LLM-based what-if scenario computation (admin only)
- */
-export const AdminComputeScenariosResponse = zod.object({
-  message: zod.string(),
-  count: zod.number(),
-  data: zod.array(zod.object({}).passthrough()),
 });
 
 /**

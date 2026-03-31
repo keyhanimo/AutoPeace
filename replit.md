@@ -78,6 +78,9 @@ Run migrations: `pnpm --filter @workspace/db run push`
 - `GET /api/changelog` — cycle changelog entries
 - `GET /api/stakeholders` — all 32 stakeholders
 - `GET /api/changelog/:id` — single changelog entry detail
+- `GET /api/autoresearch/timeline` — aggregated score history across research cycles (forecast + deal timelines)
+- `GET /api/autoresearch/champion-lineage` — ordered list of retained experiments showing champion evolution
+- `GET /api/autoresearch/pipeline-evolution` — pipeline evolution history (prompt overrides, generation progression)
 
 ### Admin (requires `X-Admin-Key: $ADMIN_PASSWORD`)
 - `POST /api/admin/run` — trigger autoresearch cycle immediately (409 if cycle already running)
@@ -121,6 +124,7 @@ Scheduler: hourly cron check, runs at UTC 6am daily by default.
 | `/stakeholders/compare` | Stakeholder Comparison — multi-select comparison tool (up to 4) |
 | `/evidence` | Evidence Explorer — searchable, filterable corpus browser (54+ items) |
 | `/costs` | Cost-Benefit Analysis — war costs vs peace benefits by channel and stakeholder, humanitarian impact with Iran-attribution methodology and source citations, channel decomposition charts, treemap, radar charts, expanded methodology framework |
+| `/lab` | Autoresearch Lab — improvement timeline, champion lineage, pipeline evolution, live status (4-tab view) |
 | `/experiments` | Evolution Log — mutation table with result badges |
 | `/submit` | Submit Proposal — public form for community proposal submissions |
 | `/data` | Data Portal — JSON/CSV downloads for all 6 research datasets + RSS |

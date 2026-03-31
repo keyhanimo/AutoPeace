@@ -127,6 +127,126 @@ paths:
         "404":
           description: Not found
 
+  /autoresearch/timeline:
+    get:
+      operationId: getAutoresearchTimeline
+      tags: [experiments]
+      summary: Aggregated score history across research cycles for both forecasting and deal tasks
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Timeline of score improvements
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  forecastTimeline:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        cycleId: { type: string }
+                        timestamp: { type: string, format: date-time }
+                        brierScore: { type: number, nullable: true }
+                        logScore: { type: number, nullable: true }
+                        experimentsRun: { type: integer }
+                        experimentsRetained: { type: integer }
+                      required: [cycleId, timestamp, experimentsRun, experimentsRetained]
+                  dealTimeline:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        dealId: { type: string }
+                        timestamp: { type: string, format: date-time }
+                        compositeScore: { type: number }
+                        architecture: { type: string }
+                        generation: { type: integer }
+                        isCurrent: { type: boolean }
+                      required: [dealId, timestamp, compositeScore, architecture, generation, isCurrent]
+                required: [forecastTimeline, dealTimeline]
+
+  /autoresearch/champion-lineage:
+    get:
+      operationId: getChampionLineage
+      tags: [experiments]
+      summary: Ordered list of retained experiments showing the champion evolution
+      parameters:
+        - name: task
+          in: query
+          schema:
+            type: string
+            enum: [A, B, all]
+            default: all
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 30
+      responses:
+        "200":
+          description: Champion lineage
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  champions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        cycleId: { type: string }
+                        timestamp: { type: string, format: date-time }
+                        task: { type: string }
+                        changeDescription: { type: string }
+                        scoresBefore: { type: object, nullable: true }
+                        scoresAfter: { type: object, nullable: true }
+                        diagnosis: { type: string, nullable: true }
+                        tokensConsumed: { type: integer }
+                      required: [id, cycleId, timestamp, task, changeDescription, tokensConsumed]
+                  totalRetained: { type: integer }
+                  totalExperiments: { type: integer }
+                required: [champions, totalRetained, totalExperiments]
+
+  /autoresearch/pipeline-evolution:
+    get:
+      operationId: getPipelineEvolution
+      tags: [experiments]
+      summary: Pipeline evolution history showing prompt overrides and score progression
+      responses:
+        "200":
+          description: Pipeline evolution records
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  generations:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        parentConfigId: { type: string, nullable: true }
+                        generation: { type: integer }
+                        promptOverrides: { type: object }
+                        description: { type: string }
+                        avgCompositeScore: { type: number, nullable: true }
+                        dealCount: { type: integer }
+                        isCurrent: { type: boolean }
+                        createdAt: { type: string, format: date-time }
+                      required: [id, generation, promptOverrides, description, dealCount, isCurrent, createdAt]
+                  currentGeneration: { type: integer }
+                required: [generations, currentGeneration]
+
   /experiments:
     get:
       operationId: listExperiments

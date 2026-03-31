@@ -9,38 +9,6 @@ export interface HealthStatus {
   status: string;
 }
 
-/**
- * Per-outcome probability shifts vs baseline (signed fractions)
- */
-export type WhatIfScenarioProbabilityDeltas = { [key: string]: number };
-
-/**
- * Absolute probabilities under this scenario (0-1 fractions)
- */
-export type WhatIfScenarioAbsoluteProbabilities = { [key: string]: number };
-
-export type WhatIfScenarioProposalImpactsItem = {
-  proposalId?: string;
-  proposalName?: string;
-  viabilityDelta?: number;
-  projectedComposite?: number;
-  favorabilityNote?: string;
-};
-
-export interface WhatIfScenario {
-  id: string;
-  name: string;
-  description: string;
-  triggerCondition: string;
-  basedOnCycleId?: string | null;
-  /** Per-outcome probability shifts vs baseline (signed fractions) */
-  probabilityDeltas: WhatIfScenarioProbabilityDeltas;
-  /** Absolute probabilities under this scenario (0-1 fractions) */
-  absoluteProbabilities: WhatIfScenarioAbsoluteProbabilities;
-  proposalImpacts?: WhatIfScenarioProposalImpactsItem[] | null;
-  updatedAt: string;
-}
-
 export interface EmailSubscription {
   id: string;
   email: string;
@@ -387,7 +355,6 @@ export interface AdminConfigResponse {
   judgePanelAnthropicModel?: string;
   judgePanelOpenaiModel?: string;
   judgePanelGeminiModel?: string;
-  submissionScreeningModel?: string;
   stage1Provider?: AdminConfigResponseStage1Provider;
   stage1Model?: string;
   stage2Provider?: AdminConfigResponseStage2Provider;
@@ -553,7 +520,6 @@ export interface AdminConfigUpdate {
   judgePanelAnthropicModel?: string;
   judgePanelOpenaiModel?: string;
   judgePanelGeminiModel?: string;
-  submissionScreeningModel?: string;
   stage1Provider?: AdminConfigUpdateStage1Provider;
   stage1Model?: string;
   stage2Provider?: AdminConfigUpdateStage2Provider;
@@ -766,6 +732,94 @@ export type ListForecasts200 = {
 
 export type GetLatestForecasts200 = {
   data: Forecast[];
+};
+
+export type GetAutoresearchTimelineParams = {
+  limit?: number;
+};
+
+export type GetAutoresearchTimeline200ForecastTimelineItem = {
+  cycleId: string;
+  timestamp: string;
+  brierScore?: number | null;
+  logScore?: number | null;
+  experimentsRun: number;
+  experimentsRetained: number;
+};
+
+export type GetAutoresearchTimeline200DealTimelineItem = {
+  dealId: string;
+  timestamp: string;
+  compositeScore: number;
+  architecture: string;
+  generation: number;
+  isCurrent: boolean;
+};
+
+export type GetAutoresearchTimeline200 = {
+  forecastTimeline: GetAutoresearchTimeline200ForecastTimelineItem[];
+  dealTimeline: GetAutoresearchTimeline200DealTimelineItem[];
+};
+
+export type GetChampionLineageParams = {
+  task?: GetChampionLineageTask;
+  limit?: number;
+};
+
+export type GetChampionLineageTask =
+  (typeof GetChampionLineageTask)[keyof typeof GetChampionLineageTask];
+
+export const GetChampionLineageTask = {
+  A: "A",
+  B: "B",
+  all: "all",
+} as const;
+
+export type GetChampionLineage200ChampionsItemScoresBefore = {
+  [key: string]: unknown;
+} | null;
+
+export type GetChampionLineage200ChampionsItemScoresAfter = {
+  [key: string]: unknown;
+} | null;
+
+export type GetChampionLineage200ChampionsItem = {
+  id: string;
+  cycleId: string;
+  timestamp: string;
+  task: string;
+  changeDescription: string;
+  scoresBefore?: GetChampionLineage200ChampionsItemScoresBefore;
+  scoresAfter?: GetChampionLineage200ChampionsItemScoresAfter;
+  diagnosis?: string | null;
+  tokensConsumed: number;
+};
+
+export type GetChampionLineage200 = {
+  champions: GetChampionLineage200ChampionsItem[];
+  totalRetained: number;
+  totalExperiments: number;
+};
+
+export type GetPipelineEvolution200GenerationsItemPromptOverrides = {
+  [key: string]: unknown;
+};
+
+export type GetPipelineEvolution200GenerationsItem = {
+  id: string;
+  parentConfigId?: string | null;
+  generation: number;
+  promptOverrides: GetPipelineEvolution200GenerationsItemPromptOverrides;
+  description: string;
+  avgCompositeScore?: number | null;
+  dealCount: number;
+  isCurrent: boolean;
+  createdAt: string;
+};
+
+export type GetPipelineEvolution200 = {
+  generations: GetPipelineEvolution200GenerationsItem[];
+  currentGeneration: number;
 };
 
 export type ListExperimentsParams = {
@@ -1090,18 +1144,6 @@ export type GetCommunityForecastAggregate200 = {
   outcomes: string[];
 };
 
-export type ScreenProposalBodyTerms = { [key: string]: unknown };
-
-export type ScreenProposalBody = {
-  summary: string;
-  terms: ScreenProposalBodyTerms;
-};
-
-export type ScreenProposal200 = {
-  eligible: boolean;
-  reason: string;
-};
-
 export type SubmitPublicProposalBodyTerms = { [key: string]: unknown };
 
 export type SubmitPublicProposalBody = {
@@ -1162,31 +1204,6 @@ export type ReviewProposalSubmissionBody = {
 export type ReviewProposalSubmission200 = {
   message: string;
   approvedProposalId?: string | null;
-};
-
-/**
- * Present only when data is empty and snapshots are not yet available
- */
-export type ListWhatIfScenarios200Status =
-  (typeof ListWhatIfScenarios200Status)[keyof typeof ListWhatIfScenarios200Status];
-
-export const ListWhatIfScenarios200Status = {
-  not_ready: "not_ready",
-} as const;
-
-export type ListWhatIfScenarios200 = {
-  data: WhatIfScenario[];
-  /** Present only when data is empty and snapshots are not yet available */
-  status?: ListWhatIfScenarios200Status;
-  message?: string;
-};
-
-export type AdminComputeScenarios200DataItem = { [key: string]: unknown };
-
-export type AdminComputeScenarios200 = {
-  message: string;
-  count: number;
-  data: AdminComputeScenarios200DataItem[];
 };
 
 /**

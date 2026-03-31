@@ -1,0 +1,397 @@
+import React, { useState, useMemo } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import {
+  useGetAutoresearchTimeline,
+  useGetChampionLineage,
+  useGetPipelineEvolution,
+  useGetExperimentStats,
+} from "@workspace/api-client-react";
+import { Card, PageHeader, Badge } from "@/components/ui";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
+  BarChart, Bar, Cell,
+} from "recharts";
+import { TrendingUp, Trophy, GitBranch, Radio, ArrowRight, CheckCircle2, XCircle, Cpu, Zap } from "lucide-react";
+import { CycleStatusIndicator, useCycleStatus } from "@/components/CycleStatusIndicator";
+import { motion } from "framer-motion";
+
+function ImprovementTimeline() {
+  const { data, isLoading } = useGetAutoresearchTimeline({ limit: 50 });
+
+  const forecastChartData = useMemo(() => {
+    if (!data?.forecastTimeline) return [];
+    return data.forecastTimeline.map((d, i) => ({
+      cycle: i + 1,
+      cycleId: d.cycleId.slice(0, 8),
+      brier: d.brierScore != null ? Number(d.brierScore.toFixed(4)) : null,
+      log: d.logScore != null ? Number(d.logScore.toFixed(4)) : null,
+      retained: d.experimentsRetained,
+      run: d.experimentsRun,
+    }));
+  }, [data]);
+
+  const dealChartData = useMemo(() => {
+    if (!data?.dealTimeline) return [];
+    return data.dealTimeline.map((d, i) => ({
+      deal: i + 1,
+      composite: Math.round(d.compositeScore * 100),
+      architecture: d.architecture,
+      isCurrent: d.isCurrent,
+    }));
+  }, [data]);
+
+  if (isLoading) return <div className="text-sm text-muted-foreground animate-pulse py-8 text-center">Loading timeline...</div>;
+
+  return (
+    <div className="space-y-6">
+      <Card className="p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <TrendingUp className="w-4 h-4 text-primary" />
+          <h3 className="text-sm font-bold uppercase tracking-wider">Forecast Score Over Time</h3>
+        </div>
+        {forecastChartData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={280}>
+            <LineChart data={forecastChartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+              <XAxis dataKey="cycle" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" label={{ value: "Cycle", position: "insideBottomRight", offset: -5, fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" domain={["auto", "auto"]} />
+              <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 4, fontSize: 12 }} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Line type="monotone" dataKey="brier" name="Brier Score" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+              <Line type="monotone" dataKey="log" name="Log Score" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          <p className="text-sm text-muted-foreground text-center py-8">No forecast cycles recorded yet.</p>
+        )}
+      </Card>
+
+      <Card className="p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <TrendingUp className="w-4 h-4 text-amber-400" />
+          <h3 className="text-sm font-bold uppercase tracking-wider">Deal Composite Score Over Time</h3>
+        </div>
+        {dealChartData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={dealChartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+              <XAxis dataKey="deal" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" label={{ value: "Deal #", position: "insideBottomRight", offset: -5, fontSize: 11 }} />
+              <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+              <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 4, fontSize: 12 }} formatter={(v: number) => [`${v}%`, "Composite"]} />
+              <Bar dataKey="composite" name="Composite %" radius={[2, 2, 0, 0]}>
+                {dealChartData.map((d, i) => (
+                  <Cell key={i} fill={d.isCurrent ? "#f59e0b" : "#3b82f6"} opacity={d.isCurrent ? 1 : 0.6} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <p className="text-sm text-muted-foreground text-center py-8">No deals generated yet.</p>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+function ChampionLineage() {
+  const [taskFilter, setTaskFilter] = useState<"all" | "A" | "B">("all");
+  const { data, isLoading } = useGetChampionLineage({ task: taskFilter, limit: 30 });
+
+  if (isLoading) return <div className="text-sm text-muted-foreground animate-pulse py-8 text-center">Loading lineage...</div>;
+
+  const champions = data?.champions ?? [];
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 bg-secondary/30 p-1 rounded-sm">
+          {(["all", "A", "B"] as const).map(t => (
+            <button
+              key={t}
+              onClick={() => setTaskFilter(t)}
+              className={`px-3 py-1.5 text-xs font-medium transition-colors rounded-sm ${
+                taskFilter === t ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {t === "all" ? "All Tasks" : t === "A" ? "Forecasting" : "Deals"}
+            </button>
+          ))}
+        </div>
+        <div className="text-xs text-muted-foreground">
+          <span className="font-bold text-foreground">{data?.totalRetained ?? 0}</span> retained / <span className="font-bold text-foreground">{data?.totalExperiments ?? 0}</span> total
+        </div>
+      </div>
+
+      {champions.length === 0 ? (
+        <Card className="p-8 text-center">
+          <p className="text-sm text-muted-foreground">No champion experiments found yet.</p>
+        </Card>
+      ) : (
+        <div className="space-y-3 relative before:absolute before:left-5 before:top-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-primary/50 before:to-transparent">
+          {champions.map((c, i) => {
+            const scoresBefore = c.scoresBefore as Record<string, number> | null;
+            const scoresAfter = c.scoresAfter as Record<string, number> | null;
+            const improvement = scoresBefore && scoresAfter
+              ? Object.keys(scoresAfter).some(k => (scoresAfter[k] ?? 0) > (scoresBefore[k] ?? 0))
+              : null;
+
+            return (
+              <motion.div
+                key={c.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.05 }}
+              >
+                <Card className="p-4 ml-10 relative">
+                  <div className="absolute -left-[2.15rem] top-4 w-3 h-3 rounded-full bg-primary border-2 border-background z-10" />
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant="outline" className={`text-[9px] ${c.task === "A" ? "border-blue-500/40 text-blue-400" : "border-amber-500/40 text-amber-400"}`}>
+                          {c.task === "A" ? "Forecast" : "Deal"}
+                        </Badge>
+                        <span className="text-[10px] text-muted-foreground font-mono">#{c.cycleId.slice(0, 8)}</span>
+                        {improvement !== null && (
+                          improvement
+                            ? <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                            : <XCircle className="w-3 h-3 text-red-400" />
+                        )}
+                      </div>
+                      <p className="text-sm font-medium text-foreground">{c.changeDescription}</p>
+                      {c.diagnosis && (
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{c.diagnosis}</p>
+                      )}
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-[10px] text-muted-foreground">
+                        {new Date(c.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground/60 font-mono mt-0.5">
+                        {c.tokensConsumed.toLocaleString()} tok
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PipelineEvolutionView() {
+  const { data, isLoading } = useGetPipelineEvolution();
+
+  if (isLoading) return <div className="text-sm text-muted-foreground animate-pulse py-8 text-center">Loading evolution...</div>;
+
+  const generations = data?.generations ?? [];
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <GitBranch className="w-4 h-4 text-primary" />
+        <h3 className="text-sm font-bold uppercase tracking-wider">Pipeline Generations</h3>
+        <Badge variant="outline" className="text-[10px]">Current: Gen {data?.currentGeneration ?? 0}</Badge>
+      </div>
+
+      {generations.length === 0 ? (
+        <Card className="p-8 text-center">
+          <p className="text-sm text-muted-foreground">No pipeline evolution records yet.</p>
+        </Card>
+      ) : (
+        <div className="grid gap-3">
+          {generations.map((g) => (
+            <Card key={g.id} className={`p-4 ${g.isCurrent ? "border-primary/40 bg-primary/5" : ""}`}>
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs font-bold text-foreground">Gen {g.generation}</span>
+                    {g.isCurrent && <Badge className="text-[9px] bg-primary/20 text-primary border-primary/30">Current</Badge>}
+                    {g.parentConfigId && (
+                      <span className="text-[10px] text-muted-foreground">← from {g.parentConfigId.slice(0, 8)}</span>
+                    )}
+                  </div>
+                  <p className="text-sm text-foreground">{g.description}</p>
+                  {Object.keys(g.promptOverrides ?? {}).length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {Object.keys(g.promptOverrides).slice(0, 4).map(k => (
+                        <Badge key={k} variant="outline" className="text-[9px] font-mono">{k}</Badge>
+                      ))}
+                      {Object.keys(g.promptOverrides).length > 4 && (
+                        <Badge variant="outline" className="text-[9px]">+{Object.keys(g.promptOverrides).length - 4} more</Badge>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div className="text-right shrink-0 space-y-1">
+                  {g.avgCompositeScore != null && (
+                    <p className="text-sm font-bold font-mono">{Math.round(g.avgCompositeScore * 100)}%</p>
+                  )}
+                  <p className="text-[10px] text-muted-foreground">{g.dealCount} deals</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {new Date(g.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  </p>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LiveStatus() {
+  const status = useCycleStatus();
+  const { data: stats } = useGetExperimentStats();
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card className="p-5">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-2">Cycles Run</p>
+          <p className="text-3xl font-bold font-display">{stats?.cyclesRun ?? "--"}</p>
+        </Card>
+        <Card className="p-5">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-2">Retention Rate</p>
+          <p className="text-3xl font-bold font-display">{stats ? `${Math.round(stats.retentionRate * 100)}%` : "--"}</p>
+          <p className="text-[10px] text-muted-foreground mt-1">{stats?.retained} / {stats?.total} retained</p>
+        </Card>
+        <Card className="p-5">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-2">Tokens Consumed</p>
+          <p className="text-3xl font-bold font-display">
+            {stats ? new Intl.NumberFormat("en-US", { notation: "compact", compactDisplay: "short" }).format(stats.totalTokensConsumed) : "--"}
+          </p>
+        </Card>
+      </div>
+
+      <Card className="p-6">
+        <h3 className="text-sm font-bold uppercase tracking-wider mb-4">Pipeline Status</h3>
+        <CycleStatusIndicator />
+      </Card>
+
+      {status && (
+        <Card className="p-6">
+          <h3 className="text-sm font-bold uppercase tracking-wider mb-3">Connection Details</h3>
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <div>
+              <p className="text-muted-foreground">Status</p>
+              <p className="font-medium text-foreground flex items-center gap-1.5">
+                {status.isRunning ? (
+                  <>
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+                    </span>
+                    Running
+                  </>
+                ) : "Idle"}
+              </p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Current Stage</p>
+              <p className="font-medium text-foreground">{status.stage ?? "None"}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Cycle ID</p>
+              <p className="font-mono font-medium text-foreground">{status.cycleId?.slice(0, 12) ?? "—"}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Stages Completed</p>
+              <p className="font-medium text-foreground">{status.stagesCompleted?.length ?? 0}</p>
+            </div>
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+const VALID_TABS = ["timeline", "champions", "evolution", "live"] as const;
+
+export default function AutoresearchLab() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const activeTab = VALID_TABS.includes(tabParam as typeof VALID_TABS[number])
+    ? (tabParam as string)
+    : "timeline";
+
+  const handleTabChange = (value: string) => {
+    setSearchParams(value === "timeline" ? {} : { tab: value }, { replace: true });
+  };
+
+  return (
+    <div className="space-y-6 animate-fade-in pb-12">
+      <PageHeader
+        title="Autoresearch Lab"
+        description="Visualize how the AI pipeline iteratively improves forecasts and peace deals — Karpathy's autoresearch concept in action."
+      />
+
+      <div className="flex items-center gap-3 text-xs text-muted-foreground bg-primary/5 border border-primary/20 p-3 rounded-sm">
+        <Zap className="w-4 h-4 text-primary shrink-0" />
+        <span>
+          Each cycle, the system runs experiments (prompt mutations), evaluates them against the current champion, and retains only improvements.
+          Over time, this hill-climbing process drives measurable score gains.
+        </span>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+        <TabsList className="w-full justify-start border-b border-border/50 bg-transparent h-auto p-0 rounded-none">
+          <TabsTrigger
+            value="timeline"
+            className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none px-4 py-2.5 text-sm"
+          >
+            <TrendingUp className="w-4 h-4 mr-2" />
+            Improvement Timeline
+          </TabsTrigger>
+          <TabsTrigger
+            value="champions"
+            className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none px-4 py-2.5 text-sm"
+          >
+            <Trophy className="w-4 h-4 mr-2" />
+            Champion Lineage
+          </TabsTrigger>
+          <TabsTrigger
+            value="evolution"
+            className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none px-4 py-2.5 text-sm"
+          >
+            <GitBranch className="w-4 h-4 mr-2" />
+            Pipeline Evolution
+          </TabsTrigger>
+          <TabsTrigger
+            value="live"
+            className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none px-4 py-2.5 text-sm"
+          >
+            <Radio className="w-4 h-4 mr-2" />
+            Live Status
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="timeline" className="mt-6">
+          <ImprovementTimeline />
+        </TabsContent>
+        <TabsContent value="champions" className="mt-6">
+          <ChampionLineage />
+        </TabsContent>
+        <TabsContent value="evolution" className="mt-6">
+          <PipelineEvolutionView />
+        </TabsContent>
+        <TabsContent value="live" className="mt-6">
+          <LiveStatus />
+        </TabsContent>
+      </Tabs>
+
+      <div className="flex gap-3">
+        <Link to="/experiments" className="text-xs text-primary hover:text-primary/80 transition-colors flex items-center gap-1">
+          Full Experiment Log <ArrowRight className="w-3 h-3" />
+        </Link>
+        <Link to="/changelog" className="text-xs text-primary hover:text-primary/80 transition-colors flex items-center gap-1">
+          Changelog <ArrowRight className="w-3 h-3" />
+        </Link>
+      </div>
+    </div>
+  );
+}

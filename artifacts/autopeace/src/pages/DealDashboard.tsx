@@ -6,6 +6,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Cell, Legend, CartesianGrid,
 } from "recharts";
 import { AlertCircle, Shield, Zap, Globe, Heart, TrendingUp, CheckCircle2, XCircle, AlertTriangle, GitBranch } from "lucide-react";
+import { DealAutoresearchBadge } from "@/components/AutoresearchBadge";
 import { motion } from "framer-motion";
 import { ScoreBreakdownPanel, type ExtendedScores } from "@/components/ScoreBreakdownPanel";
 
@@ -563,6 +564,8 @@ export default function DealDashboard() {
           {currentDeal.architecture} architecture
         </Badge>
       </PageHeader>
+
+      <DealAutoresearchBadge />
 
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
         <Card className="p-4 text-center col-span-2 sm:col-span-1">

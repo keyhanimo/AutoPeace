@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, Crosshair, Cpu, TrendingDown, Gauge, Trophy, Users } from "lucide-react";
 import { useGetExperimentStats, useGetLatestForecasts, useGetCurrentDeal, useListProposals, type Forecast, type DealScores, type Proposal } from "@workspace/api-client-react";
 import { Card, Button, Badge } from "@/components/ui";
+import { AutoresearchPulse } from "@/components/AutoresearchBadge";
 
 const OUTCOME_COLORS: Record<string, string> = {
   continued_conflict: '#ef4444',
@@ -247,6 +248,8 @@ export default function Home() {
           )}
         </div>
       </section>
+
+      <AutoresearchPulse />
 
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-6 rounded-sm">

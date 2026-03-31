@@ -5,5 +5,9 @@
  * AutoPeace API — AI-powered conflict forecasting and peace research
  * OpenAPI spec version: 0.1.0
  */
+import type { GetChampionLineageTask } from "./getChampionLineageTask";
 
-export type AdminComputeScenarios200DataItem = { [key: string]: unknown };
+export type GetChampionLineageParams = {
+  task?: GetChampionLineageTask;
+  limit?: number;
+};

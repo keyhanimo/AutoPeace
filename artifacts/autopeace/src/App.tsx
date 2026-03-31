@@ -8,6 +8,7 @@ import Home from "@/pages/Home";
 import ForecastDashboard from "@/pages/ForecastDashboard";
 import CostsExplorer from "@/pages/CostsExplorer";
 import ExperimentLog from "@/pages/ExperimentLog";
+import AutoresearchLab from "@/pages/AutoresearchLab";
 import Changelog from "@/pages/Changelog";
 import ChangelogEntry from "@/pages/ChangelogEntry";
 import Methodology from "@/pages/Methodology";
@@ -45,6 +46,7 @@ function Router() {
         <Route path="/stakeholders/lens" element={<StakeholderLens />} />
         <Route path="/forecasts" element={<ForecastDashboard />} />
         <Route path="/costs" element={<CostsExplorer />} />
+        <Route path="/lab" element={<AutoresearchLab />} />
         <Route path="/experiments" element={<ExperimentLog />} />
         <Route path="/evidence" element={<EvidenceExplorer />} />
         <Route path="/submit" element={<SubmitProposal />} />

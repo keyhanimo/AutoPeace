@@ -6,7 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 
-/**
- * Per-outcome probability shifts vs baseline (signed fractions)
- */
-export type WhatIfScenarioProbabilityDeltas = { [key: string]: number };
+export type GetPipelineEvolution200GenerationsItemPromptOverrides = {
+  [key: string]: unknown;
+};

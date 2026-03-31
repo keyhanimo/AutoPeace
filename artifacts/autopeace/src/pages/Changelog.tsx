@@ -4,6 +4,7 @@ import { useListChangelog, useGetChangelogEntry } from "@workspace/api-client-re
 import { PageHeader, Card, Badge } from "@/components/ui";
 import { formatDistanceToNow } from "date-fns";
 import { GitCommit, TrendingUp, BarChart2, ChevronDown, ChevronUp, Handshake, Radio } from "lucide-react";
+import { ChangelogAutoresearchBadge } from "@/components/AutoresearchBadge";
 
 const OUTCOME_COLORS: Record<string, string> = {
   continued_conflict: '#ef4444',
@@ -168,6 +169,8 @@ export default function Changelog() {
         title="Platform Changelog"
         description="Chronological updates from the autoresearch loop — forecast shifts, deal engine results, and model evolution."
       />
+
+      <ChangelogAutoresearchBadge />
 
       <div className="space-y-8 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-border before:via-primary/50 before:to-transparent">
         {isLoading ? (
