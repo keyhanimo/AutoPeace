@@ -23,10 +23,10 @@ function ImprovementTimeline() {
     if (!data?.forecastTimeline) return [];
     return data.forecastTimeline.map((d, i) => {
       const t = new Date(d.timestamp);
-      const time = !isNaN(t.getTime()) ? t.toLocaleTimeString("en-US", { hour12: false }) : "";
+      const ts = !isNaN(t.getTime()) ? `${t.getFullYear().toString().slice(2)}-${String(t.getMonth()+1).padStart(2,"0")}-${String(t.getDate()).padStart(2,"0")} ${t.toLocaleTimeString("en-US",{hour12:false})}` : "";
       return {
         cycle: i + 1,
-        label: `#${i + 1} ${time}`,
+        label: `#${i + 1} ${ts}`,
         cycleId: d.cycleId.slice(0, 8),
         brier: d.brierScore != null ? Number(d.brierScore.toFixed(4)) : null,
         log: d.logScore != null ? Number(d.logScore.toFixed(4)) : null,
@@ -40,10 +40,10 @@ function ImprovementTimeline() {
     if (!data?.dealTimeline) return [];
     return data.dealTimeline.map((d, i) => {
       const t = new Date(d.timestamp);
-      const time = !isNaN(t.getTime()) ? t.toLocaleTimeString("en-US", { hour12: false }) : "";
+      const ts = !isNaN(t.getTime()) ? `${t.getFullYear().toString().slice(2)}-${String(t.getMonth()+1).padStart(2,"0")}-${String(t.getDate()).padStart(2,"0")} ${t.toLocaleTimeString("en-US",{hour12:false})}` : "";
       return {
         deal: i + 1,
-        label: `#${i + 1} ${time}`,
+        label: `#${i + 1} ${ts}`,
         composite: Math.round(d.compositeScore * 100),
         architecture: d.architecture,
         isCurrent: d.isCurrent,

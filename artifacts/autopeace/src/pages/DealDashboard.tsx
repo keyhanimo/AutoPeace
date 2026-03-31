@@ -204,7 +204,7 @@ function DealDetailView({ deal, isHistorical }: { deal: Deal; isHistorical?: boo
               {deal.architecture} Architecture
             </span>
             <span className="text-xs text-muted-foreground ml-3">
-              {new Date(deal.createdAt).toLocaleDateString()} {new Date(deal.createdAt).toLocaleTimeString("en-US", { hour12: false })} · {deal.generatedBy}
+              {(() => { const dt = new Date(deal.createdAt); return `${dt.getFullYear().toString().slice(2)}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")} ${dt.toLocaleTimeString("en-US",{hour12:false})}`; })()} · {deal.generatedBy}
             </span>
           </div>
           {scores && (
@@ -509,9 +509,9 @@ export default function DealDashboard() {
   const historyBarData = useMemo(() => {
     return historyDeals.map((d, i) => {
       const t = new Date(d.createdAt);
-      const time = !isNaN(t.getTime()) ? t.toLocaleTimeString("en-US", { hour12: false }) : "";
+      const ts = !isNaN(t.getTime()) ? `${t.getFullYear().toString().slice(2)}-${String(t.getMonth()+1).padStart(2,"0")}-${String(t.getDate()).padStart(2,"0")} ${t.toLocaleTimeString("en-US",{hour12:false})}` : "";
       return {
-        name: `#${i + 1} ${time}`,
+        name: `#${i + 1} ${ts}`,
         index: i + 1,
         composite: Math.round((d.scores.composite ?? 0) * 100),
         architecture: d.architecture,
@@ -825,7 +825,7 @@ export default function DealDashboard() {
                     <div className={`font-bold ${scoreColor(s?.composite ?? 0)}`}>
                       {s ? `${((s.composite ?? 0) * 100).toFixed(0)}% composite` : "—"}
                     </div>
-                    <div className="text-muted-foreground/60">{new Date(d.createdAt).toLocaleDateString()} {new Date(d.createdAt).toLocaleTimeString("en-US", { hour12: false })}</div>
+                    <div className="text-muted-foreground/60">{(() => { const dt = new Date(d.createdAt); return `${dt.getFullYear().toString().slice(2)}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")} ${dt.toLocaleTimeString("en-US",{hour12:false})}`; })()}</div>
                   </button>
                 );
               })}
