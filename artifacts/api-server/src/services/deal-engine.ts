@@ -637,11 +637,11 @@ CRITICAL PRINCIPLES:
 3. FACE-SAVING FRAMING: For every painful concession, build in face-saving language or asymmetric framing that lets each leader sell the deal domestically as a victory.
 4. SEQUENCING INNOVATION: Think creatively about sequencing — not just "who goes first" but how to create irreversible momentum through early wins that make walking away costly for all parties.
 
-WRITING STYLE:
-- SELF-CONTAINED: Every field must be fully understandable on its own. NEVER reference "previous deals," "revisions," "key changes," "updated terms," or "modifications." The reader has NO context about prior proposals. Write each field as if it is the first and only deal.
-- CONCISE: Use direct, policy-brief style. State specific terms (numbers, percentages, timelines, mechanisms) without preamble or filler. Aim for 2-4 sentences per field, not paragraphs. Avoid hedging language like "could potentially" or "it is envisioned that."
-
 ${overridePrompt}
+
+WRITING STYLE (MANDATORY — overrides any conflicting instructions above):
+- SELF-CONTAINED: Every field must be fully understandable on its own. NEVER reference "previous deals," "revisions," "key changes," "updated terms," "modifications," or "all existing provisions remain." The reader has NO context about prior proposals. Write each field as if it is the first and only deal ever written.
+- CONCISE: Use direct, policy-brief style. State specific terms (numbers, percentages, timelines, mechanisms) without preamble or filler. Aim for 2-4 sentences per field, not paragraphs. Avoid hedging language like "could potentially" or "it is envisioned that."
 Output valid JSON only, no prose.`;
 
   const pastProposalProvisions = dealMemory?.topDeals
@@ -955,12 +955,12 @@ THREE MODES OF OPERATION:
 
 IMPORTANT: When fixing rejections, NEVER just weaken terms to make a rejecter happy — that usually causes other stakeholders to reject. Instead, find CREATIVE restructurings that address the objection while preserving what others value. Add new value rather than redistribute existing value.
 
-WRITING STYLE FOR REPLACEMENT TERMS:
-- Write each replacement field as a COMPLETE, SELF-CONTAINED statement — as if writing the entire deal term from scratch.
-- NEVER use "revised," "amended," "updated," "all existing provisions remain," "PLUS," "in addition to previous terms," or any language that references a prior version.
-- The reader will see ONLY your output. They have no access to the original terms. Every field must stand alone.
-
 ${overridePrompt}
+
+WRITING STYLE FOR REPLACEMENT TERMS (MANDATORY — overrides any conflicting instructions above):
+- Write each replacement field as a COMPLETE, SELF-CONTAINED statement — as if writing the entire deal term from scratch.
+- NEVER use language that references any previous terms or previous versions of an agreement or proposal, because this proposal has to be standalone. Language such as "revised," "amended," "updated," or references to "existing provisions" and such must be avoided and the current terms presented as independent and without need of context.
+- The reader will see ONLY your output. They have no access to the original terms if you are revising some previous terms. Every field must stand alone.
 Output JSON only.`;
 
   const tierOf = (id: string) => STAKEHOLDER_REGISTRY.find(s => s.id === id)?.tier ?? "contextual";
@@ -1415,7 +1415,9 @@ Assess the reasoning quality and suggest pipeline improvements:
   ]
 }
 
-IMPORTANT: The promptImprovements field is how this pipeline evolves over time. Be specific and actionable. Vague suggestions like "improve stakeholder analysis" are useless. Instead, write specific prompt additions like "Add instruction: Consider the role of non-state actors as potential spoilers..." Include 2-4 concrete improvements.`;
+IMPORTANT: The promptImprovements field is how this pipeline evolves over time. Be specific and actionable. Vague suggestions like "improve stakeholder analysis" are useless. Instead, write specific prompt additions like "Add instruction: Consider the role of non-state actors as potential spoilers..." Include 2-4 concrete improvements.
+
+CONSTRAINT ON PROMPT IMPROVEMENTS: Every stage's output must be SELF-CONTAINED — fully understandable without reference to any prior deal or cycle. Your suggested prompt changes must NEVER encourage the model to say "revised," "amended," "updated," "all existing provisions remain," "key changes from previous version," or any language implying the output modifies a prior document. Each deal must read as the first and only deal the reader will ever see.`;
 
   const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 7, "evaluation", modelConfig, { maxTokens: 16384, timeoutMs: 600_000 });
   const result = parseLLMJson<MetaEvaluatorResult>(content, "meta-evaluator");

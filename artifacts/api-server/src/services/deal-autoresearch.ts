@@ -246,6 +246,33 @@ async function getStallCount(architecture: string, parentNodeId: string | null):
   return nodes.filter(n => n.architecture === architecture && n.isStalled).length;
 }
 
+function sanitizeOverrides(overrides: Record<string, string>): Record<string, string> {
+  const BANNED_PHRASES = [
+    /\brevis\w*\b/gi,
+    /\bamend\w*\b/gi,
+    /\bupdat\w*\b/gi,
+    /\bmodif\w*\b/gi,
+    /\ball\s+\w*\s*provisions\s+remain\b/gi,
+    /\bkey changes\b/gi,
+    /\bprevious\s+(version|deal|terms|proposal)\b/gi,
+    /\bprior\s+(version|deal|terms|proposal)\b/gi,
+    /\bin addition to previous\b/gi,
+    /\bexisting provisions\b/gi,
+  ];
+  const sanitized: Record<string, string> = {};
+  for (const [key, val] of Object.entries(overrides)) {
+    let cleaned = val;
+    for (const pattern of BANNED_PHRASES) {
+      cleaned = cleaned.replace(pattern, (match) => {
+        logger.warn({ stage: "pipeline-evolution", key, match }, "Stripped banned phrase from pipeline override");
+        return "";
+      });
+    }
+    sanitized[key] = cleaned;
+  }
+  return sanitized;
+}
+
 async function getCurrentPipelineConfig(): Promise<{ id: string; overrides: Record<string, string>; generation: number } | null> {
   try {
     const [current] = await db.select()
@@ -255,7 +282,7 @@ async function getCurrentPipelineConfig(): Promise<{ id: string; overrides: Reco
     if (!current) return null;
     return {
       id: current.id,
-      overrides: current.promptOverrides as Record<string, string>,
+      overrides: sanitizeOverrides(current.promptOverrides as Record<string, string>),
       generation: current.generation,
     };
   } catch {
@@ -321,7 +348,9 @@ async function evolvePipeline(
     }
   }
 
-  if (JSON.stringify(newOverrides) === JSON.stringify(currentOverrides)) {
+  const sanitizedOverrides = sanitizeOverrides(newOverrides);
+
+  if (JSON.stringify(sanitizedOverrides) === JSON.stringify(currentOverrides)) {
     return currentOverrides;
   }
 
@@ -341,7 +370,7 @@ async function evolvePipeline(
       id: newConfigId,
       parentConfigId: currentConfigId,
       generation: currentGeneration + 1,
-      promptOverrides: newOverrides,
+      promptOverrides: sanitizedOverrides,
       parameterOverrides: {},
       description,
       avgCompositeScore: 0,
@@ -353,13 +382,13 @@ async function evolvePipeline(
   logger.info({
     configId: newConfigId,
     generation: currentGeneration + 1,
-    overrideKeys: Object.keys(newOverrides),
+    overrideKeys: Object.keys(sanitizedOverrides),
     parentScore: parentAvgScore.toFixed(3),
     triggeringScore: compositeScore.toFixed(3),
     description: description.slice(0, 200),
   }, "Pipeline evolved — score improvement triggered new prompt overrides");
 
-  return newOverrides;
+  return sanitizedOverrides;
 }
 
 async function updatePipelineStats(configId: string, compositeScore: number): Promise<void> {
