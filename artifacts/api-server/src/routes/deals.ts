@@ -2,6 +2,8 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { dealsTable, solutionTreeTable } from "@workspace/db/schema";
 import { desc, eq, inArray } from "drizzle-orm";
+import { dealToMarkdown } from "../services/deal-markdown.js";
+import { callLLM, getModelConfig } from "../services/llm-router.js";
 
 const router = Router();
 
@@ -228,6 +230,85 @@ router.get("/deals/:id/stakeholder-evals", async (req, res) => {
       negotiatorAmendments: deal.negotiatorResult,
       summary,
     });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+router.get("/deals/:id/llm.md", async (req, res) => {
+  try {
+    const [deal] = await db.select()
+      .from(dealsTable)
+      .where(eq(dealsTable.id, String(req.params["id"])));
+
+    if (!deal) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+
+    const baseHost = process.env["PUBLIC_DOMAIN"] || process.env["REPLIT_DEV_DOMAIN"] || "autopeace.org";
+    const permalinkUrl = `https://${baseHost}/deals/${deal.id}`;
+
+    const markdown = dealToMarkdown(deal, permalinkUrl);
+    res.setHeader("Content-Type", "text/markdown; charset=utf-8");
+    res.send(markdown);
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+router.post("/deals/:id/share-text", async (req, res) => {
+  try {
+    const platform = req.body?.platform as string;
+    if (!platform || !["twitter", "facebook", "linkedin", "reddit"].includes(platform)) {
+      res.status(400).json({ error: "Invalid platform. Must be one of: twitter, facebook, linkedin, reddit" });
+      return;
+    }
+
+    const [deal] = await db.select()
+      .from(dealsTable)
+      .where(eq(dealsTable.id, String(req.params["id"])));
+
+    if (!deal) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+
+    const scores = deal.scores as Record<string, number> | null;
+    const composite = scores?.composite ? `${(scores.composite * 100).toFixed(0)}%` : "N/A";
+    const terms = deal.terms as Record<string, unknown>;
+    const stakeholderEvals = (deal.stakeholderEvaluations ?? {}) as Record<string, { verdict: string }>;
+    const accepts = Object.values(stakeholderEvals).filter(e => e.verdict === "accept").length;
+    const total = Object.keys(stakeholderEvals).length;
+
+    const baseHost = process.env["PUBLIC_DOMAIN"] || process.env["REPLIT_DEV_DOMAIN"] || "autopeace.org";
+    const permalinkUrl = `https://${baseHost}/deals/${deal.id}`;
+
+    const platformGuidelines: Record<string, string> = {
+      twitter: "Max 280 characters. Punchy, use 2-3 hashtags like #PeaceDeal #IranDeal. Include the URL at the end. Engaging and shareable.",
+      facebook: "2-4 sentences. Conversational, thought-provoking. Include the URL. Encourage discussion.",
+      linkedin: "Professional tone. 2-3 paragraphs. Analytical lens — focus on diplomatic/policy implications. Include the URL.",
+      reddit: "Title format first (compelling, informative), then body text (2-3 sentences providing context). Include the URL. Factual, not clickbait.",
+    };
+
+    const dealSummary = `Architecture: ${deal.architecture}. Composite score: ${composite}. ${accepts}/${total} stakeholders accept. Key terms: nuclear protocol (${terms.nuclearProtocol ? "yes" : "none"}), sanctions relief (${terms.sanctionsRelief ? "yes" : "none"}), maritime security (${terms.hormuzArrangements ? "yes" : "none"}).`;
+
+    const systemPrompt = `You are a communications specialist. Generate social media post text for sharing an AI-generated peace deal proposal for the Iran-US-Israel conflict from AutoPeace.org. Be factual, nuanced, and constructive. Never sensationalize. The tone should convey this is a serious research tool, not a game.`;
+
+    const prompt = `Generate a ${platform} post for sharing this AI-generated peace deal:
+
+${dealSummary}
+
+Permalink: ${permalinkUrl}
+
+Platform guidelines: ${platformGuidelines[platform]}
+
+Return ONLY the post text, nothing else.`;
+
+    const config = await getModelConfig();
+    const result = await callLLM(prompt, systemPrompt, config.generationProvider, config.generationModel, { maxTokens: 500 });
+
+    res.json({ platform, text: result.content.trim(), permalinkUrl });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }

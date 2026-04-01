@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { useGetCurrentDeal, useGetParetoDeals, useListDeals, type Deal, type DealScores } from "@workspace/api-client-react";
 import { Card, PageHeader, Badge } from "@/components/ui";
 import {
   RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer, Tooltip,
   BarChart, Bar, XAxis, YAxis, Cell, Legend, CartesianGrid,
 } from "recharts";
-import { AlertCircle, Shield, Zap, Globe, Heart, TrendingUp, CheckCircle2, XCircle, AlertTriangle, GitBranch } from "lucide-react";
+import { AlertCircle, Shield, Zap, Globe, Heart, TrendingUp, CheckCircle2, XCircle, AlertTriangle, GitBranch, ExternalLink } from "lucide-react";
 import { DealAutoresearchBadge } from "@/components/AutoresearchBadge";
 import { motion } from "framer-motion";
 import { ScoreBreakdownPanel, type ExtendedScores } from "@/components/ScoreBreakdownPanel";
@@ -670,7 +671,14 @@ export default function DealDashboard() {
       </div>
 
       {activeTab === "current" && (
-        <DealDetailView deal={currentDeal} />
+        <>
+          <div className="flex justify-end">
+            <Link to={`/deals/${currentDeal.id}`} className="text-xs text-primary hover:underline flex items-center gap-1">
+              <ExternalLink className="w-3 h-3" /> Open Permalink
+            </Link>
+          </div>
+          <DealDetailView deal={currentDeal} />
+        </>
       )}
 
       {activeTab === "comparison" && (
@@ -878,28 +886,34 @@ export default function DealDashboard() {
                 const s = d.scores as DealScores | null;
                 const isSelected = selectedHistoryDeal?.id === d.id;
                 return (
-                  <button
+                  <div
                     key={d.id}
-                    onClick={() => setSelectedHistoryDeal(isSelected ? null : d)}
                     className={`p-3 rounded-lg border text-xs text-left transition-all ${
                       d.isCurrent ? "border-primary/50 bg-primary/5" :
                       isSelected ? "border-primary/50 ring-1 ring-primary" : "border-border hover:border-border/80"
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-mono font-bold">
+                      <button onClick={() => setSelectedHistoryDeal(isSelected ? null : d)} className="font-mono font-bold text-left flex-1">
                         Deal #{i + 1}
                         <span className="ml-1.5 capitalize" style={{ color: ARCHITECTURE_COLORS[d.architecture] ?? "#94a3b8" }}>
                           {d.architecture}
                         </span>
-                      </span>
-                      {d.isCurrent && <Badge className="text-[9px] px-1 py-0 h-4">champion</Badge>}
+                      </button>
+                      <div className="flex items-center gap-1.5">
+                        {d.isCurrent && <Badge className="text-[9px] px-1 py-0 h-4">champion</Badge>}
+                        <Link to={`/deals/${d.id}`} className="text-muted-foreground hover:text-primary transition-colors" title="Open permalink" onClick={e => e.stopPropagation()}>
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </Link>
+                      </div>
                     </div>
-                    <div className={`font-bold ${scoreColor(s?.composite ?? 0)}`}>
-                      {s ? `${((s.composite ?? 0) * 100).toFixed(0)}% composite` : "—"}
-                    </div>
-                    <div className="text-muted-foreground/60">{(() => { const dt = new Date(d.createdAt); return `${dt.getFullYear().toString().slice(2)}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")} ${dt.toLocaleTimeString("en-US",{hour12:false})}`; })()}</div>
-                  </button>
+                    <button onClick={() => setSelectedHistoryDeal(isSelected ? null : d)} className="text-left w-full">
+                      <div className={`font-bold ${scoreColor(s?.composite ?? 0)}`}>
+                        {s ? `${((s.composite ?? 0) * 100).toFixed(0)}% composite` : "—"}
+                      </div>
+                      <div className="text-muted-foreground/60">{(() => { const dt = new Date(d.createdAt); return `${dt.getFullYear().toString().slice(2)}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")} ${dt.toLocaleTimeString("en-US",{hour12:false})}`; })()}</div>
+                    </button>
+                  </div>
                 );
               })}
             </div>

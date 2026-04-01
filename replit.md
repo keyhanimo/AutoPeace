@@ -144,6 +144,7 @@ Both layers are concatenated and injected into stages 0-4 and 6 of the deal pipe
 | `/open-source` | Open Source — contributing guide, tech stack, licence |
 | `/changelog` | Platform Changelog — timeline of cycle headlines |
 | `/changelog/:id` | Changelog Entry — detail view |
+| `/deals/:id` | Deal Permalink — individual deal view with share modal, copy-as-markdown, social share buttons, score radar, stakeholder map |
 | `/methodology` | Methodology — Bayesian approach, 8-state MECE taxonomy |
 | `/admin` | Admin Panel — password-gated (X-Admin-Key); model/provider config, proposal management, deal engine trigger |
 
@@ -263,7 +264,7 @@ Enhanced multi-agent pipeline (`deal-engine.ts`) with **grand coalition** cooper
 
 **Per-role provider config**: generation/evaluation/adversarial each have independent `{provider, model}` settings stored in `admin_config` key-value store. `validateModelConfig()` enforces `generationProvider !== evaluationProvider` at runtime.
 
-**API routes added**: `/deals/history`, `/deals/robustness`, `/deals/compare`, `/deals/{id}/stakeholder-evals`, `/admin/proposals/{id}/evaluate`, `/admin/pipeline/config`
+**API routes added**: `/deals/history`, `/deals/robustness`, `/deals/compare`, `/deals/{id}/stakeholder-evals`, `/deals/{id}/llm.md` (markdown export), `POST /deals/{id}/share-text` (LLM-generated social share text), `/admin/proposals/{id}/evaluate`, `/admin/pipeline/config`
 
 ## Key Files
 

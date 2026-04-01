@@ -23,6 +23,7 @@ import SubmitProposal from "@/pages/SubmitProposal";
 import DataPortal from "@/pages/DataPortal";
 import ApiDocs from "@/pages/ApiDocs";
 import Live from "@/pages/Live";
+import DealPermalink from "@/pages/DealPermalink";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -41,6 +42,7 @@ function Router() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/deals" element={<DealDashboard />} />
+        <Route path="/deals/:id" element={<DealPermalink />} />
         <Route path="/arena" element={<ProposalArena />} />
         <Route path="/stakeholders" element={<Stakeholders />} />
         <Route path="/stakeholders/compare" element={<StakeholderComparison />} />

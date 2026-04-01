@@ -1015,6 +1015,26 @@ export type GetDealStakeholderEvals200 = {
   summary: GetDealStakeholderEvals200Summary;
 };
 
+export type GenerateDealShareTextBodyPlatform =
+  (typeof GenerateDealShareTextBodyPlatform)[keyof typeof GenerateDealShareTextBodyPlatform];
+
+export const GenerateDealShareTextBodyPlatform = {
+  twitter: "twitter",
+  facebook: "facebook",
+  linkedin: "linkedin",
+  reddit: "reddit",
+} as const;
+
+export type GenerateDealShareTextBody = {
+  platform: GenerateDealShareTextBodyPlatform;
+};
+
+export type GenerateDealShareText200 = {
+  platform: string;
+  text: string;
+  permalinkUrl: string;
+};
+
 export type ListProposals200 = {
   data: Proposal[];
 };

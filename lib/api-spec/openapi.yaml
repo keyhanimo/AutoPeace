@@ -917,6 +917,69 @@ paths:
         "404":
           description: Not found
 
+  /deals/{id}/llm.md:
+    get:
+      operationId: getDealMarkdown
+      tags: [deals]
+      summary: Get a deal as a markdown document for LLM consumption
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deal as markdown text
+          content:
+            text/markdown:
+              schema:
+                type: string
+        "404":
+          description: Not found
+
+  /deals/{id}/share-text:
+    post:
+      operationId: generateDealShareText
+      tags: [deals]
+      summary: Generate LLM-powered social media share text for a deal
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                platform:
+                  type: string
+                  enum: [twitter, facebook, linkedin, reddit]
+              required: [platform]
+      responses:
+        "200":
+          description: Generated share text
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  platform:
+                    type: string
+                  text:
+                    type: string
+                  permalinkUrl:
+                    type: string
+                required: [platform, text, permalinkUrl]
+        "400":
+          description: Invalid platform
+        "404":
+          description: Deal not found
+
   /proposals:
     get:
       operationId: listProposals

@@ -1194,6 +1194,30 @@ export const GetDealResponse = zod.object({
 });
 
 /**
+ * @summary Get a deal as a markdown document for LLM consumption
+ */
+export const GetDealMarkdownParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+/**
+ * @summary Generate LLM-powered social media share text for a deal
+ */
+export const GenerateDealShareTextParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GenerateDealShareTextBody = zod.object({
+  platform: zod.enum(["twitter", "facebook", "linkedin", "reddit"]),
+});
+
+export const GenerateDealShareTextResponse = zod.object({
+  platform: zod.string(),
+  text: zod.string(),
+  permalinkUrl: zod.string(),
+});
+
+/**
  * @summary List real-world proposals (US plan, Iran counterproposal, etc.)
  */
 export const ListProposalsResponse = zod.object({

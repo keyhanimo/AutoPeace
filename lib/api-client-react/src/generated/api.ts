@@ -41,6 +41,8 @@ import type {
   EvidenceSourceUpdate,
   ExperimentStats,
   Forecast,
+  GenerateDealShareText200,
+  GenerateDealShareTextBody,
   GetAutoresearchTimeline200,
   GetAutoresearchTimelineParams,
   GetCommunityForecastAggregate200,
@@ -2768,6 +2770,184 @@ export function useGetDeal<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Get a deal as a markdown document for LLM consumption
+ */
+export const getGetDealMarkdownUrl = (id: string) => {
+  return `/api/deals/${id}/llm.md`;
+};
+
+export const getDealMarkdown = async (
+  id: string,
+  options?: RequestInit,
+): Promise<string> => {
+  return customFetch<string>(getGetDealMarkdownUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetDealMarkdownQueryKey = (id: string) => {
+  return [`/api/deals/${id}/llm.md`] as const;
+};
+
+export const getGetDealMarkdownQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDealMarkdown>>,
+  TError = ErrorType<void>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDealMarkdown>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDealMarkdownQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getDealMarkdown>>> = ({
+    signal,
+  }) => getDealMarkdown(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDealMarkdown>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDealMarkdownQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDealMarkdown>>
+>;
+export type GetDealMarkdownQueryError = ErrorType<void>;
+
+/**
+ * @summary Get a deal as a markdown document for LLM consumption
+ */
+
+export function useGetDealMarkdown<
+  TData = Awaited<ReturnType<typeof getDealMarkdown>>,
+  TError = ErrorType<void>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDealMarkdown>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDealMarkdownQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Generate LLM-powered social media share text for a deal
+ */
+export const getGenerateDealShareTextUrl = (id: string) => {
+  return `/api/deals/${id}/share-text`;
+};
+
+export const generateDealShareText = async (
+  id: string,
+  generateDealShareTextBody: GenerateDealShareTextBody,
+  options?: RequestInit,
+): Promise<GenerateDealShareText200> => {
+  return customFetch<GenerateDealShareText200>(
+    getGenerateDealShareTextUrl(id),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(generateDealShareTextBody),
+    },
+  );
+};
+
+export const getGenerateDealShareTextMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateDealShareText>>,
+    TError,
+    { id: string; data: BodyType<GenerateDealShareTextBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof generateDealShareText>>,
+  TError,
+  { id: string; data: BodyType<GenerateDealShareTextBody> },
+  TContext
+> => {
+  const mutationKey = ["generateDealShareText"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof generateDealShareText>>,
+    { id: string; data: BodyType<GenerateDealShareTextBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return generateDealShareText(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GenerateDealShareTextMutationResult = NonNullable<
+  Awaited<ReturnType<typeof generateDealShareText>>
+>;
+export type GenerateDealShareTextMutationBody =
+  BodyType<GenerateDealShareTextBody>;
+export type GenerateDealShareTextMutationError = ErrorType<void>;
+
+/**
+ * @summary Generate LLM-powered social media share text for a deal
+ */
+export const useGenerateDealShareText = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateDealShareText>>,
+    TError,
+    { id: string; data: BodyType<GenerateDealShareTextBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof generateDealShareText>>,
+  TError,
+  { id: string; data: BodyType<GenerateDealShareTextBody> },
+  TContext
+> => {
+  return useMutation(getGenerateDealShareTextMutationOptions(options));
+};
 
 /**
  * @summary List real-world proposals (US plan, Iran counterproposal, etc.)
