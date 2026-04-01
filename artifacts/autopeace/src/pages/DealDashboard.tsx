@@ -32,6 +32,7 @@ const ARCHITECTURE_COLORS: Record<string, string> = {
   "radical-restructure": "#a855f7",
   "asymmetric-grand-bargain": "#f97316",
   "incremental-confidence": "#14b8a6",
+  freeform: "#e879f9",
 };
 
 function scoreColor(score: number): string {

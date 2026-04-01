@@ -29,7 +29,7 @@ const STALL_THRESHOLD = 3;
 const PIPELINE_EVOLUTION_WINDOW = 3;
 
 const STANDARD_ARCHITECTURES = ["balanced", "nuclear-first", "hormuz-first", "humanitarian-first"] as const;
-const RADICAL_ARCHITECTURES = ["radical-restructure", "asymmetric-grand-bargain", "incremental-confidence"] as const;
+const RADICAL_ARCHITECTURES = ["radical-restructure", "asymmetric-grand-bargain", "incremental-confidence", "freeform"] as const;
 const RADICAL_EXPLORATION_PROBABILITY = 0.3;
 
 async function getEvidenceSummary(modelConfig?: import("./llm-router").ModelConfig): Promise<{ context: string; strategicTokens: number }> {

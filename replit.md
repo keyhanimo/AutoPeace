@@ -269,7 +269,7 @@ Enhanced multi-agent pipeline (`deal-engine.ts`) with **grand coalition** cooper
 - `artifacts/api-server/src/services/autoresearch.ts` — forecast cycle orchestrator
 - `artifacts/api-server/src/services/deal-engine.ts` — 8-stage deal pipeline; throws `LLMParseError` on unparseable output; `classifyStageError()` provides typed error context (llm_call/llm_parse/runtime) at pipeline boundary
 - `artifacts/api-server/src/services/stakeholder-updater.ts` — evidence-driven stakeholder profile updater (LLM-based; throws on parse failure)
-- `artifacts/api-server/src/services/deal-autoresearch.ts` — deal cycle loop, solution tree, Pareto
+- `artifacts/api-server/src/services/deal-autoresearch.ts` — deal cycle loop, solution tree, Pareto. Architectures: standard (balanced, nuclear-first, hormuz-first, humanitarian-first) + radical (radical-restructure, asymmetric-grand-bargain, incremental-confidence, freeform). Freeform has no predetermined constraints — the AI decides the deal's organizing logic from evidence.
 - `artifacts/api-server/src/routes/deals.ts` — deal API endpoints incl. history/robustness/compare
 - `artifacts/api-server/src/routes/proposals.ts` — proposals + admin evaluate endpoint
 - `artifacts/api-server/src/routes/admin.ts` — admin config + pipeline config with per-role providers

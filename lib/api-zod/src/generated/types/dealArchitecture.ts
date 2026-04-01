@@ -14,4 +14,8 @@ export const DealArchitecture = {
   "nuclear-first": "nuclear-first",
   "hormuz-first": "hormuz-first",
   "humanitarian-first": "humanitarian-first",
+  "radical-restructure": "radical-restructure",
+  "asymmetric-grand-bargain": "asymmetric-grand-bargain",
+  "incremental-confidence": "incremental-confidence",
+  freeform: "freeform",
 } as const;

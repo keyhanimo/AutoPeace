@@ -2471,7 +2471,7 @@ components:
           nullable: true
         architecture:
           type: string
-          enum: [balanced, nuclear-first, hormuz-first, humanitarian-first]
+          enum: [balanced, nuclear-first, hormuz-first, humanitarian-first, radical-restructure, asymmetric-grand-bargain, incremental-confidence, freeform]
         terms:
           $ref: "#/components/schemas/DealTerms"
         scores:

@@ -333,7 +333,7 @@ export type EvaluatedDeal = {
   costUsd: number;
 };
 
-const ARCHITECTURES = ["balanced", "nuclear-first", "hormuz-first", "humanitarian-first", "radical-restructure", "asymmetric-grand-bargain", "incremental-confidence"] as const;
+const ARCHITECTURES = ["balanced", "nuclear-first", "hormuz-first", "humanitarian-first", "radical-restructure", "asymmetric-grand-bargain", "incremental-confidence", "freeform"] as const;
 type Architecture = typeof ARCHITECTURES[number];
 
 const DEFAULT_MODELS = MODEL_DEFAULTS;
@@ -511,6 +511,13 @@ RADICAL EXPLORATION MODE: You are brainstorming for a "${architecture}" approach
 - Think about fundamentally different ways to structure the problem — what if the nuclear issue is not the central axis? What if economic integration precedes political agreement? What if the deal creates new institutions rather than modifying existing ones?
 - Consider approaches that traditional diplomats would dismiss as "unrealistic" — those are often the most creative.
 - Generate at least 3 ideas rated "breakthrough" novelty level.
+` : architecture === "freeform" ? `
+FREEFORM EXPLORATION MODE: You have NO predetermined architectural constraints. This means you should:
+- Do NOT anchor on any single axis (nuclear, sanctions, maritime, etc.) as the organizing principle.
+- Let the EVIDENCE and STAKEHOLDER NEEDS dictate the deal's shape. The structure should emerge organically from the geopolitical reality.
+- Feel free to combine elements from multiple architectures, invent entirely new framings, or propose structures that defy conventional diplomatic categorization.
+- The deal may be asymmetric, multi-speed, conditional, phased, or any hybrid — whatever best serves the evidence.
+- Prioritize creativity and evidence-grounding equally. The best freeform deal is one no predetermined lens would have produced.
 ` : "";
 
   const prompt = `${overrideUser}
@@ -520,7 +527,7 @@ ${evidenceSummary.slice(0, 8000)}
 ${previousDiagnosis ? `PREVIOUS DEAL DIAGNOSIS (what went wrong and must be overcome):
 ${previousDiagnosis}` : "This is the first brainstorm for a fresh deal search."}
 ${dealMemoryBlock}
-ARCHITECTURE LENS: ${architecture}
+${architecture === "freeform" ? "ARCHITECTURE LENS: freeform — no predetermined structure. Let the evidence and stakeholder needs shape the deal organically." : `ARCHITECTURE LENS: ${architecture}`}
 ${radicalInstructions}
 
 ALL STAKEHOLDERS AND THEIR DEEP PROFILES:
@@ -621,7 +628,7 @@ ${brainstormInsights.unconventionalApproaches.map(a => `- ${a}`).join("\n")}
 
   const systemPrompt = `You are an expert peace negotiator and conflict resolution specialist trained in cooperative game theory, with a particular talent for CREATIVE and UNCONVENTIONAL deal design.
 Your task is to design a detailed, realistic peace deal framework for the Iran-US-Israel conflict complex.
-Architecture focus: ${architecture}.
+${architecture === "freeform" ? "Architecture focus: freeform — you decide the deal's organizing logic based on evidence and stakeholder needs." : `Architecture focus: ${architecture}.`}
 
 CRITICAL PRINCIPLES:
 1. GRAND COALITION: Stable peace requires binding commitments from ALL relevant stakeholders. Design commitments for every stakeholder that give each party a concrete stake in the deal's success.
@@ -659,6 +666,13 @@ You MUST NOT produce a deal that resembles a traditional JCPOA-style framework. 
 ${architecture === "radical-restructure" ? "- Restructure the problem entirely. Consider multilateral consortiums, new institutions, or bundling issues that are normally kept separate. The nuclear question might not be the starting point." : ""}
 ${architecture === "asymmetric-grand-bargain" ? "- Design a deal where each party gives what is CHEAP for them but VALUABLE to the other. Find the asymmetries. One big package, not sequential steps." : ""}
 ${architecture === "incremental-confidence" ? "- Design dozens of small, independently verifiable steps. No single step should be a deal-breaker. Build trust through accumulated micro-successes." : ""}
+` : architecture === "freeform" ? `
+FREEFORM MODE:
+You are NOT constrained by any predetermined architecture. Do NOT default to a "balanced" or JCPOA-style framework.
+- Let the evidence, stakeholder dynamics, and cost-benefit analysis dictate the deal's organizing logic.
+- The deal's structure should emerge from what works, not from a preset template.
+- You may combine nuclear-first sequencing with incremental confidence-building, pair asymmetric trades with radical institutional reform, or invent an entirely new structural paradigm.
+- The only constraint is that the deal must be coherent internally and grounded in the evidence provided.
 ` : "";
 
   const prompt = `${overrideUser}Based on current evidence:
@@ -666,7 +680,7 @@ ${evidenceSummary.slice(0, 8000)}
 
 ${previousDiagnosis ? `Previous deal failed because: ${previousDiagnosis}` : "Design an initial deal proposal."}
 ${proposalDealMemoryBlock}${radicalProposalInstructions}
-Architecture approach: ${architecture}
+${architecture === "freeform" ? "Architecture approach: freeform — design the deal's structure from scratch based on evidence and stakeholder needs." : `Architecture approach: ${architecture}`}
 ${brainstormContext}
 
 COST-BENEFIT CONTEXT (annual estimates, USD billions):
@@ -1379,7 +1393,7 @@ Assess the reasoning quality and suggest pipeline improvements:
   "pipelineQuality": 0.0-1.0,
   "reasoning": "2-3 sentence assessment of pipeline reasoning quality, including brainstorm and framing stages",
   "blindspots": ["list", "of", "identified", "gaps"],
-  "suggestedNextArchitecture": "balanced|nuclear-first|hormuz-first|humanitarian-first",
+  "suggestedNextArchitecture": "balanced|nuclear-first|hormuz-first|humanitarian-first|radical-restructure|asymmetric-grand-bargain|incremental-confidence|freeform",
   "confidenceInOutcome": 0.0-1.0,
   "promptImprovements": [
     {
