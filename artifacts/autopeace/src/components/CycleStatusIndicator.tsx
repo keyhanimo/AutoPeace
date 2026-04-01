@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
 
 const STAGE_LABELS: Record<string, string> = {
   starting: "Starting",
@@ -131,10 +132,12 @@ export function CycleStatusIndicator() {
 
   if (!data) {
     return (
-      <div className="bg-secondary/30 border border-border/30 p-3">
-        <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">Pipeline</p>
-        <p className="text-xs text-muted-foreground/60 mt-0.5">Connecting…</p>
-      </div>
+      <Link to="/live" className="block hover:opacity-80 transition-opacity cursor-pointer">
+        <div className="bg-secondary/30 border border-border/30 p-3">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">Pipeline</p>
+          <p className="text-xs text-muted-foreground/60 mt-0.5">Connecting…</p>
+        </div>
+      </Link>
     );
   }
 
@@ -144,27 +147,31 @@ export function CycleStatusIndicator() {
     if (nextRunAt !== null) {
       const remaining = nextRunAt - now;
       return (
-        <div className="bg-secondary/30 border border-border/30 p-3">
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">Pipeline</p>
-            <span className="text-[9px] text-muted-foreground font-mono">{formatCountdown(remaining)}</span>
+        <Link to="/live" className="block hover:opacity-80 transition-opacity cursor-pointer">
+          <div className="bg-secondary/30 border border-border/30 p-3">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">Pipeline</p>
+              <span className="text-[9px] text-muted-foreground font-mono">{formatCountdown(remaining)}</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Next cycle in {formatCountdown(remaining)}</p>
+            <div className="mt-1.5 h-1 bg-muted-foreground/10 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-muted-foreground/30 rounded-full transition-all duration-1000"
+                style={{ width: `${Math.max(0, Math.min(100, 100 - (remaining / 3600000) * 100))}%` }}
+              />
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">Next cycle in {formatCountdown(remaining)}</p>
-          <div className="mt-1.5 h-1 bg-muted-foreground/10 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-muted-foreground/30 rounded-full transition-all duration-1000"
-              style={{ width: `${Math.max(0, Math.min(100, 100 - (remaining / 3600000) * 100))}%` }}
-            />
-          </div>
-        </div>
+        </Link>
       );
     }
 
     return (
-      <div className="bg-secondary/30 border border-border/30 p-3">
-        <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">Pipeline</p>
-        <p className="text-xs text-muted-foreground mt-0.5">Manual mode</p>
-      </div>
+      <Link to="/live" className="block hover:opacity-80 transition-opacity cursor-pointer">
+        <div className="bg-secondary/30 border border-border/30 p-3">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">Pipeline</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Manual mode</p>
+        </div>
+      </Link>
     );
   }
 
@@ -172,18 +179,22 @@ export function CycleStatusIndicator() {
     if (nextRunAt !== null) {
       const remaining = nextRunAt - now;
       return (
-        <div className="bg-red-950/30 border border-red-900/40 p-3">
-          <p className="text-[10px] text-red-400/80 uppercase tracking-widest font-semibold">Pipeline</p>
-          <p className="text-xs text-red-400 mt-0.5">Last cycle failed</p>
-          <p className="text-[9px] text-muted-foreground mt-1">Retry in {formatCountdown(remaining)}</p>
-        </div>
+        <Link to="/live" className="block hover:opacity-80 transition-opacity cursor-pointer">
+          <div className="bg-red-950/30 border border-red-900/40 p-3">
+            <p className="text-[10px] text-red-400/80 uppercase tracking-widest font-semibold">Pipeline</p>
+            <p className="text-xs text-red-400 mt-0.5">Last cycle failed</p>
+            <p className="text-[9px] text-muted-foreground mt-1">Retry in {formatCountdown(remaining)}</p>
+          </div>
+        </Link>
       );
     }
     return (
-      <div className="bg-red-950/30 border border-red-900/40 p-3">
-        <p className="text-[10px] text-red-400/80 uppercase tracking-widest font-semibold">Pipeline</p>
-        <p className="text-xs text-red-400 mt-0.5">Last cycle failed</p>
-      </div>
+      <Link to="/live" className="block hover:opacity-80 transition-opacity cursor-pointer">
+        <div className="bg-red-950/30 border border-red-900/40 p-3">
+          <p className="text-[10px] text-red-400/80 uppercase tracking-widest font-semibold">Pipeline</p>
+          <p className="text-xs text-red-400 mt-0.5">Last cycle failed</p>
+        </div>
+      </Link>
     );
   }
 
@@ -191,21 +202,25 @@ export function CycleStatusIndicator() {
     if (nextRunAt !== null) {
       const remaining = nextRunAt - now;
       return (
-        <div className="bg-emerald-950/20 border border-emerald-900/30 p-3">
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] text-emerald-400/80 uppercase tracking-widest font-semibold">Pipeline</p>
-            <span className="text-[9px] text-muted-foreground font-mono">{formatCountdown(remaining)}</span>
+        <Link to="/live" className="block hover:opacity-80 transition-opacity cursor-pointer">
+          <div className="bg-emerald-950/20 border border-emerald-900/30 p-3">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] text-emerald-400/80 uppercase tracking-widest font-semibold">Pipeline</p>
+              <span className="text-[9px] text-muted-foreground font-mono">{formatCountdown(remaining)}</span>
+            </div>
+            <p className="text-xs text-emerald-400 mt-0.5">Cycle complete</p>
+            <p className="text-[9px] text-muted-foreground mt-0.5">Next cycle in {formatCountdown(remaining)}</p>
           </div>
-          <p className="text-xs text-emerald-400 mt-0.5">Cycle complete</p>
-          <p className="text-[9px] text-muted-foreground mt-0.5">Next cycle in {formatCountdown(remaining)}</p>
-        </div>
+        </Link>
       );
     }
     return (
-      <div className="bg-emerald-950/20 border border-emerald-900/30 p-3">
-        <p className="text-[10px] text-emerald-400/80 uppercase tracking-widest font-semibold">Pipeline</p>
-        <p className="text-xs text-emerald-400 mt-0.5">Cycle complete</p>
-      </div>
+      <Link to="/live" className="block hover:opacity-80 transition-opacity cursor-pointer">
+        <div className="bg-emerald-950/20 border border-emerald-900/30 p-3">
+          <p className="text-[10px] text-emerald-400/80 uppercase tracking-widest font-semibold">Pipeline</p>
+          <p className="text-xs text-emerald-400 mt-0.5">Cycle complete</p>
+        </div>
+      </Link>
     );
   }
 
@@ -231,75 +246,77 @@ export function CycleStatusIndicator() {
     : STAGE_LABELS[stage ?? ""] ?? stage ?? "Running";
 
   return (
-    <div className="bg-primary/5 border border-primary/20 p-3 space-y-2">
-      <div className="flex items-center justify-between">
-        <p className="text-[10px] text-primary/80 uppercase tracking-widest font-semibold">Pipeline</p>
-        <span className="text-[9px] text-muted-foreground font-mono">{formatElapsed(elapsed)}</span>
-      </div>
+    <Link to="/live" className="block hover:opacity-80 transition-opacity cursor-pointer">
+      <div className="bg-primary/5 border border-primary/20 p-3 space-y-2">
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] text-primary/80 uppercase tracking-widest font-semibold">Pipeline</p>
+          <span className="text-[9px] text-muted-foreground font-mono">{formatElapsed(elapsed)}</span>
+        </div>
 
-      <div className="flex items-center gap-1.5">
-        <span className="relative flex h-2 w-2 shrink-0">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
-        </span>
-        <p className="text-xs text-foreground font-medium truncate">
-          {currentLabel}
+        <div className="flex items-center gap-1.5">
+          <span className="relative flex h-2 w-2 shrink-0">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+          </span>
+          <p className="text-xs text-foreground font-medium truncate">
+            {currentLabel}
+          </p>
+        </div>
+
+        <div className="flex gap-0.5">
+          {PIPELINE_STAGES.map((s) => {
+            if (s === "deal_engine") return null;
+            const done = completedSet.has(s);
+            const active = s === stage;
+            return (
+              <div
+                key={s}
+                className={`h-1 flex-1 rounded-full transition-colors ${
+                  done
+                    ? "bg-primary"
+                    : active
+                      ? "bg-primary/50 animate-pulse"
+                      : "bg-muted-foreground/15"
+                }`}
+                title={STAGE_LABELS[s] ?? s}
+              />
+            );
+          })}
+        </div>
+
+        {(isDealStage || completedSet.has("deal_engine")) && (
+          <>
+            <p className="text-[9px] text-muted-foreground/70 uppercase tracking-wider font-semibold mt-1">Deal Engine</p>
+            <div className="flex gap-0.5">
+              {DEAL_SUB_STAGES.map((sub) => {
+                const subIdx = DEAL_SUB_STAGES.indexOf(sub);
+                const activeIdx = dealSubStage ? DEAL_SUB_STAGES.indexOf(dealSubStage) : -1;
+                const done = isDealStage ? subIdx < activeIdx : completedSet.has("deal_engine");
+                const active = isDealStage && sub === dealSubStage;
+                return (
+                  <div
+                    key={sub}
+                    className={`h-1 flex-1 rounded-full transition-colors ${
+                      done
+                        ? "bg-amber-500"
+                        : active
+                          ? "bg-amber-500/50 animate-pulse"
+                          : "bg-muted-foreground/15"
+                    }`}
+                    title={DEAL_SUB_LABELS[sub] ?? sub}
+                  />
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        <p className="text-[9px] text-muted-foreground">
+          {progress}%{isDealStage && dealSubStage
+            ? ` · Deal ${DEAL_SUB_STAGES.indexOf(dealSubStage) + 1}/${DEAL_SUB_STAGES.length}`
+            : ""}
         </p>
       </div>
-
-      <div className="flex gap-0.5">
-        {PIPELINE_STAGES.map((s) => {
-          if (s === "deal_engine") return null;
-          const done = completedSet.has(s);
-          const active = s === stage;
-          return (
-            <div
-              key={s}
-              className={`h-1 flex-1 rounded-full transition-colors ${
-                done
-                  ? "bg-primary"
-                  : active
-                    ? "bg-primary/50 animate-pulse"
-                    : "bg-muted-foreground/15"
-              }`}
-              title={STAGE_LABELS[s] ?? s}
-            />
-          );
-        })}
-      </div>
-
-      {(isDealStage || completedSet.has("deal_engine")) && (
-        <>
-          <p className="text-[9px] text-muted-foreground/70 uppercase tracking-wider font-semibold mt-1">Deal Engine</p>
-          <div className="flex gap-0.5">
-            {DEAL_SUB_STAGES.map((sub) => {
-              const subIdx = DEAL_SUB_STAGES.indexOf(sub);
-              const activeIdx = dealSubStage ? DEAL_SUB_STAGES.indexOf(dealSubStage) : -1;
-              const done = isDealStage ? subIdx < activeIdx : completedSet.has("deal_engine");
-              const active = isDealStage && sub === dealSubStage;
-              return (
-                <div
-                  key={sub}
-                  className={`h-1 flex-1 rounded-full transition-colors ${
-                    done
-                      ? "bg-amber-500"
-                      : active
-                        ? "bg-amber-500/50 animate-pulse"
-                        : "bg-muted-foreground/15"
-                  }`}
-                  title={DEAL_SUB_LABELS[sub] ?? sub}
-                />
-              );
-            })}
-          </div>
-        </>
-      )}
-
-      <p className="text-[9px] text-muted-foreground">
-        {progress}%{isDealStage && dealSubStage
-          ? ` · Deal ${DEAL_SUB_STAGES.indexOf(dealSubStage) + 1}/${DEAL_SUB_STAGES.length}`
-          : ""}
-      </p>
-    </div>
+    </Link>
   );
 }
