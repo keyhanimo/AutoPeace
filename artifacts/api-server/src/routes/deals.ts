@@ -78,6 +78,7 @@ router.get("/deals/history", async (req, res) => {
       architecture: dealsTable.architecture,
       scores: dealsTable.scores,
       diagnosis: dealsTable.diagnosis,
+      evidenceSummary: dealsTable.evidenceSummary,
       isCurrent: dealsTable.isCurrent,
       isPareto: dealsTable.isPareto,
       generatedBy: dealsTable.generatedBy,

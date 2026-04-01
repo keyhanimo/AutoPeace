@@ -94,6 +94,7 @@ export const dealsTable = pgTable("deals", {
   }>(),
   pipelineConfig: jsonb("pipeline_config").$type<Record<string, string>>(),
   diagnosis: text("diagnosis"),
+  evidenceSummary: text("evidence_summary"),
   isPareto: boolean("is_pareto").notNull().default(false),
   isCurrent: boolean("is_current").notNull().default(false),
   generatedBy: text("generated_by").notNull().default("ai"),

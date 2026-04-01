@@ -2497,6 +2497,10 @@ components:
         diagnosis:
           type: string
           nullable: true
+        evidenceSummary:
+          type: string
+          nullable: true
+          description: Snapshot of the evidence context used when this deal was generated
         isPareto:
           type: boolean
         isCurrent:

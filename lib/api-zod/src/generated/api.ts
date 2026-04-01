@@ -836,6 +836,12 @@ export const ListDealsResponse = zod.object({
         .array(zod.record(zod.string(), zod.unknown()))
         .nullish(),
       diagnosis: zod.string().nullish(),
+      evidenceSummary: zod
+        .string()
+        .nullish()
+        .describe(
+          "Snapshot of the evidence context used when this deal was generated",
+        ),
       isPareto: zod.boolean(),
       isCurrent: zod.boolean(),
       generatedBy: zod.string(),
@@ -904,6 +910,12 @@ export const GetCurrentDealResponse = zod.object({
     .nullish(),
   redTeamResults: zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
   diagnosis: zod.string().nullish(),
+  evidenceSummary: zod
+    .string()
+    .nullish()
+    .describe(
+      "Snapshot of the evidence context used when this deal was generated",
+    ),
   isPareto: zod.boolean(),
   isCurrent: zod.boolean(),
   generatedBy: zod.string(),
@@ -973,6 +985,12 @@ export const GetParetoDealsResponse = zod.object({
         .array(zod.record(zod.string(), zod.unknown()))
         .nullish(),
       diagnosis: zod.string().nullish(),
+      evidenceSummary: zod
+        .string()
+        .nullish()
+        .describe(
+          "Snapshot of the evidence context used when this deal was generated",
+        ),
       isPareto: zod.boolean(),
       isCurrent: zod.boolean(),
       generatedBy: zod.string(),
@@ -1206,6 +1224,12 @@ export const GetDealResponse = zod.object({
     .nullish(),
   redTeamResults: zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
   diagnosis: zod.string().nullish(),
+  evidenceSummary: zod
+    .string()
+    .nullish()
+    .describe(
+      "Snapshot of the evidence context used when this deal was generated",
+    ),
   isPareto: zod.boolean(),
   isCurrent: zod.boolean(),
   generatedBy: zod.string(),
@@ -1414,6 +1438,12 @@ export const GetProposalArenaResponse = zod.object({
         .array(zod.record(zod.string(), zod.unknown()))
         .nullish(),
       diagnosis: zod.string().nullish(),
+      evidenceSummary: zod
+        .string()
+        .nullish()
+        .describe(
+          "Snapshot of the evidence context used when this deal was generated",
+        ),
       isPareto: zod.boolean(),
       isCurrent: zod.boolean(),
       generatedBy: zod.string(),

@@ -23,6 +23,8 @@ export interface Deal {
   domesticEvaluations?: DealDomesticEvaluations;
   redTeamResults?: DealRedTeamResultsItem[] | null;
   diagnosis?: string | null;
+  /** Snapshot of the evidence context used when this deal was generated */
+  evidenceSummary?: string | null;
   isPareto: boolean;
   isCurrent: boolean;
   generatedBy: string;

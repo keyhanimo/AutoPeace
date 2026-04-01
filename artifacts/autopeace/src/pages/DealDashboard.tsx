@@ -198,6 +198,9 @@ function DealDetailView({ deal, isHistorical }: { deal: Deal; isHistorical?: boo
   const survived = redTeamResults.filter(r => r.survived).length;
   const totalAttacks = redTeamResults.length;
 
+  const evidenceSummary = deal.evidenceSummary;
+  const [evidenceExpanded, setEvidenceExpanded] = useState(false);
+
   return (
     <div className="space-y-6">
       {isHistorical && (
@@ -217,6 +220,42 @@ function DealDetailView({ deal, isHistorical }: { deal: Deal; isHistorical?: boo
           )}
         </div>
       )}
+
+      <div className="p-4 rounded-lg border border-amber-700/40 bg-amber-950/10">
+        <div className="flex items-start gap-3">
+          <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs text-amber-200 font-medium">
+              This proposal was generated based on the state of the world at{" "}
+              <span className="font-mono text-amber-400">
+                {new Date(deal.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}{" "}
+                {new Date(deal.createdAt).toLocaleTimeString("en-US", { hour12: false })}
+              </span>
+            </p>
+            {evidenceSummary ? (
+              <div className="mt-2">
+                <button
+                  onClick={() => setEvidenceExpanded(prev => !prev)}
+                  className="text-xs text-amber-400 hover:text-amber-300 underline underline-offset-2 transition-colors"
+                >
+                  {evidenceExpanded ? "Hide evidence context" : "Show evidence context used"}
+                </button>
+                {evidenceExpanded && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    className="mt-3 p-3 rounded border border-amber-800/30 bg-amber-950/20 max-h-96 overflow-y-auto"
+                  >
+                    <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono leading-relaxed">{evidenceSummary}</pre>
+                  </motion.div>
+                )}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground mt-1">Evidence context was not captured for this deal.</p>
+            )}
+          </div>
+        </div>
+      </div>
 
       <Card className="p-6">
         <h3 className="text-lg font-bold mb-4">Deal Terms</h3>

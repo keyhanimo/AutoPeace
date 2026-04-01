@@ -60,7 +60,7 @@ artifacts-monorepo/
 - **cost_of_war** — economic/human cost data for Iran, US, Israel
 - **changelog_entries** — auto-generated headlines summarizing each forecast cycle and deal engine cycle (includes `scoreDelta` for deals, `forecastDelta` for forecasts)
 - **admin_config** — key/value config (isPaused, cadence, etc.)
-- **deals** — includes `innovativeProvisions` (jsonb), `domesticFramingStrategies` (jsonb), `brainstormInsights` (jsonb), `pipelineConfig` (jsonb) columns for enhanced pipeline data
+- **deals** — includes `innovativeProvisions` (jsonb), `domesticFramingStrategies` (jsonb), `brainstormInsights` (jsonb), `pipelineConfig` (jsonb) columns for enhanced pipeline data. `evidence_summary` (text) stores the full evidence context snapshot used to generate each deal, surfaced in API and UI with timestamp.
 - **provision_outcomes** — tracks per-provision performance: score deltas, dimension deltas, stakeholder reactions, category. Used by deal memory system for provision-level learning.
 - **pipeline_evolution** — tracks cumulative prompt overrides per stage key for pipeline hill-climbing
 

@@ -502,6 +502,7 @@ async function runDealCycleAsync(cycleId: string): Promise<void> {
       metaEvaluatorResult: evaluated.metaEvaluatorResult ?? undefined,
       pipelineConfig: evaluated.pipelineConfig,
       diagnosis: evaluated.diagnosis,
+      evidenceSummary,
       isPareto: false,
       isCurrent: isBetterThanCurrent,
       generatedBy: "ai",
