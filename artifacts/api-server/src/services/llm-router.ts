@@ -170,6 +170,7 @@ export { getOpenAI, getGemini, getAnthropic };
 
 export interface CallLLMOptions {
   maxTokens?: number;
+  timeoutMs?: number;
 }
 
 async function callOpenAI(
@@ -256,17 +257,29 @@ export async function callLLM(
   model: string,
   opts: CallLLMOptions = {},
 ): Promise<{ content: string; tokens: number }> {
+  const timeoutMs = opts.timeoutMs ?? 300_000;
   try {
+    let llmCall: Promise<{ content: string; tokens: number }>;
     switch (provider) {
       case "anthropic":
-        return await callAnthropic(prompt, systemPrompt, model, opts);
+        llmCall = callAnthropic(prompt, systemPrompt, model, opts);
+        break;
       case "openai":
-        return await callOpenAI(prompt, systemPrompt, model, opts);
+        llmCall = callOpenAI(prompt, systemPrompt, model, opts);
+        break;
       case "gemini":
-        return await callGemini(prompt, systemPrompt, model, opts);
+        llmCall = callGemini(prompt, systemPrompt, model, opts);
+        break;
       default:
         throw new Error(`Unknown LLM provider: ${provider}`);
     }
+    const result = await Promise.race([
+      llmCall,
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`LLM call to ${provider}/${model} timed out after ${timeoutMs / 1000}s`)), timeoutMs)
+      ),
+    ]);
+    return result;
   } catch (err) {
     if (err instanceof LLMCallError) throw err;
     throw new LLMCallError(provider, model, err);
