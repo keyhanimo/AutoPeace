@@ -349,7 +349,14 @@ function fisherYatesShuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-function parseLLMJson<T>(text: string, fallback: T, label?: string): T {
+class LLMParseError extends Error {
+  constructor(label: string, public textSnippet: string) {
+    super(`LLM JSON parse failed for "${label}": all strategies exhausted`);
+    this.name = "LLMParseError";
+  }
+}
+
+function parseLLMJson<T>(text: string, label: string): T {
   const strategies = [
     () => {
       const match = text.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -382,64 +389,8 @@ function parseLLMJson<T>(text: string, fallback: T, label?: string): T {
     }
   }
 
-  if (label) {
-    logger.warn({ label, textSnippet: text.slice(0, 500) }, "parseLLMJson all strategies failed — using fallback");
-  }
-  return fallback;
-}
-
-function getDefaultTerms(architecture: Architecture): DealTerms {
-  const base: DealTerms = {
-    nuclearProtocol: "Iran limits enrichment to 3.67% with IAEA continuous monitoring; US provides nuclear civilian technology cooperation",
-    sanctionsRelief: "Phased sanctions relief tied to verified compliance milestones; 90-day review mechanism",
-    hormuzArrangements: "Guaranteed freedom of navigation; joint maritime coordination center with Gulf states",
-    humanitarianProvisions: "Immediate unfreezing of $6B in humanitarian funds; medicine and food import exemptions",
-    verificationMechanism: "Modified JCPOA verification with IAEA snap inspections and satellite monitoring",
-    timelineYears: 5,
-    sequencing: "Simultaneous first steps: Iran caps enrichment, US lifts secondary sanctions on oil",
-    additionalClauses: ["Regional security consultations with GCC", "Prisoner exchange as confidence building measure"],
-    stakeholderCommitments: {
-      iran: "Cap enrichment at 3.67%, allow IAEA inspections, reduce regional proxy support",
-      us: "Lift secondary sanctions in phases, provide security assurances, normalize diplomatic channels",
-      israel: "Accept verified enrichment limits, participate in regional security framework",
-      saudi_arabia: "Support economic normalization, de-escalate Yemen conflict, open trade corridors",
-      eu3: "Provide economic incentives package, guarantee trade mechanisms (INSTEX successor)",
-      russia: "Support UNSC resolution endorsement, contribute to verification framework",
-      china: "Maintain economic engagement transparency, support sanctions relief timeline",
-      iaea: "Implement enhanced verification protocol, provide continuous monitoring reports",
-    },
-  };
-
-  if (architecture === "nuclear-first") {
-    base.nuclearProtocol = "Comprehensive nuclear rollback to pre-2019 JCPOA levels as primary condition for any relief";
-    base.sequencing = "Nuclear compliance verified first, then phased sanctions relief over 18 months";
-  } else if (architecture === "hormuz-first") {
-    base.hormuzArrangements = "Maritime security framework as foundation; Hormuz guarantee enables economic normalization";
-    base.sequencing = "Maritime security agreement signed first, enabling economic negotiations";
-  } else if (architecture === "humanitarian-first") {
-    base.humanitarianProvisions = "Immediate comprehensive humanitarian corridor as trust-building prerequisite";
-    base.sequencing = "Humanitarian access guaranteed immediately; nuclear talks begin within 60 days";
-  } else if (architecture === "radical-restructure") {
-    base.nuclearProtocol = "Replace bilateral enrichment limits with a multinational enrichment consortium (Iran, Saudi Arabia, UAE, Turkey) under IAEA governance — transforms nuclear from zero-sum to regional shared asset";
-    base.sanctionsRelief = "Comprehensive day-one sanctions suspension (not relief) contingent on consortium participation; permanent removal after 2-year verification period";
-    base.hormuzArrangements = "Hormuz internationalized as a UN-administered maritime zone with revenue-sharing among littoral states";
-    base.sequencing = "All parties act simultaneously on day one — no sequential confidence building. Mutual vulnerability creates mutual commitment";
-    base.timelineYears = 3;
-  } else if (architecture === "asymmetric-grand-bargain") {
-    base.nuclearProtocol = "Iran retains enrichment rights up to 20% but places all facilities under 24/7 IAEA livestream monitoring; US provides civilian nuclear technology transfer as quid pro quo";
-    base.sanctionsRelief = "Asymmetric timeline: US lifts financial sanctions immediately, Iran phases nuclear transparency over 18 months; each side gives what is cheap for them but valuable to the other";
-    base.hormuzArrangements = "Iran guarantees Hormuz passage in exchange for formal US recognition of Iran's legitimate security interests in the Persian Gulf";
-    base.sequencing = "Grand bargain: everything is agreed in one package but implemented in interlocking phases where each side's concessions unlock the other's";
-    base.timelineYears = 4;
-  } else if (architecture === "incremental-confidence") {
-    base.nuclearProtocol = "Micro-agreements: start with IAEA inspector access to one declared facility, expand access as each step succeeds; enrichment caps are earned through verified compliance, not demanded upfront";
-    base.sanctionsRelief = "Granular sanctions relief: each verified compliance step unlocks a specific sanctions category (humanitarian → financial → energy → technology)";
-    base.hormuzArrangements = "Incremental maritime cooperation: joint weather/rescue operations first, then shared navigation protocols, then full freedom of navigation framework";
-    base.sequencing = "50 small steps over 5 years, each independently verifiable and reversible. No single failure kills the process";
-    base.timelineYears = 7;
-  }
-
-  return base;
+  logger.error({ label, textSnippet: text.slice(0, 500) }, "parseLLMJson FAILED — all parse strategies exhausted, no fallback");
+  throw new LLMParseError(label, text.slice(0, 500));
 }
 
 type AcceptanceTier = "required" | "critical" | "influential" | "contextual";
@@ -628,21 +579,7 @@ Generate at least 4 historical analogies, 5 creative provisions (at least 2 at '
   ];
   const selectedAnalogies = fisherYatesShuffle(ANALOGY_POOL).slice(0, 3 + Math.floor(Math.random() * 2));
 
-  const fallback: BrainstormInsights = {
-    historicalAnalogies: selectedAnalogies,
-    creativeProvisions: selectedProvisions,
-    crossIssueLinkages: [
-      { linkage: "Iran's Chabahar port development funded by India/Japan in exchange for Hormuz navigation guarantees", stakeholdersHelped: ["iran", "india", "japan"] },
-      { linkage: "Saudi-Iran shared Red Sea/Persian Gulf shipping corridor reducing insurance costs for both", stakeholdersHelped: ["iran", "saudi_arabia", "china", "india"] },
-    ],
-    unconventionalApproaches: [
-      "Citizen diplomacy track with joint Iran-US-Israel university research programs on shared challenges",
-      "Economic integration before political resolution — trade normalization as prerequisite to nuclear talks",
-      "Technology-driven verification replacing human inspectors with tamper-proof sensor networks",
-    ],
-  };
-
-  const insights = parseLLMJson<BrainstormInsights>(content, fallback, "brainstorm");
+  const insights = parseLLMJson<BrainstormInsights>(content, "brainstorm");
   return { insights, tokens };
 }
 
@@ -779,81 +716,10 @@ IMPORTANT: Iran and the US are the two REQUIRED parties — without both accepti
 Every stakeholder MUST have concrete, specific commitments. Vague statements like "supports the deal" are insufficient. Each commitment should specify what the stakeholder will DO, PROVIDE, or GUARANTEE.`;
 
   const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 1, "generation", modelConfig);
-  const defaults = getDefaultTerms(architecture);
-  let terms = parseLLMJson<DealTerms>(content, defaults, "proposal");
-
-  const isFullFallback = terms.nuclearProtocol === defaults.nuclearProtocol
-    && terms.sanctionsRelief === defaults.sanctionsRelief
-    && terms.hormuzArrangements === defaults.hormuzArrangements;
-
-  if (isFullFallback) {
-    logger.warn({ architecture }, "Proposal parseLLMJson returned full default terms — LLM output was not parseable. Attempting partial field extraction.");
-    const fieldPatterns: Array<{ key: keyof DealTerms; pattern: RegExp }> = [
-      { key: "nuclearProtocol", pattern: /"nuclearProtocol"\s*:\s*"((?:[^"\\]|\\.)*)"/s },
-      { key: "sanctionsRelief", pattern: /"sanctionsRelief"\s*:\s*"((?:[^"\\]|\\.)*)"/s },
-      { key: "hormuzArrangements", pattern: /"hormuzArrangements"\s*:\s*"((?:[^"\\]|\\.)*)"/s },
-      { key: "humanitarianProvisions", pattern: /"humanitarianProvisions"\s*:\s*"((?:[^"\\]|\\.)*)"/s },
-      { key: "verificationMechanism", pattern: /"verificationMechanism"\s*:\s*"((?:[^"\\]|\\.)*)"/s },
-      { key: "sequencing", pattern: /"sequencing"\s*:\s*"((?:[^"\\]|\\.)*)"/s },
-    ];
-    let recovered = 0;
-    for (const { key, pattern } of fieldPatterns) {
-      const m = content.match(pattern);
-      if (m && m[1] && m[1].length > 20 && m[1] !== (defaults as any)[key]) {
-        (terms as any)[key] = m[1].replace(/\\"/g, '"').replace(/\\n/g, "\n");
-        recovered++;
-      }
-    }
-    const timelineMatch = content.match(/"timelineYears"\s*:\s*(\d+)/);
-    if (timelineMatch) {
-      terms.timelineYears = parseInt(timelineMatch[1]!, 10);
-      recovered++;
-    }
-    const innovMatch = content.match(/"innovativeProvisions"\s*:\s*(\[[\s\S]*?\])\s*[,}]/);
-    if (innovMatch) {
-      try {
-        const parsed = JSON.parse(innovMatch[1]!) as InnovativeProvision[];
-        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].title) {
-          terms.innovativeProvisions = parsed;
-          recovered++;
-        }
-      } catch { /* ignore */ }
-    }
-    if (recovered > 0) {
-      logger.info({ recovered, architecture }, "Recovered partial fields from unparseable LLM response");
-    }
-  }
-
-  const sc = terms.stakeholderCommitments || {};
-  const defaultCommitments = defaults.stakeholderCommitments || {};
-  for (const s of getCoreStakeholders()) {
-    if (!sc[s.id] || sc[s.id].trim().length < 10) {
-      sc[s.id] = defaultCommitments[s.id] || `Participates in grand coalition framework with binding obligations`;
-    }
-  }
-  terms.stakeholderCommitments = sc;
+  const terms = parseLLMJson<DealTerms>(content, "proposal");
 
   if (!terms.innovativeProvisions || terms.innovativeProvisions.length === 0) {
-    const FALLBACK_PROVISIONS: InnovativeProvision[] = [
-      { title: "Regional Economic Integration Fund", description: "A multilateral development fund seeded by sanctions-relief dividends, financing joint infrastructure projects across Iran, Gulf states, and broader region", rationale: "Creates economic interdependence that raises the cost of returning to conflict for all parties", historicalPrecedent: "European Coal and Steel Community (1951) — economic integration as peace architecture" },
-      { title: "Digital Verification Network", description: "Tamper-proof IoT sensor grid at nuclear facilities streaming encrypted data to all parties simultaneously, eliminating information asymmetry", rationale: "Technology-driven trust removes the need for politically sensitive human inspections", historicalPrecedent: "Open Skies Treaty (1992) — transparency through technology" },
-      { title: "Gulf Maritime Insurance Consortium", description: "Multilateral shipping insurance pool that reduces premiums for vessels transiting the Strait of Hormuz, funded by littoral states", rationale: "Aligns commercial shipping interests with regional stability, creating a financial constituency for peace", historicalPrecedent: "P&I Clubs pooling maritime risk across adversaries" },
-      { title: "Trilateral Water-Energy Exchange", description: "Iran supplies natural gas to Gulf desalination plants at preferential rates; Gulf states share desalinated water and agricultural technology with Iran", rationale: "Addresses Iran's water crisis and Gulf energy needs simultaneously through bilateral dependency", historicalPrecedent: "Jordan-Israel water sharing arrangements" },
-      { title: "Regional Youth Exchange & Research Network", description: "Scholarship and university collaboration program placing students across former adversary nations for joint research on shared challenges", rationale: "Creates generational constituency for peace through personal relationships and shared intellectual capital", historicalPrecedent: "Franco-German Youth Office (1963) — post-reconciliation people-to-people ties" },
-      { title: "Graduated De-escalation Protocol", description: "Pre-agreed proportional response ladder where each party commits to specific maximum responses to specific provocations, with third-party monitoring", rationale: "Reduces miscalculation and unintended escalation through transparent signaling", historicalPrecedent: "US-Soviet hotline and incidents-at-sea agreements" },
-      { title: "Cross-Border Special Economic Zone", description: "Extraterritorial trade zone at Iran-Iraq border with simplified customs, shared infrastructure, and joint governance", rationale: "Creates immediate economic benefits and a governance cooperation precedent", historicalPrecedent: "Shenzhen SEZ (1980) — economic opening through geographic containment" },
-      { title: "Persian Gulf Environmental Restoration Compact", description: "Joint marine conservation program addressing coral reef destruction, oil spill prevention, and fisheries management across the Gulf", rationale: "Non-political cooperation on shared ecological crisis builds institutional trust", historicalPrecedent: "Mediterranean Action Plan — environmental cooperation among adversaries" },
-      { title: "Joint Cyber Defense Compact", description: "Multilateral cyber non-aggression pact with shared threat intelligence and mutual forensic transparency obligations", rationale: "Addresses modern threat vector while building technical cooperation culture between former adversaries", historicalPrecedent: "Budapest Convention on Cybercrime adapted for regional security" },
-      { title: "Shared Seismological Early Warning Network", description: "Joint earthquake and tsunami early warning system spanning Iran, Turkey, and Gulf states with open data sharing and coordinated disaster response", rationale: "Non-political technical cooperation builds institutional trust infrastructure on genuinely shared risk", historicalPrecedent: "Mediterranean tsunami warning system cooperation" },
-      { title: "Persian Gulf Carbon Credit Exchange", description: "Regional carbon trading platform incentivizing clean energy transition across Iran and Gulf states, funded by hydrocarbon transition revenues", rationale: "Aligns climate goals with economic modernization, creating shared green economy constituency for peace", historicalPrecedent: "EU Emissions Trading System creating cross-border economic interdependence" },
-      { title: "Joint Space Observation Program", description: "Multilateral satellite program for agricultural monitoring, drought prediction, and environmental surveillance shared among all regional parties", rationale: "Dual-use transparency technology builds verification culture while addressing real food security needs", historicalPrecedent: "Copernicus Program open satellite data policy" },
-      { title: "Interfaith Heritage Corridor Initiative", description: "Protected cultural and religious heritage routes spanning Iran, Iraq, and the Levant with shared tourism governance and revenue distribution", rationale: "Leverages shared Abrahamic and Persian cultural heritage as living peace infrastructure", historicalPrecedent: "European Cultural Routes Programme bridging former adversaries" },
-      { title: "Regional Pharmaceutical Manufacturing Hub", description: "Joint pharmaceutical production facility producing essential medicines for the region, immune from sanctions and governed by WHO standards", rationale: "Creates humanitarian dependency that makes future conflict costlier and sanctions harder to reimpose", historicalPrecedent: "COVAX facility creating cross-border health cooperation norms" },
-    ];
-    const shuffled = fisherYatesShuffle(FALLBACK_PROVISIONS);
-    const picked = shuffled.slice(0, 3 + Math.floor(Math.random() * 2));
-    terms.innovativeProvisions = picked;
-    logger.warn({ count: picked.length, titles: picked.map(p => p.title), architecture }, "Using randomized fallback provisions — LLM did not generate innovativeProvisions");
+    logger.error({ architecture }, "LLM proposal missing innovativeProvisions — deal will be stored without them");
   }
 
   return { terms, tokens };
@@ -933,24 +799,26 @@ Return JSON with ALL stakeholder IDs: { "iran": { verdict, rationale, redLineVio
 
   const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 2, "evaluation", modelConfig);
 
-  const fallback: Record<string, StakeholderVerdict> = {};
-  for (const s of getAllEvaluatedStakeholders()) {
-    fallback[s.id] = {
-      verdict: "conditional",
-      rationale: `${s.name} has reservations but sees potential for negotiation.`,
-      redLineViolations: [],
-      conditions: ["Further clarification needed"],
-    };
-  }
+  const parsed = parseLLMJson<Record<string, StakeholderVerdict>>(content, "stakeholder-evaluation");
 
-  const parsed = parseLLMJson<Record<string, StakeholderVerdict>>(content, fallback);
-
-  const normalized: Record<string, StakeholderVerdict> = { ...fallback, ...parsed };
+  const normalized: Record<string, StakeholderVerdict> = { ...parsed };
+  const REQUIRED_IDS = ["iran", "us"];
+  const missingRequired: string[] = [];
   for (const s of getAllEvaluatedStakeholders()) {
     const e = normalized[s.id];
     if (!e || !e.verdict || !["accept", "conditional", "reject"].includes(e.verdict)) {
-      normalized[s.id] = fallback[s.id]!;
+      if (REQUIRED_IDS.includes(s.id)) {
+        missingRequired.push(s.id);
+      } else {
+        logger.warn({ stakeholderId: s.id }, "Stakeholder missing from LLM evaluation output");
+      }
     }
+  }
+  if (missingRequired.length > 0) {
+    throw new LLMParseError(
+      "stakeholder-evaluation",
+      `Required stakeholders missing or invalid in LLM output: ${missingRequired.join(", ")}`
+    );
   }
 
   return { evaluations: normalized, tokens };
@@ -1024,17 +892,7 @@ Return JSON object keyed by audience key:
 
   const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 3, "evaluation", modelConfig);
 
-  const fallback: Record<string, DomesticFramingStrategy> = {};
-  for (const a of unsellableAudiences) {
-    fallback[a.key] = {
-      audience: a.audience,
-      framingNarrative: `This deal positions ${a.audience.split("—")[0]?.trim() || "the stakeholder"} as a strategic leader who chose strength through engagement rather than isolation.`,
-      keyTalkingPoints: ["Economic benefits outweigh costs", "Verification ensures compliance", "Alternative is continued instability"],
-      riskOfBackfire: "Generic framing may not resonate with specific concerns of this audience.",
-    };
-  }
-
-  const parsed = parseLLMJson<Record<string, DomesticFramingStrategy>>(content, fallback);
+  const parsed = parseLLMJson<Record<string, DomesticFramingStrategy>>(content, "domestic-framing");
   return { strategies: parsed, tokens };
 }
 
@@ -1066,18 +924,6 @@ export async function runNegotiator(
   const acceptors = Object.entries(stakeholderEvaluations)
     .filter(([, e]) => e.verdict === "accept")
     .map(([id]) => id);
-
-  const fallback: NegotiatorResult & { creativeTradeoffs?: CreativeTradeoff[] } = {
-    proposedAmendments: rejecters.map(r => ({
-      stakeholder: r.id,
-      originalConcern: r.redLineViolations[0] ?? r.rationale.slice(0, 100),
-      proposedChange: r.conditions[0] ?? "Strengthen verification and address core sovereignty concerns",
-      likelihood: "medium" as const,
-    })),
-    revisedTermsPartial: {},
-    negotiationStrategy: "Sequential confidence-building with parallel technical tracks for each stakeholder group",
-    creativeTradeoffs: [],
-  };
 
   const systemPrompt = `You are a master negotiator who combines strategic brilliance with creative lateral thinking.
 Your role goes FAR beyond patching rejections. You actively SEARCH for Pareto improvements — restructurings where everyone gains.
@@ -1146,7 +992,7 @@ Return JSON:
 CREATIVE MANDATE: Include at least 2 creative tradeoffs even if no stakeholders reject. These should be novel cross-issue deals that create new value. Think about asymmetric valuations — what is cheap for one party but precious for another?`;
 
   const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 5, "generation", modelConfig);
-  const result = parseLLMJson<NegotiatorResult & { creativeTradeoffs?: CreativeTradeoff[] }>(content, fallback);
+  const result = parseLLMJson<NegotiatorResult & { creativeTradeoffs?: CreativeTradeoff[] }>(content, "negotiator");
   return { result, tokens };
 }
 
@@ -1192,16 +1038,7 @@ Return JSON where each key maps to { "audience": "label", "verdict": "sellable|d
 
   const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 3, "evaluation", modelConfig);
 
-  const fallback: Record<string, DomesticVerdict> = {};
-  for (const { key, label } of audienceList) {
-    fallback[key] = {
-      audience: label,
-      verdict: "difficult",
-      rationale: "Domestic political constraints make this deal difficult to sell without additional confidence-building measures.",
-    };
-  }
-
-  const parsed = parseLLMJson<Record<string, DomesticVerdict>>(content, fallback);
+  const parsed = parseLLMJson<Record<string, DomesticVerdict>>(content, "domestic-audiences");
   return { evaluations: parsed, tokens };
 }
 
@@ -1237,15 +1074,7 @@ Return JSON array: [{ "attack": "description", "severity": "low|medium|high|crit
 
   const { content, tokens } = await callLLMForStage(prompt, "You are an adversarial analyst. Output JSON.", 4, "adversarial", modelConfig);
 
-  const fallback: RedTeamResult[] = [
-    { attack: "Iran's IRGC rejects verification intrusions as sovereignty violation", severity: "high", response: "Narrow the inspection scope to declared sites only", survived: true },
-    { attack: "US Congress blocks sanctions relief citing Iranian ballistic missiles", severity: "critical", response: "Delink ballistic missiles from initial agreement, address in Phase 2", survived: false },
-    { attack: "Israel launches pre-emptive strike citing insufficient nuclear rollback", severity: "critical", response: "Strengthen nuclear constraints and add US security guarantees for Israel", survived: false },
-    { attack: "Saudi Arabia demands parallel deal limiting Houthi/Hezbollah support", severity: "high", response: "Add regional security consultations mechanism", survived: true },
-    { attack: "Economic hardliners in Iran use sanctions relief delay as populist wedge", severity: "medium", response: "Front-load immediate humanitarian relief to build domestic support", survived: true },
-  ];
-
-  const parsed = parseLLMJson<RedTeamResult[]>(content, fallback);
+  const parsed = parseLLMJson<RedTeamResult[]>(content, "red-team");
   return { results: parsed, tokens };
 }
 
@@ -1391,7 +1220,7 @@ Return JSON with scores and rationale for each dimension:
         throw new Error(`${provider} returned empty response`);
       }
 
-      const parsed = parseLLMJson<Record<string, unknown>>(content, {} as Record<string, unknown>);
+      const parsed = parseLLMJson<Record<string, unknown>>(content, `judge-panel-${provider}`);
 
       let validDimensions = 0;
       const scores: Record<string, number> = {};
@@ -1402,7 +1231,8 @@ Return JSON with scores and rationale for each dimension:
           scores[key] = clamp(raw);
           validDimensions++;
         } else {
-          scores[key] = clamp(baseScore + (Math.random() - 0.5) * 0.1);
+          logger.warn({ provider, key }, "Judge panel returned invalid score for dimension — setting to 0");
+          scores[key] = 0;
         }
         rationale[key] = String(parsed[`${key}Rationale`] ?? "");
       }
@@ -1506,15 +1336,6 @@ export async function runMetaEvaluator(
   modelConfig: ModelConfig = DEFAULT_MODELS,
   currentPipelineOverrides: Record<string, string> = {},
 ): Promise<{ result: MetaEvaluatorResult; tokens: number }> {
-  const fallback: MetaEvaluatorResult = {
-    pipelineQuality: 0.6,
-    reasoning: "Pipeline produced a reasonable deal evaluation. Stakeholder coverage is adequate but domestic analysis could be deeper.",
-    blindspots: ["Long-term implementation risks not fully assessed", "Regional spoiler dynamics under-modeled"],
-    suggestedNextArchitecture: "nuclear-first",
-    confidenceInOutcome: 0.55,
-    promptImprovements: [],
-  };
-
   const systemPrompt = `You are a meta-level evaluator assessing the quality of an AI peace deal pipeline's reasoning.
 You have TWO critical jobs:
 1. EVALUATE: Assess the pipeline's reasoning quality, find blind spots, suggest architecture changes.
@@ -1583,7 +1404,7 @@ Assess the reasoning quality and suggest pipeline improvements:
 IMPORTANT: The promptImprovements field is how this pipeline evolves over time. Be specific and actionable. Vague suggestions like "improve stakeholder analysis" are useless. Instead, write specific prompt additions like "Add instruction: Consider the role of non-state actors as potential spoilers..." Include 2-4 concrete improvements.`;
 
   const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 7, "evaluation", modelConfig);
-  const result = parseLLMJson<MetaEvaluatorResult>(content, fallback);
+  const result = parseLLMJson<MetaEvaluatorResult>(content, "meta-evaluator");
   return { result, tokens };
 }
 
@@ -1668,15 +1489,7 @@ Limit to 6 items total.`;
   const { provider, model } = resolveStageConfig(6, "evaluation", modelConfig);
   const { content } = await callLLM(prompt, systemPrompt, provider, model);
 
-  const fallback = rejecters.flatMap(([stakeholderId, evaluation]) =>
-    (evaluation.redLineViolations ?? []).slice(0, 2).map(violation => ({
-      stakeholder: stakeholderId,
-      requirement: evaluation.conditions?.[0] ?? `Address: ${violation}`,
-      feasibility: (["low", "medium", "high"] as const)[Math.floor(Math.random() * 3)] ?? "medium",
-    }))
-  ).slice(0, 6);
-
-  return parseLLMJson<Array<{ stakeholder: string; requirement: string; feasibility: "low" | "medium" | "high" }>>(content, fallback);
+  return parseLLMJson<Array<{ stakeholder: string; requirement: string; feasibility: "low" | "medium" | "high" }>>(content, "what-would-it-take");
 }
 
 /**
