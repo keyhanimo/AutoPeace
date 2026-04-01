@@ -1,8 +1,8 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, Cpu, Gauge, Trophy, Users, FileText } from "lucide-react";
-import { useGetExperimentStats, useGetLatestForecasts, useGetCurrentDeal, useListProposals, type Forecast, type DealScores, type Proposal } from "@workspace/api-client-react";
+import { ArrowRight, Trophy, Users } from "lucide-react";
+import { useGetLatestForecasts, useGetCurrentDeal, useListProposals, type Forecast, type DealScores, type Proposal } from "@workspace/api-client-react";
 import { Card, Button, Badge } from "@/components/ui";
 import { AutoresearchPulse } from "@/components/AutoresearchBadge";
 
@@ -127,7 +127,6 @@ function OutcomeSparkbar({ forecasts }: { forecasts: Forecast[] }) {
 
 
 export default function Home() {
-  const { data: stats, isLoading: statsLoading } = useGetExperimentStats();
   const { data: latestRes, isLoading: forecastLoading } = useGetLatestForecasts();
   const { data: currentDeal } = useGetCurrentDeal();
   const { data: proposalsRes } = useListProposals();
@@ -251,44 +250,6 @@ export default function Home() {
 
       <AutoresearchPulse />
 
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-6 rounded-sm">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-0.5 h-6 bg-primary rounded-full" />
-            <Cpu className="w-5 h-5 text-primary" />
-          </div>
-          <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-widest font-bold">Research Cycles</p>
-          <h3 className="text-3xl font-display font-bold">{statsLoading ? "--" : stats?.cyclesRun}</h3>
-          <p className="text-xs text-muted-foreground mt-2">Continuous loops executed</p>
-        </Card>
-        <Card className="p-6 rounded-sm">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-0.5 h-6 bg-blue-500 rounded-full" />
-            <FileText className="w-5 h-5 text-blue-500" />
-          </div>
-          <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-widest font-bold">Deal Experiments</p>
-          <h3 className="text-3xl font-display font-bold">{statsLoading ? "--" : stats?.total}</h3>
-          <p className="text-xs text-muted-foreground mt-2">{stats?.retained} retained of {stats?.total} total</p>
-        </Card>
-        <Card className="p-6 rounded-sm">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-0.5 h-6 bg-emerald-500 rounded-full" />
-            <Trophy className="w-5 h-5 text-emerald-500" />
-          </div>
-          <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-widest font-bold">Retention Rate</p>
-          <h3 className="text-3xl font-display font-bold">{statsLoading ? "--" : `${((stats?.retentionRate || 0) * 100).toFixed(0)}%`}</h3>
-          <p className="text-xs text-muted-foreground mt-2">Deal experiments retained</p>
-        </Card>
-        <Card className="p-6 rounded-sm">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-0.5 h-6 bg-purple-500 rounded-full" />
-            <Gauge className="w-5 h-5 text-purple-500" />
-          </div>
-          <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-widest font-bold">Tokens Processed</p>
-          <h3 className="text-3xl font-display font-bold">{statsLoading ? "--" : new Intl.NumberFormat('en-US', { notation: "compact", compactDisplay: "short" }).format(stats?.totalTokensConsumed || 0)}</h3>
-          <p className="text-xs text-muted-foreground mt-2">Total LLM context analyzed</p>
-        </Card>
-      </section>
 
     </div>
   );
