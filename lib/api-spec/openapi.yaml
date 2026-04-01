@@ -570,31 +570,6 @@ paths:
         "401":
           description: Unauthorized
 
-  /admin/deal-run:
-    post:
-      operationId: triggerDealRun
-      tags: [admin]
-      summary: Trigger an immediate deal autoresearch cycle (Task B)
-      security:
-        - adminKey: []
-      responses:
-        "200":
-          description: Deal cycle started
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  cycleId:
-                    type: string
-                  message:
-                    type: string
-                required: [cycleId, message]
-        "401":
-          description: Unauthorized
-        "409":
-          description: Already running
-
   /admin/deal-cycles:
     get:
       operationId: listDealCycles

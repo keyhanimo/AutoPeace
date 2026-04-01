@@ -4,7 +4,7 @@ import { adminConfigTable, evidenceSourcesTable, dealsTable } from "@workspace/d
 import { eq, desc, sql } from "drizzle-orm";
 import { adminAuth } from "../lib/admin-auth";
 import { runCycleNow, isRunning, getCycleStatus } from "../services/autoresearch";
-import { runDealCycleNow, isDealCycleRunning } from "../services/deal-autoresearch";
+import { isDealCycleRunning } from "../services/deal-autoresearch";
 import { UpdateAdminConfigBody, UpdateEvidenceSourceBody } from "@workspace/api-zod";
 import {
   DEFAULT_ANTHROPIC_MODEL,
@@ -221,18 +221,6 @@ router.post("/admin/run", async (_req, res) => {
   }
 });
 
-router.post("/admin/deal-run", async (_req, res) => {
-  if (isDealCycleRunning()) {
-    res.status(409).json({ error: "A deal cycle is already running", message: "Already running" });
-    return;
-  }
-  try {
-    const cycleId = await runDealCycleNow();
-    res.json({ cycleId, message: "Deal autoresearch cycle started" });
-  } catch (err) {
-    res.status(500).json({ error: String(err) });
-  }
-});
 
 router.get("/admin/deal-cycles", async (_req, res) => {
   try {

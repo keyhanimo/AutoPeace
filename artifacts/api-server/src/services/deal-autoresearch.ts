@@ -435,17 +435,16 @@ function selectArchitecture(
   return arch;
 }
 
-export async function runDealCycleNow(parentCycleId?: string): Promise<string> {
+export async function runDealCycleNow(cycleId: string): Promise<string> {
   if (dealCycleRunning) {
     const [recent] = await db.select({ cycleId: dealsTable.cycleId })
       .from(dealsTable)
       .orderBy(desc(dealsTable.createdAt))
       .limit(1);
-    return recent?.cycleId ?? randomUUID();
+    return recent?.cycleId ?? cycleId;
   }
 
   dealCycleRunning = true;
-  const cycleId = parentCycleId ?? randomUUID();
 
   await runDealCycleAsync(cycleId);
 
