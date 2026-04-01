@@ -29,9 +29,6 @@ export function isDealCycleRunning() {
 const STALL_THRESHOLD = 3;
 const PIPELINE_EVOLUTION_WINDOW = 3;
 
-const STANDARD_ARCHITECTURES = ["balanced", "nuclear-first", "hormuz-first", "humanitarian-first"] as const;
-const RADICAL_ARCHITECTURES = ["radical-restructure", "asymmetric-grand-bargain", "incremental-confidence", "freeform"] as const;
-const RADICAL_EXPLORATION_PROBABILITY = 0.3;
 
 async function getEvidenceSummary(modelConfig?: import("./llm-router").ModelConfig): Promise<{ context: string; strategicTokens: number }> {
   return getFullEvidenceContext(modelConfig);
@@ -423,15 +420,18 @@ function selectArchitecture(
   stallCount: number,
   totalDeals: number,
 ): typeof DEAL_ARCHITECTURES[number] {
-  if (stallCount >= STALL_THRESHOLD || (totalDeals > 0 && Math.random() < RADICAL_EXPLORATION_PROBABILITY)) {
-    const radicalIdx = Math.floor(Math.random() * RADICAL_ARCHITECTURES.length);
-    logger.info({ radicalIdx, stallCount, totalDeals }, "Selecting radical architecture");
-    return RADICAL_ARCHITECTURES[radicalIdx] ?? "radical-restructure";
+  const totalArchitectures = DEAL_ARCHITECTURES.length;
+
+  if (stallCount >= STALL_THRESHOLD) {
+    const randomIdx = Math.floor(Math.random() * totalArchitectures);
+    const arch = DEAL_ARCHITECTURES[randomIdx] ?? "balanced";
+    logger.info({ randomIdx, stallCount, totalDeals, arch }, "Selecting random architecture due to stall");
+    return arch;
   }
 
-  const nextIdx = (currentArchIdx + 1 + Math.floor(Math.random() * (STANDARD_ARCHITECTURES.length - 1))) % STANDARD_ARCHITECTURES.length;
-  const arch = STANDARD_ARCHITECTURES[nextIdx] ?? "balanced";
-  logger.info({ currentArchIdx, nextIdx, arch, totalDeals }, "Selecting standard architecture (cycling, not repeating current)");
+  const nextIdx = (currentArchIdx + 1) % totalArchitectures;
+  const arch = DEAL_ARCHITECTURES[nextIdx] ?? "balanced";
+  logger.info({ currentArchIdx, nextIdx, arch, totalDeals }, "Selecting next architecture (cycling through all 8)");
   return arch;
 }
 
