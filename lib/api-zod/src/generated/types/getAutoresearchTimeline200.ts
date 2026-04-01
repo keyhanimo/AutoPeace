@@ -6,9 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { GetAutoresearchTimeline200DealTimelineItem } from "./getAutoresearchTimeline200DealTimelineItem";
-import type { GetAutoresearchTimeline200ForecastTimelineItem } from "./getAutoresearchTimeline200ForecastTimelineItem";
 
 export type GetAutoresearchTimeline200 = {
-  forecastTimeline: GetAutoresearchTimeline200ForecastTimelineItem[];
   dealTimeline: GetAutoresearchTimeline200DealTimelineItem[];
 };

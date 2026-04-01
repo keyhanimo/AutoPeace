@@ -88,7 +88,6 @@ import type {
   SubmitPublicProposalBody,
   SubscribeEmail200,
   SubscribeEmailBody,
-  TriggerDealRun200,
   TriggerRun200,
   UnsubscribeEmail200,
   UnsubscribeEmailBody,
@@ -435,7 +434,7 @@ export function useGetForecast<
 }
 
 /**
- * @summary Aggregated score history across research cycles for both forecasting and deal tasks
+ * @summary Deal score timeline across research cycles
  */
 export const getGetAutoresearchTimelineUrl = (
   params?: GetAutoresearchTimelineParams,
@@ -511,7 +510,7 @@ export type GetAutoresearchTimelineQueryResult = NonNullable<
 export type GetAutoresearchTimelineQueryError = ErrorType<unknown>;
 
 /**
- * @summary Aggregated score history across research cycles for both forecasting and deal tasks
+ * @summary Deal score timeline across research cycles
  */
 
 export function useGetAutoresearchTimeline<
@@ -1904,87 +1903,6 @@ export function useGetAdminCostsSummary<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
-
-/**
- * @summary Trigger an immediate deal autoresearch cycle (Task B)
- */
-export const getTriggerDealRunUrl = () => {
-  return `/api/admin/deal-run`;
-};
-
-export const triggerDealRun = async (
-  options?: RequestInit,
-): Promise<TriggerDealRun200> => {
-  return customFetch<TriggerDealRun200>(getTriggerDealRunUrl(), {
-    ...options,
-    method: "POST",
-  });
-};
-
-export const getTriggerDealRunMutationOptions = <
-  TError = ErrorType<void>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof triggerDealRun>>,
-    TError,
-    void,
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof triggerDealRun>>,
-  TError,
-  void,
-  TContext
-> => {
-  const mutationKey = ["triggerDealRun"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof triggerDealRun>>,
-    void
-  > = () => {
-    return triggerDealRun(requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type TriggerDealRunMutationResult = NonNullable<
-  Awaited<ReturnType<typeof triggerDealRun>>
->;
-
-export type TriggerDealRunMutationError = ErrorType<void>;
-
-/**
- * @summary Trigger an immediate deal autoresearch cycle (Task B)
- */
-export const useTriggerDealRun = <
-  TError = ErrorType<void>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof triggerDealRun>>,
-    TError,
-    void,
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationResult<
-  Awaited<ReturnType<typeof triggerDealRun>>,
-  TError,
-  void,
-  TContext
-> => {
-  return useMutation(getTriggerDealRunMutationOptions(options));
-};
 
 /**
  * @summary List recent deal autoresearch cycles with status

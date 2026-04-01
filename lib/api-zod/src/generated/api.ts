@@ -113,7 +113,7 @@ export const GetForecastResponse = zod.object({
 });
 
 /**
- * @summary Aggregated score history across research cycles for both forecasting and deal tasks
+ * @summary Deal score timeline across research cycles
  */
 export const getAutoresearchTimelineQueryLimitDefault = 50;
 
@@ -122,12 +122,6 @@ export const GetAutoresearchTimelineQueryParams = zod.object({
 });
 
 export const GetAutoresearchTimelineResponse = zod.object({
-  forecastTimeline: zod.array(
-    zod.object({
-      cycleId: zod.string(),
-      timestamp: zod.coerce.date(),
-    }),
-  ),
   dealTimeline: zod.array(
     zod.object({
       dealId: zod.string(),
@@ -687,14 +681,6 @@ export const GetAdminCostsSummaryResponse = zod.object({
       tokens: zod.number(),
     }),
   ),
-});
-
-/**
- * @summary Trigger an immediate deal autoresearch cycle (Task B)
- */
-export const TriggerDealRunResponse = zod.object({
-  cycleId: zod.string(),
-  message: zod.string(),
 });
 
 /**

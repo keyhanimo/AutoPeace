@@ -742,11 +742,6 @@ export type GetAutoresearchTimelineParams = {
   limit?: number;
 };
 
-export type GetAutoresearchTimeline200ForecastTimelineItem = {
-  cycleId: string;
-  timestamp: string;
-};
-
 export type GetAutoresearchTimeline200DealTimelineItem = {
   dealId: string;
   timestamp: string;
@@ -757,7 +752,6 @@ export type GetAutoresearchTimeline200DealTimelineItem = {
 };
 
 export type GetAutoresearchTimeline200 = {
-  forecastTimeline: GetAutoresearchTimeline200ForecastTimelineItem[];
   dealTimeline: GetAutoresearchTimeline200DealTimelineItem[];
 };
 
@@ -850,11 +844,6 @@ export type TriggerRun200 = {
 
 export type ListEvidenceSources200 = {
   data: EvidenceSource[];
-};
-
-export type TriggerDealRun200 = {
-  cycleId: string;
-  message: string;
 };
 
 export type ListDealCyclesParams = {
