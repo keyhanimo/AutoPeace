@@ -1,131 +1,17 @@
-import React, { useState, useMemo } from "react";
-import { Link } from "react-router-dom";
+import React, { useMemo } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useListDeals, type Deal, type DealScores } from "@workspace/api-client-react";
 import { Card, PageHeader, Badge } from "@/components/ui";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell,
 } from "recharts";
-import { ExternalLink, AlertCircle, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
-import { ScoreBreakdownPanel, type ExtendedScores } from "@/components/ScoreBreakdownPanel";
-import { ARCHITECTURE_COLORS, SCORE_DIMENSIONS, scoreColor, scoreLabel, safe, VERDICT_COLORS } from "@/utils/deal-ui-constants";
-
-const VERDICT_ICONS: Record<string, React.ReactNode> = {
-  accept: <CheckCircle2 className="w-3 h-3 shrink-0" />,
-  conditional: <AlertTriangle className="w-3 h-3 shrink-0" />,
-  reject: <XCircle className="w-3 h-3 shrink-0" />,
-};
-
-function DealExpandedView({ deal }: { deal: Deal }) {
-  const scores = deal.scores as ExtendedScores | null;
-  const stakeholderEvals = (deal.stakeholderEvaluations ?? {}) as Record<string, { verdict: string; rationale: string }>;
-  const redTeamResults = (deal.redTeamResults ?? []) as Array<{ attack: string; severity: string; response: string; survived: boolean }>;
-  const terms = (deal.terms ?? {}) as Record<string, unknown>;
-  const accepts = Object.values(stakeholderEvals).filter(e => e.verdict === "accept").length;
-  const conditionals = Object.values(stakeholderEvals).filter(e => e.verdict === "conditional").length;
-  const rejects = Object.values(stakeholderEvals).filter(e => e.verdict === "reject").length;
-  const survived = redTeamResults.filter(r => r.survived).length;
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-bold capitalize">{deal.architecture.replace(/-/g, " ")} Deal</h3>
-        <Link to={`/deals/${deal.id}`} className="text-xs text-primary hover:underline flex items-center gap-1">
-          <ExternalLink className="w-3 h-3" /> Full Permalink
-        </Link>
-      </div>
-
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Card className="p-3 text-center">
-          <div className={`text-2xl font-display font-bold ${scoreColor(scores?.composite ?? 0)}`}>
-            {scores ? `${((scores.composite ?? 0) * 100).toFixed(0)}%` : "—"}
-          </div>
-          <div className="text-xs text-muted-foreground">Composite</div>
-        </Card>
-        <Card className="p-3 text-center">
-          <div className="text-2xl font-display font-bold text-emerald-400">{accepts}</div>
-          <div className="text-xs text-muted-foreground">Accept</div>
-        </Card>
-        <Card className="p-3 text-center">
-          <div className="text-2xl font-display font-bold text-red-400">{rejects}</div>
-          <div className="text-xs text-muted-foreground">Reject</div>
-        </Card>
-        <Card className="p-3 text-center">
-          <div className={`text-2xl font-display font-bold ${survived === redTeamResults.length && redTeamResults.length > 0 ? "text-emerald-400" : "text-amber-400"}`}>
-            {redTeamResults.length > 0 ? `${survived}/${redTeamResults.length}` : "—"}
-          </div>
-          <div className="text-xs text-muted-foreground">Red Team</div>
-        </Card>
-      </div>
-
-      {scores && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
-          {SCORE_DIMENSIONS.map(d => (
-            <div key={d.key} className="p-2 rounded-lg border border-border text-center">
-              <div className="text-xs text-muted-foreground mb-1">{d.label}</div>
-              <div className={`text-lg font-display font-bold ${scoreColor(scores[d.key] ?? 0)}`}>
-                {((scores[d.key] ?? 0) * 100).toFixed(0)}%
-              </div>
-              <div className={`text-[10px] ${scoreColor(scores[d.key] ?? 0)}`}>{scoreLabel(scores[d.key] ?? 0)}</div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <Card className="p-4">
-        <h4 className="text-sm font-bold mb-2">Deal Terms</h4>
-        <div className="space-y-2 text-xs">
-          {[
-            { label: "Nuclear Protocol", key: "nuclearProtocol" },
-            { label: "Sanctions Relief", key: "sanctionsRelief" },
-            { label: "Maritime Security", key: "hormuzArrangements" },
-            { label: "Humanitarian", key: "humanitarianProvisions" },
-            { label: "Verification", key: "verificationMechanism" },
-            { label: "Timeline", key: "timelineYears" },
-          ].map(({ label, key }) => terms[key] ? (
-            <div key={key} className="border-b border-border/30 pb-1.5 last:border-0">
-              <span className="text-primary font-semibold uppercase tracking-wider text-[10px] block">{label}</span>
-              <span className="text-muted-foreground">
-                {key === "timelineYears" ? `${terms[key]} years` : safe(terms[key])}
-              </span>
-            </div>
-          ) : null)}
-        </div>
-      </Card>
-
-      {Object.keys(stakeholderEvals).length > 0 && (
-        <Card className="p-4">
-          <h4 className="text-sm font-bold mb-2">Stakeholder Acceptance</h4>
-          <div className="flex gap-3 text-xs flex-wrap mb-3">
-            <span className="flex items-center gap-1 text-emerald-400"><CheckCircle2 className="w-3 h-3" /> {accepts} Accept</span>
-            <span className="flex items-center gap-1 text-amber-400"><AlertTriangle className="w-3 h-3" /> {conditionals} Conditional</span>
-            <span className="flex items-center gap-1 text-red-400"><XCircle className="w-3 h-3" /> {rejects} Reject</span>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-            {Object.entries(stakeholderEvals).map(([id, evaluation]) => {
-              const cardColor = VERDICT_COLORS[evaluation.verdict] ?? "text-muted-foreground border-border bg-card";
-              return (
-                <div key={id} className={`p-2 rounded-lg border text-left ${cardColor}`}>
-                  <div className="flex items-center gap-1 mb-0.5">
-                    {VERDICT_ICONS[evaluation.verdict]}
-                    <span className="font-mono font-bold capitalize text-[10px]">{id.replace(/[_-]/g, " ")}</span>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">{safe(evaluation.rationale)}</p>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
-      )}
-
-      {scores && <ScoreBreakdownPanel scores={scores} label="Score Breakdown — Judge Panel" />}
-    </div>
-  );
-}
+import { ARCHITECTURE_COLORS, scoreColor } from "@/utils/deal-ui-constants";
 
 export default function DealHistory() {
   const { data: historyRes, isLoading } = useListDeals({ limit: 50 });
-  const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
+  const navigate = useNavigate();
 
   const historyDeals = useMemo(() => {
     return (historyRes?.data ?? [])
@@ -213,7 +99,7 @@ export default function DealHistory() {
           <Card className="p-6">
             <h3 className="text-lg font-bold mb-2">Score Evolution</h3>
             <p className="text-xs text-muted-foreground mb-4">
-              Composite scores for each AI deal iteration. Click a bar to expand the deal details below.
+              Composite scores for each AI deal iteration. Click a bar to view the full deal.
             </p>
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
@@ -234,18 +120,15 @@ export default function DealHistory() {
                     radius={[3, 3, 0, 0]}
                     cursor="pointer"
                     onClick={(data: { id?: string }) => {
-                      if (data.id) {
-                        const deal = historyDeals.find(d => d.id === data.id);
-                        if (deal) setSelectedDeal(prev => prev?.id === deal.id ? null : deal);
-                      }
+                      if (data.id) navigate(`/deals/${data.id}`);
                     }}
                   >
                     {historyBarData.map((entry) => (
                       <Cell
                         key={entry.id}
                         fill={ARCHITECTURE_COLORS[entry.architecture] ?? "#64748b"}
-                        stroke={entry.isCurrent ? "#fbbf24" : selectedDeal?.id === entry.id ? "#94a3b8" : "transparent"}
-                        strokeWidth={entry.isCurrent ? 2.5 : selectedDeal?.id === entry.id ? 2 : 0}
+                        stroke={entry.isCurrent ? "#fbbf24" : "transparent"}
+                        strokeWidth={entry.isCurrent ? 2.5 : 0}
                       />
                     ))}
                   </Bar>
@@ -270,51 +153,34 @@ export default function DealHistory() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {historyDeals.map((d, i) => {
               const s = d.scores as DealScores | null;
-              const isSelected = selectedDeal?.id === d.id;
               return (
-                <motion.div
-                  key={d.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.02 }}
-                  className={`p-3 rounded-lg border text-xs text-left transition-all cursor-pointer ${
-                    d.isCurrent ? "border-primary/50 bg-primary/5" :
-                    isSelected ? "border-primary/50 ring-1 ring-primary" : "border-border hover:border-border/80"
-                  }`}
-                  onClick={() => setSelectedDeal(isSelected ? null : d)}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-mono font-bold">
-                      Deal #{i + 1}
-                      <span className="ml-1.5 capitalize" style={{ color: ARCHITECTURE_COLORS[d.architecture] ?? "#94a3b8" }}>
-                        {d.architecture}
+                <Link key={d.id} to={`/deals/${d.id}`}>
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.02 }}
+                    className={`p-3 rounded-lg border text-xs text-left transition-all cursor-pointer hover:border-primary/50 ${
+                      d.isCurrent ? "border-primary/50 bg-primary/5" : "border-border hover:border-border/80"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-mono font-bold">
+                        Deal #{i + 1}
+                        <span className="ml-1.5 capitalize" style={{ color: ARCHITECTURE_COLORS[d.architecture] ?? "#94a3b8" }}>
+                          {d.architecture}
+                        </span>
                       </span>
-                    </span>
-                    <div className="flex items-center gap-1.5">
                       {d.isCurrent && <Badge className="text-[9px] px-1 py-0 h-4">champion</Badge>}
-                      <Link to={`/deals/${d.id}`} className="text-muted-foreground hover:text-primary transition-colors" title="Open permalink" onClick={e => e.stopPropagation()}>
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </Link>
                     </div>
-                  </div>
-                  <div className={`font-bold ${scoreColor(s?.composite ?? 0)}`}>
-                    {s ? `${((s.composite ?? 0) * 100).toFixed(0)}% composite` : "—"}
-                  </div>
-                  <div className="text-muted-foreground/60">{(() => { const dt = new Date(d.createdAt); return `${dt.getFullYear().toString().slice(2)}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")} ${dt.toLocaleTimeString("en-US",{hour12:false})}`; })()}</div>
-                </motion.div>
+                    <div className={`font-bold ${scoreColor(s?.composite ?? 0)}`}>
+                      {s ? `${((s.composite ?? 0) * 100).toFixed(0)}% composite` : "—"}
+                    </div>
+                    <div className="text-muted-foreground/60">{(() => { const dt = new Date(d.createdAt); return `${dt.getFullYear().toString().slice(2)}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")} ${dt.toLocaleTimeString("en-US",{hour12:false})}`; })()}</div>
+                  </motion.div>
+                </Link>
               );
             })}
           </div>
-
-          {selectedDeal && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="border-t border-primary/30 pt-6"
-            >
-              <DealExpandedView deal={selectedDeal} />
-            </motion.div>
-          )}
         </>
       )}
     </div>
