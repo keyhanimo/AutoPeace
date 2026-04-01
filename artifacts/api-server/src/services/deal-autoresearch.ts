@@ -246,29 +246,28 @@ async function getStallCount(architecture: string, parentNodeId: string | null):
   return nodes.filter(n => n.architecture === architecture && n.isStalled).length;
 }
 
+const REVISION_LANGUAGE_PATTERNS = [
+  /\brevis\w*\b/i,
+  /\bamend\w*\b/i,
+  /\bupdat\w*\b/i,
+  /\bmodif\w*\b/i,
+  /\ball\s+\w*\s*provisions\s+remain\b/i,
+  /\bkey changes\b/i,
+  /\bprevious\s+(version|deal|terms|proposal)\b/i,
+  /\bprior\s+(version|deal|terms|proposal)\b/i,
+  /\bin addition to previous\b/i,
+  /\bexisting provisions\b/i,
+];
+
 function sanitizeOverrides(overrides: Record<string, string>): Record<string, string> {
-  const BANNED_PHRASES = [
-    /\brevis\w*\b/gi,
-    /\bamend\w*\b/gi,
-    /\bupdat\w*\b/gi,
-    /\bmodif\w*\b/gi,
-    /\ball\s+\w*\s*provisions\s+remain\b/gi,
-    /\bkey changes\b/gi,
-    /\bprevious\s+(version|deal|terms|proposal)\b/gi,
-    /\bprior\s+(version|deal|terms|proposal)\b/gi,
-    /\bin addition to previous\b/gi,
-    /\bexisting provisions\b/gi,
-  ];
   const sanitized: Record<string, string> = {};
   for (const [key, val] of Object.entries(overrides)) {
-    let cleaned = val;
-    for (const pattern of BANNED_PHRASES) {
-      cleaned = cleaned.replace(pattern, (match) => {
-        logger.warn({ stage: "pipeline-evolution", key, match }, "Stripped banned phrase from pipeline override");
-        return "";
-      });
+    const matched = REVISION_LANGUAGE_PATTERNS.find(p => p.test(val));
+    if (matched) {
+      logger.warn({ stage: "pipeline-evolution", key, matchedPattern: matched.source }, "Dropped pipeline override — contains revision-referencing language");
+    } else {
+      sanitized[key] = val;
     }
-    sanitized[key] = cleaned;
   }
   return sanitized;
 }
@@ -341,6 +340,11 @@ async function evolvePipeline(
 
   for (const imp of improvements) {
     if (validStages.includes(imp.stage) && imp.suggestedChange && imp.suggestedChange.length > 10) {
+      const badPattern = REVISION_LANGUAGE_PATTERNS.find(p => p.test(imp.suggestedChange));
+      if (badPattern) {
+        logger.warn({ stage: imp.stage, matchedPattern: badPattern.source, suggestion: imp.suggestedChange.slice(0, 120) }, "Rejected pipeline improvement — contains revision-referencing language");
+        continue;
+      }
       const existing = newOverrides[imp.stage] || "";
       newOverrides[imp.stage] = existing
         ? `${existing}\n\nADDITIONAL INSTRUCTION (gen ${currentGeneration + 1}): ${imp.suggestedChange}`
