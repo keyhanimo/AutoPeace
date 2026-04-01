@@ -611,8 +611,6 @@ async function runDealCycleAsync(cycleId: string): Promise<void> {
         headline: dealHeadline,
         scoreDelta,
         keyEvidence: [],
-        experimentsTried: 0,
-        experimentsRetained: isBetterThanCurrent ? 1 : 0,
         notes: dealNotes,
       });
     } catch (changelogErr) {

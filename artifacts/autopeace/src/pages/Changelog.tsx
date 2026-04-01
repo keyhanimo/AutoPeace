@@ -220,7 +220,7 @@ export default function Changelog() {
                       ) : (
                         <>
                           <TrendingUp className="w-4 h-4 text-emerald-500" />
-                          <span>{entry.experimentsRetained}/{entry.experimentsTried} mutations retained</span>
+                          <span>Forecast updated</span>
                         </>
                       )}
                     </div>

@@ -49,9 +49,6 @@ export interface Forecast {
   probabilities: ForecastProbabilities;
   rationale: string;
   keyEvidenceItems: string[];
-  brierScore?: number | null;
-  logScore?: number | null;
-  calibrationBucket?: string | null;
   isCurrent: boolean;
   createdAt: string;
 }
@@ -98,7 +95,6 @@ export interface ExperimentStats {
   retentionRate: number;
   totalCostUsd: number;
   totalTokensConsumed: number;
-  latestBrierScore?: number | null;
   cyclesRun: number;
 }
 
@@ -186,8 +182,6 @@ export interface ChangelogEntry {
   forecastDelta?: ChangelogEntryForecastDelta;
   scoreDelta?: ChangelogEntryScoreDelta;
   keyEvidence?: ChangelogEntryKeyEvidenceItem[] | null;
-  experimentsTried: number;
-  experimentsRetained: number;
   notes?: string | null;
 }
 
@@ -751,10 +745,6 @@ export type GetAutoresearchTimelineParams = {
 export type GetAutoresearchTimeline200ForecastTimelineItem = {
   cycleId: string;
   timestamp: string;
-  brierScore?: number | null;
-  logScore?: number | null;
-  experimentsRun: number;
-  experimentsRetained: number;
 };
 
 export type GetAutoresearchTimeline200DealTimelineItem = {
@@ -769,46 +759,6 @@ export type GetAutoresearchTimeline200DealTimelineItem = {
 export type GetAutoresearchTimeline200 = {
   forecastTimeline: GetAutoresearchTimeline200ForecastTimelineItem[];
   dealTimeline: GetAutoresearchTimeline200DealTimelineItem[];
-};
-
-export type GetChampionLineageParams = {
-  task?: GetChampionLineageTask;
-  limit?: number;
-};
-
-export type GetChampionLineageTask =
-  (typeof GetChampionLineageTask)[keyof typeof GetChampionLineageTask];
-
-export const GetChampionLineageTask = {
-  A: "A",
-  B: "B",
-  all: "all",
-} as const;
-
-export type GetChampionLineage200ChampionsItemScoresBefore = {
-  [key: string]: unknown;
-} | null;
-
-export type GetChampionLineage200ChampionsItemScoresAfter = {
-  [key: string]: unknown;
-} | null;
-
-export type GetChampionLineage200ChampionsItem = {
-  id: string;
-  cycleId: string;
-  timestamp: string;
-  task: string;
-  changeDescription: string;
-  scoresBefore?: GetChampionLineage200ChampionsItemScoresBefore;
-  scoresAfter?: GetChampionLineage200ChampionsItemScoresAfter;
-  diagnosis?: string | null;
-  tokensConsumed: number;
-};
-
-export type GetChampionLineage200 = {
-  champions: GetChampionLineage200ChampionsItem[];
-  totalRetained: number;
-  totalExperiments: number;
 };
 
 export type GetPipelineEvolution200GenerationsItemPromptOverrides = {

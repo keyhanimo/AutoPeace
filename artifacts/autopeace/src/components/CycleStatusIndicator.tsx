@@ -5,8 +5,6 @@ const STAGE_LABELS: Record<string, string> = {
   evidence_ingestion: "Ingesting evidence",
   proposal_extraction: "Extracting proposals",
   forecasting: "Forecasting",
-  red_team: "Red-teaming",
-  hill_climbing: "Optimizing",
   changelog: "Writing changelog",
   deal_engine: "Deal engine",
   completed: "Completed",
@@ -30,7 +28,6 @@ const PIPELINE_STAGES = [
   "evidence_ingestion",
   "proposal_extraction",
   "forecasting",
-  "hill_climbing",
   "changelog",
   "deal_engine",
 ];

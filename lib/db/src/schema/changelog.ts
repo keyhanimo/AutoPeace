@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, integer, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -10,8 +10,6 @@ export const changelogEntriesTable = pgTable("changelog_entries", {
   forecastDelta: jsonb("forecast_delta"),
   scoreDelta: jsonb("score_delta"),
   keyEvidence: jsonb("key_evidence"),
-  experimentsTried: integer("experiments_tried").notNull().default(0),
-  experimentsRetained: integer("experiments_retained").notNull().default(0),
   notes: text("notes"),
 });
 

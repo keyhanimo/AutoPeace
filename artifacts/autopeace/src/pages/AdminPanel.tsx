@@ -333,7 +333,6 @@ export default function AdminPanel() {
           { key: "evidence_ingestion", label: "Evidence Ingestion" },
           { key: "proposal_extraction", label: "Proposal Extraction" },
           { key: "forecasting", label: "Forecasting" },
-          { key: "hill_climbing", label: "Hill Climbing" },
           { key: "changelog", label: "Changelog" },
           { key: "deal_engine", label: "Deal Engine" },
         ];

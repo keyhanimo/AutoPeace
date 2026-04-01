@@ -9,8 +9,4 @@
 export type GetAutoresearchTimeline200ForecastTimelineItem = {
   cycleId: string;
   timestamp: Date;
-  brierScore?: number | null;
-  logScore?: number | null;
-  experimentsRun: number;
-  experimentsRetained: number;
 };

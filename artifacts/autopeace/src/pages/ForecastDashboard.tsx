@@ -274,98 +274,6 @@ function computePeaceProb(probs: Record<string, number>): number {
   return PEACE_KEYS.reduce((acc, k) => acc + (probs[k] ?? 0), 0);
 }
 
-function CalibrationScorecard({ forecasts }: { forecasts: Forecast[] }) {
-  const brierScores = forecasts.filter(f => f.brierScore != null).map(f => f.brierScore!);
-  const avgBrier = brierScores.length > 0 ? brierScores.reduce((a, b) => a + b, 0) / brierScores.length : null;
-  const lastBrier = brierScores[brierScores.length - 1] ?? null;
-  const trend = brierScores.length >= 2 ? (brierScores[brierScores.length - 1] ?? 0) - (brierScores[0] ?? 0) : null;
-
-  const data = brierScores.slice(-10).map((b, i) => ({ cycle: `C${i + 1}`, brier: parseFloat(b.toFixed(4)) }));
-
-  return (
-    <Card className="p-6">
-      <div className="mb-4">
-        <h3 className="text-lg font-bold flex items-center gap-2 mb-1">
-          <Target className="w-4 h-4 text-primary" />
-          Calibration Scorecard
-        </h3>
-        <p className="text-xs text-muted-foreground leading-relaxed">
-          The <span className="text-foreground font-medium">Brier score</span> measures how accurate the AI's probability forecasts are.{" "}
-          <span className="text-emerald-400 font-medium">Lower is better</span> — 0 means perfect, 0.25 means no better than random guessing, 1 means worst possible. The chart below tracks Brier score across the last 10 research cycles.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-3 gap-3 mb-5">
-        <div className="text-center bg-secondary/20 rounded-sm p-3">
-          <div className="text-xl font-bold font-mono text-blue-400">{lastBrier?.toFixed(3) ?? "—"}</div>
-          <div className="text-xs text-muted-foreground mt-0.5">Latest Brier</div>
-        </div>
-        <div className="text-center bg-secondary/20 rounded-sm p-3">
-          <div className="text-xl font-bold font-mono text-purple-400">{avgBrier?.toFixed(3) ?? "—"}</div>
-          <div className="text-xs text-muted-foreground mt-0.5">Avg Brier (last 10)</div>
-        </div>
-        <div className="text-center bg-secondary/20 rounded-sm p-3">
-          <div className={`text-xl font-bold font-mono ${trend != null ? (trend < 0 ? "text-emerald-400" : "text-red-400") : "text-muted-foreground"}`}>
-            {trend != null ? (trend < 0 ? "↓ " : "↑ ") + Math.abs(trend).toFixed(3) : "—"}
-          </div>
-          <div className="text-xs text-muted-foreground mt-0.5">
-            {trend != null ? (trend < 0 ? "Improving" : "Worsening") : "Trend"}
-          </div>
-        </div>
-      </div>
-
-      {data.length >= 2 ? (
-        <div>
-          <div className="h-44">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data} margin={{ top: 4, right: 12, left: 4, bottom: 20 }}>
-                <XAxis
-                  dataKey="cycle"
-                  tick={{ fontSize: 10, fill: "#64748b" }}
-                  label={{ value: "Research Cycle", position: "insideBottom", offset: -12, fontSize: 11, fill: "#64748b" }}
-                />
-                <YAxis
-                  domain={['auto', 'auto']}
-                  tick={{ fontSize: 10, fill: "#64748b" }}
-                  tickFormatter={(v: number) => v.toFixed(2)}
-                  width={42}
-                  label={{ value: "Brier Score", angle: -90, position: "insideLeft", offset: 14, fontSize: 11, fill: "#64748b" }}
-                />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '6px', fontSize: '11px', color: '#f8fafc' }}
-                  formatter={(v: number) => [v.toFixed(4), 'Brier Score']}
-                  labelFormatter={(label: string) => `Cycle ${label}`}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="brier"
-                  stroke="#0284c7"
-                  strokeWidth={2}
-                  dot={{ r: 3, fill: "#0284c7", strokeWidth: 0 }}
-                  activeDot={{ r: 5 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-          {lastBrier != null && (
-            <div className="flex items-center justify-center gap-2 mt-2 px-3 py-2 rounded-sm bg-emerald-950/30 border border-emerald-800/20">
-              <span className="text-emerald-400 text-sm font-bold">✓</span>
-              <p className="text-xs text-muted-foreground">
-                Current score <span className="text-blue-400 font-mono font-semibold">{lastBrier.toFixed(3)}</span> is{" "}
-                <span className="text-emerald-400 font-semibold">{((1 - lastBrier / 0.25) * 100).toFixed(0)}% below</span>{" "}
-                the random-guess baseline of{" "}
-                <span className="text-foreground font-mono">0.250</span> — indicating genuine predictive signal.
-              </p>
-            </div>
-          )}
-        </div>
-      ) : (
-        <p className="text-xs text-muted-foreground text-center">Run more cycles for calibration trend</p>
-      )}
-    </Card>
-  );
-}
-
 function PredictionMarketComparison({ activeForecast }: { activeForecast: Forecast }) {
   const probs = getProbs(activeForecast);
   const autoPeacePeace = computePeaceProb(probs) * 100;
@@ -555,10 +463,10 @@ export default function ForecastDashboard() {
             </Card>
             <Card className="p-4 text-center">
               <div className="text-3xl font-display font-bold text-blue-400">
-                {activeForecast.brierScore?.toFixed(3) ?? '—'}
+                {activeForecast.cycleId?.slice(0, 8) ?? '—'}
               </div>
-              <div className="text-xs text-muted-foreground mt-1 font-semibold">Brier Score</div>
-              <div className="text-[10px] text-muted-foreground/70 mt-1.5 leading-relaxed">Calibration accuracy (0 = perfect, 1 = worst). Measures how close predicted probabilities are to observed outcomes</div>
+              <div className="text-xs text-muted-foreground mt-1 font-semibold">Cycle ID</div>
+              <div className="text-[10px] text-muted-foreground/70 mt-1.5 leading-relaxed">Research cycle that produced this forecast</div>
             </Card>
           </div>
 
@@ -701,8 +609,8 @@ export default function ForecastDashboard() {
                     <span className="font-mono text-xs">{activeForecast.evidencePackVersion}</span>
                   </div>
                   <div className="flex justify-between border-b border-border/50 pb-2">
-                    <span className="text-muted-foreground">Brier Score</span>
-                    <span className="font-mono">{activeForecast.brierScore?.toFixed(3) ?? '—'}</span>
+                    <span className="text-muted-foreground">Cycle ID</span>
+                    <span className="font-mono text-xs">{activeForecast.cycleId?.slice(0, 12) ?? '—'}</span>
                   </div>
                   <div className="flex justify-between border-b border-border/50 pb-2">
                     <span className="text-muted-foreground">Max Outcome</span>
@@ -775,14 +683,11 @@ export default function ForecastDashboard() {
 
           <CommunityForecastPanel activeForecast={activeForecast} />
 
-          <div className="grid lg:grid-cols-2 gap-6">
-            <CalibrationScorecard forecasts={allForecasts} />
-            <PredictionMarketComparison activeForecast={activeForecast} />
-          </div>
+          <PredictionMarketComparison activeForecast={activeForecast} />
 
           <DataSourceNote
             title="Forecasting Methodology & Sources"
-            methodology="Forecasts are generated using a Bayesian multi-model pipeline. Claude produces initial probability distributions across 8 mutually exclusive, collectively exhaustive (MECE) outcome states for 4 time horizons (30d, 90d, 180d, 1y). Gemini red-teams the 90d forecast with adversarial mutations. GPT-4o evaluates whether mutations improve calibration. Only mutations that pass evaluation are retained (Hill Climbing optimization). Probabilities are conditioned on the 30 most recent evidence items from RSS feeds (Reuters, AP, Guardian, BBC, Al Jazeera), ACLED, and GDELT."
+            methodology="Forecasts are generated using a multi-model pipeline. Claude produces probability distributions across 8 mutually exclusive, collectively exhaustive (MECE) outcome states for 4 time horizons (30d, 90d, 180d, 1y). Probabilities are conditioned on the 30 most recent evidence items from RSS feeds (Reuters, AP, Guardian, BBC, Al Jazeera), ACLED, and GDELT."
             sources={[
               { label: "Evidence corpus", detail: "RSS (Reuters, AP, Guardian, BBC, Al Jazeera), ACLED conflict data, GDELT event database" },
               { label: "Forecasting model", detail: "Anthropic Claude (base forecast generation)" },

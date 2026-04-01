@@ -12,6 +12,5 @@ export interface ExperimentStats {
   retentionRate: number;
   totalCostUsd: number;
   totalTokensConsumed: number;
-  latestBrierScore?: number | null;
   cyclesRun: number;
 }

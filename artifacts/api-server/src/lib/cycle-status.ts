@@ -5,8 +5,6 @@ export type CycleStage =
   | "evidence_ingestion"
   | "proposal_extraction"
   | "forecasting"
-  | "red_team"
-  | "hill_climbing"
   | "deal_engine"
   | "changelog"
   | "completed"

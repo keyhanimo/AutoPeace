@@ -17,7 +17,5 @@ export interface ChangelogEntry {
   forecastDelta?: ChangelogEntryForecastDelta;
   scoreDelta?: ChangelogEntryScoreDelta;
   keyEvidence?: ChangelogEntryKeyEvidenceItem[] | null;
-  experimentsTried: number;
-  experimentsRetained: number;
   notes?: string | null;
 }

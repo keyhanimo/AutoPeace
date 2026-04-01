@@ -43,8 +43,6 @@ import type {
   Forecast,
   GetAutoresearchTimeline200,
   GetAutoresearchTimelineParams,
-  GetChampionLineage200,
-  GetChampionLineageParams,
   GetCommunityForecastAggregate200,
   GetCommunityForecastAggregateParams,
   GetDealHistory200,
@@ -531,106 +529,6 @@ export function useGetAutoresearchTimeline<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetAutoresearchTimelineQueryOptions(params, options);
-
-  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
-    queryKey: QueryKey;
-  };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-/**
- * @summary Ordered list of retained experiments showing the champion evolution
- */
-export const getGetChampionLineageUrl = (params?: GetChampionLineageParams) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? "null" : value.toString());
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0
-    ? `/api/autoresearch/champion-lineage?${stringifiedParams}`
-    : `/api/autoresearch/champion-lineage`;
-};
-
-export const getChampionLineage = async (
-  params?: GetChampionLineageParams,
-  options?: RequestInit,
-): Promise<GetChampionLineage200> => {
-  return customFetch<GetChampionLineage200>(getGetChampionLineageUrl(params), {
-    ...options,
-    method: "GET",
-  });
-};
-
-export const getGetChampionLineageQueryKey = (
-  params?: GetChampionLineageParams,
-) => {
-  return [
-    `/api/autoresearch/champion-lineage`,
-    ...(params ? [params] : []),
-  ] as const;
-};
-
-export const getGetChampionLineageQueryOptions = <
-  TData = Awaited<ReturnType<typeof getChampionLineage>>,
-  TError = ErrorType<unknown>,
->(
-  params?: GetChampionLineageParams,
-  options?: {
-    query?: UseQueryOptions<
-      Awaited<ReturnType<typeof getChampionLineage>>,
-      TError,
-      TData
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ?? getGetChampionLineageQueryKey(params);
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof getChampionLineage>>
-  > = ({ signal }) => getChampionLineage(params, { signal, ...requestOptions });
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getChampionLineage>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
-
-export type GetChampionLineageQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getChampionLineage>>
->;
-export type GetChampionLineageQueryError = ErrorType<unknown>;
-
-/**
- * @summary Ordered list of retained experiments showing the champion evolution
- */
-
-export function useGetChampionLineage<
-  TData = Awaited<ReturnType<typeof getChampionLineage>>,
-  TError = ErrorType<unknown>,
->(
-  params?: GetChampionLineageParams,
-  options?: {
-    query?: UseQueryOptions<
-      Awaited<ReturnType<typeof getChampionLineage>>,
-      TError,
-      TData
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetChampionLineageQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

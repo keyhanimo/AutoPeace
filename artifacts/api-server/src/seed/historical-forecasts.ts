@@ -28,9 +28,6 @@ const CURRENT_FORECASTS = [
       "Trump executive order expanding Iran sanctions (Jan 2025)",
       "Gaza ceasefire Phase 1 holding but Rafah offensive risk remains",
     ],
-    brierScore: 0.076,
-    logScore: -0.42,
-    calibrationBucket: null,
     isCurrent: true,
   },
   {
@@ -54,9 +51,6 @@ const CURRENT_FORECASTS = [
       "Israeli PM coalition pressure for military action on Fordow",
       "Iran Revolutionary Guard command structure changes",
     ],
-    brierScore: 0.083,
-    logScore: -0.47,
-    calibrationBucket: null,
     isCurrent: true,
   },
   {
@@ -80,9 +74,6 @@ const CURRENT_FORECASTS = [
       "China-Iran strategic partnership deepening (trade data)",
       "US-GCC talks on collective deterrence framework",
     ],
-    brierScore: null,
-    logScore: null,
-    calibrationBucket: null,
     isCurrent: true,
   },
   {
@@ -106,9 +97,6 @@ const CURRENT_FORECASTS = [
       "JCPOA negotiations precedent: 2013-2015 trajectory",
       "Regional security architecture negotiations via P5+1 successor track",
     ],
-    brierScore: null,
-    logScore: null,
-    calibrationBucket: null,
     isCurrent: true,
   },
 ];
@@ -135,9 +123,6 @@ const HISTORICAL_RECORDS = [
       "Israeli retaliatory strike near Isfahan, April 19 (Reuters)",
       "US 'iron fist' deployment to region (DoD press release)",
     ],
-    brierScore: 0.064,
-    logScore: -0.32,
-    calibrationBucket: "resolved:continued_conflict",
     isCurrent: false,
   },
   {
@@ -161,9 +146,6 @@ const HISTORICAL_RECORDS = [
       "Israel coalition strike on Iranian air defense sites, October 26",
       "US repositions carrier strike group to eastern Mediterranean",
     ],
-    brierScore: 0.097,
-    logScore: -0.51,
-    calibrationBucket: "resolved:continued_conflict",
     isCurrent: false,
   },
   {
@@ -187,9 +169,6 @@ const HISTORICAL_RECORDS = [
       "Iran uranium enrichment at 60% — near weapons grade (IAEA)",
       "Hezbollah ceasefire partial holding but fragile (UN)",
     ],
-    brierScore: 0.074,
-    logScore: -0.41,
-    calibrationBucket: "resolved:continued_conflict",
     isCurrent: false,
   },
 ];

@@ -598,13 +598,13 @@ export default function ExperimentLog() {
       <DataSourceNote
         compact
         title="Evolution Methodology"
-        methodology="Each research cycle, the agent mutates its own prompt instructions (optimistic, pessimistic, or base-rate adjustments). Gemini generates the mutation; GPT-4o evaluates whether the mutated prompt produces better Brier scores than the current champion. Only mutations that improve calibration are retained. Retention rate measures the fraction of mutations accepted."
+        methodology="Each deal cycle, the agent generates a fresh peace proposal using one of 7 deal architectures. The proposal is evaluated through a multi-stage pipeline with adversarial independence across LLM providers. If the new deal scores higher on the 7-dimension composite metric than the current best, it replaces it. The pipeline's own prompts evolve over time via score-gated hill-climbing."
         sources={[
-          { label: "Mutation types", detail: "Optimistic bias, Pessimistic bias, Base-rate anchoring" },
-          { label: "Evaluation metric", detail: "Brier score (quadratic proper scoring rule)" },
-          { label: "Solution tree", detail: "Branch-and-bound exploration across deal architectures (balanced, nuclear-first, hormuz-first, humanitarian-first)" },
+          { label: "Deal architectures", detail: "Balanced, nuclear-first, hormuz-first, humanitarian-first, plus 3 radical approaches" },
+          { label: "Evaluation metric", detail: "7-dimension weighted composite score (feasibility, coherence, evidence grounding, domestic sellability, regional stability, implementability, durability)" },
+          { label: "Solution tree", detail: "Branch-and-bound exploration across deal architectures" },
         ]}
-        limitations={["Brier scores are computed against the model's own prior — not external ground truth outcomes."]}
+        limitations={["Composite scores are computed by LLM judges — not external human expert evaluation."]}
       />
     </div>
   );

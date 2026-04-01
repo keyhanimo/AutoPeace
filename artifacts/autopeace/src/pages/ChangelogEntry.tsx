@@ -118,7 +118,7 @@ export default function ChangelogEntry() {
           ) : (
             <>
               <TrendingUp className="w-3 h-3 mr-1" />
-              {entry.experimentsRetained}/{entry.experimentsTried} mutations retained
+              Forecast Update
             </>
           )}
         </Badge>

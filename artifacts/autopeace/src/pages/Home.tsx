@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, Crosshair, Cpu, TrendingDown, Gauge, Trophy, Users } from "lucide-react";
+import { ArrowRight, Cpu, Gauge, Trophy, Users, FileText } from "lucide-react";
 import { useGetExperimentStats, useGetLatestForecasts, useGetCurrentDeal, useListProposals, type Forecast, type DealScores, type Proposal } from "@workspace/api-client-react";
 import { Card, Button, Badge } from "@/components/ui";
 import { AutoresearchPulse } from "@/components/AutoresearchBadge";
@@ -255,16 +255,7 @@ export default function Home() {
         <Card className="p-6 rounded-sm">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-0.5 h-6 bg-primary rounded-full" />
-            <Crosshair className="w-5 h-5 text-primary" />
-          </div>
-          <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-widest font-bold">Latest Brier Score</p>
-          <h3 className="text-3xl font-display font-bold">{statsLoading ? "--" : stats?.latestBrierScore?.toFixed(3) || "N/A"}</h3>
-          <p className="text-xs text-muted-foreground mt-2">Lower is better (0 = perfect)</p>
-        </Card>
-        <Card className="p-6 rounded-sm">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-0.5 h-6 bg-blue-500 rounded-full" />
-            <Cpu className="w-5 h-5 text-blue-500" />
+            <Cpu className="w-5 h-5 text-primary" />
           </div>
           <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-widest font-bold">Research Cycles</p>
           <h3 className="text-3xl font-display font-bold">{statsLoading ? "--" : stats?.cyclesRun}</h3>
@@ -272,12 +263,21 @@ export default function Home() {
         </Card>
         <Card className="p-6 rounded-sm">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-0.5 h-6 bg-emerald-500 rounded-full" />
-            <TrendingDown className="w-5 h-5 text-emerald-500" />
+            <div className="w-0.5 h-6 bg-blue-500 rounded-full" />
+            <FileText className="w-5 h-5 text-blue-500" />
           </div>
-          <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-widest font-bold">Experiments Retained</p>
+          <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-widest font-bold">Deal Experiments</p>
+          <h3 className="text-3xl font-display font-bold">{statsLoading ? "--" : stats?.total}</h3>
+          <p className="text-xs text-muted-foreground mt-2">{stats?.retained} retained of {stats?.total} total</p>
+        </Card>
+        <Card className="p-6 rounded-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-0.5 h-6 bg-emerald-500 rounded-full" />
+            <Trophy className="w-5 h-5 text-emerald-500" />
+          </div>
+          <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-widest font-bold">Retention Rate</p>
           <h3 className="text-3xl font-display font-bold">{statsLoading ? "--" : `${((stats?.retentionRate || 0) * 100).toFixed(0)}%`}</h3>
-          <p className="text-xs text-muted-foreground mt-2">{stats?.retained} of {stats?.total} retained</p>
+          <p className="text-xs text-muted-foreground mt-2">Deal experiments retained</p>
         </Card>
         <Card className="p-6 rounded-sm">
           <div className="flex items-center gap-3 mb-4">

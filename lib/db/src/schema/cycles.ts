@@ -9,8 +9,6 @@ export const cyclesTable = pgTable("cycles", {
   status: text("status").notNull().default("running"),
   tokensConsumed: integer("tokens_consumed").notNull().default(0),
   costUsd: real("cost_usd").notNull().default(0),
-  experimentsRun: integer("experiments_run").notNull().default(0),
-  experimentsRetained: integer("experiments_retained").notNull().default(0),
   errorMessage: text("error_message"),
 });
 

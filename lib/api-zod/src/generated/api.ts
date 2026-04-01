@@ -47,9 +47,6 @@ export const ListForecastsResponse = zod.object({
       }),
       rationale: zod.string(),
       keyEvidenceItems: zod.array(zod.string()),
-      brierScore: zod.number().nullish(),
-      logScore: zod.number().nullish(),
-      calibrationBucket: zod.string().nullish(),
       isCurrent: zod.boolean(),
       createdAt: zod.coerce.date(),
     }),
@@ -80,9 +77,6 @@ export const GetLatestForecastsResponse = zod.object({
       }),
       rationale: zod.string(),
       keyEvidenceItems: zod.array(zod.string()),
-      brierScore: zod.number().nullish(),
-      logScore: zod.number().nullish(),
-      calibrationBucket: zod.string().nullish(),
       isCurrent: zod.boolean(),
       createdAt: zod.coerce.date(),
     }),
@@ -114,9 +108,6 @@ export const GetForecastResponse = zod.object({
   }),
   rationale: zod.string(),
   keyEvidenceItems: zod.array(zod.string()),
-  brierScore: zod.number().nullish(),
-  logScore: zod.number().nullish(),
-  calibrationBucket: zod.string().nullish(),
   isCurrent: zod.boolean(),
   createdAt: zod.coerce.date(),
 });
@@ -135,10 +126,6 @@ export const GetAutoresearchTimelineResponse = zod.object({
     zod.object({
       cycleId: zod.string(),
       timestamp: zod.coerce.date(),
-      brierScore: zod.number().nullish(),
-      logScore: zod.number().nullish(),
-      experimentsRun: zod.number(),
-      experimentsRetained: zod.number(),
     }),
   ),
   dealTimeline: zod.array(
@@ -151,35 +138,6 @@ export const GetAutoresearchTimelineResponse = zod.object({
       isCurrent: zod.boolean(),
     }),
   ),
-});
-
-/**
- * @summary Ordered list of retained experiments showing the champion evolution
- */
-export const getChampionLineageQueryTaskDefault = `all`;
-export const getChampionLineageQueryLimitDefault = 30;
-
-export const GetChampionLineageQueryParams = zod.object({
-  task: zod.enum(["A", "B", "all"]).default(getChampionLineageQueryTaskDefault),
-  limit: zod.coerce.number().default(getChampionLineageQueryLimitDefault),
-});
-
-export const GetChampionLineageResponse = zod.object({
-  champions: zod.array(
-    zod.object({
-      id: zod.string(),
-      cycleId: zod.string(),
-      timestamp: zod.coerce.date(),
-      task: zod.string(),
-      changeDescription: zod.string(),
-      scoresBefore: zod.object({}).passthrough().nullish(),
-      scoresAfter: zod.object({}).passthrough().nullish(),
-      diagnosis: zod.string().nullish(),
-      tokensConsumed: zod.number(),
-    }),
-  ),
-  totalRetained: zod.number(),
-  totalExperiments: zod.number(),
 });
 
 /**
@@ -253,7 +211,6 @@ export const GetExperimentStatsResponse = zod.object({
   retentionRate: zod.number(),
   totalCostUsd: zod.number(),
   totalTokensConsumed: zod.number(),
-  latestBrierScore: zod.number().nullish(),
   cyclesRun: zod.number(),
 });
 
@@ -450,8 +407,6 @@ export const ListChangelogResponse = zod.object({
       forecastDelta: zod.record(zod.string(), zod.unknown()).nullish(),
       scoreDelta: zod.record(zod.string(), zod.unknown()).nullish(),
       keyEvidence: zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
-      experimentsTried: zod.number(),
-      experimentsRetained: zod.number(),
       notes: zod.string().nullish(),
     }),
   ),
@@ -473,8 +428,6 @@ export const GetChangelogEntryResponse = zod.object({
   forecastDelta: zod.record(zod.string(), zod.unknown()).nullish(),
   scoreDelta: zod.record(zod.string(), zod.unknown()).nullish(),
   keyEvidence: zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
-  experimentsTried: zod.number(),
-  experimentsRetained: zod.number(),
   notes: zod.string().nullish(),
 });
 

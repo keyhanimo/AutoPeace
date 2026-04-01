@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Microscope, TrendingUp, GitBranch, Zap } from "lucide-react";
-import { useGetExperimentStats, useGetPipelineEvolution, useGetChampionLineage } from "@workspace/api-client-react";
+import { useGetExperimentStats, useGetPipelineEvolution } from "@workspace/api-client-react";
 import { useCycleStatus } from "./CycleStatusIndicator";
 
 export function AutoresearchPulse() {
@@ -32,9 +32,6 @@ export function AutoresearchPulse() {
       </div>
       <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
         <span>Gen <strong className="text-foreground">{evo?.currentGeneration ?? 0}</strong></span>
-        {stats?.latestBrierScore != null && (
-          <span>Brier <strong className="text-foreground">{stats.latestBrierScore.toFixed(3)}</strong></span>
-        )}
       </div>
       <p className="text-[10px] text-primary/70 mt-2 group-hover:text-primary transition-colors flex items-center gap-1">
         Open Autoresearch Lab <Zap className="w-3 h-3" />
@@ -45,15 +42,13 @@ export function AutoresearchPulse() {
 
 export function ForecastAutoresearchBadge() {
   const { data: stats } = useGetExperimentStats();
-  const { data: lineage } = useGetChampionLineage({ task: "A", limit: 1 });
   const status = useCycleStatus();
 
-  const isForecasting = status?.isRunning && (status.stage === "forecasting" || status.stage === "hill_climbing");
-  const latestChampion = lineage?.champions?.[0];
+  const isForecasting = status?.isRunning && status.stage === "forecasting";
 
   return (
     <Link
-      to="/lab?tab=champions"
+      to="/lab"
       className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/5 border border-primary/20 hover:bg-primary/10 transition-colors rounded-sm text-xs"
     >
       {isForecasting ? (
@@ -62,7 +57,7 @@ export function ForecastAutoresearchBadge() {
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
             <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
           </span>
-          <span className="text-primary font-medium">Optimizing forecasts…</span>
+          <span className="text-primary font-medium">Generating forecast…</span>
         </>
       ) : (
         <>
@@ -70,16 +65,6 @@ export function ForecastAutoresearchBadge() {
           <span className="text-muted-foreground">
             <strong className="text-foreground">{stats?.cyclesRun ?? 0}</strong> cycles
           </span>
-          {stats?.latestBrierScore != null && (
-            <span className="text-muted-foreground">
-              · Brier <strong className="text-foreground">{stats.latestBrierScore.toFixed(3)}</strong>
-            </span>
-          )}
-          {latestChampion && (
-            <span className="text-muted-foreground">
-              · last mutation: <strong className="text-foreground">{latestChampion.changeDescription?.slice(0, 30)}{(latestChampion.changeDescription?.length ?? 0) > 30 ? "…" : ""}</strong>
-            </span>
-          )}
         </>
       )}
     </Link>

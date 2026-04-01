@@ -17,9 +17,6 @@ export interface Forecast {
   probabilities: ForecastProbabilities;
   rationale: string;
   keyEvidenceItems: string[];
-  brierScore?: number | null;
-  logScore?: number | null;
-  calibrationBucket?: string | null;
   isCurrent: boolean;
   createdAt: Date;
 }

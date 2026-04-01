@@ -53,8 +53,8 @@ artifacts-monorepo/
 
 - **stakeholders** — 33 conflict actors with flags/roles/definitions + `tier` (required/critical/influential/contextual) and `profileSummary` columns. Categories: core_principal (3), gulf_state (6), regional_broker (8), external_power (8), global_bloc (3), international_org (1), internal_faction (2). Profiles loaded from DB at deal pipeline runtime (no more hardcoded registry). Evidence-driven profile updates run each cycle via `stakeholder-updater.ts`.
 - **cycles** — autoresearch run records (status, tokens, timestamps)
-- **forecasts** — probability distributions across 8 outcome states per time horizon
-- **experiments** — red-team mutation log (Task A: Gemini red-team + GPT-4o eval)
+- **forecasts** — probability distributions across 8 outcome states per time horizon (no scoring fields — forecasting generates a single forecast per cycle)
+- **experiments** — deal pipeline experiment log (hill-climbing applies only to deal generation, not forecasting)
 - **evidence_items** — ingested RSS articles classified by evidence type
 - **evidence_sources** — 5 RSS source configurations
 - **cost_of_war** — economic/human cost data for Iran, US, Israel
@@ -79,8 +79,7 @@ Run migrations: `pnpm --filter @workspace/db run push`
 - `GET /api/changelog` — cycle changelog entries
 - `GET /api/stakeholders` — all 32 stakeholders
 - `GET /api/changelog/:id` — single changelog entry detail
-- `GET /api/autoresearch/timeline` — aggregated score history across research cycles (forecast + deal timelines)
-- `GET /api/autoresearch/champion-lineage` — ordered list of retained experiments showing champion evolution
+- `GET /api/autoresearch/timeline` — aggregated timeline across research cycles (deal timeline with composite scores)
 - `GET /api/autoresearch/pipeline-evolution` — pipeline evolution history (prompt overrides, generation progression)
 
 ### Live Monitor
@@ -110,10 +109,9 @@ All text LLM calls route through `artifacts/api-server/src/services/llm-router.t
 
 Each cycle (triggered manually or by cron):
 1. **Evidence ingestion** — RSS feeds (Reuters, AP, Guardian, BBC, Al Jazeera) filtered by Iran keywords
-2. **Forecasting** — generates probabilities for 4 time horizons (30d, 90d, 180d, 1y) via admin-configured forecasting provider/model
-3. **Red-team** — adversarial provider challenges the 90d forecast
-4. **Evaluation** — evaluation provider evaluates and retains/discards the mutation
-5. **Changelog** — auto-headline generated from 90d probability leader; deal engine also inserts changelog entries with `scoreDelta`
+2. **Forecasting** — generates a single set of probabilities for 4 time horizons (30d, 90d, 180d, 1y) via admin-configured forecasting provider/model (no experimentation or hill-climbing)
+3. **Changelog** — auto-headline generated from 90d probability leader
+4. **Deal engine** — generates and evaluates peace deal proposals through multi-stage pipeline; hill-climbing/autoresearch applies only here, with composite scoring metric
 
 Scheduler: hourly cron check, runs at UTC 6am daily by default.
 
