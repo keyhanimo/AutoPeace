@@ -88,7 +88,7 @@ export default function Methodology() {
             <li><a href="#system-architecture" className="hover:text-primary transition-colors">System Architecture Overview</a></li>
             <li><a href="#evidence-ingestion" className="hover:text-primary transition-colors">Evidence Ingestion Pipeline</a></li>
             <li><a href="#task-a" className="hover:text-primary transition-colors">Task A: Bayesian Conflict Forecasting</a></li>
-            <li><a href="#hill-climbing" className="hover:text-primary transition-colors">Hill-Climbing Self-Improvement Loop</a></li>
+            <li><a href="#hill-climbing" className="hover:text-primary transition-colors">Forecast Generation &amp; Persistence</a></li>
             <li><a href="#task-b" className="hover:text-primary transition-colors">Task B: Autonomous Deal Optimization</a></li>
             <li><a href="#deal-memory" className="hover:text-primary transition-colors">Deal Memory &amp; Provision-Level Learning</a></li>
             <li><a href="#task-c" className="hover:text-primary transition-colors">Task C: Crowdsourced Proposal Evaluation</a></li>
@@ -110,7 +110,7 @@ export default function Methodology() {
             AutoPeace is a triple-objective autoresearch system that performs three complementary tasks:
           </p>
           <ul>
-            <li><strong>Task A — Bayesian Conflict Forecasting:</strong> Continuously updating probability distributions across eight mutually exclusive conflict outcome states for the Iran-US-Israel conflict complex, using multi-agent LLM debate and hill-climbing calibration optimization.</li>
+            <li><strong>Task A — Bayesian Conflict Forecasting:</strong> Continuously updating probability distributions across eight mutually exclusive conflict outcome states for the Iran-US-Israel conflict complex, generating a single evidence-conditioned forecast per research cycle.</li>
             <li><strong>Task B — Autonomous Peace Deal Optimization:</strong> Generating, evaluating, and iteratively refining AI-originated peace deal proposals through a multi-stage pipeline (Stages 0–8 including sub-stages) that includes creative brainstorming from historical precedents, stakeholder modeling, adversarial red-teaming, domestic political analysis, creative reframing of perceived concessions, Pareto-optimal negotiation search, multi-model judicial scoring, self-improving prompt evolution, deal memory with provision-level learning, and radical architecture exploration.</li>
             <li><strong>Task C — Crowdsourced Proposal Evaluation:</strong> Accepting peace proposals from external sources — both community submissions and real-world proposals automatically extracted from news evidence — and subjecting them to the same rigorous 8-stage multi-agent evaluation pipeline used for AI-generated deals, enabling direct comparison across human and machine-originated proposals on identical scoring dimensions.</li>
           </ul>
@@ -129,7 +129,7 @@ export default function Methodology() {
           <div className="space-y-4 not-prose text-sm">
             <div className="bg-card p-4 border border-border">
               <h4 className="font-bold text-foreground mb-1">Successive Refinement over State</h4>
-              <p className="text-muted-foreground">AutoPeace treats outputs as <em>state to be iteratively refined</em> across cycles. In Task A (forecasting), the system generates a fresh probability distribution each cycle conditioned on the latest evidence pack. In Task B (deal optimization), the system generates a fresh proposal each cycle informed by the previous deal's failure diagnosis and current evidence, then compares its composite score to the current best deal, retaining whichever scores higher — true hill-climbing over the composite score. Both loops embody the autoresearch principle: LLM output is not the final product — it is the starting point for automated improvement.</p>
+              <p className="text-muted-foreground">AutoPeace treats outputs as <em>state to be iteratively refined</em> across cycles. In Task A (forecasting), the system generates a fresh probability distribution each cycle conditioned on the latest evidence pack — a single forecast per cycle without experimentation. In Task B (deal optimization), the system generates a fresh proposal each cycle informed by the previous deal's failure diagnosis and current evidence, then compares its composite score to the current best deal, retaining whichever scores higher — true hill-climbing over the composite score. Task B embodies the core autoresearch principle: LLM output is not the final product — it is the starting point for automated improvement.</p>
             </div>
             <div className="bg-card p-4 border border-border">
               <h4 className="font-bold text-foreground mb-1">LLM-as-Judge with Generation/Evaluation Independence</h4>
@@ -236,7 +236,7 @@ export default function Methodology() {
 
           <h3 className="text-xl font-bold font-display text-foreground mt-6">5.2 Time Horizons</h3>
           <p>
-            Forecasts are generated independently for four time horizons: <strong>30 days</strong>, <strong>90 days</strong>, <strong>180 days</strong>, and <strong>1 year</strong>. Each horizon receives its own prompt with identical evidence but horizon-specific framing. The 90-day horizon serves as the primary optimization target for the hill-climbing loop.
+            Forecasts are generated independently for four time horizons: <strong>30 days</strong>, <strong>90 days</strong>, <strong>180 days</strong>, and <strong>1 year</strong>. Each horizon receives its own prompt with identical evidence but horizon-specific framing.
           </p>
 
           <h3 className="text-xl font-bold font-display text-foreground mt-6">5.3 Forecasting Model</h3>
@@ -258,7 +258,7 @@ export default function Methodology() {
             <RefreshCw className="w-6 h-6 text-primary" /> 6. Forecast Generation
           </h2>
           <p>
-            Each research cycle generates a single set of probability forecasts across 4 time horizons (30d, 90d, 180d, 1y) for 8 mutually exclusive outcome states. The forecasting model produces calibrated distributions conditioned on the latest evidence pack, incorporating both recent tactical developments and longer-term structural factors.
+            Each research cycle generates a single set of probability forecasts across 4 time horizons (30d, 90d, 180d, 1y) for 8 mutually exclusive outcome states. The forecasting model produces probability distributions conditioned on the latest evidence pack, incorporating both recent tactical developments and longer-term structural factors.
           </p>
 
           <h3 className="text-xl font-bold font-display text-foreground mt-6">6.1 Forecast Output</h3>
@@ -600,7 +600,7 @@ export default function Methodology() {
             </div>
             <div className="bg-card p-3 border border-border rounded">
               <strong className="text-foreground">Task A (Conflict Forecasting) — does not use CBA data.</strong>
-              <span className="text-muted-foreground"> The forecasting pipeline is entirely independent of economic modeling. It relies on evidence ingestion (RSS, ACLED, GDELT), Bayesian probability estimation across 8 outcome states, and calibration scoring (Brier and Log scores) against historical outcomes. No cost-benefit figures are included in forecasting prompts or scoring functions.</span>
+              <span className="text-muted-foreground"> The forecasting pipeline is entirely independent of economic modeling. It relies on evidence ingestion (RSS, ACLED, GDELT) and Bayesian probability estimation across 8 outcome states. Each cycle generates a single forecast conditioned on the latest evidence — no experimentation, scoring functions, or hill-climbing is applied to forecasts. No cost-benefit figures are included in forecasting prompts.</span>
             </div>
             <div className="bg-card p-3 border border-border rounded">
               <strong className="text-foreground">Costs Explorer page — independent visualization layer.</strong>
@@ -614,12 +614,9 @@ export default function Methodology() {
             <Shield className="w-6 h-6 text-primary" /> 10. Scoring &amp; Evaluation Framework
           </h2>
 
-          <h3 className="text-xl font-bold font-display text-foreground mt-4">10.1 Task A Scoring (Forecast Calibration)</h3>
+          <h3 className="text-xl font-bold font-display text-foreground mt-4">10.1 Task A (Forecasting)</h3>
           <p>
-            Forecast quality is measured by Brier score, log score, and their composite, computed against backtest records from historical seed data. See Section 6.3 for the mathematical definitions and composite formula.
-          </p>
-          <p>
-            The codebase also includes a calibration curve utility that can bucket forecast-outcome pairs into 10 probability bins and compare predicted vs. observed frequencies. This is available for calibration analysis but is not automatically computed as part of the autoresearch cycle's runtime path.
+            Forecasting does not use a scoring or optimization loop. Each cycle generates a single set of probability distributions across 4 time horizons conditioned on the latest evidence. Forecasts are persisted and the most recent set is marked as "current." Historical forecasts are retained for trend comparison across cycles, but no automated quality metric (e.g., Brier score) is computed or used to select between forecast variants.
           </p>
 
           <h3 className="text-xl font-bold font-display text-foreground mt-6">10.2 Task B &amp; C Scoring (Deal &amp; Proposal Quality)</h3>
@@ -695,7 +692,7 @@ export default function Methodology() {
             <li>Forecasts are <strong>probabilistic estimates</strong> produced by AI models and are not verified ground truth. All probabilities should be interpreted with appropriate epistemic humility.</li>
             <li>Evidence is sourced from public RSS feeds, GDELT, and ACLED — all subject to reporting lag, bias, and incompleteness. Classified intelligence, private diplomatic channels, and real-time military data are not available to the system.</li>
             <li>LLM forecasters (Anthropic Claude, OpenAI GPT, Google Gemini) may exhibit hallucination, anchoring bias, or training cutoff limitations. The adversarial multi-provider architecture mitigates but cannot eliminate these risks.</li>
-            <li>The Task A hill-climbing loop uses Brier score on a limited historical seed corpus to calibrate <em>forecast probabilities</em> only. Deal and proposal evaluation (Tasks B and C) does not use historical backtesting — it relies entirely on forward-looking CBA modeling and multi-agent LLM stakeholder simulations.</li>
+            <li>Task A (forecasting) generates a single forecast per cycle without experimentation or scoring optimization. Deal and proposal evaluation (Tasks B and C) uses forward-looking CBA modeling and multi-agent LLM stakeholder simulations with a 7-dimension composite scoring function.</li>
             <li>CBA figures are estimates derived from publicly available economic models and should be treated as order-of-magnitude guides rather than precise values.</li>
             <li>Deal proposals are generated by language models and have not been vetted by real negotiators, diplomats, or subject-matter experts. They represent computationally plausible frameworks, not actionable policy recommendations.</li>
             <li>The generation/evaluation independence constraint reduces but does not eliminate bias — models from different providers may share training data, alignment approaches, or systematic blindspots.</li>
