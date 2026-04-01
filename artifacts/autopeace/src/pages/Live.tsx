@@ -77,6 +77,111 @@ function formatCountdown(ms: number): string {
   return `${secs}s`;
 }
 
+function formatMetaKey(key: string): string {
+  const labels: Record<string, string> = {
+    ingestedCount: "Items Ingested",
+    extractedProposals: "Proposals Found",
+    forecastCount: "Forecasts",
+    horizons: "Time Horizons",
+    probabilities: "Probability Distribution",
+    experimentsRun: "Experiments Run",
+    experimentsRetained: "Experiments Retained",
+    totalTokens: "Total Tokens",
+    composite: "Composite Score",
+    feasibility: "Feasibility",
+    coherence: "Coherence",
+    evidenceGrounding: "Evidence Grounding",
+    domesticSellability: "Domestic Sellability",
+    regionalStability: "Regional Stability",
+    implementability: "Implementability",
+    durability: "Durability",
+    accepts: "Stakeholders Accepting",
+    rejects: "Stakeholders Rejecting",
+    conditionals: "Conditional Accept",
+    rejectingStakeholders: "Rejecting Parties",
+    countries: "Countries Evaluated",
+    vulnerabilitiesFound: "Vulnerabilities Found",
+    amendments: "Proposed Amendments",
+    tradeoffs: "Creative Tradeoffs",
+    pipelineQuality: "Pipeline Quality",
+    promptImprovements: "Prompt Improvements",
+    analogies: "Historical Analogies",
+    provisions: "Creative Provisions",
+    innovativeProvisions: "Innovative Provisions",
+    architecture: "Deal Architecture",
+    chosenArch: "Chosen Architecture",
+    dealCount: "Total Deals",
+    currentBestComposite: "Current Best Score",
+    topDeals: "Top Deals in Memory",
+    provisionInsights: "Provision Insights",
+    pipelineGeneration: "Pipeline Generation",
+    newComposite: "New Score",
+    prevComposite: "Previous Best",
+    improvement: "Score Change",
+    tokensConsumed: "Tokens Used",
+    errorType: "Error Type",
+    provider: "AI Provider",
+    failedStage: "Failed At Stage",
+    evidenceLength: "Evidence Length",
+    strategicTokens: "Strategy Tokens",
+    stallCount: "Stall Count",
+    headline: "Headline",
+    keyEvidence: "Key Evidence",
+    elapsedSeconds: "Elapsed Time",
+    totalCost: "Estimated Cost",
+    overrides: "Prompt Overrides",
+    overrideKeys: "Override Targets",
+    newGeneration: "New Generation",
+    hasNuclearProtocol: "Nuclear Protocol",
+    hasSanctionsRelief: "Sanctions Relief",
+    hasHormuzArrangements: "Hormuz Arrangements",
+  };
+  return labels[key] ?? key.replace(/([A-Z])/g, " $1").replace(/^./, s => s.toUpperCase()).trim();
+}
+
+const RATIO_KEYS = new Set([
+  "composite", "feasibility", "coherence", "evidenceGrounding",
+  "domesticSellability", "regionalStability", "implementability", "durability",
+  "newComposite", "prevComposite", "currentBestComposite",
+]);
+
+const CURRENCY_KEYS = new Set(["totalCost"]);
+const DURATION_KEYS = new Set(["elapsedSeconds"]);
+const TOKEN_KEYS = new Set(["totalTokens", "tokensConsumed", "strategicTokens"]);
+
+function formatMetaValue(value: unknown, key?: string): string {
+  if (value === null || value === undefined) return "—";
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (typeof value === "number") {
+    if (key && CURRENCY_KEYS.has(key)) return `$${value.toFixed(4)}`;
+    if (key && DURATION_KEYS.has(key)) return `${value.toFixed(1)}s`;
+    if (key && TOKEN_KEYS.has(key)) return value.toLocaleString();
+    if (key && RATIO_KEYS.has(key)) return `${(value * 100).toFixed(1)}%`;
+    if (key === "improvement") return `${value >= 0 ? "+" : ""}${(value * 100).toFixed(1)}pp`;
+    if (Number.isInteger(value)) return value.toLocaleString();
+    return value.toFixed(3);
+  }
+  if (Array.isArray(value)) {
+    if (value.length === 0) return "none";
+    if (typeof value[0] === "string") return value.join(", ");
+    if (typeof value[0] === "object") {
+      return value.map(v => {
+        const obj = v as Record<string, unknown>;
+        return (obj.title ?? obj.name ?? obj.description ?? obj.dealName ?? obj.idea ?? JSON.stringify(v)) as string;
+      }).join(", ");
+    }
+    return JSON.stringify(value);
+  }
+  if (typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>);
+    return entries.map(([k, v]) => {
+      if (typeof v === "number" && RATIO_KEYS.has(k)) return `${k}: ${(v * 100).toFixed(1)}%`;
+      return `${k}: ${String(v)}`;
+    }).join(", ");
+  }
+  return String(value);
+}
+
 function levelIcon(level: CycleLogEntry["level"]) {
   switch (level) {
     case "stage": return <Zap className="w-3.5 h-3.5 text-blue-400 shrink-0" />;
@@ -128,11 +233,16 @@ function LogEntry({ entry }: { entry: CycleLogEntry }) {
           <span className={levelColor(entry.level)}>{entry.message}</span>
         </div>
         {expanded && hasDetails && (
-          <div className="mt-1.5 ml-5 space-y-1 text-[11px]">
+          <div className="mt-1.5 ml-5 space-y-1.5 text-[11px]">
             {entry.metadata && (
-              <pre className="text-slate-500 whitespace-pre-wrap break-all bg-white/[0.02] rounded p-1.5">
-                {JSON.stringify(entry.metadata, null, 2)}
-              </pre>
+              <div className="bg-white/[0.02] rounded p-2 space-y-1">
+                {Object.entries(entry.metadata).map(([key, value]) => (
+                  <div key={key} className="flex gap-2">
+                    <span className="text-slate-500 font-medium shrink-0 min-w-[120px]">{formatMetaKey(key)}:</span>
+                    <span className="text-slate-400 break-all">{formatMetaValue(value, key)}</span>
+                  </div>
+                ))}
+              </div>
             )}
             {entry.prompt && (
               <div>

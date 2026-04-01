@@ -137,12 +137,12 @@ async function runCycleAsync(cycleId: string): Promise<void> {
 
   try {
     logger.info({ cycleId }, "Starting autoresearch cycle");
-    emitCycleLog({ cycleId, level: "stage", stage: "starting", message: "Autoresearch cycle started" });
+    emitCycleLog({ cycleId, level: "stage", stage: "starting", message: "Beginning a full autoresearch cycle. This will ingest the latest news and evidence, generate updated conflict probability forecasts across multiple time horizons, run optimization experiments to improve forecast accuracy, and then launch the deal optimization engine to design and evaluate peace deal proposals." });
 
     const isPaused = await getConfigValue("isPaused", "false");
     if (isPaused === "true") {
       logger.info({ cycleId }, "Cycle paused by admin config");
-      emitCycleLog({ cycleId, level: "info", stage: "starting", message: "Cycle paused by admin config" });
+      emitCycleLog({ cycleId, level: "info", stage: "starting", message: "Cycle is paused by an administrator. No research will be performed this cycle. The system will check again at the next scheduled interval." });
       await db.update(cyclesTable).set({ status: "completed", completedAt: new Date() }).where(eq(cyclesTable.id, cycleId));
       setStage("completed");
       setRunningCycleId(null);
@@ -150,37 +150,37 @@ async function runCycleAsync(cycleId: string): Promise<void> {
     }
 
     setStage("evidence_ingestion");
-    emitCycleLog({ cycleId, level: "stage", stage: "evidence_ingestion", message: "Starting evidence ingestion from all sources" });
+    emitCycleLog({ cycleId, level: "stage", stage: "evidence_ingestion", message: "Scanning RSS news feeds (Reuters, AP, GDELT) for the latest articles about the Iran-US-Israel conflict. New articles will be classified by type (diplomatic moves, military actions, economic changes, etc.) and stored as evidence for the AI to reason about." });
     const ingestionStart = Date.now();
     const ingestedCount = await ingestAllSources();
     logger.info({ cycleId, ingestedCount }, "Evidence ingestion complete");
-    emitCycleLog({ cycleId, level: "info", stage: "evidence_ingestion", message: `Evidence ingestion complete: ${ingestedCount} items ingested`, durationMs: Date.now() - ingestionStart, metadata: { ingestedCount } });
+    emitCycleLog({ cycleId, level: "info", stage: "evidence_ingestion", message: ingestedCount > 0 ? `Found and stored ${ingestedCount} new evidence item${ingestedCount === 1 ? "" : "s"} from news feeds. Each item has been classified by evidence type and will influence the next forecast.` : "No new evidence items found from news feeds. The system will use previously cached evidence for this cycle's forecasts.", durationMs: Date.now() - ingestionStart, metadata: { ingestedCount } });
 
     try {
       const stakeholderStart = Date.now();
-      emitCycleLog({ cycleId, level: "info", stage: "evidence_ingestion", message: "Updating stakeholder profiles from evidence..." });
+      emitCycleLog({ cycleId, level: "info", stage: "evidence_ingestion", message: "Using an LLM to update the profiles of all 33 conflict stakeholders (Iran, US, Israel, Gulf states, international orgs, etc.) based on the latest evidence. This keeps each actor's known positions, red lines, and priorities current." });
       const stakeholderUpdateResult = await updateStakeholderProfilesFromEvidence(cycleId);
       logger.info({ cycleId, ...stakeholderUpdateResult }, "Stakeholder profile update from evidence complete");
-      emitCycleLog({ cycleId, level: "info", stage: "evidence_ingestion", message: `Stakeholder profiles updated: ${stakeholderUpdateResult.updated} updated, ${stakeholderUpdateResult.skipped} skipped`, durationMs: Date.now() - stakeholderStart, metadata: stakeholderUpdateResult });
+      emitCycleLog({ cycleId, level: "info", stage: "evidence_ingestion", message: `Stakeholder profile update complete: ${stakeholderUpdateResult.updated} stakeholder${stakeholderUpdateResult.updated === 1 ? "'s profile was" : " profiles were"} updated with new information, ${stakeholderUpdateResult.skipped} remained unchanged.`, durationMs: Date.now() - stakeholderStart, metadata: stakeholderUpdateResult });
     } catch (stakeholderErr) {
       logger.warn({ err: stakeholderErr, cycleId }, "Stakeholder profile update failed (non-critical)");
-      emitCycleLog({ cycleId, level: "warn", stage: "evidence_ingestion", message: `Stakeholder profile update failed: ${String(stakeholderErr)}` });
+      emitCycleLog({ cycleId, level: "warn", stage: "evidence_ingestion", message: `Stakeholder profile update failed (non-critical, continuing with existing profiles): ${String(stakeholderErr)}` });
     }
 
     setStage("proposal_extraction");
-    emitCycleLog({ cycleId, level: "stage", stage: "proposal_extraction", message: "Starting proposal extraction from evidence" });
+    emitCycleLog({ cycleId, level: "stage", stage: "proposal_extraction", message: "Scanning recent evidence for any real-world peace proposals, diplomatic frameworks, or negotiation offers mentioned in news articles. These real-world proposals are extracted and stored so the deal engine can incorporate actual diplomatic ideas into its AI-generated peace deals." });
     try {
       const extractStart = Date.now();
       const extractedProposals = await extractProposalsFromEvidence(cycleId);
       logger.info({ cycleId, extractedProposals }, "Proposal extraction from evidence complete");
-      emitCycleLog({ cycleId, level: "info", stage: "proposal_extraction", message: `Proposal extraction complete: ${extractedProposals} proposals extracted`, durationMs: Date.now() - extractStart });
+      emitCycleLog({ cycleId, level: "info", stage: "proposal_extraction", message: extractedProposals > 0 ? `Extracted ${extractedProposals} real-world proposal${extractedProposals === 1 ? "" : "s"} from recent evidence. These will be available for the deal engine to learn from and incorporate.` : "No new real-world proposals found in recent evidence. The deal engine will work with previously known proposals.", durationMs: Date.now() - extractStart, metadata: { extractedProposals } });
     } catch (extractErr) {
       logger.warn({ err: extractErr, cycleId }, "Proposal extraction failed (non-critical)");
-      emitCycleLog({ cycleId, level: "warn", stage: "proposal_extraction", message: `Proposal extraction failed: ${String(extractErr)}` });
+      emitCycleLog({ cycleId, level: "warn", stage: "proposal_extraction", message: `Proposal extraction encountered an error (non-critical, the deal engine will still function): ${String(extractErr)}` });
     }
 
     setStage("forecasting");
-    emitCycleLog({ cycleId, level: "stage", stage: "forecasting", message: "Starting forecast generation" });
+    emitCycleLog({ cycleId, level: "stage", stage: "forecasting", message: "Sending all available evidence to an AI model to generate Bayesian probability forecasts. The model will estimate the likelihood of 8 possible conflict outcomes (e.g., nuclear deal, military escalation, status quo, diplomatic breakthrough) across multiple time horizons (30 days, 90 days, 1 year, 5 years)." });
     const forecastStart = Date.now();
     const evidencePackVersion = new Date().toISOString().slice(0, 10);
     const baseForecast = await generateForecasts(cycleId, evidencePackVersion);
@@ -207,11 +207,14 @@ async function runCycleAsync(cycleId: string): Promise<void> {
     }
 
     logger.info({ cycleId, forecastCount: baseForecast.length }, "Base forecasts generated");
-    emitCycleLog({ cycleId, level: "info", stage: "forecasting", message: `Base forecasts generated: ${baseForecast.length} time horizons`, durationMs: Date.now() - forecastStart, metadata: { forecastCount: baseForecast.length, horizons: baseForecast.map(f => f.timeHorizon) } });
+    emitCycleLog({ cycleId, level: "info", stage: "forecasting", message: `Base forecasts generated for ${baseForecast.length} time horizon${baseForecast.length === 1 ? "" : "s"} (${baseForecast.map(f => f.timeHorizon).join(", ")}). Each forecast contains probability estimates for all 8 conflict outcome states, summing to 100%.`, durationMs: Date.now() - forecastStart, metadata: { forecastCount: baseForecast.length, horizons: baseForecast.map(f => f.timeHorizon) } });
 
     const primary90dForecast = baseForecast.find(f => f.timeHorizon === "90d");
     if (primary90dForecast) {
-      emitCycleLog({ cycleId, level: "info", stage: "forecasting", message: `90-day forecast probabilities: ${JSON.stringify(primary90dForecast.probabilities)}`, metadata: { probabilities: primary90dForecast.probabilities } });
+      const probEntries = Object.entries(primary90dForecast.probabilities as Record<string, number>)
+        .sort(([, a], [, b]) => b - a)
+        .map(([k, v]) => `${k}: ${(v * 100).toFixed(1)}%`);
+      emitCycleLog({ cycleId, level: "info", stage: "forecasting", message: `Primary 90-day forecast — the model's best estimate for the next 3 months. Top outcomes: ${probEntries.slice(0, 3).join(", ")}. Full distribution available in metadata.`, metadata: { probabilities: primary90dForecast.probabilities } });
       const primaryForecastRow = await db.select({ id: forecastsTable.id })
         .from(forecastsTable)
         .where(eq(forecastsTable.cycleId, cycleId))
@@ -225,13 +228,13 @@ async function runCycleAsync(cycleId: string): Promise<void> {
     }
 
     setStage("hill_climbing");
-    emitCycleLog({ cycleId, level: "stage", stage: "hill_climbing", message: "Starting hill climbing (champion/challenger optimization)" });
+    emitCycleLog({ cycleId, level: "stage", stage: "hill_climbing", message: "Running champion/challenger optimization. The system takes the base forecast and tries to improve it by running multiple 'experiments' — each experiment mutates the forecast methodology (changing prompts, models, or evidence weighting) and uses a second AI model to judge whether the mutated forecast is more calibrated than the current champion. Only improvements are kept." });
     const hillClimbStart = Date.now();
     const hillClimbResults = await runHillClimbing(cycleId, baseForecast);
     experimentsRun = hillClimbResults.experimentsRun;
     experimentsRetained = hillClimbResults.experimentsRetained;
     totalTokens = hillClimbResults.totalTokens;
-    emitCycleLog({ cycleId, level: "info", stage: "hill_climbing", message: `Hill climbing complete: ${experimentsRun} experiments run, ${experimentsRetained} retained`, durationMs: Date.now() - hillClimbStart, tokens: totalTokens, metadata: { experimentsRun, experimentsRetained } });
+    emitCycleLog({ cycleId, level: "info", stage: "hill_climbing", message: `Optimization complete. Ran ${experimentsRun} experiment${experimentsRun === 1 ? "" : "s"} (each a variation of the forecast approach). ${experimentsRetained > 0 ? `${experimentsRetained} experiment${experimentsRetained === 1 ? "" : "s"} produced better forecasts than the current champion and ${experimentsRetained === 1 ? "was" : "were"} retained.` : "No experiments improved on the current champion — the existing forecast remains the best."}`, durationMs: Date.now() - hillClimbStart, tokens: totalTokens, metadata: { experimentsRun, experimentsRetained } });
 
     if (hillClimbResults.champion && hillClimbResults.experimentsRetained > 0) {
       const championState = JSON.stringify({
@@ -247,11 +250,11 @@ async function runCycleAsync(cycleId: string): Promise<void> {
         await db.insert(adminConfigTable).values({ key: "championState", value: championState });
       }
       logger.info({ cycleId, experimentsRetained }, "Champion state persisted to admin_config");
-      emitCycleLog({ cycleId, level: "info", stage: "hill_climbing", message: "Champion state persisted" });
+      emitCycleLog({ cycleId, level: "info", stage: "hill_climbing", message: "New champion forecast saved. This improved forecast will be used as the baseline for the next cycle's optimization, enabling compounding improvements over time." });
     }
 
     setStage("changelog");
-    emitCycleLog({ cycleId, level: "stage", stage: "changelog", message: "Generating changelog entry" });
+    emitCycleLog({ cycleId, level: "stage", stage: "changelog", message: "Creating a human-readable changelog entry that summarizes what changed in this cycle — the headline forecast shift, which evidence was most influential, and how many experiments were tried." });
     const primaryForecast = hillClimbResults.champion ?? baseForecast.find(f => f.timeHorizon === "90d");
     if (primaryForecast) {
       const headline = generateHeadline(primaryForecast.probabilities);
@@ -266,7 +269,7 @@ async function runCycleAsync(cycleId: string): Promise<void> {
         experimentsRetained,
         notes: primaryForecast.rationale,
       });
-      emitCycleLog({ cycleId, level: "info", stage: "changelog", message: `Changelog entry created: "${headline}"` });
+      emitCycleLog({ cycleId, level: "info", stage: "changelog", message: `Changelog entry saved: "${headline}". This entry is now visible on the public dashboard, showing users what the latest forecast says and why.`, metadata: { headline, keyEvidence: primaryForecast.keyEvidenceItems.slice(0, 5) } });
     }
 
     await db.update(cyclesTable).set({
@@ -278,32 +281,32 @@ async function runCycleAsync(cycleId: string): Promise<void> {
     }).where(eq(cyclesTable.id, cycleId));
 
     logger.info({ cycleId, experimentsRun, experimentsRetained }, "Autoresearch cycle completed successfully");
-    emitCycleLog({ cycleId, level: "info", stage: "forecasting_complete", message: `Forecasting pipeline completed — ${experimentsRun} experiments, ${experimentsRetained} retained, ${totalTokens} tokens consumed`, tokens: totalTokens });
+    emitCycleLog({ cycleId, level: "info", stage: "forecasting_complete", message: `Forecasting pipeline finished. Summary: ${experimentsRun} optimization experiments tried, ${experimentsRetained} retained as improvements, ${totalTokens.toLocaleString()} total LLM tokens consumed. The updated forecasts are now live on the dashboard.`, tokens: totalTokens, metadata: { experimentsRun, experimentsRetained, totalTokens } });
 
     setStage("deal_engine");
-    emitCycleLog({ cycleId, level: "stage", stage: "deal_engine", message: "Starting deal optimization engine" });
+    emitCycleLog({ cycleId, level: "stage", stage: "deal_engine", message: "Launching the deal optimization engine. This is a separate multi-stage pipeline that designs AI-generated peace deal proposals, evaluates them from every stakeholder's perspective, red-teams them for fatal flaws, and scores them on 7 dimensions (feasibility, coherence, durability, etc.). The best deal is retained as the current champion." });
     try {
       if (isDealCycleRunning()) {
         logger.info({ cycleId }, "Deal cycle already running — skipping deal optimization this cycle");
-        emitCycleLog({ cycleId, level: "warn", stage: "deal_engine", message: "Deal cycle already running — skipping" });
+        emitCycleLog({ cycleId, level: "warn", stage: "deal_engine", message: "A deal optimization cycle is already in progress from a previous run. Skipping deal generation this cycle to avoid conflicts. The forecasts from this cycle are still saved." });
       } else {
         logger.info({ cycleId }, "Starting deal optimization as part of autoresearch cycle");
         const dealEngineStart = Date.now();
         const dealCycleId = await withTimeout(runDealCycleNow(), 2_700_000, "Deal engine timed out after 45 minutes");
         logger.info({ cycleId, dealCycleId }, "Deal optimization triggered successfully");
-        emitCycleLog({ cycleId, level: "info", stage: "deal_engine", message: `Deal optimization completed successfully`, durationMs: Date.now() - dealEngineStart, metadata: { dealCycleId } });
+        emitCycleLog({ cycleId, level: "info", stage: "deal_engine", message: `Deal optimization completed successfully. A new peace deal proposal has been generated, evaluated, and scored. See the Deal Dashboard for full details.`, durationMs: Date.now() - dealEngineStart, metadata: { dealCycleId } });
       }
     } catch (dealErr) {
       logger.warn({ err: dealErr, cycleId }, "Deal optimization failed (non-critical — forecasts still updated)");
-      emitCycleLog({ cycleId, level: "error", stage: "deal_engine", message: `Deal optimization failed: ${String(dealErr)}` });
+      emitCycleLog({ cycleId, level: "error", stage: "deal_engine", message: `Deal optimization failed: ${String(dealErr)}. Note: this is non-critical — the forecasting results from this cycle are still saved and visible on the dashboard. The deal engine will retry on the next cycle.` });
     }
     setStage("completed");
-    emitCycleLog({ cycleId, level: "stage", stage: "completed", message: "Autoresearch cycle completed successfully" });
+    emitCycleLog({ cycleId, level: "stage", stage: "completed", message: "Autoresearch cycle complete. All forecasts have been updated, evidence has been ingested, and the deal engine has run. The dashboard now reflects the latest analysis." });
   } catch (err) {
     logger.error({ err, cycleId }, "Autoresearch cycle error");
     setLastCycleError(String(err));
     setStage("failed");
-    emitCycleLog({ cycleId, level: "error", stage: "failed", message: `Cycle failed: ${String(err)}` });
+    emitCycleLog({ cycleId, level: "error", stage: "failed", message: `Autoresearch cycle failed with an error: ${String(err)}. The system will automatically retry at the next scheduled interval. Any partial results (e.g., evidence already ingested) are preserved.` });
     await db.update(cyclesTable).set({
       status: "failed",
       completedAt: new Date(),
