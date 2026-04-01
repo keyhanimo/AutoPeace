@@ -525,7 +525,7 @@ FREEFORM EXPLORATION MODE: You have NO predetermined architectural constraints. 
 CURRENT GEOPOLITICAL EVIDENCE:
 ${evidenceSummary.slice(0, 8000)}
 
-${previousDiagnosis ? `PREVIOUS DEAL DIAGNOSIS (what went wrong and must be overcome):
+${previousDiagnosis ? `PITFALLS TO AVOID (lessons learned — but brainstorm completely fresh ideas, not revisions):
 ${previousDiagnosis}` : "This is the first brainstorm for a fresh deal search."}
 ${dealMemoryBlock}
 ${architecture === "freeform" ? "ARCHITECTURE LENS: freeform — no predetermined structure. Let the evidence and stakeholder needs shape the deal organically." : `ARCHITECTURE LENS: ${architecture}`}
@@ -714,7 +714,7 @@ Generate a peace deal JSON with these exact keys. Be CONCISE — 2-4 sentences p
   "humanitarianProvisions": "concise humanitarian terms: immediate relief and longer-term commitments",
   "verificationMechanism": "concise verification terms: monitoring bodies, inspection protocols, technology",
   "timelineYears": number,
-  "sequencing": "concise step-by-step phasing with early wins and irreversibility mechanisms",
+  "sequencing": "complete step-by-step phasing with specific actions per phase, early wins, and irreversibility mechanisms — write the FULL sequence, never say 'all existing provisions remain'",
   "additionalClauses": ["concise additional terms — one sentence each"],
   "innovativeProvisions": [
     {
@@ -955,6 +955,11 @@ THREE MODES OF OPERATION:
 
 IMPORTANT: When fixing rejections, NEVER just weaken terms to make a rejecter happy — that usually causes other stakeholders to reject. Instead, find CREATIVE restructurings that address the objection while preserving what others value. Add new value rather than redistribute existing value.
 
+WRITING STYLE FOR REPLACEMENT TERMS:
+- Write each replacement field as a COMPLETE, SELF-CONTAINED statement — as if writing the entire deal term from scratch.
+- NEVER use "revised," "amended," "updated," "all existing provisions remain," "PLUS," "in addition to previous terms," or any language that references a prior version.
+- The reader will see ONLY your output. They have no access to the original terms. Every field must stand alone.
+
 ${overridePrompt}
 Output JSON only.`;
 
@@ -1002,7 +1007,7 @@ Return JSON:
   "proposedAmendments": [
     { "stakeholder": "id", "originalConcern": "text", "proposedChange": "specific creative change", "likelihood": "low|medium|high" }
   ],
-  "revisedTermsPartial": { "nuclearProtocol": "revised if needed", "sequencing": "revised if needed" },
+  "revisedTermsPartial": { "nuclearProtocol": "complete replacement text for this field (self-contained, no references to prior version)", "sequencing": "complete replacement text (standalone)" },
   "negotiationStrategy": "overall creative strategy text",
   "creativeTradeoffs": [
     { "gives": "what one party gives (and why it costs them relatively little)", "gets": "what they receive in exchange (and why it matters a lot to them)", "netBenefit": "why this is positive-sum — all parties gain" }
