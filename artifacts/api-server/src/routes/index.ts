@@ -30,6 +30,7 @@ router.use(costsRouter);
 router.use(evidenceRouter);
 router.use(changelogRouter);
 router.use(stakeholdersRouter);
+router.use("/deals/:id/share-text", submitLimiter);
 router.use(dealsRouter);
 router.use(proposalsRouter);
 router.use("/community-forecasts", submitLimiter);
