@@ -14,6 +14,14 @@ function getBaseUrl() {
   return window.location.origin + import.meta.env.BASE_URL.replace(/\/$/, "");
 }
 
+function safe(v: unknown): string {
+  if (v === null || v === undefined) return "—";
+  if (typeof v === "object") {
+    try { return JSON.stringify(v); } catch { return "[object]"; }
+  }
+  return String(v);
+}
+
 const SCORE_DIMENSIONS: { key: keyof DealScores; label: string; color: string; icon: React.ReactNode; description: string; weight: number }[] = [
   { key: "feasibility", label: "Feasibility", color: "#10b981", icon: <CheckCircle2 className="w-4 h-4" />, description: "Likelihood the deal gets signed by all required parties", weight: 0.20 },
   { key: "coherence", label: "Coherence", color: "#0284c7", icon: <GitBranch className="w-4 h-4" />, description: "Internal consistency — do terms contradict each other?", weight: 0.15 },
@@ -168,7 +176,7 @@ function StakeholderMap({ evaluations, lensId }: { evaluations: Record<string, {
                 <span className="font-mono font-bold capitalize truncate text-xs">{id.replace(/[_-]/g, " ")}</span>
                 <span className={`text-[7px] px-1 py-0.5 rounded border ${tier.color} font-semibold shrink-0 ml-auto`}>{tier.label}</span>
               </div>
-              <p className={`text-xs text-muted-foreground ${expanded ? "" : "line-clamp-2"}`}>{evaluation.rationale}</p>
+              <p className={`text-xs text-muted-foreground ${expanded ? "" : "line-clamp-2"}`}>{safe(evaluation.rationale)}</p>
             </button>
           );
         })}
@@ -247,7 +255,7 @@ function DealDetailView({ deal, isHistorical }: { deal: Deal; isHistorical?: boo
                     animate={{ opacity: 1, height: "auto" }}
                     className="mt-3 p-3 rounded border border-amber-800/30 bg-amber-950/20 max-h-96 overflow-y-auto"
                   >
-                    <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono leading-relaxed">{evidenceSummary}</pre>
+                    <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono leading-relaxed">{safe(evidenceSummary)}</pre>
                   </motion.div>
                 )}
               </div>
@@ -273,7 +281,7 @@ function DealDetailView({ deal, isHistorical }: { deal: Deal; isHistorical?: boo
             <div key={key} className="border-b border-border/30 pb-2 last:border-0">
               <span className="text-xs text-primary font-semibold uppercase tracking-wider block">{label}</span>
               <span className="text-xs text-muted-foreground">
-                {key === "timelineYears" ? `${terms[key] ?? "?"} years` : String(terms[key] ?? "—")}
+                {key === "timelineYears" ? `${terms[key] ?? "?"} years` : safe(terms[key])}
               </span>
             </div>
           ))}
@@ -281,10 +289,10 @@ function DealDetailView({ deal, isHistorical }: { deal: Deal; isHistorical?: boo
             <div className="border-t border-border/50 pt-3 mt-3">
               <span className="text-xs text-cyan-400 font-semibold uppercase tracking-wider block mb-2">Grand Coalition Commitments</span>
               <div className="space-y-1.5">
-                {Object.entries(terms.stakeholderCommitments as Record<string, string>).map(([id, commitment]) => (
+                {Object.entries(terms.stakeholderCommitments as Record<string, unknown>).map(([id, commitment]) => (
                   <div key={id} className="flex gap-2 text-xs">
                     <span className="text-primary font-semibold capitalize shrink-0 w-24">{id.replace(/_/g, " ")}</span>
-                    <span className="text-muted-foreground">{String(commitment)}</span>
+                    <span className="text-muted-foreground">{safe(commitment)}</span>
                   </div>
                 ))}
               </div>
@@ -296,11 +304,11 @@ function DealDetailView({ deal, isHistorical }: { deal: Deal; isHistorical?: boo
               <div className="space-y-3">
                 {((terms as Record<string, unknown>).innovativeProvisions as Array<{ title: string; description: string; rationale: string; historicalPrecedent?: string }>).map((prov, idx) => (
                   <div key={idx} className="p-3 rounded-lg border border-violet-800/30 bg-violet-950/10">
-                    <span className="text-xs font-bold text-violet-300 block mb-1">{prov.title}</span>
-                    <p className="text-xs text-muted-foreground mb-1">{prov.description}</p>
-                    <p className="text-xs text-violet-300 italic">{prov.rationale}</p>
+                    <span className="text-xs font-bold text-violet-300 block mb-1">{safe(prov.title)}</span>
+                    <p className="text-xs text-muted-foreground mb-1">{safe(prov.description)}</p>
+                    <p className="text-xs text-violet-300 italic">{safe(prov.rationale)}</p>
                     {prov.historicalPrecedent && (
-                      <p className="text-xs text-muted-foreground mt-1">Precedent: {prov.historicalPrecedent}</p>
+                      <p className="text-xs text-muted-foreground mt-1">Precedent: {safe(prov.historicalPrecedent)}</p>
                     )}
                   </div>
                 ))}
@@ -344,7 +352,7 @@ function DealDetailView({ deal, isHistorical }: { deal: Deal; isHistorical?: boo
           <h3 className="text-base font-bold mb-2 flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-amber-400" /> AI Diagnosis
           </h3>
-          <p className="text-sm text-muted-foreground">{deal.diagnosis}</p>
+          <p className="text-sm text-muted-foreground">{safe(deal.diagnosis)}</p>
         </Card>
       )}
 
@@ -397,20 +405,20 @@ function DealDetailView({ deal, isHistorical }: { deal: Deal; isHistorical?: boo
           <div className="space-y-4">
             {Object.entries(domesticFraming).map(([key, strategy]) => (
               <div key={key} className="p-4 rounded-lg border border-emerald-800/30 bg-emerald-950/10">
-                <span className="text-sm font-bold text-emerald-300 block mb-2">{strategy.audience}</span>
-                <p className="text-xs text-foreground mb-2 italic">"{strategy.framingNarrative}"</p>
+                <span className="text-sm font-bold text-emerald-300 block mb-2">{safe(strategy.audience)}</span>
+                <p className="text-xs text-foreground mb-2 italic">"{safe(strategy.framingNarrative)}"</p>
                 <div className="space-y-1 mb-2">
                   {(strategy.keyTalkingPoints ?? []).map((pt: string, i: number) => (
                     <div key={i} className="flex gap-2 text-xs text-muted-foreground">
                       <span className="text-emerald-500 shrink-0">•</span>
-                      <span>{pt}</span>
+                      <span>{safe(pt)}</span>
                     </div>
                   ))}
                 </div>
                 {strategy.historicalAnalogy && (
-                  <p className="text-xs text-emerald-400 italic">Historical analogy: {strategy.historicalAnalogy}</p>
+                  <p className="text-xs text-emerald-400 italic">Historical analogy: {safe(strategy.historicalAnalogy)}</p>
                 )}
-                <p className="text-xs text-amber-400 mt-1">Risk: {strategy.riskOfBackfire}</p>
+                <p className="text-xs text-amber-400 mt-1">Risk: {safe(strategy.riskOfBackfire)}</p>
               </div>
             ))}
           </div>
@@ -430,9 +438,9 @@ function DealDetailView({ deal, isHistorical }: { deal: Deal; isHistorical?: boo
               <div className="space-y-2">
                 {brainstormInsights.historicalAnalogies.map((a, i) => (
                   <div key={i} className="p-2 rounded border border-violet-800/20 bg-violet-950/10">
-                    <span className="text-xs font-bold text-violet-300">{a.dealName}</span>
-                    <p className="text-xs text-muted-foreground">{a.relevantLesson}</p>
-                    <p className="text-xs text-violet-300 italic">{a.applicability}</p>
+                    <span className="text-xs font-bold text-violet-300">{safe(a.dealName)}</span>
+                    <p className="text-xs text-muted-foreground">{safe(a.relevantLesson)}</p>
+                    <p className="text-xs text-violet-300 italic">{safe(a.applicability)}</p>
                   </div>
                 ))}
               </div>
@@ -445,7 +453,7 @@ function DealDetailView({ deal, isHistorical }: { deal: Deal; isHistorical?: boo
               <div className="space-y-2">
                 {brainstormInsights.crossIssueLinkages.map((l, i) => (
                   <div key={i} className="p-2 rounded border border-violet-800/20 bg-violet-950/10">
-                    <p className="text-xs text-muted-foreground">{l.linkage}</p>
+                    <p className="text-xs text-muted-foreground">{safe(l.linkage)}</p>
                     <span className="text-xs text-violet-300">Benefits: {l.stakeholdersHelped.join(", ")}</span>
                   </div>
                 ))}
@@ -457,10 +465,10 @@ function DealDetailView({ deal, isHistorical }: { deal: Deal; isHistorical?: boo
             <div>
               <span className="text-xs text-violet-400 font-semibold uppercase tracking-wider block mb-2">Unconventional Approaches</span>
               <div className="space-y-1">
-                {brainstormInsights.unconventionalApproaches.map((a, i) => (
+                {brainstormInsights.unconventionalApproaches.map((a: unknown, i: number) => (
                   <div key={i} className="flex gap-2 text-xs text-muted-foreground">
                     <span className="text-violet-500 shrink-0">•</span>
-                    <span>{a}</span>
+                    <span>{safe(a)}</span>
                   </div>
                 ))}
               </div>
@@ -513,12 +521,12 @@ function DealDetailView({ deal, isHistorical }: { deal: Deal; isHistorical?: boo
                     {attacks.map((r, i) => (
                       <div key={i} className={`p-3 rounded-lg border text-xs ${r.survived ? "border-emerald-800/40 bg-emerald-950/10" : "border-red-800/40 bg-red-950/10"}`}>
                         <div className="flex items-start justify-between gap-2 mb-1">
-                          <p className="text-foreground flex-1 font-medium">{r.attack}</p>
+                          <p className="text-foreground flex-1 font-medium">{safe(r.attack)}</p>
                           <span className={`font-bold shrink-0 text-xs px-2 py-0.5 rounded ${r.survived ? "bg-emerald-900/50 text-emerald-400" : "bg-red-900/50 text-red-400"}`}>
                             {r.survived ? "Survived" : "Failed"}
                           </span>
                         </div>
-                        {r.response && <p className="text-muted-foreground">{r.response}</p>}
+                        {r.response && <p className="text-muted-foreground">{safe(r.response)}</p>}
                       </div>
                     ))}
                   </div>
