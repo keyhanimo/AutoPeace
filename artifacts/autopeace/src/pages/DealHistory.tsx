@@ -85,7 +85,7 @@ function DealExpandedView({ deal }: { deal: Deal }) {
           ].map(({ label, key }) => terms[key] ? (
             <div key={key} className="border-b border-border/30 pb-1.5 last:border-0">
               <span className="text-primary font-semibold uppercase tracking-wider text-[10px] block">{label}</span>
-              <span className="text-muted-foreground line-clamp-3">
+              <span className="text-muted-foreground">
                 {key === "timelineYears" ? `${terms[key]} years` : safe(terms[key])}
               </span>
             </div>
@@ -108,9 +108,9 @@ function DealExpandedView({ deal }: { deal: Deal }) {
                 <div key={id} className={`p-2 rounded-lg border text-left ${cardColor}`}>
                   <div className="flex items-center gap-1 mb-0.5">
                     {VERDICT_ICONS[evaluation.verdict]}
-                    <span className="font-mono font-bold capitalize truncate text-[10px]">{id.replace(/[_-]/g, " ")}</span>
+                    <span className="font-mono font-bold capitalize text-[10px]">{id.replace(/[_-]/g, " ")}</span>
                   </div>
-                  <p className="text-[10px] text-muted-foreground line-clamp-2">{safe(evaluation.rationale)}</p>
+                  <p className="text-[10px] text-muted-foreground">{safe(evaluation.rationale)}</p>
                 </div>
               );
             })}

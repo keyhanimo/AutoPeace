@@ -174,10 +174,10 @@ function StakeholderMap({ evaluations, lensId }: { evaluations: Record<string, {
             >
               <div className="flex items-center gap-1 mb-1">
                 {VERDICT_ICONS[evaluation.verdict]}
-                <span className="font-mono font-bold capitalize truncate text-xs">{id.replace(/[_-]/g, " ")}</span>
+                <span className="font-mono font-bold capitalize text-xs">{id.replace(/[_-]/g, " ")}</span>
                 <span className={`text-[7px] px-1 py-0.5 rounded border ${tier.color} font-semibold shrink-0 ml-auto`}>{tier.label}</span>
               </div>
-              <p className={`text-xs text-muted-foreground ${expanded ? "" : "line-clamp-2"}`}>{safe(evaluation.rationale)}</p>
+              <p className="text-xs text-muted-foreground">{safe(evaluation.rationale)}</p>
             </button>
           );
         })}

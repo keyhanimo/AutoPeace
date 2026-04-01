@@ -242,10 +242,10 @@ function ProposalCard({
                           >
                             <div className="flex items-center gap-1 mb-1">
                               {VERDICT_ICONS[ev.verdict]}
-                              <span className="font-mono font-bold capitalize truncate">{id.replace(/[_-]/g, " ")}</span>
+                              <span className="font-mono font-bold capitalize">{id.replace(/[_-]/g, " ")}</span>
                               <span className={`text-[7px] px-1 py-0.5 rounded border ${tier.color} font-semibold shrink-0 ml-auto`}>{tier.label}</span>
                             </div>
-                            <p className={`text-xs text-muted-foreground ${expanded ? "" : "line-clamp-2"}`}>{ev.rationale}</p>
+                            <p className="text-xs text-muted-foreground">{ev.rationale}</p>
                           </button>
                         );
                       })}
@@ -421,10 +421,10 @@ function AiDealCard({
                           >
                             <div className="flex items-center gap-1 mb-1">
                               {VERDICT_ICONS[ev.verdict]}
-                              <span className="font-mono font-bold capitalize truncate">{id.replace(/[_-]/g, " ")}</span>
+                              <span className="font-mono font-bold capitalize">{id.replace(/[_-]/g, " ")}</span>
                               <span className={`text-[7px] px-1 py-0.5 rounded border ${tier.color} font-semibold shrink-0 ml-auto`}>{tier.label}</span>
                             </div>
-                            <p className={`text-xs text-muted-foreground ${expanded ? "" : "line-clamp-2"}`}>{ev.rationale}</p>
+                            <p className="text-xs text-muted-foreground">{ev.rationale}</p>
                           </button>
                         );
                       })}

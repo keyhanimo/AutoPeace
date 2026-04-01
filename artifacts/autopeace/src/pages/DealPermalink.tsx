@@ -499,9 +499,9 @@ export default function DealPermalink() {
                 <div key={id} className={`p-2 rounded-lg border text-left ${cardColor}`}>
                   <div className="flex items-center gap-1 mb-1">
                     {VERDICT_ICONS[evaluation.verdict]}
-                    <span className="font-mono font-bold capitalize truncate text-xs">{id.replace(/[_-]/g, " ")}</span>
+                    <span className="font-mono font-bold capitalize text-xs">{id.replace(/[_-]/g, " ")}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground line-clamp-3">{safe(evaluation.rationale)}</p>
+                  <p className="text-xs text-muted-foreground">{safe(evaluation.rationale)}</p>
                 </div>
               );
             })}
