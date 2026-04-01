@@ -3,7 +3,7 @@ import { useState } from "react";
 import {
   Menu, X, Activity, BarChart2, DollarSign, FlaskConical, BookOpen,
   HelpCircle, Shield, ChevronRight, Handshake, Users, Swords,
-  Search, GitCompare, Send, Database, Code2, Eye, MoreHorizontal, Microscope,
+  Search, GitCompare, Send, Database, Code2, Eye, MoreHorizontal, Microscope, Radio,
 } from "lucide-react";
 import { CycleStatusIndicator } from "./CycleStatusIndicator";
 
@@ -30,6 +30,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/stakeholders/compare", label: "Compare Actors", icon: GitCompare },
       { href: "/stakeholders/lens", label: "Stakeholder Lens", icon: Eye },
       { href: "/evidence", label: "Evidence Explorer", icon: Search },
+      { href: "/live", label: "Live Monitor", icon: Radio },
       { href: "/lab", label: "Autoresearch Lab", icon: Microscope },
     ],
   },

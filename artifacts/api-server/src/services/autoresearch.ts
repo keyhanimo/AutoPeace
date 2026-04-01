@@ -23,6 +23,7 @@ import {
   type CycleStage,
   type DealSubStage,
 } from "../lib/cycle-status";
+import { emitCycleLog } from "../lib/cycle-log";
 import { generateForecasts, getRecentForecastsForBacktest, type GeneratedForecast } from "./forecasting";
 import { ingestAllSources } from "./evidence-ingestion";
 import { extractProposalsFromEvidence } from "./proposal-extractor";
@@ -136,10 +137,12 @@ async function runCycleAsync(cycleId: string): Promise<void> {
 
   try {
     logger.info({ cycleId }, "Starting autoresearch cycle");
+    emitCycleLog({ cycleId, level: "stage", stage: "starting", message: "Autoresearch cycle started" });
 
     const isPaused = await getConfigValue("isPaused", "false");
     if (isPaused === "true") {
       logger.info({ cycleId }, "Cycle paused by admin config");
+      emitCycleLog({ cycleId, level: "info", stage: "starting", message: "Cycle paused by admin config" });
       await db.update(cyclesTable).set({ status: "completed", completedAt: new Date() }).where(eq(cyclesTable.id, cycleId));
       setStage("completed");
       setRunningCycleId(null);
@@ -147,25 +150,38 @@ async function runCycleAsync(cycleId: string): Promise<void> {
     }
 
     setStage("evidence_ingestion");
+    emitCycleLog({ cycleId, level: "stage", stage: "evidence_ingestion", message: "Starting evidence ingestion from all sources" });
+    const ingestionStart = Date.now();
     const ingestedCount = await ingestAllSources();
     logger.info({ cycleId, ingestedCount }, "Evidence ingestion complete");
+    emitCycleLog({ cycleId, level: "info", stage: "evidence_ingestion", message: `Evidence ingestion complete: ${ingestedCount} items ingested`, durationMs: Date.now() - ingestionStart, metadata: { ingestedCount } });
 
     try {
+      const stakeholderStart = Date.now();
+      emitCycleLog({ cycleId, level: "info", stage: "evidence_ingestion", message: "Updating stakeholder profiles from evidence..." });
       const stakeholderUpdateResult = await updateStakeholderProfilesFromEvidence(cycleId);
       logger.info({ cycleId, ...stakeholderUpdateResult }, "Stakeholder profile update from evidence complete");
+      emitCycleLog({ cycleId, level: "info", stage: "evidence_ingestion", message: `Stakeholder profiles updated: ${stakeholderUpdateResult.updated} updated, ${stakeholderUpdateResult.skipped} skipped`, durationMs: Date.now() - stakeholderStart, metadata: stakeholderUpdateResult });
     } catch (stakeholderErr) {
       logger.warn({ err: stakeholderErr, cycleId }, "Stakeholder profile update failed (non-critical)");
+      emitCycleLog({ cycleId, level: "warn", stage: "evidence_ingestion", message: `Stakeholder profile update failed: ${String(stakeholderErr)}` });
     }
 
     setStage("proposal_extraction");
+    emitCycleLog({ cycleId, level: "stage", stage: "proposal_extraction", message: "Starting proposal extraction from evidence" });
     try {
+      const extractStart = Date.now();
       const extractedProposals = await extractProposalsFromEvidence(cycleId);
       logger.info({ cycleId, extractedProposals }, "Proposal extraction from evidence complete");
+      emitCycleLog({ cycleId, level: "info", stage: "proposal_extraction", message: `Proposal extraction complete: ${extractedProposals} proposals extracted`, durationMs: Date.now() - extractStart });
     } catch (extractErr) {
       logger.warn({ err: extractErr, cycleId }, "Proposal extraction failed (non-critical)");
+      emitCycleLog({ cycleId, level: "warn", stage: "proposal_extraction", message: `Proposal extraction failed: ${String(extractErr)}` });
     }
 
     setStage("forecasting");
+    emitCycleLog({ cycleId, level: "stage", stage: "forecasting", message: "Starting forecast generation" });
+    const forecastStart = Date.now();
     const evidencePackVersion = new Date().toISOString().slice(0, 10);
     const baseForecast = await generateForecasts(cycleId, evidencePackVersion);
 
@@ -191,9 +207,11 @@ async function runCycleAsync(cycleId: string): Promise<void> {
     }
 
     logger.info({ cycleId, forecastCount: baseForecast.length }, "Base forecasts generated");
+    emitCycleLog({ cycleId, level: "info", stage: "forecasting", message: `Base forecasts generated: ${baseForecast.length} time horizons`, durationMs: Date.now() - forecastStart, metadata: { forecastCount: baseForecast.length, horizons: baseForecast.map(f => f.timeHorizon) } });
 
     const primary90dForecast = baseForecast.find(f => f.timeHorizon === "90d");
     if (primary90dForecast) {
+      emitCycleLog({ cycleId, level: "info", stage: "forecasting", message: `90-day forecast probabilities: ${JSON.stringify(primary90dForecast.probabilities)}`, metadata: { probabilities: primary90dForecast.probabilities } });
       const primaryForecastRow = await db.select({ id: forecastsTable.id })
         .from(forecastsTable)
         .where(eq(forecastsTable.cycleId, cycleId))
@@ -207,10 +225,13 @@ async function runCycleAsync(cycleId: string): Promise<void> {
     }
 
     setStage("hill_climbing");
+    emitCycleLog({ cycleId, level: "stage", stage: "hill_climbing", message: "Starting hill climbing (champion/challenger optimization)" });
+    const hillClimbStart = Date.now();
     const hillClimbResults = await runHillClimbing(cycleId, baseForecast);
     experimentsRun = hillClimbResults.experimentsRun;
     experimentsRetained = hillClimbResults.experimentsRetained;
     totalTokens = hillClimbResults.totalTokens;
+    emitCycleLog({ cycleId, level: "info", stage: "hill_climbing", message: `Hill climbing complete: ${experimentsRun} experiments run, ${experimentsRetained} retained`, durationMs: Date.now() - hillClimbStart, tokens: totalTokens, metadata: { experimentsRun, experimentsRetained } });
 
     if (hillClimbResults.champion && hillClimbResults.experimentsRetained > 0) {
       const championState = JSON.stringify({
@@ -226,9 +247,11 @@ async function runCycleAsync(cycleId: string): Promise<void> {
         await db.insert(adminConfigTable).values({ key: "championState", value: championState });
       }
       logger.info({ cycleId, experimentsRetained }, "Champion state persisted to admin_config");
+      emitCycleLog({ cycleId, level: "info", stage: "hill_climbing", message: "Champion state persisted" });
     }
 
     setStage("changelog");
+    emitCycleLog({ cycleId, level: "stage", stage: "changelog", message: "Generating changelog entry" });
     const primaryForecast = hillClimbResults.champion ?? baseForecast.find(f => f.timeHorizon === "90d");
     if (primaryForecast) {
       const headline = generateHeadline(primaryForecast.probabilities);
@@ -243,6 +266,7 @@ async function runCycleAsync(cycleId: string): Promise<void> {
         experimentsRetained,
         notes: primaryForecast.rationale,
       });
+      emitCycleLog({ cycleId, level: "info", stage: "changelog", message: `Changelog entry created: "${headline}"` });
     }
 
     await db.update(cyclesTable).set({
@@ -254,24 +278,32 @@ async function runCycleAsync(cycleId: string): Promise<void> {
     }).where(eq(cyclesTable.id, cycleId));
 
     logger.info({ cycleId, experimentsRun, experimentsRetained }, "Autoresearch cycle completed successfully");
+    emitCycleLog({ cycleId, level: "info", stage: "forecasting_complete", message: `Forecasting pipeline completed — ${experimentsRun} experiments, ${experimentsRetained} retained, ${totalTokens} tokens consumed`, tokens: totalTokens });
 
     setStage("deal_engine");
+    emitCycleLog({ cycleId, level: "stage", stage: "deal_engine", message: "Starting deal optimization engine" });
     try {
       if (isDealCycleRunning()) {
         logger.info({ cycleId }, "Deal cycle already running — skipping deal optimization this cycle");
+        emitCycleLog({ cycleId, level: "warn", stage: "deal_engine", message: "Deal cycle already running — skipping" });
       } else {
         logger.info({ cycleId }, "Starting deal optimization as part of autoresearch cycle");
+        const dealEngineStart = Date.now();
         const dealCycleId = await withTimeout(runDealCycleNow(), 2_700_000, "Deal engine timed out after 45 minutes");
         logger.info({ cycleId, dealCycleId }, "Deal optimization triggered successfully");
+        emitCycleLog({ cycleId, level: "info", stage: "deal_engine", message: `Deal optimization completed successfully`, durationMs: Date.now() - dealEngineStart, metadata: { dealCycleId } });
       }
     } catch (dealErr) {
       logger.warn({ err: dealErr, cycleId }, "Deal optimization failed (non-critical — forecasts still updated)");
+      emitCycleLog({ cycleId, level: "error", stage: "deal_engine", message: `Deal optimization failed: ${String(dealErr)}` });
     }
     setStage("completed");
+    emitCycleLog({ cycleId, level: "stage", stage: "completed", message: "Autoresearch cycle completed successfully" });
   } catch (err) {
     logger.error({ err, cycleId }, "Autoresearch cycle error");
     setLastCycleError(String(err));
     setStage("failed");
+    emitCycleLog({ cycleId, level: "error", stage: "failed", message: `Cycle failed: ${String(err)}` });
     await db.update(cyclesTable).set({
       status: "failed",
       completedAt: new Date(),

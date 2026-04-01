@@ -15,6 +15,7 @@ import proposalSubmissionsRouter from "./proposal-submissions";
 import downloadsRouter from "./downloads";
 
 import subscribeRouter from "./subscribe";
+import liveRouter from "./live";
 import { publicApiLimiter, submitLimiter, downloadLimiter } from "../middlewares/rateLimiter";
 
 const router: IRouter = Router();
@@ -44,6 +45,7 @@ router.use(subscribeRouter);
 router.use("/downloads", downloadLimiter);
 router.use(downloadsRouter);
 
+router.use(liveRouter);
 router.use(adminRouter);
 
 export default router;

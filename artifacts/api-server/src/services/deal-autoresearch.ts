@@ -474,7 +474,7 @@ async function runDealCycleAsync(cycleId: string): Promise<void> {
       provisionInsights: dealMemory.provisionInsights.length,
     }, "Using pipeline configuration with deal memory");
 
-    const evaluated = await runFullEvaluation(evidenceSummary, previousDiagnosis, chosenArch, modelConfig, pipelineOverrides, setDealSubStage, dealMemory);
+    const evaluated = await runFullEvaluation(evidenceSummary, previousDiagnosis, chosenArch, modelConfig, pipelineOverrides, setDealSubStage, dealMemory, cycleId);
 
     const dealId = randomUUID();
     const isBetterThanCurrent = !currentBest?.scores ||

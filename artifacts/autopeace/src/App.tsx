@@ -22,6 +22,7 @@ import StakeholderLens from "@/pages/StakeholderLens";
 import SubmitProposal from "@/pages/SubmitProposal";
 import DataPortal from "@/pages/DataPortal";
 import ApiDocs from "@/pages/ApiDocs";
+import Live from "@/pages/Live";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -55,6 +56,7 @@ function Router() {
         <Route path="/changelog" element={<Changelog />} />
         <Route path="/changelog/:id" element={<ChangelogEntry />} />
         <Route path="/methodology" element={<Methodology />} />
+        <Route path="/live" element={<Live />} />
         <Route path="/admin" element={<AdminPanel />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

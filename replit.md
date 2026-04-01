@@ -83,6 +83,10 @@ Run migrations: `pnpm --filter @workspace/db run push`
 - `GET /api/autoresearch/champion-lineage` — ordered list of retained experiments showing champion evolution
 - `GET /api/autoresearch/pipeline-evolution` — pipeline evolution history (prompt overrides, generation progression)
 
+### Live Monitor
+- `GET /api/live/stream` — SSE endpoint streaming real-time cycle log events (stage changes, LLM calls, timing, errors)
+- `GET /api/live/next-run` — next scheduled autoresearch cycle timestamp
+
 ### Admin (requires `X-Admin-Key: $ADMIN_PASSWORD`)
 - `POST /api/admin/run` — trigger autoresearch cycle immediately (409 if cycle already running)
 - `GET /api/admin/config` — view admin config

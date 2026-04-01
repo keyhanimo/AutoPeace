@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { logger } from "../lib/logger";
 import type { DealSubStage } from "../lib/cycle-status";
+import { emitCycleLog, truncateForLog } from "../lib/cycle-log";
 import {
   callLLM as sharedCallLLM,
   callLLMForStage as sharedCallLLMForStage,
@@ -1531,58 +1532,88 @@ export async function runFullEvaluation(
   pipelineOverrides: Record<string, string> = {},
   onSubStage?: (subStage: DealSubStage) => void,
   dealMemory: DealMemoryContext | null = null,
+  cycleId?: string,
 ): Promise<EvaluatedDeal> {
   validateModelConfig(modelConfig);
   await loadStakeholderRegistryFromDB();
   const pipelineStart = Date.now();
   let currentStage = "init";
+  const cid = cycleId ?? "deal-" + Date.now();
   logger.info({ architecture, overrides: Object.keys(pipelineOverrides), hasDealMemory: !!dealMemory, topDealsCount: dealMemory?.topDeals.length ?? 0 }, "Starting deal evaluation pipeline");
+  emitCycleLog({ cycleId: cid, level: "stage", stage: "deal_pipeline", message: `Starting deal evaluation pipeline — architecture: ${architecture}`, metadata: { architecture, overrides: Object.keys(pipelineOverrides) } });
   let totalTokens = 0;
   let totalCost = 0;
+
+  const stageLog = (stage: string, message: string, extra?: Partial<Parameters<typeof emitCycleLog>[0]>) => {
+    emitCycleLog({ cycleId: cid, level: "info", stage: `deal.${stage}`, message, ...extra });
+  };
 
   try {
 
   currentStage = "brainstorm";
   onSubStage?.("brainstorm");
+  emitCycleLog({ cycleId: cid, level: "stage", stage: "deal.brainstorm", message: "Stage 0: Innovation brainstorm — mining historical analogies and creative provisions" });
+  const bs0 = Date.now();
   const { insights: brainstormInsights, tokens: t0 } = await runInnovationBrainstorm(evidenceSummary, previousDiagnosis, architecture, modelConfig, pipelineOverrides, dealMemory);
   totalTokens += t0;
   logger.info({ stage: "brainstorm", analogies: brainstormInsights.historicalAnalogies.length, provisions: brainstormInsights.creativeProvisions.length, tokens: t0 }, "Stage 0 complete");
+  stageLog("brainstorm", `Stage 0 complete — ${brainstormInsights.historicalAnalogies.length} analogies, ${brainstormInsights.creativeProvisions.length} provisions`, { durationMs: Date.now() - bs0, tokens: t0 });
 
   currentStage = "proposal";
   onSubStage?.("proposal");
+  emitCycleLog({ cycleId: cid, level: "stage", stage: "deal.proposal", message: "Stage 1: Generating deal proposal with terms for all stakeholders" });
+  const bs1 = Date.now();
   const { terms, tokens: t1 } = await generateProposal(evidenceSummary, previousDiagnosis, architecture, modelConfig, brainstormInsights, pipelineOverrides, dealMemory);
   totalTokens += t1;
   logger.info({ stage: "proposal", innovativeProvisions: terms.innovativeProvisions?.length ?? 0, tokens: t1 }, "Stage 1 complete");
+  stageLog("proposal", `Stage 1 complete — ${terms.innovativeProvisions?.length ?? 0} innovative provisions generated`, { durationMs: Date.now() - bs1, tokens: t1 });
 
   currentStage = "stakeholders";
   onSubStage?.("stakeholders");
+  emitCycleLog({ cycleId: cid, level: "stage", stage: "deal.stakeholders", message: "Stage 2: Evaluating deal from each stakeholder's perspective" });
+  const bs2 = Date.now();
   const { evaluations: stakeholderEvaluations, tokens: t2 } = await evaluateStakeholders(terms, modelConfig, evidenceSummary);
   totalTokens += t2;
+  const accepts = Object.values(stakeholderEvaluations).filter((e: any) => e.verdict === "accept").length;
+  const rejects = Object.values(stakeholderEvaluations).filter((e: any) => e.verdict === "reject").length;
   logger.info({ stage: "stakeholders", tokens: t2 }, "Stage 2 complete");
+  stageLog("stakeholders", `Stage 2 complete — ${accepts} accept, ${rejects} reject, ${Object.keys(stakeholderEvaluations).length - accepts - rejects} conditional`, { durationMs: Date.now() - bs2, tokens: t2, metadata: { accepts, rejects } });
 
   currentStage = "domestic";
   onSubStage?.("domestic");
+  emitCycleLog({ cycleId: cid, level: "stage", stage: "deal.domestic", message: "Stage 3: Evaluating domestic audience sellability" });
+  const bs3 = Date.now();
   const { evaluations: domesticEvaluations, tokens: t3 } = await evaluateDomesticAudiences(terms, modelConfig, evidenceSummary);
   totalTokens += t3;
   logger.info({ stage: "domestic", tokens: t3 }, "Stage 3 complete");
+  stageLog("domestic", `Stage 3 complete — domestic audiences evaluated`, { durationMs: Date.now() - bs3, tokens: t3 });
 
   currentStage = "framing";
   onSubStage?.("framing");
+  emitCycleLog({ cycleId: cid, level: "stage", stage: "deal.framing", message: "Stage 3.5: Generating domestic framing strategies (victory narratives)" });
+  const bs35 = Date.now();
   const { strategies: domesticFramingStrategies, tokens: t35 } = await generateDomesticFramingStrategies(terms, domesticEvaluations, modelConfig, pipelineOverrides);
   totalTokens += t35;
   logger.info({ stage: "framing", strategiesGenerated: Object.keys(domesticFramingStrategies).length, tokens: t35 }, "Stage 3.5 complete");
+  stageLog("framing", `Stage 3.5 complete — ${Object.keys(domesticFramingStrategies).length} framing strategies generated`, { durationMs: Date.now() - bs35, tokens: t35 });
 
   currentStage = "redteam";
   onSubStage?.("redteam");
+  emitCycleLog({ cycleId: cid, level: "stage", stage: "deal.redteam", message: "Stage 4: Red team adversarial analysis — finding fatal flaws" });
+  const bs4 = Date.now();
   const { results: redTeamResults, tokens: t4 } = await runRedTeam(terms, modelConfig, evidenceSummary);
   totalTokens += t4;
   logger.info({ stage: "redteam", tokens: t4 }, "Stage 4 complete");
+  stageLog("redteam", `Stage 4 complete — red team analysis finished`, { durationMs: Date.now() - bs4, tokens: t4 });
 
   currentStage = "negotiator";
   onSubStage?.("negotiator");
+  emitCycleLog({ cycleId: cid, level: "stage", stage: "deal.negotiator", message: "Stage 5: AI negotiator — proposing amendments and Pareto improvements" });
+  const bs5 = Date.now();
   const { result: negotiatorResult, tokens: t5 } = await runNegotiator(terms, stakeholderEvaluations, domesticFramingStrategies, modelConfig, pipelineOverrides);
   totalTokens += t5;
   logger.info({ stage: "negotiator", amendments: negotiatorResult.proposedAmendments.length, tradeoffs: negotiatorResult.creativeTradeoffs?.length ?? 0, tokens: t5 }, "Stage 5 complete");
+  stageLog("negotiator", `Stage 5 complete — ${negotiatorResult.proposedAmendments.length} amendments, ${negotiatorResult.creativeTradeoffs?.length ?? 0} creative tradeoffs`, { durationMs: Date.now() - bs5, tokens: t5 });
 
   const revisedTerms: DealTerms = {
     ...terms,
@@ -1591,25 +1622,35 @@ export async function runFullEvaluation(
 
   currentStage = "judge";
   onSubStage?.("judge");
+  emitCycleLog({ cycleId: cid, level: "stage", stage: "deal.judge", message: "Stage 6: 3-LLM judicial panel scoring the deal" });
+  const bs6 = Date.now();
   const { scores, tokens: t6 } = await judgeAndScore(revisedTerms, stakeholderEvaluations, redTeamResults, domesticEvaluations, modelConfig, evidenceSummary);
   totalTokens += t6;
   logger.info({ stage: "judge", composite: scores.composite.toFixed(3), tokens: t6 }, "Stage 6 complete");
+  stageLog("judge", `Stage 6 complete — composite score: ${scores.composite.toFixed(3)}`, { durationMs: Date.now() - bs6, tokens: t6, metadata: { composite: scores.composite } });
 
   currentStage = "meta_eval";
   onSubStage?.("meta_eval");
+  emitCycleLog({ cycleId: cid, level: "stage", stage: "deal.meta_eval", message: "Stage 7: Meta-evaluator — analyzing pipeline quality and suggesting improvements" });
+  const bs7 = Date.now();
   const { result: metaEvaluatorResult, tokens: t7 } = await runMetaEvaluator(revisedTerms, scores, negotiatorResult, stakeholderEvaluations, brainstormInsights, domesticFramingStrategies, modelConfig, pipelineOverrides);
   totalTokens += t7;
   logger.info({ stage: "meta-evaluator", quality: metaEvaluatorResult.pipelineQuality, promptImprovements: metaEvaluatorResult.promptImprovements?.length ?? 0, tokens: t7 }, "Stage 7 complete");
+  stageLog("meta_eval", `Stage 7 complete — pipeline quality: ${metaEvaluatorResult.pipelineQuality}, ${metaEvaluatorResult.promptImprovements?.length ?? 0} prompt improvements suggested`, { durationMs: Date.now() - bs7, tokens: t7 });
 
   currentStage = "diagnosis";
   onSubStage?.("diagnosis");
+  emitCycleLog({ cycleId: cid, level: "stage", stage: "deal.diagnosis", message: "Stage 8: Generating strategic diagnosis" });
+  const bs8 = Date.now();
   const { diagnosis, tokens: t8 } = await generateDiagnosis(revisedTerms, stakeholderEvaluations, redTeamResults, scores, modelConfig);
   totalTokens += t8;
   logger.info({ stage: "diagnosis", tokens: t8 }, "Stage 8 complete");
+  stageLog("diagnosis", `Stage 8 complete — strategic diagnosis generated`, { durationMs: Date.now() - bs8, tokens: t8, output: truncateForLog(diagnosis, 300) });
 
   totalCost = totalTokens * 0.000003;
   const elapsedSec = ((Date.now() - pipelineStart) / 1000).toFixed(1);
   logger.info({ architecture, totalTokens, totalCost: totalCost.toFixed(4), elapsedSec, composite: scores.composite.toFixed(3) }, "Deal evaluation pipeline complete");
+  emitCycleLog({ cycleId: cid, level: "stage", stage: "deal_complete", message: `Deal pipeline complete — composite: ${scores.composite.toFixed(3)}, ${totalTokens} tokens, ${elapsedSec}s elapsed`, durationMs: Date.now() - pipelineStart, tokens: totalTokens, metadata: { composite: scores.composite, architecture, totalCost } });
 
   return {
     terms: revisedTerms,
@@ -1639,6 +1680,7 @@ export async function runFullEvaluation(
       tokensBeforeFailure: totalTokens,
       elapsedSec,
     }, `Pipeline failed at stage '${currentStage}': ${classified.message}`);
+    emitCycleLog({ cycleId: cid, level: "error", stage: `deal.${currentStage}`, message: `Pipeline failed at '${currentStage}': ${classified.message}`, durationMs: Date.now() - pipelineStart, tokens: totalTokens, metadata: { errorType: classified.type, provider: classified.provider } });
     throw err;
   }
 }
