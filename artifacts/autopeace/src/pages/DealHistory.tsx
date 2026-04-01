@@ -109,6 +109,8 @@ export default function DealHistory() {
                   <YAxis tick={{ fontSize: 9, fill: "#94a3b8" }} tickFormatter={(v: number) => `${v}%`} domain={[0, 100]} />
                   <Tooltip
                     contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "8px", fontSize: "11px", color: "#e2e8f0" }}
+                    labelStyle={{ color: "#94a3b8" }}
+                    itemStyle={{ color: "#e2e8f0" }}
                     formatter={(v: number, _: unknown, entry: { payload?: { architecture?: string; isCurrent?: boolean } }) => [
                       `${v}% (${entry.payload?.architecture ?? ""}${entry.payload?.isCurrent ? " — champion" : ""})`,
                       "Composite"
