@@ -534,10 +534,10 @@ async function runDealCycleAsync(cycleId: string): Promise<void> {
     const dealId = randomUUID();
     const newComposite = evaluated.scores.composite ?? 0;
     const prevComposite = currentBest?.scores ? ((currentBest.scores as DealScores).composite ?? 0) : 0;
-    const isBetterThanCurrent = !currentBest?.scores || (newComposite > prevComposite);
+    const isBetterThanCurrent = !currentBest?.scores || (newComposite >= prevComposite);
 
     if (isBetterThanCurrent) {
-      emitCycleLog({ cycleId, level: "info", stage: "deal_engine", message: `New champion deal! This deal scored ${(newComposite * 100).toFixed(1)}% composite${currentBest ? `, beating the previous best of ${(prevComposite * 100).toFixed(1)}% (+${((newComposite - prevComposite) * 100).toFixed(1)} percentage points improvement)` : " — this is the first deal generated"}. The new deal is now the current champion displayed on the dashboard.`, metadata: { newComposite, prevComposite, improvement: newComposite - prevComposite, architecture: chosenArch } });
+      emitCycleLog({ cycleId, level: "info", stage: "deal_engine", message: `New champion deal! This deal scored ${(newComposite * 100).toFixed(1)}% composite${currentBest ? (newComposite > prevComposite ? `, beating the previous best of ${(prevComposite * 100).toFixed(1)}% (+${((newComposite - prevComposite) * 100).toFixed(1)} percentage points improvement)` : `, matching the previous best of ${(prevComposite * 100).toFixed(1)}% — the newer deal wins as it reflects more current evidence`) : " — this is the first deal generated"}. The new deal is now the current champion displayed on the dashboard.`, metadata: { newComposite, prevComposite, improvement: newComposite - prevComposite, architecture: chosenArch } });
     } else {
       emitCycleLog({ cycleId, level: "info", stage: "deal_engine", message: `This deal scored ${(newComposite * 100).toFixed(1)}% composite, which did not beat the current best of ${(prevComposite * 100).toFixed(1)}%. The current champion deal remains unchanged. The system will try a different approach next cycle.`, metadata: { newComposite, prevComposite, architecture: chosenArch } });
     }
