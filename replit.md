@@ -52,7 +52,7 @@ artifacts-monorepo/
 ## Database Schema (10+ tables)
 
 - **stakeholders** — 33 conflict actors with flags/roles/definitions + `tier` (required/critical/influential/contextual) and `profileSummary` columns. Categories: core_principal (3), gulf_state (6), regional_broker (8), external_power (8), global_bloc (3), international_org (1), internal_faction (2). Profiles loaded from DB at deal pipeline runtime (no more hardcoded registry). Evidence-driven profile updates run each cycle via `stakeholder-updater.ts`.
-- **cycles** — autoresearch run records (status, tokens, timestamps)
+- **cycles** — autoresearch run records (status, tokens, timestamps). On startup, `recoverStuckCycles()` marks any cycles left in `"running"` status as `"failed"` to prevent ghost locks after server restarts.
 - **forecasts** — probability distributions across 8 outcome states per time horizon (no scoring fields — forecasting generates a single forecast per cycle)
 - **experiments** — deal pipeline experiment log (hill-climbing applies only to deal generation, not forecasting)
 - **evidence_items** — ingested RSS articles classified by evidence type

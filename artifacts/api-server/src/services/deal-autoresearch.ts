@@ -329,23 +329,25 @@ async function evolvePipeline(
     .map(imp => `[${imp.stage}] ${imp.currentWeakness} → ${imp.expectedImpact}`)
     .join("; ");
 
-  if (currentConfigId) {
-    await db.update(pipelineEvolutionTable)
-      .set({ isCurrent: false })
-      .where(eq(pipelineEvolutionTable.isCurrent, true));
-  }
-
   const newConfigId = randomUUID();
-  await db.insert(pipelineEvolutionTable).values({
-    id: newConfigId,
-    parentConfigId: currentConfigId,
-    generation: currentGeneration + 1,
-    promptOverrides: newOverrides,
-    parameterOverrides: {},
-    description,
-    avgCompositeScore: 0,
-    dealCount: 0,
-    isCurrent: true,
+  await db.transaction(async (tx) => {
+    if (currentConfigId) {
+      await tx.update(pipelineEvolutionTable)
+        .set({ isCurrent: false })
+        .where(eq(pipelineEvolutionTable.isCurrent, true));
+    }
+
+    await tx.insert(pipelineEvolutionTable).values({
+      id: newConfigId,
+      parentConfigId: currentConfigId,
+      generation: currentGeneration + 1,
+      promptOverrides: newOverrides,
+      parameterOverrides: {},
+      description,
+      avgCompositeScore: 0,
+      dealCount: 0,
+      isCurrent: true,
+    });
   });
 
   logger.info({
@@ -504,34 +506,39 @@ async function runDealCycleAsync(cycleId: string): Promise<void> {
 
     if (isBetterThanCurrent) {
       emitCycleLog({ cycleId, level: "info", stage: "deal_engine", message: `New champion deal! This deal scored ${(newComposite * 100).toFixed(1)}% composite${currentBest ? `, beating the previous best of ${(prevComposite * 100).toFixed(1)}% (+${((newComposite - prevComposite) * 100).toFixed(1)} percentage points improvement)` : " — this is the first deal generated"}. The new deal is now the current champion displayed on the dashboard.`, metadata: { newComposite, prevComposite, improvement: newComposite - prevComposite, architecture: chosenArch } });
-      await db.update(dealsTable)
-        .set({ isCurrent: false })
-        .where(eq(dealsTable.isCurrent, true));
     } else {
       emitCycleLog({ cycleId, level: "info", stage: "deal_engine", message: `This deal scored ${(newComposite * 100).toFixed(1)}% composite, which did not beat the current best of ${(prevComposite * 100).toFixed(1)}%. The current champion deal remains unchanged. The system will try a different approach next cycle.`, metadata: { newComposite, prevComposite, architecture: chosenArch } });
     }
 
-    await db.insert(dealsTable).values({
-      id: dealId,
-      cycleId,
-      parentId: currentBest?.id ?? null,
-      architecture: chosenArch,
-      terms: evaluated.terms,
-      scores: evaluated.scores,
-      stakeholderEvaluations: evaluated.stakeholderEvaluations,
-      domesticEvaluations: evaluated.domesticEvaluations,
-      domesticFramingStrategies: evaluated.domesticFramingStrategies,
-      brainstormInsights: evaluated.brainstormInsights,
-      redTeamResults: evaluated.redTeamResults,
-      negotiatorResult: evaluated.negotiatorResult ?? undefined,
-      metaEvaluatorResult: evaluated.metaEvaluatorResult ?? undefined,
-      pipelineConfig: evaluated.pipelineConfig,
-      diagnosis: evaluated.diagnosis,
-      evidenceSummary,
-      isPareto: false,
-      isCurrent: isBetterThanCurrent,
-      generatedBy: "ai",
-      tokensConsumed: evaluated.tokensConsumed,
+    await db.transaction(async (tx) => {
+      if (isBetterThanCurrent) {
+        await tx.update(dealsTable)
+          .set({ isCurrent: false })
+          .where(eq(dealsTable.isCurrent, true));
+      }
+
+      await tx.insert(dealsTable).values({
+        id: dealId,
+        cycleId,
+        parentId: currentBest?.id ?? null,
+        architecture: chosenArch,
+        terms: evaluated.terms,
+        scores: evaluated.scores,
+        stakeholderEvaluations: evaluated.stakeholderEvaluations,
+        domesticEvaluations: evaluated.domesticEvaluations,
+        domesticFramingStrategies: evaluated.domesticFramingStrategies,
+        brainstormInsights: evaluated.brainstormInsights,
+        redTeamResults: evaluated.redTeamResults,
+        negotiatorResult: evaluated.negotiatorResult ?? undefined,
+        metaEvaluatorResult: evaluated.metaEvaluatorResult ?? undefined,
+        pipelineConfig: evaluated.pipelineConfig,
+        diagnosis: evaluated.diagnosis,
+        evidenceSummary,
+        isPareto: false,
+        isCurrent: isBetterThanCurrent,
+        generatedBy: "ai",
+        tokensConsumed: evaluated.tokensConsumed,
+      });
     });
 
     const compositeScore = evaluated.scores.composite ?? 0;

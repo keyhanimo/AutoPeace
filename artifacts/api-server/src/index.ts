@@ -1,7 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { runSeed } from "./seed";
-import { startScheduler } from "./services/autoresearch";
+import { startScheduler, recoverStuckCycles } from "./services/autoresearch";
 import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
 
@@ -48,5 +48,6 @@ app.listen(port, async (err) => {
 
   await verifyDatabaseReady();
   await runSeed();
+  await recoverStuckCycles();
   await startScheduler();
 });

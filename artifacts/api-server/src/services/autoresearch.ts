@@ -172,23 +172,25 @@ async function runCycleAsync(cycleId: string): Promise<void> {
     const evidencePackVersion = new Date().toISOString().slice(0, 10);
     const forecasts = await generateForecasts(cycleId, evidencePackVersion);
 
-    await db.update(forecastsTable)
-      .set({ isCurrent: false })
-      .where(eq(forecastsTable.isCurrent, true));
+    await db.transaction(async (tx) => {
+      await tx.update(forecastsTable)
+        .set({ isCurrent: false })
+        .where(eq(forecastsTable.isCurrent, true));
 
-    for (const f of forecasts) {
-      const forecastId = randomUUID();
-      await db.insert(forecastsTable).values({
-        id: forecastId,
-        cycleId,
-        evidencePackVersion,
-        timeHorizon: f.timeHorizon,
-        probabilities: f.probabilities,
-        rationale: f.rationale,
-        keyEvidenceItems: f.keyEvidenceItems,
-        isCurrent: true,
-      });
-    }
+      for (const f of forecasts) {
+        const forecastId = randomUUID();
+        await tx.insert(forecastsTable).values({
+          id: forecastId,
+          cycleId,
+          evidencePackVersion,
+          timeHorizon: f.timeHorizon,
+          probabilities: f.probabilities,
+          rationale: f.rationale,
+          keyEvidenceItems: f.keyEvidenceItems,
+          isCurrent: true,
+        });
+      }
+    });
 
     logger.info({ cycleId, forecastCount: forecasts.length }, "Forecasts generated");
     emitCycleLog({ cycleId, level: "info", stage: "forecasting", message: `Forecasts generated for ${forecasts.length} time horizon${forecasts.length === 1 ? "" : "s"} (${forecasts.map(f => f.timeHorizon).join(", ")}). Each forecast contains probability estimates for all 8 conflict outcome states, summing to 100%.`, durationMs: Date.now() - forecastStart, metadata: { forecastCount: forecasts.length, horizons: forecasts.map(f => f.timeHorizon) } });
@@ -277,6 +279,29 @@ function generateHeadline(probs: Record<string, number>): string {
   const pct = Math.round((top[1] ?? 0) * 100);
   const label = top[0].replace(/_/g, " ");
   return `${pct}% probability of ${label} at 90-day horizon`;
+}
+
+export async function recoverStuckCycles(): Promise<void> {
+  try {
+    const stuck = await db
+      .select({ id: cyclesTable.id })
+      .from(cyclesTable)
+      .where(eq(cyclesTable.status, "running"));
+
+    if (stuck.length > 0) {
+      const ids = stuck.map(c => c.id);
+      for (const id of ids) {
+        await db.update(cyclesTable).set({
+          status: "failed",
+          completedAt: new Date(),
+          errorMessage: "Server restarted while cycle was running",
+        }).where(eq(cyclesTable.id, id));
+      }
+      logger.info({ count: stuck.length, ids }, "Recovered stuck cycles from previous server instance");
+    }
+  } catch (err) {
+    logger.warn({ err }, "Failed to recover stuck cycles (non-critical)");
+  }
 }
 
 export async function startScheduler(): Promise<void> {
