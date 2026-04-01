@@ -6,6 +6,7 @@ import {
   Search, GitCompare, Send, Database, Code2, Eye, MoreHorizontal, Microscope, Radio,
 } from "lucide-react";
 import { CycleStatusIndicator } from "./CycleStatusIndicator";
+import { LiveCycleBanner } from "./LiveCycleBanner";
 
 type NavGroup = {
   label: string;
@@ -206,6 +207,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Main Content */}
       <main className="flex-1 lg:ml-60 min-h-screen flex flex-col">
+        <div className="fixed top-14 lg:top-0 left-0 lg:left-60 right-0 z-30">
+          <LiveCycleBanner />
+        </div>
         <div className="flex-1 px-4 py-6 lg:px-8 lg:py-8 pt-20 lg:pt-6 pb-24 lg:pb-6 max-w-6xl mx-auto w-full">
           {children}
         </div>
