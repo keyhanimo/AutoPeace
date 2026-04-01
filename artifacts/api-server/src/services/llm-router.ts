@@ -200,14 +200,19 @@ async function callOpenAI(
 
 async function callGemini(
   prompt: string,
-  _systemPrompt: string,
+  systemPrompt: string,
   model: string,
-  _opts: CallLLMOptions = {},
+  opts: CallLLMOptions = {},
 ): Promise<{ content: string; tokens: number }> {
+  const maxTokens = opts.maxTokens ?? 4096;
   const gemini = await getGemini();
   const resp = await gemini.models.generateContent({
     model,
     contents: prompt,
+    config: {
+      maxOutputTokens: maxTokens,
+      systemInstruction: systemPrompt,
+    },
   });
   const content = resp.text;
   if (!content) {
