@@ -181,22 +181,34 @@ async function callOpenAI(
 ): Promise<{ content: string; tokens: number }> {
   const maxTokens = opts.maxTokens ?? 4096;
   const openai = await getOpenAI();
-  const resp = await openai.chat.completions.create({
-    model,
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: prompt },
-    ],
-    max_completion_tokens: maxTokens,
-  });
-  const content = resp.choices[0]?.message?.content;
-  if (!content) {
-    throw new Error("OpenAI returned empty response (no content in choices[0])");
+  const promptChars = prompt.length + systemPrompt.length;
+  const startMs = Date.now();
+  logger.info({ model, maxTokens, promptChars }, "OpenAI API call starting");
+  try {
+    const resp = await openai.chat.completions.create({
+      model,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: prompt },
+      ],
+      max_completion_tokens: maxTokens,
+    });
+    const elapsedSec = ((Date.now() - startMs) / 1000).toFixed(1);
+    const content = resp.choices[0]?.message?.content;
+    logger.info({ model, elapsedSec, totalTokens: resp.usage?.total_tokens, hasContent: !!content }, "OpenAI API call completed");
+    if (!content) {
+      throw new Error("OpenAI returned empty response (no content in choices[0])");
+    }
+    return {
+      content,
+      tokens: resp.usage?.total_tokens ?? 0,
+    };
+  } catch (err: unknown) {
+    const elapsedSec = ((Date.now() - startMs) / 1000).toFixed(1);
+    const errMsg = err instanceof Error ? err.message : String(err);
+    logger.error({ model, elapsedSec, errMsg, promptChars, maxTokens }, "OpenAI API call failed");
+    throw err;
   }
-  return {
-    content,
-    tokens: resp.usage?.total_tokens ?? 0,
-  };
 }
 
 async function callGemini(
@@ -207,22 +219,34 @@ async function callGemini(
 ): Promise<{ content: string; tokens: number }> {
   const maxTokens = opts.maxTokens ?? 4096;
   const gemini = await getGemini();
-  const resp = await gemini.models.generateContent({
-    model,
-    contents: prompt,
-    config: {
-      maxOutputTokens: maxTokens,
-      systemInstruction: systemPrompt,
-    },
-  });
-  const content = resp.text;
-  if (!content) {
-    throw new Error("Gemini returned empty response (no text)");
+  const promptChars = prompt.length + systemPrompt.length;
+  const startMs = Date.now();
+  logger.info({ model, maxTokens, promptChars }, "Gemini API call starting");
+  try {
+    const resp = await gemini.models.generateContent({
+      model,
+      contents: prompt,
+      config: {
+        maxOutputTokens: maxTokens,
+        systemInstruction: systemPrompt,
+      },
+    });
+    const elapsedSec = ((Date.now() - startMs) / 1000).toFixed(1);
+    const content = resp.text;
+    logger.info({ model, elapsedSec, hasContent: !!content }, "Gemini API call completed");
+    if (!content) {
+      throw new Error("Gemini returned empty response (no text)");
+    }
+    return {
+      content,
+      tokens: 500,
+    };
+  } catch (err: unknown) {
+    const elapsedSec = ((Date.now() - startMs) / 1000).toFixed(1);
+    const errMsg = err instanceof Error ? err.message : String(err);
+    logger.error({ model, elapsedSec, errMsg, promptChars, maxTokens }, "Gemini API call failed");
+    throw err;
   }
-  return {
-    content,
-    tokens: 500,
-  };
 }
 
 async function callAnthropic(
@@ -233,21 +257,35 @@ async function callAnthropic(
 ): Promise<{ content: string; tokens: number }> {
   const maxTokens = opts.maxTokens ?? 4096;
   const anthropic = await getAnthropic();
-  const resp = await anthropic.messages.create({
-    model,
-    max_tokens: maxTokens,
-    system: systemPrompt,
-    messages: [{ role: "user", content: prompt }],
-  });
-  const block = resp.content[0];
-  const content = block?.type === "text" ? block.text : null;
-  if (!content) {
-    throw new Error("Anthropic returned empty response (no text block)");
+  const promptChars = prompt.length + systemPrompt.length;
+  const startMs = Date.now();
+  logger.info({ model, maxTokens, promptChars, baseURL: (anthropic as Record<string, unknown>).baseURL }, "Anthropic API call starting");
+  try {
+    const resp = await anthropic.messages.create({
+      model,
+      max_tokens: maxTokens,
+      system: systemPrompt,
+      messages: [{ role: "user", content: prompt }],
+    }, { timeout: opts.timeoutMs ?? 300_000, maxRetries: 0 });
+    const elapsedSec = ((Date.now() - startMs) / 1000).toFixed(1);
+    const block = resp.content[0];
+    const content = block?.type === "text" ? block.text : null;
+    logger.info({ model, elapsedSec, inputTokens: resp.usage?.input_tokens, outputTokens: resp.usage?.output_tokens, stopReason: resp.stop_reason, hasContent: !!content }, "Anthropic API call completed");
+    if (!content) {
+      throw new Error(`Anthropic returned empty response (stop_reason=${resp.stop_reason}, blocks=${resp.content.length})`);
+    }
+    return {
+      content,
+      tokens: (resp.usage?.input_tokens ?? 0) + (resp.usage?.output_tokens ?? 0),
+    };
+  } catch (err: unknown) {
+    const elapsedSec = ((Date.now() - startMs) / 1000).toFixed(1);
+    const errMsg = err instanceof Error ? err.message : String(err);
+    const errName = err instanceof Error ? err.constructor.name : "Unknown";
+    const status = (err as Record<string, unknown>)?.status;
+    logger.error({ model, elapsedSec, errName, errMsg, status, promptChars, maxTokens }, "Anthropic API call failed");
+    throw err;
   }
-  return {
-    content,
-    tokens: (resp.usage?.input_tokens ?? 0) + (resp.usage?.output_tokens ?? 0),
-  };
 }
 
 export async function callLLM(
