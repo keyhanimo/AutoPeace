@@ -637,6 +637,10 @@ CRITICAL PRINCIPLES:
 3. FACE-SAVING FRAMING: For every painful concession, build in face-saving language or asymmetric framing that lets each leader sell the deal domestically as a victory.
 4. SEQUENCING INNOVATION: Think creatively about sequencing — not just "who goes first" but how to create irreversible momentum through early wins that make walking away costly for all parties.
 
+WRITING STYLE:
+- SELF-CONTAINED: Every field must be fully understandable on its own. NEVER reference "previous deals," "revisions," "key changes," "updated terms," or "modifications." The reader has NO context about prior proposals. Write each field as if it is the first and only deal.
+- CONCISE: Use direct, policy-brief style. State specific terms (numbers, percentages, timelines, mechanisms) without preamble or filler. Aim for 2-4 sentences per field, not paragraphs. Avoid hedging language like "could potentially" or "it is envisioned that."
+
 ${overridePrompt}
 Output valid JSON only, no prose.`;
 
@@ -645,7 +649,7 @@ Output valid JSON only, no prose.`;
     .filter((t, i, arr) => arr.indexOf(t) === i) ?? [];
 
   const proposalDealMemoryBlock = dealMemory && dealMemory.topDeals.length > 0 ? `
-PREVIOUS DEAL HISTORY (learn from patterns, but generate NEW provisions — do NOT copy):
+RESEARCH CONTEXT (learn from these patterns, but your output must be a FRESH STANDALONE proposal — never reference or compare to these):
 ${dealMemory.topDeals.slice(0, 3).map((d, i) => `
 Deal ${i + 1} (${d.architecture}, ${(d.compositeScore * 100).toFixed(1)}% composite):
 - Nuclear: ${(d.terms.nuclearProtocol || "").slice(0, 250)}
@@ -679,7 +683,7 @@ You are NOT constrained by any predetermined architecture. Do NOT default to a "
   const prompt = `${overrideUser}Based on current evidence:
 ${evidenceSummary.slice(0, 8000)}
 
-${previousDiagnosis ? `Previous deal failed because: ${previousDiagnosis}` : "Design an initial deal proposal."}
+${previousDiagnosis ? `LESSONS FROM PAST ATTEMPTS (avoid these pitfalls, but write your proposal as a fresh standalone deal): ${previousDiagnosis}` : "Design an initial deal proposal."}
 ${proposalDealMemoryBlock}${radicalProposalInstructions}
 ${architecture === "freeform" ? "Architecture approach: freeform — design the deal's structure from scratch based on evidence and stakeholder needs." : `Architecture approach: ${architecture}`}
 ${brainstormContext}
@@ -702,34 +706,34 @@ ${getStakeholdersByTier("influential").map(s => `- ${s.id}: ${s.name}. ${s.profi
 CONTEXTUAL (affected parties whose support strengthens the deal):
 ${getStakeholdersByTier("contextual").map(s => `- ${s.id}: ${s.name}`).join(", ")}
 
-Generate a peace deal JSON with these exact keys:
+Generate a peace deal JSON with these exact keys. Be CONCISE — 2-4 sentences per string field, policy-brief style, no filler:
 {
-  "nuclearProtocol": "string describing nuclear terms — be specific about enrichment levels, facility access, technology sharing",
-  "sanctionsRelief": "string describing sanctions — be specific about timing, conditionality, snapback mechanisms",
-  "hormuzArrangements": "string describing maritime security — include creative multilateral arrangements",
-  "humanitarianProvisions": "string describing humanitarian terms — address immediate and long-term needs",
-  "verificationMechanism": "string describing verification — consider technology-enhanced monitoring beyond traditional IAEA",
+  "nuclearProtocol": "concise nuclear terms: enrichment caps, facility access, technology arrangements",
+  "sanctionsRelief": "concise sanctions terms: timing, conditionality, snapback triggers",
+  "hormuzArrangements": "concise maritime security terms: patrol arrangements, passage guarantees",
+  "humanitarianProvisions": "concise humanitarian terms: immediate relief and longer-term commitments",
+  "verificationMechanism": "concise verification terms: monitoring bodies, inspection protocols, technology",
   "timelineYears": number,
-  "sequencing": "string describing creative step-by-step sequencing with early wins and irreversibility mechanisms",
-  "additionalClauses": ["array of additional standard terms"],
+  "sequencing": "concise step-by-step phasing with early wins and irreversibility mechanisms",
+  "additionalClauses": ["concise additional terms — one sentence each"],
   "innovativeProvisions": [
     {
-      "title": "short title of novel deal element",
-      "description": "detailed description of this creative provision",
-      "rationale": "why this helps the deal succeed — which stakeholders benefit and how",
-      "historicalPrecedent": "optional: what historical deal used a similar mechanism"
+      "title": "short title (3-6 words)",
+      "description": "1-2 sentences: what this provision does concretely",
+      "rationale": "1 sentence: which stakeholders benefit and why",
+      "historicalPrecedent": "optional: brief historical analogy"
     }
   ],
   "stakeholderCommitments": {
-${getCoreStakeholders().map(s => `    "${s.id}": "specific binding commitments ${s.name} makes — be creative about what they PROVIDE not just what they ACCEPT"`).join(",\n")}
+${getCoreStakeholders().map(s => `    "${s.id}": "1-2 sentences: specific actions ${s.name} commits to — what they DO, PROVIDE, or GUARANTEE"`).join(",\n")}
   }
 }
 
-CREATIVE MANDATE: You MUST include at least 3 innovative provisions that go beyond traditional nuclear/sanctions/verification categories. Think about economic integration mechanisms, technology-sharing frameworks, regional development funds, environmental cooperation, cultural exchange programs, or entirely novel constructs. The best peace deals create new value, not just redistribute concessions.
-Each provision MUST have a unique title and address a DIFFERENT domain (e.g., one economic, one technological, one environmental, one cultural). Do NOT repeat the same provision across deals.
+CREATIVE MANDATE: Include at least 3 innovative provisions beyond traditional nuclear/sanctions/verification. Each must have a unique title addressing a DIFFERENT domain (economic, technological, environmental, cultural). Keep descriptions tight.
 
-IMPORTANT: Iran and the US are the two REQUIRED parties — without both accepting, no deal is implementable. Israel is CRITICAL — its rejection would severely undermine any deal.
-Every stakeholder MUST have concrete, specific commitments. Vague statements like "supports the deal" are insufficient. Each commitment should specify what the stakeholder will DO, PROVIDE, or GUARANTEE.`;
+IMPORTANT: Iran and US are REQUIRED parties. Israel is CRITICAL. Every stakeholder commitment must specify concrete actions, not vague support.
+
+REMINDER: Write every field as a STANDALONE statement. Do NOT say "revised," "updated," "key changes," "modified from," or reference any prior deal. The reader sees only THIS deal.`;
 
   const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 1, "generation", modelConfig, { maxTokens: 16384, timeoutMs: 600_000 });
   const terms = parseLLMJson<DealTerms>(content, "proposal");
