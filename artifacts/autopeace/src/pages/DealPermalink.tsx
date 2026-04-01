@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { useGetDeal, useGenerateDealShareText, type Deal, type DealScores } from "@workspace/api-client-react";
+import { useGetDeal, useGenerateDealShareText, type DealScores } from "@workspace/api-client-react";
 import { Card, PageHeader, Badge } from "@/components/ui";
 import { ScoreBreakdownPanel, type ExtendedScores } from "@/components/ScoreBreakdownPanel";
 import { useToast } from "@/hooks/use-toast";
-import { dealToMarkdown } from "@/utils/deal-markdown";
 import {
   ArrowLeft, Copy, Share2, ExternalLink, FileText, CheckCircle2, XCircle, AlertTriangle,
   AlertCircle, Shield, Zap, Globe, Heart, TrendingUp, GitBranch, Loader2,
@@ -92,9 +91,13 @@ function ShareModal({ dealId, permalinkUrl, onClose }: { dealId: string; permali
     }
   };
 
-  const handleShare = () => {
+  const handleShare = async () => {
     const platform = PLATFORMS.find(p => p.key === selectedPlatform);
     if (!platform) return;
+    if (platform.key === "facebook") {
+      await navigator.clipboard.writeText(editedText);
+      toast({ title: "Text copied", description: "Share text copied to clipboard. Paste it into your Facebook post." });
+    }
     const shareUrl = platform.shareUrlFn(editedText, permalinkUrl);
     window.open(shareUrl, "_blank", "noopener,noreferrer,width=600,height=400");
   };
@@ -160,12 +163,15 @@ function ShareModal({ dealId, permalinkUrl, onClose }: { dealId: string; permali
                   )}
                 </div>
 
+                {selectedPlatform === "facebook" && (
+                  <p className="text-xs text-amber-400 bg-amber-950/30 rounded p-2">Facebook doesn't support pre-filled text. Your text will be copied to clipboard — paste it into your Facebook post after the share window opens.</p>
+                )}
                 <div className="flex gap-2">
                   <button
                     onClick={handleShare}
                     className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
                   >
-                    <ExternalLink className="w-4 h-4" /> Share on {PLATFORMS.find(p => p.key === selectedPlatform)?.label}
+                    <ExternalLink className="w-4 h-4" /> {selectedPlatform === "facebook" ? "Copy Text & Share" : `Share on ${PLATFORMS.find(p => p.key === selectedPlatform)?.label}`}
                   </button>
                   <button
                     onClick={() => {
@@ -198,6 +204,7 @@ export default function DealPermalink() {
   const { toast } = useToast();
   const [showShareModal, setShowShareModal] = useState(false);
   const [evidenceExpanded, setEvidenceExpanded] = useState(false);
+  const [isCopyingMarkdown, setIsCopyingMarkdown] = useState(false);
 
   if (isLoading) {
     return (
@@ -244,13 +251,19 @@ export default function DealPermalink() {
   const conditionals = Object.values(stakeholderEvals).filter(e => e.verdict === "conditional").length;
   const rejects = Object.values(stakeholderEvals).filter(e => e.verdict === "reject").length;
 
-  const handleCopyMarkdown = () => {
-    const md = dealToMarkdown(deal as Deal, permalinkUrl);
-    navigator.clipboard.writeText(md).then(() => {
+  const handleCopyMarkdown = async () => {
+    setIsCopyingMarkdown(true);
+    try {
+      const response = await fetch(`${getBaseUrl()}/api/deals/${deal.id}/llm.md`);
+      if (!response.ok) throw new Error("Failed to fetch markdown");
+      const md = await response.text();
+      await navigator.clipboard.writeText(md);
       toast({ title: "Copied", description: "Full deal copied as Markdown to clipboard." });
-    }).catch(() => {
+    } catch {
       toast({ title: "Error", description: "Failed to copy to clipboard.", variant: "destructive" });
-    });
+    } finally {
+      setIsCopyingMarkdown(false);
+    }
   };
 
   return (
@@ -281,9 +294,10 @@ export default function DealPermalink() {
         </button>
         <button
           onClick={handleCopyMarkdown}
-          className="px-4 py-2 bg-secondary/50 border border-border text-foreground rounded-lg text-sm font-medium hover:bg-secondary transition-colors flex items-center gap-2"
+          disabled={isCopyingMarkdown}
+          className="px-4 py-2 bg-secondary/50 border border-border text-foreground rounded-lg text-sm font-medium hover:bg-secondary transition-colors flex items-center gap-2 disabled:opacity-50"
         >
-          <Copy className="w-4 h-4" /> Copy as Markdown
+          {isCopyingMarkdown ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />} Copy as Markdown
         </button>
         <a
           href={llmMdUrl}
