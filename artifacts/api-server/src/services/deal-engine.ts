@@ -558,7 +558,7 @@ Return JSON:
 
 Generate at least 4 historical analogies, 5 creative provisions (at least 2 at 'breakthrough' novelty), 4 cross-issue linkages, and 4 unconventional approaches.`;
 
-  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 1, "generation", modelConfig, { maxTokens: 16384 });
+  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 1, "generation", modelConfig, { maxTokens: 16384, timeoutMs: 600_000 });
 
   const PROVISION_POOL: BrainstormInsights["creativeProvisions"] = [
     { idea: "Regional Water-Energy Nexus Agreement linking Gulf desalination tech to Iranian gas exports", rationale: "Creates economic interdependence that raises cost of conflict", noveltyLevel: "breakthrough" },
@@ -731,7 +731,7 @@ Each provision MUST have a unique title and address a DIFFERENT domain (e.g., on
 IMPORTANT: Iran and the US are the two REQUIRED parties — without both accepting, no deal is implementable. Israel is CRITICAL — its rejection would severely undermine any deal.
 Every stakeholder MUST have concrete, specific commitments. Vague statements like "supports the deal" are insufficient. Each commitment should specify what the stakeholder will DO, PROVIDE, or GUARANTEE.`;
 
-  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 1, "generation", modelConfig, { maxTokens: 16384 });
+  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 1, "generation", modelConfig, { maxTokens: 16384, timeoutMs: 600_000 });
   const terms = parseLLMJson<DealTerms>(content, "proposal");
 
   if (!terms.innovativeProvisions || terms.innovativeProvisions.length === 0) {
@@ -813,7 +813,7 @@ For each stakeholder, consider: (1) Does what they receive justify what they mus
 
 Return JSON with ALL stakeholder IDs: { "iran": { verdict, rationale, redLineViolations, conditions }, "us": {...}, "uae": {...}, ... }`;
 
-  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 2, "evaluation", modelConfig, { maxTokens: 16384 });
+  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 2, "evaluation", modelConfig, { maxTokens: 16384, timeoutMs: 600_000 });
 
   const parsed = parseLLMJson<Record<string, StakeholderVerdict>>(content, "stakeholder-evaluation");
 
@@ -1007,7 +1007,7 @@ Return JSON:
 
 CREATIVE MANDATE: Include at least 2 creative tradeoffs even if no stakeholders reject. These should be novel cross-issue deals that create new value. Think about asymmetric valuations — what is cheap for one party but precious for another?`;
 
-  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 5, "generation", modelConfig, { maxTokens: 16384 });
+  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 5, "generation", modelConfig, { maxTokens: 16384, timeoutMs: 600_000 });
   const result = parseLLMJson<NegotiatorResult & { creativeTradeoffs?: CreativeTradeoff[] }>(content, "negotiator");
   return { result, tokens };
 }
@@ -1222,7 +1222,7 @@ Return JSON with scores and rationale for each dimension:
 
   const results = await Promise.allSettled(
     providers.map(async ({ provider, model }) => {
-      const resp = await callLLM(prompt, systemPrompt, provider, model);
+      const resp = await callLLM(prompt, systemPrompt, provider, model, { timeoutMs: 600_000 });
       const { content, tokens } = resp;
 
       const parsed = parseLLMJson<Record<string, unknown>>(content, `judge-panel-${provider}`);
@@ -1408,7 +1408,7 @@ Assess the reasoning quality and suggest pipeline improvements:
 
 IMPORTANT: The promptImprovements field is how this pipeline evolves over time. Be specific and actionable. Vague suggestions like "improve stakeholder analysis" are useless. Instead, write specific prompt additions like "Add instruction: Consider the role of non-state actors as potential spoilers..." Include 2-4 concrete improvements.`;
 
-  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 7, "evaluation", modelConfig, { maxTokens: 16384 });
+  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 7, "evaluation", modelConfig, { maxTokens: 16384, timeoutMs: 600_000 });
   const result = parseLLMJson<MetaEvaluatorResult>(content, "meta-evaluator");
   return { result, tokens };
 }
