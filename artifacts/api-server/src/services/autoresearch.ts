@@ -386,8 +386,8 @@ async function runHillClimbing(
             ? (parsed["probabilities"] as Record<string, number>)
             : (parsed as Record<string, number>);
         mutantProbs = normalizeProbabilities(rawProbs);
-      } catch {
-        logger.warn({ mutation: mutation.name, cycleId }, "Could not parse mutant probabilities — using champion");
+      } catch (parseErr) {
+        logger.warn({ mutation: mutation.name, cycleId, err: parseErr }, "Could not parse mutant probabilities — keeping champion");
       }
 
       const mutantScore = computeCompositeScore(mutantProbs, backtestRecords);
@@ -410,7 +410,8 @@ Respond with JSON: {"recommendation": "retain_challenger" | "retain_champion", "
       let evalResult: { recommendation?: string; reasoning?: string } = {};
       try {
         evalResult = parseLLMJson(evalText) as typeof evalResult;
-      } catch {
+      } catch (evalParseErr) {
+        logger.warn({ mutation: mutation.name, cycleId, err: evalParseErr }, "Could not parse evaluator response — falling back to composite score comparison");
         evalResult = {
           recommendation: mutantScore.composite < championScore.composite ? "retain_challenger" : "retain_champion",
           reasoning: `Composite improvement: ${(championScore.composite - mutantScore.composite).toFixed(4)}`,

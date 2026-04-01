@@ -24,26 +24,19 @@ type StakeholderUpdate = {
   reasoning: string;
 };
 
-function parseLLMJson<T>(text: string, fallback: T): T {
-  try {
-    const match = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-    const jsonStr = match ? match[1]!.trim() : text.trim();
-    return JSON.parse(jsonStr) as T;
-  } catch {
+function parseLLMJson<T>(text: string, label: string): T {
+  const strategies: Array<{ name: string; extract: () => string }> = [
+    { name: "fenced-json", extract: () => { const m = text.match(/```(?:json)?\s*([\s\S]*?)```/); if (!m?.[1]) throw new Error("no match"); return m[1].trim(); } },
+    { name: "array-regex", extract: () => { const i = text.indexOf("["); const j = text.lastIndexOf("]"); if (i === -1 || j === -1) throw new Error("no match"); return text.slice(i, j + 1); } },
+    { name: "object-regex", extract: () => { const i = text.indexOf("{"); const j = text.lastIndexOf("}"); if (i === -1 || j === -1) throw new Error("no match"); return text.slice(i, j + 1); } },
+  ];
+  for (const strategy of strategies) {
     try {
-      const firstBracket = text.indexOf("[");
-      const lastBracket = text.lastIndexOf("]");
-      if (firstBracket !== -1 && lastBracket !== -1) {
-        return JSON.parse(text.slice(firstBracket, lastBracket + 1)) as T;
-      }
-      const firstBrace = text.indexOf("{");
-      const lastBrace = text.lastIndexOf("}");
-      if (firstBrace !== -1 && lastBrace !== -1) {
-        return JSON.parse(text.slice(firstBrace, lastBrace + 1)) as T;
-      }
-    } catch { /* fallthrough */ }
-    return fallback;
+      return JSON.parse(strategy.extract()) as T;
+    } catch { /* try next */ }
   }
+  logger.error({ label, textSnippet: text.slice(0, 300) }, "parseLLMJson failed — could not extract JSON");
+  throw new Error(`Failed to parse LLM JSON for ${label}`);
 }
 
 export async function updateStakeholderProfilesFromEvidence(
@@ -128,7 +121,7 @@ Return a JSON array of updates (empty array if no updates needed):
     modelConfig.extractionModel ?? "claude-sonnet-4-20250514",
   );
 
-  const updates = parseLLMJson<StakeholderUpdate[]>(content, []);
+  const updates = parseLLMJson<StakeholderUpdate[]>(content, "stakeholder-profile-update");
 
   let updated = 0;
   let skipped = 0;

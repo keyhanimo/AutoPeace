@@ -265,10 +265,10 @@ Enhanced multi-agent pipeline (`deal-engine.ts`) with **grand coalition** cooper
 
 ## Key Files
 
-- `artifacts/api-server/src/services/llm-router.ts` — unified LLM router (single source of truth for all model routing)
+- `artifacts/api-server/src/services/llm-router.ts` — unified LLM router; throws `LLMCallError` on provider failures (no silent swallowing)
 - `artifacts/api-server/src/services/autoresearch.ts` — forecast cycle orchestrator
-- `artifacts/api-server/src/services/deal-engine.ts` — 8-stage deal pipeline (re-exports types from llm-router); loads stakeholder profiles from DB
-- `artifacts/api-server/src/services/stakeholder-updater.ts` — evidence-driven stakeholder profile updater (LLM-based)
+- `artifacts/api-server/src/services/deal-engine.ts` — 8-stage deal pipeline; throws `LLMParseError` on unparseable output; `classifyStageError()` provides typed error context (llm_call/llm_parse/runtime) at pipeline boundary
+- `artifacts/api-server/src/services/stakeholder-updater.ts` — evidence-driven stakeholder profile updater (LLM-based; throws on parse failure)
 - `artifacts/api-server/src/services/deal-autoresearch.ts` — deal cycle loop, solution tree, Pareto
 - `artifacts/api-server/src/routes/deals.ts` — deal API endpoints incl. history/robustness/compare
 - `artifacts/api-server/src/routes/proposals.ts` — proposals + admin evaluate endpoint

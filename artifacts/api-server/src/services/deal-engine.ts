@@ -7,6 +7,7 @@ import {
   resolveStageConfig as sharedResolveStageConfig,
   validateModelConfig as sharedValidateModelConfig,
   getModelConfig as sharedGetModelConfig,
+  LLMCallError,
   MODEL_DEFAULTS,
   type ProviderName as SharedProviderName,
   type ModelConfig as SharedModelConfig,
@@ -1206,19 +1207,8 @@ Return JSON with scores and rationale for each dimension:
 
   const results = await Promise.allSettled(
     providers.map(async ({ provider, model }) => {
-      let content: string;
-      let tokens: number;
-      try {
-        const resp = await callLLM(prompt, systemPrompt, provider, model);
-        content = resp.content;
-        tokens = resp.tokens;
-      } catch (err) {
-        throw new Error(`${provider} call failed: ${err instanceof Error ? err.message : String(err)}`);
-      }
-
-      if (!content || content === "{}") {
-        throw new Error(`${provider} returned empty response`);
-      }
+      const resp = await callLLM(prompt, systemPrompt, provider, model);
+      const { content, tokens } = resp;
 
       const parsed = parseLLMJson<Record<string, unknown>>(content, `judge-panel-${provider}`);
 
@@ -1506,6 +1496,19 @@ Limit to 6 items total.`;
  * 7. Meta-Evaluator — evaluates pipeline quality + suggests prompt improvements
  * 8. Diagnosis Generator — human-readable explanation
  */
+function classifyStageError(err: unknown): { type: string; message: string; provider?: string; model?: string } {
+  if (err instanceof LLMCallError) {
+    return { type: "llm_call", message: err.message, provider: err.provider, model: err.model };
+  }
+  if (err instanceof LLMParseError) {
+    return { type: "llm_parse", message: err.message };
+  }
+  if (err instanceof Error) {
+    return { type: "runtime", message: err.message };
+  }
+  return { type: "unknown", message: String(err) };
+}
+
 export async function runFullEvaluation(
   evidenceSummary: string,
   previousDiagnosis: string,
@@ -1517,77 +1520,82 @@ export async function runFullEvaluation(
 ): Promise<EvaluatedDeal> {
   validateModelConfig(modelConfig);
   await loadStakeholderRegistryFromDB();
-  logger.info({ architecture, models: modelConfig, overrides: Object.keys(pipelineOverrides), hasDealMemory: !!dealMemory, topDealsCount: dealMemory?.topDeals.length ?? 0 }, "Starting enhanced deal evaluation pipeline");
+  const pipelineStart = Date.now();
+  let currentStage = "init";
+  logger.info({ architecture, overrides: Object.keys(pipelineOverrides), hasDealMemory: !!dealMemory, topDealsCount: dealMemory?.topDeals.length ?? 0 }, "Starting deal evaluation pipeline");
   let totalTokens = 0;
   let totalCost = 0;
 
-  // Stage 0: Innovation Brainstorm — creative pre-generation
+  try {
+
+  currentStage = "brainstorm";
   onSubStage?.("brainstorm");
   const { insights: brainstormInsights, tokens: t0 } = await runInnovationBrainstorm(evidenceSummary, previousDiagnosis, architecture, modelConfig, pipelineOverrides, dealMemory);
   totalTokens += t0;
   logger.info({ stage: "brainstorm", analogies: brainstormInsights.historicalAnalogies.length, provisions: brainstormInsights.creativeProvisions.length, tokens: t0 }, "Stage 0 complete");
 
-  // Stage 1: Proposal Agent — generates deal terms using brainstorm insights
+  currentStage = "proposal";
   onSubStage?.("proposal");
   const { terms, tokens: t1 } = await generateProposal(evidenceSummary, previousDiagnosis, architecture, modelConfig, brainstormInsights, pipelineOverrides, dealMemory);
   totalTokens += t1;
   logger.info({ stage: "proposal", innovativeProvisions: terms.innovativeProvisions?.length ?? 0, tokens: t1 }, "Stage 1 complete");
 
-  // Stage 2: Stakeholder Evaluation Agent (OpenAI — evaluation role)
+  currentStage = "stakeholders";
   onSubStage?.("stakeholders");
   const { evaluations: stakeholderEvaluations, tokens: t2 } = await evaluateStakeholders(terms, modelConfig, evidenceSummary);
   totalTokens += t2;
   logger.info({ stage: "stakeholders", tokens: t2 }, "Stage 2 complete");
 
-  // Stage 3: Domestic Audience Agent (OpenAI — evaluation role)
+  currentStage = "domestic";
   onSubStage?.("domestic");
   const { evaluations: domesticEvaluations, tokens: t3 } = await evaluateDomesticAudiences(terms, modelConfig, evidenceSummary);
   totalTokens += t3;
   logger.info({ stage: "domestic", tokens: t3 }, "Stage 3 complete");
 
-  // Stage 3.5: Creative Reframing Agent — generates domestic selling narratives
+  currentStage = "framing";
   onSubStage?.("framing");
   const { strategies: domesticFramingStrategies, tokens: t35 } = await generateDomesticFramingStrategies(terms, domesticEvaluations, modelConfig, pipelineOverrides);
   totalTokens += t35;
   logger.info({ stage: "framing", strategiesGenerated: Object.keys(domesticFramingStrategies).length, tokens: t35 }, "Stage 3.5 complete");
 
-  // Stage 4: Red-Team Agent (Gemini — adversarial role)
+  currentStage = "redteam";
   onSubStage?.("redteam");
   const { results: redTeamResults, tokens: t4 } = await runRedTeam(terms, modelConfig, evidenceSummary);
   totalTokens += t4;
   logger.info({ stage: "redteam", tokens: t4 }, "Stage 4 complete");
 
-  // Stage 5: Creative Negotiator Agent — Pareto improvements + creative tradeoffs
+  currentStage = "negotiator";
   onSubStage?.("negotiator");
   const { result: negotiatorResult, tokens: t5 } = await runNegotiator(terms, stakeholderEvaluations, domesticFramingStrategies, modelConfig, pipelineOverrides);
   totalTokens += t5;
   logger.info({ stage: "negotiator", amendments: negotiatorResult.proposedAmendments.length, tradeoffs: negotiatorResult.creativeTradeoffs?.length ?? 0, tokens: t5 }, "Stage 5 complete");
 
-  // Apply negotiator's revisedTermsPartial before judge scores the deal
   const revisedTerms: DealTerms = {
     ...terms,
     ...(negotiatorResult.revisedTermsPartial as Partial<DealTerms>),
   };
 
-  // Stage 6: Judge Agent (OpenAI — scoring role) uses revised terms + domestic evaluations
+  currentStage = "judge";
   onSubStage?.("judge");
   const { scores, tokens: t6 } = await judgeAndScore(revisedTerms, stakeholderEvaluations, redTeamResults, domesticEvaluations, modelConfig, evidenceSummary);
   totalTokens += t6;
   logger.info({ stage: "judge", composite: scores.composite.toFixed(3), tokens: t6 }, "Stage 6 complete");
 
-  // Stage 7: Meta-Evaluator — evaluates pipeline quality + suggests prompt improvements for hill-climbing
+  currentStage = "meta_eval";
   onSubStage?.("meta_eval");
   const { result: metaEvaluatorResult, tokens: t7 } = await runMetaEvaluator(revisedTerms, scores, negotiatorResult, stakeholderEvaluations, brainstormInsights, domesticFramingStrategies, modelConfig, pipelineOverrides);
   totalTokens += t7;
   logger.info({ stage: "meta-evaluator", quality: metaEvaluatorResult.pipelineQuality, promptImprovements: metaEvaluatorResult.promptImprovements?.length ?? 0, tokens: t7 }, "Stage 7 complete");
 
-  // Stage 8: Diagnosis Generator (Gemini — synthesis role)
+  currentStage = "diagnosis";
   onSubStage?.("diagnosis");
   const { diagnosis, tokens: t8 } = await generateDiagnosis(revisedTerms, stakeholderEvaluations, redTeamResults, scores, modelConfig);
   totalTokens += t8;
   logger.info({ stage: "diagnosis", tokens: t8 }, "Stage 8 complete");
 
   totalCost = totalTokens * 0.000003;
+  const elapsedSec = ((Date.now() - pipelineStart) / 1000).toFixed(1);
+  logger.info({ architecture, totalTokens, totalCost: totalCost.toFixed(4), elapsedSec, composite: scores.composite.toFixed(3) }, "Deal evaluation pipeline complete");
 
   return {
     terms: revisedTerms,
@@ -1604,6 +1612,21 @@ export async function runFullEvaluation(
     tokensConsumed: totalTokens,
     costUsd: totalCost,
   };
+
+  } catch (err) {
+    const classified = classifyStageError(err);
+    const elapsedSec = ((Date.now() - pipelineStart) / 1000).toFixed(1);
+    logger.error({
+      stage: currentStage,
+      architecture,
+      errorType: classified.type,
+      provider: classified.provider,
+      model: classified.model,
+      tokensBeforeFailure: totalTokens,
+      elapsedSec,
+    }, `Pipeline failed at stage '${currentStage}': ${classified.message}`);
+    throw err;
+  }
 }
 
 export const DEAL_ARCHITECTURES = ARCHITECTURES;

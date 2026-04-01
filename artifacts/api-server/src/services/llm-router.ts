@@ -54,6 +54,18 @@ export const MODEL_DEFAULTS: ModelConfig = {
   extractionModel: DEFAULT_ANTHROPIC_MODEL,
 };
 
+export class LLMCallError extends Error {
+  constructor(
+    public readonly provider: ProviderName,
+    public readonly model: string,
+    public readonly cause: unknown,
+  ) {
+    const causeMsg = cause instanceof Error ? cause.message : String(cause);
+    super(`${provider}/${model} call failed: ${causeMsg}`);
+    this.name = "LLMCallError";
+  }
+}
+
 export async function getModelConfig(): Promise<ModelConfig> {
   try {
     const rows = await db.select().from(adminConfigTable);
@@ -97,7 +109,8 @@ export async function getModelConfig(): Promise<ModelConfig> {
       if (cfg[`stage${s}Model`]) (base as Record<string, unknown>)[mk] = cfg[`stage${s}Model`];
     }
     return base;
-  } catch {
+  } catch (err) {
+    logger.warn({ err }, "Failed to load model config from DB — using defaults");
     return { ...MODEL_DEFAULTS };
   }
 }
@@ -166,24 +179,23 @@ async function callOpenAI(
   opts: CallLLMOptions = {},
 ): Promise<{ content: string; tokens: number }> {
   const maxTokens = opts.maxTokens ?? 4096;
-  try {
-    const openai = await getOpenAI();
-    const resp = await openai.chat.completions.create({
-      model,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: prompt },
-      ],
-      max_completion_tokens: maxTokens,
-    });
-    return {
-      content: resp.choices[0]?.message?.content ?? "{}",
-      tokens: resp.usage?.total_tokens ?? 0,
-    };
-  } catch (err) {
-    logger.warn({ err, model }, "OpenAI call failed, using fallback");
-    return { content: "{}", tokens: 0 };
+  const openai = await getOpenAI();
+  const resp = await openai.chat.completions.create({
+    model,
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: prompt },
+    ],
+    max_completion_tokens: maxTokens,
+  });
+  const content = resp.choices[0]?.message?.content;
+  if (!content) {
+    throw new Error("OpenAI returned empty response (no content in choices[0])");
   }
+  return {
+    content,
+    tokens: resp.usage?.total_tokens ?? 0,
+  };
 }
 
 async function callGemini(
@@ -192,20 +204,19 @@ async function callGemini(
   model: string,
   _opts: CallLLMOptions = {},
 ): Promise<{ content: string; tokens: number }> {
-  try {
-    const gemini = await getGemini();
-    const resp = await gemini.models.generateContent({
-      model,
-      contents: prompt,
-    });
-    return {
-      content: resp.text ?? "{}",
-      tokens: 500,
-    };
-  } catch (err) {
-    logger.warn({ err, model }, "Gemini call failed, using fallback");
-    return { content: "{}", tokens: 0 };
+  const gemini = await getGemini();
+  const resp = await gemini.models.generateContent({
+    model,
+    contents: prompt,
+  });
+  const content = resp.text;
+  if (!content) {
+    throw new Error("Gemini returned empty response (no text)");
   }
+  return {
+    content,
+    tokens: 500,
+  };
 }
 
 async function callAnthropic(
@@ -215,23 +226,22 @@ async function callAnthropic(
   opts: CallLLMOptions = {},
 ): Promise<{ content: string; tokens: number }> {
   const maxTokens = opts.maxTokens ?? 4096;
-  try {
-    const anthropic = await getAnthropic();
-    const resp = await anthropic.messages.create({
-      model,
-      max_tokens: maxTokens,
-      system: systemPrompt,
-      messages: [{ role: "user", content: prompt }],
-    });
-    const content = resp.content[0];
-    return {
-      content: content?.type === "text" ? content.text : "{}",
-      tokens: (resp.usage?.input_tokens ?? 0) + (resp.usage?.output_tokens ?? 0),
-    };
-  } catch (err) {
-    logger.warn({ err, model }, "Anthropic call failed, using fallback");
-    return { content: "{}", tokens: 0 };
+  const anthropic = await getAnthropic();
+  const resp = await anthropic.messages.create({
+    model,
+    max_tokens: maxTokens,
+    system: systemPrompt,
+    messages: [{ role: "user", content: prompt }],
+  });
+  const block = resp.content[0];
+  const content = block?.type === "text" ? block.text : null;
+  if (!content) {
+    throw new Error("Anthropic returned empty response (no text block)");
   }
+  return {
+    content,
+    tokens: (resp.usage?.input_tokens ?? 0) + (resp.usage?.output_tokens ?? 0),
+  };
 }
 
 export async function callLLM(
@@ -241,16 +251,20 @@ export async function callLLM(
   model: string,
   opts: CallLLMOptions = {},
 ): Promise<{ content: string; tokens: number }> {
-  switch (provider) {
-    case "anthropic":
-      return callAnthropic(prompt, systemPrompt, model, opts);
-    case "openai":
-      return callOpenAI(prompt, systemPrompt, model, opts);
-    case "gemini":
-      return callGemini(prompt, systemPrompt, model, opts);
-    default:
-      logger.warn({ provider }, "Unknown provider, falling back to anthropic");
-      return callAnthropic(prompt, systemPrompt, model, opts);
+  try {
+    switch (provider) {
+      case "anthropic":
+        return await callAnthropic(prompt, systemPrompt, model, opts);
+      case "openai":
+        return await callOpenAI(prompt, systemPrompt, model, opts);
+      case "gemini":
+        return await callGemini(prompt, systemPrompt, model, opts);
+      default:
+        throw new Error(`Unknown LLM provider: ${provider}`);
+    }
+  } catch (err) {
+    if (err instanceof LLMCallError) throw err;
+    throw new LLMCallError(provider, model, err);
   }
 }
 

@@ -420,7 +420,9 @@ async function runDealCycleAsync(cycleId: string): Promise<void> {
   try {
     logger.info({ cycleId }, "Starting enhanced deal autoresearch cycle (Task B)");
 
-    await ingestAllSources().catch(() => 0);
+    await ingestAllSources().catch((err: unknown) => {
+      logger.warn({ err, cycleId }, "Evidence ingestion failed — continuing with existing evidence");
+    });
 
     const modelConfig = await getModelConfig();
     const { context: evidenceSummary, strategicTokens } = await getEvidenceSummary(modelConfig);
@@ -604,6 +606,9 @@ async function runDealCycleAsync(cycleId: string): Promise<void> {
     }, "Enhanced deal cycle complete");
 
   } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    const errName = err instanceof Error ? err.constructor.name : "unknown";
+    logger.error({ err, cycleId, errorType: errName }, `Deal cycle failed: ${errMsg}`);
     throw err;
   } finally {
     dealCycleRunning = false;
