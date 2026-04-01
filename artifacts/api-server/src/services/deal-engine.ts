@@ -557,7 +557,7 @@ Return JSON:
 
 Generate at least 4 historical analogies, 5 creative provisions (at least 2 at 'breakthrough' novelty), 4 cross-issue linkages, and 4 unconventional approaches.`;
 
-  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 1, "generation", modelConfig);
+  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 1, "generation", modelConfig, { maxTokens: 8192 });
 
   const PROVISION_POOL: BrainstormInsights["creativeProvisions"] = [
     { idea: "Regional Water-Energy Nexus Agreement linking Gulf desalination tech to Iranian gas exports", rationale: "Creates economic interdependence that raises cost of conflict", noveltyLevel: "breakthrough" },
@@ -730,7 +730,7 @@ Each provision MUST have a unique title and address a DIFFERENT domain (e.g., on
 IMPORTANT: Iran and the US are the two REQUIRED parties — without both accepting, no deal is implementable. Israel is CRITICAL — its rejection would severely undermine any deal.
 Every stakeholder MUST have concrete, specific commitments. Vague statements like "supports the deal" are insufficient. Each commitment should specify what the stakeholder will DO, PROVIDE, or GUARANTEE.`;
 
-  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 1, "generation", modelConfig);
+  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 1, "generation", modelConfig, { maxTokens: 8192 });
   const terms = parseLLMJson<DealTerms>(content, "proposal");
 
   if (!terms.innovativeProvisions || terms.innovativeProvisions.length === 0) {
@@ -905,7 +905,7 @@ Return JSON object keyed by audience key:
   }
 }`;
 
-  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 3, "evaluation", modelConfig);
+  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 3, "evaluation", modelConfig, { maxTokens: 8192 });
 
   const parsed = parseLLMJson<Record<string, DomesticFramingStrategy>>(content, "domestic-framing");
   return { strategies: parsed, tokens };
