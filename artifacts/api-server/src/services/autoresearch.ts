@@ -247,7 +247,7 @@ async function runCycleAsync(cycleId: string): Promise<void> {
       } else {
         logger.info({ cycleId }, "Starting deal optimization as part of autoresearch cycle");
         const dealEngineStart = Date.now();
-        const dealCycleId = await withTimeout(runDealCycleNow(), 2_700_000, "Deal engine timed out after 45 minutes");
+        const dealCycleId = await withTimeout(runDealCycleNow(cycleId), 2_700_000, "Deal engine timed out after 45 minutes");
         logger.info({ cycleId, dealCycleId }, "Deal optimization triggered successfully");
         emitCycleLog({ cycleId, level: "info", stage: "deal_engine", message: `Deal optimization completed successfully. A new peace deal proposal has been generated, evaluated, and scored. See the Deal Dashboard for full details.`, durationMs: Date.now() - dealEngineStart, metadata: { dealCycleId } });
       }

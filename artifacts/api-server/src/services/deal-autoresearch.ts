@@ -435,7 +435,7 @@ function selectArchitecture(
   return arch;
 }
 
-export async function runDealCycleNow(): Promise<string> {
+export async function runDealCycleNow(parentLogCycleId?: string): Promise<string> {
   if (dealCycleRunning) {
     const [recent] = await db.select({ cycleId: dealsTable.cycleId })
       .from(dealsTable)
@@ -447,27 +447,27 @@ export async function runDealCycleNow(): Promise<string> {
   dealCycleRunning = true;
   const cycleId = randomUUID();
 
-  await runDealCycleAsync(cycleId);
+  await runDealCycleAsync(cycleId, parentLogCycleId ?? cycleId);
 
   return cycleId;
 }
 
-async function runDealCycleAsync(cycleId: string): Promise<void> {
+async function runDealCycleAsync(cycleId: string, logCycleId: string): Promise<void> {
   try {
     logger.info({ cycleId }, "Starting enhanced deal autoresearch cycle (Task B)");
-    emitCycleLog({ cycleId, level: "stage", stage: "deal_engine", message: "Starting the deal autoresearch cycle. This orchestrates the full deal optimization process: gathering evidence, selecting a deal architecture strategy, loading deal memory from previous cycles, running the multi-stage deal evaluation pipeline, and comparing the result against the current best deal." });
+    emitCycleLog({ cycleId: logCycleId, level: "stage", stage: "deal_engine", message: "Starting the deal autoresearch cycle. This orchestrates the full deal optimization process: gathering evidence, selecting a deal architecture strategy, loading deal memory from previous cycles, running the multi-stage deal evaluation pipeline, and comparing the result against the current best deal." });
 
-    emitCycleLog({ cycleId, level: "info", stage: "deal_engine", message: "Refreshing evidence from news feeds to ensure the deal engine has the latest information..." });
+    emitCycleLog({ cycleId: logCycleId, level: "info", stage: "deal_engine", message: "Refreshing evidence from news feeds to ensure the deal engine has the latest information..." });
     await ingestAllSources().catch((err: unknown) => {
       logger.warn({ err, cycleId }, "Evidence ingestion failed — continuing with existing evidence");
-      emitCycleLog({ cycleId, level: "warn", stage: "deal_engine", message: `Evidence refresh failed (continuing with cached evidence): ${String(err)}` });
+      emitCycleLog({ cycleId: logCycleId, level: "warn", stage: "deal_engine", message: `Evidence refresh failed (continuing with cached evidence): ${String(err)}` });
     });
 
     const modelConfig = await getModelConfig();
-    emitCycleLog({ cycleId, level: "info", stage: "deal_engine", message: "Building the evidence context — compiling all available news, intelligence, and diplomatic signals into a structured summary that the deal engine can reason about." });
+    emitCycleLog({ cycleId: logCycleId, level: "info", stage: "deal_engine", message: "Building the evidence context — compiling all available news, intelligence, and diplomatic signals into a structured summary that the deal engine can reason about." });
     const { context: evidenceSummary, strategicTokens } = await getEvidenceSummary(modelConfig);
     logger.info({ cycleId, strategicTokens, evidenceContextLength: evidenceSummary.length }, "Generated two-layer evidence context (strategic + tactical)");
-    emitCycleLog({ cycleId, level: "info", stage: "deal_engine", message: `Evidence context compiled: ${(evidenceSummary.length / 1000).toFixed(1)}K characters of strategic and tactical analysis, consuming ${strategicTokens.toLocaleString()} tokens for evidence summarization.`, metadata: { evidenceLength: evidenceSummary.length, strategicTokens } });
+    emitCycleLog({ cycleId: logCycleId, level: "info", stage: "deal_engine", message: `Evidence context compiled: ${(evidenceSummary.length / 1000).toFixed(1)}K characters of strategic and tactical analysis, consuming ${strategicTokens.toLocaleString()} tokens for evidence summarization.`, metadata: { evidenceLength: evidenceSummary.length, strategicTokens } });
     const previousDiagnosis = await getCurrentBestDiagnosis();
 
     const [currentBest] = await db.select()
@@ -499,7 +499,7 @@ async function runDealCycleAsync(cycleId: string): Promise<void> {
 
     if (stallCount >= STALL_THRESHOLD) {
       logger.info({ cycleId, chosenArch, stallCount }, "Branching to new architecture due to stall");
-      emitCycleLog({ cycleId, level: "info", stage: "deal_engine", message: `Architecture stall detected (${stallCount} consecutive cycles without improvement). Switching to a radical architecture "${chosenArch}" to explore fundamentally different deal structures and break out of a local optimum.`, metadata: { stallCount, chosenArch } });
+      emitCycleLog({ cycleId: logCycleId, level: "info", stage: "deal_engine", message: `Architecture stall detected (${stallCount} consecutive cycles without improvement). Switching to a radical architecture "${chosenArch}" to explore fundamentally different deal structures and break out of a local optimum.`, metadata: { stallCount, chosenArch } });
     } else {
       const archDescriptions: Record<string, string> = {
         balanced: "weighing all dimensions equally",
@@ -511,13 +511,13 @@ async function runDealCycleAsync(cycleId: string): Promise<void> {
         "incremental-confidence": "building trust through small steps",
         freeform: "unconstrained creative exploration",
       };
-      emitCycleLog({ cycleId, level: "info", stage: "deal_engine", message: `Selected deal architecture: "${chosenArch}" — ${archDescriptions[chosenArch] ?? chosenArch}. ${dealCount > 0 ? `This is deal attempt #${dealCount + 1}.` : "This is the first deal generation."} ${currentBest ? `Current best deal scores ${((currentBest.scores as DealScores).composite * 100).toFixed(1)}% composite.` : "No previous deals to compare against."}`, metadata: { chosenArch, dealCount, currentBestComposite: currentBest ? (currentBest.scores as DealScores).composite : null } });
+      emitCycleLog({ cycleId: logCycleId, level: "info", stage: "deal_engine", message: `Selected deal architecture: "${chosenArch}" — ${archDescriptions[chosenArch] ?? chosenArch}. ${dealCount > 0 ? `This is deal attempt #${dealCount + 1}.` : "This is the first deal generation."} ${currentBest ? `Current best deal scores ${((currentBest.scores as DealScores).composite * 100).toFixed(1)}% composite.` : "No previous deals to compare against."}`, metadata: { chosenArch, dealCount, currentBestComposite: currentBest ? (currentBest.scores as DealScores).composite : null } });
     }
 
     const pipelineConfig = await getCurrentPipelineConfig();
     const pipelineOverrides = pipelineConfig?.overrides ?? {};
 
-    emitCycleLog({ cycleId, level: "info", stage: "deal_engine", message: "Loading deal memory — the system remembers what worked and what didn't in previous deals. Top-performing deals, successful provisions, and failed approaches all inform the next proposal." });
+    emitCycleLog({ cycleId: logCycleId, level: "info", stage: "deal_engine", message: "Loading deal memory — the system remembers what worked and what didn't in previous deals. Top-performing deals, successful provisions, and failed approaches all inform the next proposal." });
     const dealMemory = await buildDealMemory();
 
     logger.info({
@@ -528,9 +528,9 @@ async function runDealCycleAsync(cycleId: string): Promise<void> {
       dealMemoryDeals: dealMemory.topDeals.length,
       provisionInsights: dealMemory.provisionInsights.length,
     }, "Using pipeline configuration with deal memory");
-    emitCycleLog({ cycleId, level: "info", stage: "deal_engine", message: `Deal memory loaded: ${dealMemory.topDeals.length} previous top deals and ${dealMemory.provisionInsights.length} provision performance insights available. Pipeline generation: ${pipelineConfig?.generation ?? 0}${Object.keys(pipelineOverrides).length > 0 ? ` with ${Object.keys(pipelineOverrides).length} evolved prompt overrides` : ""}.`, metadata: { topDeals: dealMemory.topDeals.length, provisionInsights: dealMemory.provisionInsights.length, pipelineGeneration: pipelineConfig?.generation ?? 0 } });
+    emitCycleLog({ cycleId: logCycleId, level: "info", stage: "deal_engine", message: `Deal memory loaded: ${dealMemory.topDeals.length} previous top deals and ${dealMemory.provisionInsights.length} provision performance insights available. Pipeline generation: ${pipelineConfig?.generation ?? 0}${Object.keys(pipelineOverrides).length > 0 ? ` with ${Object.keys(pipelineOverrides).length} evolved prompt overrides` : ""}.`, metadata: { topDeals: dealMemory.topDeals.length, provisionInsights: dealMemory.provisionInsights.length, pipelineGeneration: pipelineConfig?.generation ?? 0 } });
 
-    const evaluated = await runFullEvaluation(evidenceSummary, previousDiagnosis, chosenArch, modelConfig, pipelineOverrides, setDealSubStage, dealMemory, cycleId);
+    const evaluated = await runFullEvaluation(evidenceSummary, previousDiagnosis, chosenArch, modelConfig, pipelineOverrides, setDealSubStage, dealMemory, logCycleId);
 
     const dealId = randomUUID();
     const newComposite = evaluated.scores.composite ?? 0;
@@ -538,9 +538,9 @@ async function runDealCycleAsync(cycleId: string): Promise<void> {
     const isBetterThanCurrent = !currentBest?.scores || (newComposite > prevComposite);
 
     if (isBetterThanCurrent) {
-      emitCycleLog({ cycleId, level: "info", stage: "deal_engine", message: `New champion deal! This deal scored ${(newComposite * 100).toFixed(1)}% composite${currentBest ? `, beating the previous best of ${(prevComposite * 100).toFixed(1)}% (+${((newComposite - prevComposite) * 100).toFixed(1)} percentage points improvement)` : " — this is the first deal generated"}. The new deal is now the current champion displayed on the dashboard.`, metadata: { newComposite, prevComposite, improvement: newComposite - prevComposite, architecture: chosenArch } });
+      emitCycleLog({ cycleId: logCycleId, level: "info", stage: "deal_engine", message: `New champion deal! This deal scored ${(newComposite * 100).toFixed(1)}% composite${currentBest ? `, beating the previous best of ${(prevComposite * 100).toFixed(1)}% (+${((newComposite - prevComposite) * 100).toFixed(1)} percentage points improvement)` : " — this is the first deal generated"}. The new deal is now the current champion displayed on the dashboard.`, metadata: { newComposite, prevComposite, improvement: newComposite - prevComposite, architecture: chosenArch } });
     } else {
-      emitCycleLog({ cycleId, level: "info", stage: "deal_engine", message: `This deal scored ${(newComposite * 100).toFixed(1)}% composite, which did not beat the current best of ${(prevComposite * 100).toFixed(1)}%. The current champion deal remains unchanged. The system will try a different approach next cycle.`, metadata: { newComposite, prevComposite, architecture: chosenArch } });
+      emitCycleLog({ cycleId: logCycleId, level: "info", stage: "deal_engine", message: `This deal scored ${(newComposite * 100).toFixed(1)}% composite, which did not beat the current best of ${(prevComposite * 100).toFixed(1)}%. The current champion deal remains unchanged. The system will try a different approach next cycle.`, metadata: { newComposite, prevComposite, architecture: chosenArch } });
     }
 
     await db.transaction(async (tx) => {
@@ -624,7 +624,7 @@ async function runDealCycleAsync(cycleId: string): Promise<void> {
           newGeneration: (pipelineConfig?.generation ?? 0) + 1,
           overrideKeys: Object.keys(newOverrides),
         }, "Pipeline will use evolved prompts in next cycle");
-        emitCycleLog({ cycleId, level: "info", stage: "deal_engine", message: `Pipeline evolution: the meta-evaluator's suggestions triggered prompt improvements for generation ${(pipelineConfig?.generation ?? 0) + 1}. The next deal cycle will use refined prompts targeting: ${Object.keys(newOverrides).join(", ")}.`, metadata: { newGeneration: (pipelineConfig?.generation ?? 0) + 1, overrideKeys: Object.keys(newOverrides) } });
+        emitCycleLog({ cycleId: logCycleId, level: "info", stage: "deal_engine", message: `Pipeline evolution: the meta-evaluator's suggestions triggered prompt improvements for generation ${(pipelineConfig?.generation ?? 0) + 1}. The next deal cycle will use refined prompts targeting: ${Object.keys(newOverrides).join(", ")}.`, metadata: { newGeneration: (pipelineConfig?.generation ?? 0) + 1, overrideKeys: Object.keys(newOverrides) } });
       }
     }
 
@@ -668,13 +668,13 @@ async function runDealCycleAsync(cycleId: string): Promise<void> {
       framingStrategies: Object.keys(evaluated.domesticFramingStrategies).length,
       dealMemoryUsed: dealMemory.topDeals.length > 0,
     }, "Enhanced deal cycle complete");
-    emitCycleLog({ cycleId, level: "stage", stage: "deal_engine", message: `Deal autoresearch cycle complete. ${isBetterThanCurrent ? `New champion deal at ${(compositeScore * 100).toFixed(1)}% composite using "${chosenArch}" architecture.` : `Deal scored ${(compositeScore * 100).toFixed(1)}% composite but didn't beat the current best.`} ${evaluated.terms.innovativeProvisions?.length ?? 0} innovative provisions, ${Object.keys(evaluated.domesticFramingStrategies).length} framing strategies, ${evaluated.tokensConsumed.toLocaleString()} total tokens consumed.`, metadata: { dealId, composite: compositeScore, isCurrent: isBetterThanCurrent, architecture: chosenArch, tokensConsumed: evaluated.tokensConsumed } });
+    emitCycleLog({ cycleId: logCycleId, level: "stage", stage: "deal_engine", message: `Deal autoresearch cycle complete. ${isBetterThanCurrent ? `New champion deal at ${(compositeScore * 100).toFixed(1)}% composite using "${chosenArch}" architecture.` : `Deal scored ${(compositeScore * 100).toFixed(1)}% composite but didn't beat the current best.`} ${evaluated.terms.innovativeProvisions?.length ?? 0} innovative provisions, ${Object.keys(evaluated.domesticFramingStrategies).length} framing strategies, ${evaluated.tokensConsumed.toLocaleString()} total tokens consumed.`, metadata: { dealId, composite: compositeScore, isCurrent: isBetterThanCurrent, architecture: chosenArch, tokensConsumed: evaluated.tokensConsumed } });
 
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
     const errName = err instanceof Error ? err.constructor.name : "unknown";
     logger.error({ err, cycleId, errorType: errName }, `Deal cycle failed: ${errMsg}`);
-    emitCycleLog({ cycleId, level: "error", stage: "deal_engine", message: `Deal autoresearch cycle failed: ${errMsg}. ${errName === "TimeoutError" || errMsg.includes("timed out") ? "The pipeline took too long — this is usually caused by slow AI model responses." : "The system will retry on the next scheduled cycle."} Any forecasting results from the parent cycle are preserved.`, metadata: { errorType: errName } });
+    emitCycleLog({ cycleId: logCycleId, level: "error", stage: "deal_engine", message: `Deal autoresearch cycle failed: ${errMsg}. ${errName === "TimeoutError" || errMsg.includes("timed out") ? "The pipeline took too long — this is usually caused by slow AI model responses." : "The system will retry on the next scheduled cycle."} Any forecasting results from the parent cycle are preserved.`, metadata: { errorType: errName } });
     throw err;
   } finally {
     dealCycleRunning = false;
