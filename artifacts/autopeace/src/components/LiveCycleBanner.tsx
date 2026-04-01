@@ -23,31 +23,27 @@ export function LiveCycleBanner() {
   if (!isRunning || isLivePage || dismissed === cycleId) return null;
 
   return (
-    <div className="bg-primary/10 border-b border-primary/20 px-4 py-2 flex items-center justify-between gap-3 animate-in slide-in-from-top-1 duration-300">
-      <div className="flex items-center gap-2.5 min-w-0">
-        <span className="relative flex h-2 w-2 shrink-0">
+    <div className="fixed top-16 lg:top-3 right-3 lg:right-4 z-50 animate-in slide-in-from-top-2 fade-in duration-300">
+      <div className="flex items-center gap-2 bg-card/90 backdrop-blur-sm border border-primary/30 rounded-full pl-3 pr-1.5 py-1.5 shadow-lg shadow-black/20">
+        <span className="relative flex h-1.5 w-1.5 shrink-0">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary" />
         </span>
-        <p className="text-xs text-foreground truncate">
-          <span className="font-medium">Research cycle running</span>
-          <span className="text-muted-foreground"> — </span>
-          <Link
-            to="/live"
-            className="text-primary hover:text-primary/80 font-medium inline-flex items-center gap-1 transition-colors"
-          >
-            <Radio className="w-3 h-3" />
-            Follow live
-          </Link>
-        </p>
+        <Link
+          to="/live"
+          className="text-[11px] text-primary hover:text-primary/80 font-medium inline-flex items-center gap-1 transition-colors"
+        >
+          <Radio className="w-3 h-3" />
+          Cycle running
+        </Link>
+        <button
+          onClick={() => setDismissed(cycleId)}
+          className="p-0.5 text-muted-foreground hover:text-foreground transition-colors shrink-0 rounded-full hover:bg-white/5"
+          aria-label="Dismiss"
+        >
+          <X className="w-3 h-3" />
+        </button>
       </div>
-      <button
-        onClick={() => setDismissed(cycleId)}
-        className="p-1 text-muted-foreground hover:text-foreground transition-colors shrink-0"
-        aria-label="Dismiss"
-      >
-        <X className="w-3.5 h-3.5" />
-      </button>
     </div>
   );
 }
