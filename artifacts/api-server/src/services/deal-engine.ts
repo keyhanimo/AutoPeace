@@ -640,7 +640,7 @@ CRITICAL PRINCIPLES:
 ${overridePrompt}
 
 WRITING STYLE (MANDATORY — overrides any conflicting instructions above):
-- SELF-CONTAINED: Every field must be fully understandable on its own. NEVER reference "previous deals," "revisions," "key changes," "updated terms," "modifications," or "all existing provisions remain." The reader has NO context about prior proposals. Write each field as if it is the first and only deal ever written.
+- SELF-CONTAINED: Every field must be fully understandable on its own. NEVER reference "previous deals," "revisions," "key changes," "updated terms," "modifications," or "existing provisions." The reader has NO context about prior proposals. Write each field as if it is the first and only deal ever written.
 - CONCISE: Use direct, policy-brief style. State specific terms (numbers, percentages, timelines, mechanisms) without preamble or filler. Aim for 2-4 sentences per field, not paragraphs. Avoid hedging language like "could potentially" or "it is envisioned that."
 Output valid JSON only, no prose.`;
 
@@ -1417,7 +1417,7 @@ Assess the reasoning quality and suggest pipeline improvements:
 
 IMPORTANT: The promptImprovements field is how this pipeline evolves over time. Be specific and actionable. Vague suggestions like "improve stakeholder analysis" are useless. Instead, write specific prompt additions like "Add instruction: Consider the role of non-state actors as potential spoilers..." Include 2-4 concrete improvements.
 
-CONSTRAINT ON PROMPT IMPROVEMENTS: Every stage's output must be SELF-CONTAINED — fully understandable without reference to any prior deal or cycle. Your suggested prompt changes must NEVER encourage the model to say "revised," "amended," "updated," "all existing provisions remain," "key changes from previous version," or any language implying the output modifies a prior document. Each deal must read as the first and only deal the reader will ever see.`;
+CONSTRAINT ON PROMPT IMPROVEMENTS: Every stage's output must be SELF-CONTAINED — fully understandable without reference to any prior deal or cycle. Your suggested prompt changes must NEVER encourage the model to say "revised," "amended," "updated," or refer to "existing provisions," "key changes from previous version," or any language implying the output modifies a prior document. Each deal must read as the first and only deal the reader will ever see.`;
 
   const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 7, "evaluation", modelConfig, { maxTokens: 16384, timeoutMs: 600_000 });
   const result = parseLLMJson<MetaEvaluatorResult>(content, "meta-evaluator");
