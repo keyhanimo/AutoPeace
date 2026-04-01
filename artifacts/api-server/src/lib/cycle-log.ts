@@ -18,7 +18,7 @@ export interface CycleLogEntry {
   metadata?: Record<string, unknown>;
 }
 
-const MAX_ENTRIES_PER_CYCLE = 500;
+const MAX_ENTRIES_PER_CYCLE = 5000;
 
 let entryCounter = 0;
 let currentCycleLogs: CycleLogEntry[] = [];

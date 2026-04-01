@@ -306,6 +306,7 @@ export default function Live() {
   const [autoScroll, setAutoScroll] = useState(true);
   const logEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const currentCycleIdRef = useRef<string | null>(null);
 
   const scrollToBottom = useCallback(() => {
     if (autoScroll && logEndRef.current) {
@@ -344,13 +345,40 @@ export default function Live() {
           const data = JSON.parse(event.data);
           if (data.type === "init") {
             setStatus(data.status);
-            setLogs(data.currentLogs ?? []);
+            const serverCycleId = data.currentLogCycleId ?? null;
+            const serverLogs: CycleLogEntry[] = data.currentLogs ?? [];
+
+            if (serverCycleId && serverCycleId === currentCycleIdRef.current) {
+              setLogs(prev => {
+                const existingIds = new Set(prev.map(l => l.id));
+                const newEntries = serverLogs.filter(l => !existingIds.has(l.id));
+                if (newEntries.length === 0) return prev;
+                return [...prev, ...newEntries].sort((a, b) => a.id - b.id);
+              });
+            } else {
+              currentCycleIdRef.current = serverCycleId;
+              setLogs(serverLogs);
+            }
+
             setPreviousLogs(data.previousLogs ?? []);
-            if (!data.status?.isRunning && data.previousLogs?.length > 0 && data.currentLogs?.length === 0) {
+            if (!data.status?.isRunning && (data.previousLogs?.length ?? 0) > 0 && serverLogs.length === 0) {
               setShowPrevious(true);
             }
           } else if (data.type === "entry") {
-            setLogs(prev => [...prev, data.entry]);
+            const entry = data.entry as CycleLogEntry;
+            if (currentCycleIdRef.current && entry.cycleId !== currentCycleIdRef.current) {
+              setLogs(prev => {
+                setPreviousLogs(prev);
+                return [entry];
+              });
+              currentCycleIdRef.current = entry.cycleId;
+            } else {
+              if (!currentCycleIdRef.current) currentCycleIdRef.current = entry.cycleId;
+              setLogs(prev => {
+                if (prev.some(l => l.id === entry.id)) return prev;
+                return [...prev, entry];
+              });
+            }
             setShowPrevious(false);
           } else if (data.type === "status") {
             setStatus(data.status);
