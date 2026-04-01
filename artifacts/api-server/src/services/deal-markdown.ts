@@ -9,6 +9,8 @@ type DealScores = {
   implementability?: number;
   durability?: number;
   composite?: number;
+  scoreRationale?: Record<string, string>;
+  judgePanel?: Array<{ provider: string; model: string; scores: Record<string, number>; rationale: Record<string, string> }>;
 };
 
 type StakeholderEval = {
@@ -198,6 +200,35 @@ export function dealToMarkdown(deal: Deal, permalinkUrl: string): string {
     }
     lines.push(`| **Composite** | **${pct(scores.composite)}** | ${scores.composite !== undefined && scores.composite !== null ? (scores.composite >= 0.65 ? "**Viable**" : scores.composite >= 0.45 ? "**Marginal**" : "**Weak**") : "N/A"} |`);
     lines.push(``);
+
+    const rationale = scores.scoreRationale;
+    if (rationale && Object.keys(rationale).length > 0) {
+      lines.push(`### Score Rationales`);
+      lines.push(``);
+      for (const { key, label } of dims) {
+        if (rationale[key]) {
+          lines.push(`**${label}:** ${rationale[key]}`);
+          lines.push(``);
+        }
+      }
+    }
+
+    if (scores.judgePanel && scores.judgePanel.length > 0) {
+      lines.push(`### Judge Panel (Multi-Model Evaluation)`);
+      lines.push(``);
+      for (const judge of scores.judgePanel) {
+        lines.push(`#### ${judge.provider} — ${judge.model}`);
+        lines.push(``);
+        for (const { key, label } of dims) {
+          const jScore = judge.scores[key];
+          const jRationale = judge.rationale?.[key];
+          if (jScore !== undefined) {
+            lines.push(`- **${label}:** ${pct(jScore)}${jRationale ? ` — ${jRationale}` : ""}`);
+          }
+        }
+        lines.push(``);
+      }
+    }
   }
 
   if (Object.keys(stakeholderEvals).length > 0) {
