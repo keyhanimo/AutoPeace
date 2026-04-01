@@ -340,19 +340,52 @@ const DEFAULT_MODELS = MODEL_DEFAULTS;
 const callLLM = sharedCallLLM;
 const callLLMForStage = sharedCallLLMForStage;
 
-function parseLLMJson<T>(text: string, fallback: T, label?: string): T {
-  try {
-    const match = text.match(/```(?:json)?\s*([\s\S]*?)```/) ?? text.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
-    let raw = match?.[1] ?? text;
-    raw = raw.replace(/,\s*([}\]])/g, "$1");
-    raw = raw.replace(/[\x00-\x1f\x7f]/g, (c) => c === "\n" || c === "\r" || c === "\t" ? c : "");
-    return JSON.parse(raw) as T;
-  } catch (err) {
-    if (label) {
-      logger.warn({ label, err: (err as Error).message, textSnippet: text.slice(0, 300) }, "parseLLMJson fallback triggered — LLM response not valid JSON");
-    }
-    return fallback;
+function fisherYatesShuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j]!, a[i]!];
   }
+  return a;
+}
+
+function parseLLMJson<T>(text: string, fallback: T, label?: string): T {
+  const strategies = [
+    () => {
+      const match = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (!match) return null;
+      return match[1];
+    },
+    () => {
+      const match = text.match(/(\{[\s\S]*\})/);
+      if (!match) return null;
+      return match[1];
+    },
+    () => {
+      const match = text.match(/(\[[\s\S]*\])/);
+      if (!match) return null;
+      return match[1];
+    },
+    () => text,
+  ];
+
+  for (const strategy of strategies) {
+    try {
+      let raw = strategy();
+      if (!raw) continue;
+      raw = raw.replace(/,\s*([}\]])/g, "$1");
+      raw = raw.replace(/[\x00-\x1f\x7f]/g, (c) => c === "\n" || c === "\r" || c === "\t" ? c : "");
+      const parsed = JSON.parse(raw) as T;
+      if (parsed !== null && parsed !== undefined) return parsed;
+    } catch {
+      continue;
+    }
+  }
+
+  if (label) {
+    logger.warn({ label, textSnippet: text.slice(0, 500) }, "parseLLMJson all strategies failed — using fallback");
+  }
+  return fallback;
 }
 
 function getDefaultTerms(architecture: Architecture): DealTerms {
@@ -581,8 +614,7 @@ Generate at least 4 historical analogies, 5 creative provisions (at least 2 at '
     { idea: "Iran Re-integration Scholarship Fund placing Iranian students in Western universities in exchange for transparency commitments", rationale: "Creates human capital ties that make conflict costly for future generations", noveltyLevel: "significant" },
     { idea: "Asymmetric De-escalation Ladder where each side pre-commits to proportional responses rather than escalation", rationale: "Reduces miscalculation risk through transparent signaling framework", noveltyLevel: "breakthrough" },
   ];
-  const shuffled = [...PROVISION_POOL].sort(() => Math.random() - 0.5);
-  const selectedProvisions = shuffled.slice(0, 3 + Math.floor(Math.random() * 3));
+  const selectedProvisions = fisherYatesShuffle(PROVISION_POOL).slice(0, 3 + Math.floor(Math.random() * 3));
 
   const ANALOGY_POOL = [
     { dealName: "JCPOA (2015)", relevantLesson: "Phased sanctions relief tied to verifiable nuclear rollback created momentum", applicability: "Core framework can be revived with stronger verification" },
@@ -591,8 +623,10 @@ Generate at least 4 historical analogies, 5 creative provisions (at least 2 at '
     { dealName: "Dayton Agreement (1995)", relevantLesson: "Complex multi-ethnic power-sharing architecture designed under extreme time pressure", applicability: "Regional power-sharing frameworks for Gulf security governance" },
     { dealName: "Abraham Accords (2020)", relevantLesson: "Economic normalization without resolving core political disputes", applicability: "Iran-Gulf economic integration could proceed before nuclear resolution" },
     { dealName: "ASEAN Treaty of Amity and Cooperation", relevantLesson: "Non-aggression norms established through regional institution-building", applicability: "Gulf equivalent could provide framework for Iran inclusion in regional security" },
+    { dealName: "Iran-Iraq Ceasefire (1988)", relevantLesson: "Exhaustion-driven peace with face-saving UN mediation when both sides needed an exit ramp", applicability: "Demonstrates how reframing 'defeat' as 'pragmatic statesmanship' enables ceasefire acceptance" },
+    { dealName: "Helsinki Accords (1975)", relevantLesson: "Bundled security, economic cooperation, and human rights across ideological blocs through basket approach", applicability: "Multi-basket framework could package nuclear, economic, and humanitarian dimensions as inseparable unit" },
   ];
-  const selectedAnalogies = [...ANALOGY_POOL].sort(() => Math.random() - 0.5).slice(0, 3);
+  const selectedAnalogies = fisherYatesShuffle(ANALOGY_POOL).slice(0, 3 + Math.floor(Math.random() * 2));
 
   const fallback: BrainstormInsights = {
     historicalAnalogies: selectedAnalogies,
@@ -745,13 +779,56 @@ IMPORTANT: Iran and the US are the two REQUIRED parties — without both accepti
 Every stakeholder MUST have concrete, specific commitments. Vague statements like "supports the deal" are insufficient. Each commitment should specify what the stakeholder will DO, PROVIDE, or GUARANTEE.`;
 
   const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 1, "generation", modelConfig);
-  const terms = parseLLMJson<DealTerms>(content, getDefaultTerms(architecture), "proposal");
+  const defaults = getDefaultTerms(architecture);
+  let terms = parseLLMJson<DealTerms>(content, defaults, "proposal");
+
+  const isFullFallback = terms.nuclearProtocol === defaults.nuclearProtocol
+    && terms.sanctionsRelief === defaults.sanctionsRelief
+    && terms.hormuzArrangements === defaults.hormuzArrangements;
+
+  if (isFullFallback) {
+    logger.warn({ architecture }, "Proposal parseLLMJson returned full default terms — LLM output was not parseable. Attempting partial field extraction.");
+    const fieldPatterns: Array<{ key: keyof DealTerms; pattern: RegExp }> = [
+      { key: "nuclearProtocol", pattern: /"nuclearProtocol"\s*:\s*"((?:[^"\\]|\\.)*)"/s },
+      { key: "sanctionsRelief", pattern: /"sanctionsRelief"\s*:\s*"((?:[^"\\]|\\.)*)"/s },
+      { key: "hormuzArrangements", pattern: /"hormuzArrangements"\s*:\s*"((?:[^"\\]|\\.)*)"/s },
+      { key: "humanitarianProvisions", pattern: /"humanitarianProvisions"\s*:\s*"((?:[^"\\]|\\.)*)"/s },
+      { key: "verificationMechanism", pattern: /"verificationMechanism"\s*:\s*"((?:[^"\\]|\\.)*)"/s },
+      { key: "sequencing", pattern: /"sequencing"\s*:\s*"((?:[^"\\]|\\.)*)"/s },
+    ];
+    let recovered = 0;
+    for (const { key, pattern } of fieldPatterns) {
+      const m = content.match(pattern);
+      if (m && m[1] && m[1].length > 20 && m[1] !== (defaults as any)[key]) {
+        (terms as any)[key] = m[1].replace(/\\"/g, '"').replace(/\\n/g, "\n");
+        recovered++;
+      }
+    }
+    const timelineMatch = content.match(/"timelineYears"\s*:\s*(\d+)/);
+    if (timelineMatch) {
+      terms.timelineYears = parseInt(timelineMatch[1]!, 10);
+      recovered++;
+    }
+    const innovMatch = content.match(/"innovativeProvisions"\s*:\s*(\[[\s\S]*?\])\s*[,}]/);
+    if (innovMatch) {
+      try {
+        const parsed = JSON.parse(innovMatch[1]!) as InnovativeProvision[];
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].title) {
+          terms.innovativeProvisions = parsed;
+          recovered++;
+        }
+      } catch { /* ignore */ }
+    }
+    if (recovered > 0) {
+      logger.info({ recovered, architecture }, "Recovered partial fields from unparseable LLM response");
+    }
+  }
 
   const sc = terms.stakeholderCommitments || {};
-  const defaults = getDefaultTerms(architecture).stakeholderCommitments || {};
+  const defaultCommitments = defaults.stakeholderCommitments || {};
   for (const s of getCoreStakeholders()) {
     if (!sc[s.id] || sc[s.id].trim().length < 10) {
-      sc[s.id] = defaults[s.id] || `Participates in grand coalition framework with binding obligations`;
+      sc[s.id] = defaultCommitments[s.id] || `Participates in grand coalition framework with binding obligations`;
     }
   }
   terms.stakeholderCommitments = sc;
@@ -766,10 +843,17 @@ Every stakeholder MUST have concrete, specific commitments. Vague statements lik
       { title: "Graduated De-escalation Protocol", description: "Pre-agreed proportional response ladder where each party commits to specific maximum responses to specific provocations, with third-party monitoring", rationale: "Reduces miscalculation and unintended escalation through transparent signaling", historicalPrecedent: "US-Soviet hotline and incidents-at-sea agreements" },
       { title: "Cross-Border Special Economic Zone", description: "Extraterritorial trade zone at Iran-Iraq border with simplified customs, shared infrastructure, and joint governance", rationale: "Creates immediate economic benefits and a governance cooperation precedent", historicalPrecedent: "Shenzhen SEZ (1980) — economic opening through geographic containment" },
       { title: "Persian Gulf Environmental Restoration Compact", description: "Joint marine conservation program addressing coral reef destruction, oil spill prevention, and fisheries management across the Gulf", rationale: "Non-political cooperation on shared ecological crisis builds institutional trust", historicalPrecedent: "Mediterranean Action Plan — environmental cooperation among adversaries" },
+      { title: "Joint Cyber Defense Compact", description: "Multilateral cyber non-aggression pact with shared threat intelligence and mutual forensic transparency obligations", rationale: "Addresses modern threat vector while building technical cooperation culture between former adversaries", historicalPrecedent: "Budapest Convention on Cybercrime adapted for regional security" },
+      { title: "Shared Seismological Early Warning Network", description: "Joint earthquake and tsunami early warning system spanning Iran, Turkey, and Gulf states with open data sharing and coordinated disaster response", rationale: "Non-political technical cooperation builds institutional trust infrastructure on genuinely shared risk", historicalPrecedent: "Mediterranean tsunami warning system cooperation" },
+      { title: "Persian Gulf Carbon Credit Exchange", description: "Regional carbon trading platform incentivizing clean energy transition across Iran and Gulf states, funded by hydrocarbon transition revenues", rationale: "Aligns climate goals with economic modernization, creating shared green economy constituency for peace", historicalPrecedent: "EU Emissions Trading System creating cross-border economic interdependence" },
+      { title: "Joint Space Observation Program", description: "Multilateral satellite program for agricultural monitoring, drought prediction, and environmental surveillance shared among all regional parties", rationale: "Dual-use transparency technology builds verification culture while addressing real food security needs", historicalPrecedent: "Copernicus Program open satellite data policy" },
+      { title: "Interfaith Heritage Corridor Initiative", description: "Protected cultural and religious heritage routes spanning Iran, Iraq, and the Levant with shared tourism governance and revenue distribution", rationale: "Leverages shared Abrahamic and Persian cultural heritage as living peace infrastructure", historicalPrecedent: "European Cultural Routes Programme bridging former adversaries" },
+      { title: "Regional Pharmaceutical Manufacturing Hub", description: "Joint pharmaceutical production facility producing essential medicines for the region, immune from sanctions and governed by WHO standards", rationale: "Creates humanitarian dependency that makes future conflict costlier and sanctions harder to reimpose", historicalPrecedent: "COVAX facility creating cross-border health cooperation norms" },
     ];
-    const picked = [...FALLBACK_PROVISIONS].sort(() => Math.random() - 0.5).slice(0, 2 + Math.floor(Math.random() * 2));
+    const shuffled = fisherYatesShuffle(FALLBACK_PROVISIONS);
+    const picked = shuffled.slice(0, 3 + Math.floor(Math.random() * 2));
     terms.innovativeProvisions = picked;
-    logger.warn({ count: picked.length, titles: picked.map(p => p.title) }, "Using randomized fallback provisions — LLM did not generate innovativeProvisions");
+    logger.warn({ count: picked.length, titles: picked.map(p => p.title), architecture }, "Using randomized fallback provisions — LLM did not generate innovativeProvisions");
   }
 
   return { terms, tokens };

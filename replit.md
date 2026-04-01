@@ -216,7 +216,7 @@ Auto-scans ingested diplomatic evidence items for real-world peace proposals usi
 Enhanced multi-agent pipeline (`deal-engine.ts`) with **grand coalition** cooperative game theory framing and AI creativity maximization:
 
 0. **Innovation Brainstorm** (pre-stage) — extended creative reasoning: mines historical peace deal analogies, generates creative provisions, discovers cross-issue linkages across stakeholders, explores unconventional approaches. Output stored in `brainstormInsights` and feeds into proposal generation.
-1. **Proposal Agent** (generation role) — designs deal terms per architecture using brainstorm insights; generates binding `stakeholderCommitments` for all 8 core parties + `innovativeProvisions` (novel mechanisms beyond traditional categories)
+1. **Proposal Agent** (generation role) — designs deal terms per architecture using brainstorm insights; generates binding `stakeholderCommitments` for all 8 core parties + `innovativeProvisions` (novel mechanisms beyond traditional categories). Includes partial field extraction recovery when full JSON parsing fails, preventing identical default terms across deals. Fallback provision pool expanded to 14 items with Fisher-Yates shuffle for true randomization.
 2. **Stakeholder Evaluator** (evaluation role) — assesses **23 stakeholders across 4 tiers** with normalized output (missing stakeholders get conditional fallback)
 3. **Domestic Audiences** (evaluation role) — Iran/US/Israel domestic political sellability
 3.5. **Creative Reframing** (generation role) — generates clever domestic selling narratives per stakeholder audience, transforming perceived concessions into perceived victories. Stored in `domesticFramingStrategies`.
