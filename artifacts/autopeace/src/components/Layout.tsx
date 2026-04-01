@@ -18,7 +18,8 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Research",
     items: [
       { href: "/", label: "Home", icon: Activity },
-      { href: "/deals", label: "Deal Dashboard", icon: Handshake },
+      { href: "/deals", label: "Deal Dashboard", icon: Handshake, exact: true },
+      { href: "/deals/history", label: "Deal History", icon: BookOpen },
       { href: "/arena", label: "Proposal Arena", icon: Swords },
       { href: "/forecasts", label: "Forecasts", icon: BarChart2 },
       { href: "/costs", label: "Cost-Benefit Analysis", icon: DollarSign },
@@ -57,7 +58,7 @@ const ALL_NAV_ITEMS = NAV_GROUPS.flatMap(g => g.items);
 
 const BOTTOM_TABS = [
   { href: "/", label: "Home", icon: Activity, exact: true },
-  { href: "/deals", label: "Deals", icon: Handshake },
+  { href: "/deals/history", label: "Deals", icon: Handshake },
   { href: "/forecasts", label: "Forecasts", icon: BarChart2 },
   { href: "/stakeholders", label: "Actors", icon: Users, exact: true },
 ];

@@ -809,122 +809,18 @@ export default function DealDashboard() {
       )}
 
       {activeTab === "history" && (
-        <div className="space-y-6">
-          <Card className="p-6">
-            <h3 className="text-lg font-bold mb-2">Deal Score History</h3>
-            <p className="text-xs text-muted-foreground mb-4">
-              Composite scores for each AI deal iteration. Click a bar to view full details of that deal below.
-            </p>
-            {historyBarData.length > 0 ? (
-              <>
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={historyBarData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis dataKey="name" tick={(props: any) => { const { x, y, payload } = props; return (<g transform={`translate(${x},${y})`}><text x={0} y={0} dy={12} textAnchor="end" fill="#94a3b8" fontSize={8} transform="rotate(-35)">{payload.value}</text></g>); }} height={80} />
-                      <YAxis tick={{ fontSize: 9, fill: "#94a3b8" }} tickFormatter={(v: number) => `${v}%`} domain={[0, 100]} />
-                      <Tooltip
-                        contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "8px", fontSize: "11px" }}
-                        formatter={(v: number, _: unknown, entry: { payload?: { architecture?: string; isCurrent?: boolean } }) => [
-                          `${v}% (${entry.payload?.architecture ?? ""}${entry.payload?.isCurrent ? " — champion" : ""})`,
-                          "Composite"
-                        ]}
-                      />
-                      <Bar
-                        dataKey="composite"
-                        name="Composite Score"
-                        radius={[3, 3, 0, 0]}
-                        cursor="pointer"
-                        onClick={(data: { id?: string }) => {
-                          if (data.id) {
-                            const deal = historyDeals.find(d => d.id === data.id);
-                            if (deal) setSelectedHistoryDeal(deal);
-                          }
-                        }}
-                      >
-                        {historyBarData.map((entry) => (
-                          <Cell
-                            key={entry.id}
-                            fill={ARCHITECTURE_COLORS[entry.architecture] ?? "#64748b"}
-                            stroke={entry.isCurrent ? "#fbbf24" : selectedHistoryDeal?.id === entry.id ? "#94a3b8" : "transparent"}
-                            strokeWidth={entry.isCurrent ? 2.5 : selectedHistoryDeal?.id === entry.id ? 2 : 0}
-                            strokeDasharray={entry.isCurrent ? "" : ""}
-                          />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3 px-1">
-                  {(() => {
-                    const seen = new Set<string>();
-                    return historyBarData.reduce<React.ReactNode[]>((acc, entry) => {
-                      if (!seen.has(entry.architecture)) {
-                        seen.add(entry.architecture);
-                        acc.push(
-                          <span key={entry.architecture} className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                            <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: ARCHITECTURE_COLORS[entry.architecture] ?? "#64748b" }} />
-                            <span className="capitalize">{entry.architecture}</span>
-                          </span>
-                        );
-                      }
-                      return acc;
-                    }, []);
-                  })()}
-                  <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground ml-2 pl-2 border-l border-border/50">
-                    <span className="w-2.5 h-2.5 rounded-sm shrink-0 border-2 border-amber-400 bg-transparent" />
-                    <span>Current Champion</span>
-                  </span>
-                </div>
-              </>
-            ) : (
-              <p className="text-xs text-muted-foreground text-center py-4">No history yet. Run more deal cycles to see evolution.</p>
-            )}
-
-            <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
-              {historyDeals.map((d, i) => {
-                const s = d.scores as DealScores | null;
-                const isSelected = selectedHistoryDeal?.id === d.id;
-                return (
-                  <div
-                    key={d.id}
-                    className={`p-3 rounded-lg border text-xs text-left transition-all ${
-                      d.isCurrent ? "border-primary/50 bg-primary/5" :
-                      isSelected ? "border-primary/50 ring-1 ring-primary" : "border-border hover:border-border/80"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <button onClick={() => setSelectedHistoryDeal(isSelected ? null : d)} className="font-mono font-bold text-left flex-1">
-                        Deal #{i + 1}
-                        <span className="ml-1.5 capitalize" style={{ color: ARCHITECTURE_COLORS[d.architecture] ?? "#94a3b8" }}>
-                          {d.architecture}
-                        </span>
-                      </button>
-                      <div className="flex items-center gap-1.5">
-                        {d.isCurrent && <Badge className="text-[9px] px-1 py-0 h-4">champion</Badge>}
-                        <Link to={`/deals/${d.id}`} className="text-muted-foreground hover:text-primary transition-colors" title="Open permalink" onClick={e => e.stopPropagation()}>
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </Link>
-                      </div>
-                    </div>
-                    <button onClick={() => setSelectedHistoryDeal(isSelected ? null : d)} className="text-left w-full">
-                      <div className={`font-bold ${scoreColor(s?.composite ?? 0)}`}>
-                        {s ? `${((s.composite ?? 0) * 100).toFixed(0)}% composite` : "—"}
-                      </div>
-                      <div className="text-muted-foreground/60">{(() => { const dt = new Date(d.createdAt); return `${dt.getFullYear().toString().slice(2)}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")} ${dt.toLocaleTimeString("en-US",{hour12:false})}`; })()}</div>
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
-
-          {selectedHistoryDeal && (
-            <div className="border-t border-primary/30 pt-6">
-              <DealDetailView deal={selectedHistoryDeal} isHistorical />
-            </div>
-          )}
-        </div>
+        <Card className="p-8 text-center flex flex-col items-center gap-4">
+          <h3 className="text-lg font-bold">Deal History has its own page now</h3>
+          <p className="text-sm text-muted-foreground max-w-md">
+            Browse the complete archive of {historyDeals.length} AI-generated peace deal iterations with score evolution charts and expandable details.
+          </p>
+          <Link
+            to="/deals/history"
+            className="px-6 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors flex items-center gap-2"
+          >
+            <ExternalLink className="w-4 h-4" /> Open Deal History
+          </Link>
+        </Card>
       )}
 
     </div>

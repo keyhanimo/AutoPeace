@@ -166,9 +166,9 @@ export default function Home() {
                 AutoPeace uses multi-agent AI systems to continuously forecast conflict outcomes, generate novel peace proposals, and rigorously evaluate them through a 9-stage pipeline of adversarial stress-testing, stakeholder simulation, and independent judicial scoring — then crafts tailored strategies for selling each proposal to 23 different stakeholders.
               </p>
               <div className="flex flex-wrap gap-2">
-                <Link to="/deals">
+                <Link to="/deals/history">
                   <Button size="sm" className="gap-1.5 rounded-sm">
-                    Deal Dashboard <ArrowRight className="w-4 h-4" />
+                    Browse All Deals <ArrowRight className="w-4 h-4" />
                   </Button>
                 </Link>
                 <Link to="/arena">

@@ -1,0 +1,322 @@
+import React, { useState, useMemo } from "react";
+import { Link } from "react-router-dom";
+import { useListDeals, type Deal, type DealScores } from "@workspace/api-client-react";
+import { Card, PageHeader, Badge } from "@/components/ui";
+import {
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell,
+} from "recharts";
+import { ExternalLink, AlertCircle, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
+import { motion } from "framer-motion";
+import { ScoreBreakdownPanel, type ExtendedScores } from "@/components/ScoreBreakdownPanel";
+import { ARCHITECTURE_COLORS, SCORE_DIMENSIONS, scoreColor, scoreLabel, safe, VERDICT_COLORS } from "@/utils/deal-ui-constants";
+
+const VERDICT_ICONS: Record<string, React.ReactNode> = {
+  accept: <CheckCircle2 className="w-3 h-3 shrink-0" />,
+  conditional: <AlertTriangle className="w-3 h-3 shrink-0" />,
+  reject: <XCircle className="w-3 h-3 shrink-0" />,
+};
+
+function DealExpandedView({ deal }: { deal: Deal }) {
+  const scores = deal.scores as ExtendedScores | null;
+  const stakeholderEvals = (deal.stakeholderEvaluations ?? {}) as Record<string, { verdict: string; rationale: string }>;
+  const redTeamResults = (deal.redTeamResults ?? []) as Array<{ attack: string; severity: string; response: string; survived: boolean }>;
+  const terms = (deal.terms ?? {}) as Record<string, unknown>;
+  const accepts = Object.values(stakeholderEvals).filter(e => e.verdict === "accept").length;
+  const conditionals = Object.values(stakeholderEvals).filter(e => e.verdict === "conditional").length;
+  const rejects = Object.values(stakeholderEvals).filter(e => e.verdict === "reject").length;
+  const survived = redTeamResults.filter(r => r.survived).length;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-bold capitalize">{deal.architecture.replace(/-/g, " ")} Deal</h3>
+        <Link to={`/deals/${deal.id}`} className="text-xs text-primary hover:underline flex items-center gap-1">
+          <ExternalLink className="w-3 h-3" /> Full Permalink
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Card className="p-3 text-center">
+          <div className={`text-2xl font-display font-bold ${scoreColor(scores?.composite ?? 0)}`}>
+            {scores ? `${((scores.composite ?? 0) * 100).toFixed(0)}%` : "—"}
+          </div>
+          <div className="text-xs text-muted-foreground">Composite</div>
+        </Card>
+        <Card className="p-3 text-center">
+          <div className="text-2xl font-display font-bold text-emerald-400">{accepts}</div>
+          <div className="text-xs text-muted-foreground">Accept</div>
+        </Card>
+        <Card className="p-3 text-center">
+          <div className="text-2xl font-display font-bold text-red-400">{rejects}</div>
+          <div className="text-xs text-muted-foreground">Reject</div>
+        </Card>
+        <Card className="p-3 text-center">
+          <div className={`text-2xl font-display font-bold ${survived === redTeamResults.length && redTeamResults.length > 0 ? "text-emerald-400" : "text-amber-400"}`}>
+            {redTeamResults.length > 0 ? `${survived}/${redTeamResults.length}` : "—"}
+          </div>
+          <div className="text-xs text-muted-foreground">Red Team</div>
+        </Card>
+      </div>
+
+      {scores && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+          {SCORE_DIMENSIONS.map(d => (
+            <div key={d.key} className="p-2 rounded-lg border border-border text-center">
+              <div className="text-xs text-muted-foreground mb-1">{d.label}</div>
+              <div className={`text-lg font-display font-bold ${scoreColor(scores[d.key] ?? 0)}`}>
+                {((scores[d.key] ?? 0) * 100).toFixed(0)}%
+              </div>
+              <div className={`text-[10px] ${scoreColor(scores[d.key] ?? 0)}`}>{scoreLabel(scores[d.key] ?? 0)}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <Card className="p-4">
+        <h4 className="text-sm font-bold mb-2">Deal Terms</h4>
+        <div className="space-y-2 text-xs">
+          {[
+            { label: "Nuclear Protocol", key: "nuclearProtocol" },
+            { label: "Sanctions Relief", key: "sanctionsRelief" },
+            { label: "Maritime Security", key: "hormuzArrangements" },
+            { label: "Humanitarian", key: "humanitarianProvisions" },
+            { label: "Verification", key: "verificationMechanism" },
+            { label: "Timeline", key: "timelineYears" },
+          ].map(({ label, key }) => terms[key] ? (
+            <div key={key} className="border-b border-border/30 pb-1.5 last:border-0">
+              <span className="text-primary font-semibold uppercase tracking-wider text-[10px] block">{label}</span>
+              <span className="text-muted-foreground line-clamp-3">
+                {key === "timelineYears" ? `${terms[key]} years` : safe(terms[key])}
+              </span>
+            </div>
+          ) : null)}
+        </div>
+      </Card>
+
+      {Object.keys(stakeholderEvals).length > 0 && (
+        <Card className="p-4">
+          <h4 className="text-sm font-bold mb-2">Stakeholder Acceptance</h4>
+          <div className="flex gap-3 text-xs flex-wrap mb-3">
+            <span className="flex items-center gap-1 text-emerald-400"><CheckCircle2 className="w-3 h-3" /> {accepts} Accept</span>
+            <span className="flex items-center gap-1 text-amber-400"><AlertTriangle className="w-3 h-3" /> {conditionals} Conditional</span>
+            <span className="flex items-center gap-1 text-red-400"><XCircle className="w-3 h-3" /> {rejects} Reject</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            {Object.entries(stakeholderEvals).map(([id, evaluation]) => {
+              const cardColor = VERDICT_COLORS[evaluation.verdict] ?? "text-muted-foreground border-border bg-card";
+              return (
+                <div key={id} className={`p-2 rounded-lg border text-left ${cardColor}`}>
+                  <div className="flex items-center gap-1 mb-0.5">
+                    {VERDICT_ICONS[evaluation.verdict]}
+                    <span className="font-mono font-bold capitalize truncate text-[10px]">{id.replace(/[_-]/g, " ")}</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground line-clamp-2">{safe(evaluation.rationale)}</p>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
+      {scores && <ScoreBreakdownPanel scores={scores} label="Score Breakdown — Judge Panel" />}
+    </div>
+  );
+}
+
+export default function DealHistory() {
+  const { data: historyRes, isLoading } = useListDeals({ limit: 50 });
+  const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
+
+  const historyDeals = useMemo(() => {
+    return (historyRes?.data ?? [])
+      .filter((d): d is Deal & { scores: DealScores } => d.scores !== null)
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  }, [historyRes]);
+
+  const historyBarData = useMemo(() => {
+    return historyDeals.map((d, i) => {
+      const t = new Date(d.createdAt);
+      const ts = !isNaN(t.getTime()) ? `${t.getFullYear().toString().slice(2)}-${String(t.getMonth()+1).padStart(2,"0")}-${String(t.getDate()).padStart(2,"0")} ${t.toLocaleTimeString("en-US",{hour12:false})}` : "";
+      return {
+        name: `#${i + 1} ${ts}`,
+        index: i + 1,
+        composite: Math.round((d.scores.composite ?? 0) * 100),
+        architecture: d.architecture,
+        isCurrent: d.isCurrent,
+        id: d.id,
+      };
+    });
+  }, [historyDeals]);
+
+  const archCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    historyDeals.forEach(d => { counts[d.architecture] = (counts[d.architecture] ?? 0) + 1; });
+    return counts;
+  }, [historyDeals]);
+
+  const avgComposite = useMemo(() => {
+    if (historyDeals.length === 0) return 0;
+    return historyDeals.reduce((sum, d) => sum + (d.scores.composite ?? 0), 0) / historyDeals.length;
+  }, [historyDeals]);
+
+  const champion = historyDeals.find(d => d.isCurrent);
+
+  if (isLoading) {
+    return (
+      <div className="animate-pulse space-y-8">
+        <div className="h-20 bg-card rounded-2xl" />
+        <div className="h-96 bg-card rounded-2xl" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8 animate-fade-in pb-12">
+      <PageHeader
+        title="Deal History"
+        description="Complete archive of all AI-generated peace deal iterations. Track the evolution of proposals and compare architectures over time."
+      />
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <Card className="p-4 text-center">
+          <div className="text-3xl font-display font-bold text-primary">{historyDeals.length}</div>
+          <div className="text-xs text-muted-foreground mt-1">Total Deals</div>
+        </Card>
+        <Card className="p-4 text-center">
+          <div className="text-3xl font-display font-bold text-amber-400">{Object.keys(archCounts).length}</div>
+          <div className="text-xs text-muted-foreground mt-1">Architectures</div>
+        </Card>
+        <Card className="p-4 text-center">
+          <div className={`text-3xl font-display font-bold ${scoreColor(avgComposite)}`}>
+            {historyDeals.length > 0 ? `${(avgComposite * 100).toFixed(0)}%` : "—"}
+          </div>
+          <div className="text-xs text-muted-foreground mt-1">Avg Composite</div>
+        </Card>
+        <Card className="p-4 text-center">
+          <div className={`text-3xl font-display font-bold ${scoreColor(champion?.scores?.composite ?? 0)}`}>
+            {champion ? `${((champion.scores.composite ?? 0) * 100).toFixed(0)}%` : "—"}
+          </div>
+          <div className="text-xs text-muted-foreground mt-1">Champion Score</div>
+        </Card>
+      </div>
+
+      {historyDeals.length === 0 ? (
+        <Card className="p-12 text-center flex flex-col items-center gap-4">
+          <AlertCircle className="w-12 h-12 text-muted-foreground opacity-50" />
+          <h3 className="text-xl font-bold">No Deals Generated Yet</h3>
+          <p className="text-muted-foreground max-w-md">
+            The deal engine has not run yet. Go to the Admin panel and trigger a deal cycle to generate the first AI peace proposal.
+          </p>
+        </Card>
+      ) : (
+        <>
+          <Card className="p-6">
+            <h3 className="text-lg font-bold mb-2">Score Evolution</h3>
+            <p className="text-xs text-muted-foreground mb-4">
+              Composite scores for each AI deal iteration. Click a bar to expand the deal details below.
+            </p>
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={historyBarData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                  <XAxis dataKey="name" tick={(props: any) => { const { x, y, payload } = props; return (<g transform={`translate(${x},${y})`}><text x={0} y={0} dy={12} textAnchor="end" fill="#94a3b8" fontSize={8} transform="rotate(-35)">{payload.value}</text></g>); }} height={80} />
+                  <YAxis tick={{ fontSize: 9, fill: "#94a3b8" }} tickFormatter={(v: number) => `${v}%`} domain={[0, 100]} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "8px", fontSize: "11px" }}
+                    formatter={(v: number, _: unknown, entry: { payload?: { architecture?: string; isCurrent?: boolean } }) => [
+                      `${v}% (${entry.payload?.architecture ?? ""}${entry.payload?.isCurrent ? " — champion" : ""})`,
+                      "Composite"
+                    ]}
+                  />
+                  <Bar
+                    dataKey="composite"
+                    name="Composite Score"
+                    radius={[3, 3, 0, 0]}
+                    cursor="pointer"
+                    onClick={(data: { id?: string }) => {
+                      if (data.id) {
+                        const deal = historyDeals.find(d => d.id === data.id);
+                        if (deal) setSelectedDeal(prev => prev?.id === deal.id ? null : deal);
+                      }
+                    }}
+                  >
+                    {historyBarData.map((entry) => (
+                      <Cell
+                        key={entry.id}
+                        fill={ARCHITECTURE_COLORS[entry.architecture] ?? "#64748b"}
+                        stroke={entry.isCurrent ? "#fbbf24" : selectedDeal?.id === entry.id ? "#94a3b8" : "transparent"}
+                        strokeWidth={entry.isCurrent ? 2.5 : selectedDeal?.id === entry.id ? 2 : 0}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3 px-1">
+              {Object.entries(archCounts).map(([arch, count]) => (
+                <span key={arch} className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                  <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: ARCHITECTURE_COLORS[arch] ?? "#64748b" }} />
+                  <span className="capitalize">{arch}</span>
+                  <span className="text-muted-foreground/50">({count})</span>
+                </span>
+              ))}
+              <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground ml-2 pl-2 border-l border-border/50">
+                <span className="w-2.5 h-2.5 rounded-sm shrink-0 border-2 border-amber-400 bg-transparent" />
+                <span>Current Champion</span>
+              </span>
+            </div>
+          </Card>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {historyDeals.map((d, i) => {
+              const s = d.scores as DealScores | null;
+              const isSelected = selectedDeal?.id === d.id;
+              return (
+                <motion.div
+                  key={d.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.02 }}
+                  className={`p-3 rounded-lg border text-xs text-left transition-all cursor-pointer ${
+                    d.isCurrent ? "border-primary/50 bg-primary/5" :
+                    isSelected ? "border-primary/50 ring-1 ring-primary" : "border-border hover:border-border/80"
+                  }`}
+                  onClick={() => setSelectedDeal(isSelected ? null : d)}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-mono font-bold">
+                      Deal #{i + 1}
+                      <span className="ml-1.5 capitalize" style={{ color: ARCHITECTURE_COLORS[d.architecture] ?? "#94a3b8" }}>
+                        {d.architecture}
+                      </span>
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {d.isCurrent && <Badge className="text-[9px] px-1 py-0 h-4">champion</Badge>}
+                      <Link to={`/deals/${d.id}`} className="text-muted-foreground hover:text-primary transition-colors" title="Open permalink" onClick={e => e.stopPropagation()}>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
+                  </div>
+                  <div className={`font-bold ${scoreColor(s?.composite ?? 0)}`}>
+                    {s ? `${((s.composite ?? 0) * 100).toFixed(0)}% composite` : "—"}
+                  </div>
+                  <div className="text-muted-foreground/60">{(() => { const dt = new Date(d.createdAt); return `${dt.getFullYear().toString().slice(2)}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")} ${dt.toLocaleTimeString("en-US",{hour12:false})}`; })()}</div>
+                </motion.div>
+              );
+            })}
+          </div>
+
+          {selectedDeal && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="border-t border-primary/30 pt-6"
+            >
+              <DealExpandedView deal={selectedDeal} />
+            </motion.div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}

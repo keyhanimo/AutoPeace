@@ -221,8 +221,8 @@ export default function DealPermalink() {
         <PageHeader title="Deal Not Found" description="This deal may have been removed or the link is invalid." />
         <Card className="p-12 text-center flex flex-col items-center gap-4">
           <AlertCircle className="w-12 h-12 text-muted-foreground opacity-50" />
-          <Link to="/deals" className="text-primary hover:underline flex items-center gap-1">
-            <ArrowLeft className="w-4 h-4" /> Back to Deal Dashboard
+          <Link to="/deals/history" className="text-primary hover:underline flex items-center gap-1">
+            <ArrowLeft className="w-4 h-4" /> Back to Deal History
           </Link>
         </Card>
       </div>
@@ -269,7 +269,7 @@ export default function DealPermalink() {
   return (
     <div className="space-y-8 animate-fade-in pb-12">
       <div className="flex items-center gap-3">
-        <Link to="/deals" className="text-primary hover:underline flex items-center gap-1 text-sm">
+        <Link to="/deals/history" className="text-primary hover:underline flex items-center gap-1 text-sm">
           <ArrowLeft className="w-4 h-4" /> All Deals
         </Link>
       </div>

@@ -131,6 +131,8 @@ Both layers are concatenated and injected into stages 0-4 and 6 of the deal pipe
 | `/` | Home — hero, peace gauge, stakeholder grid, DealHeroSection |
 | `/forecasts` | Forecast Dashboard — bar chart, community forecast panel |
 | `/deals` | Deal Dashboard — solution tree, Pareto frontier, deal cards |
+| `/deals/history` | Deal History — standalone archive of all AI deal iterations with score evolution chart and expandable details |
+| `/deals/:id` | Deal Permalink — shareable page for individual deals with markdown export and social sharing |
 | `/arena` | Proposal Arena — US vs Iran vs AI deal comparison |
 | `/stakeholders` | Stakeholder Gallery — expandable stakeholder profile cards |
 | `/stakeholders/compare` | Stakeholder Comparison — multi-select comparison tool (up to 4) |
