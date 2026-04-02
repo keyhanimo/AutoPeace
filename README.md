@@ -226,9 +226,9 @@ autopeace/
 The UI is a dark-themed research dashboard built with React 19, Vite, Tailwind CSS, and Shadcn UI components. It uses TanStack React Query with auto-generated hooks from the OpenAPI spec for type-safe data fetching. The interface is organized into four navigation groups:
 
 - **Research** — Home dashboard, deal dashboard, deal history, proposal arena, forecasts, cost-benefit analysis
-- **Explorer** — Stakeholder profiles, comparisons, stakeholder lens, evidence corpus, live monitor, autoresearch lab
+- **Explorer** — Stakeholders (gallery, comparison, and lens tabs), evidence corpus, live monitor, autoresearch lab (includes changelog)
 - **Community** — Submit proposals, data portal, API docs
-- **Info** — Changelog, methodology, admin panel
+- **Info** — Methodology, admin panel
 
 ### Backend (Express API Server)
 
@@ -376,17 +376,14 @@ All admin endpoints require the `X-Admin-Key` header matching the `ADMIN_PASSWOR
 | `/deals/:id` | **Deal Permalink** | Shareable deal detail page with full terms, scores, stakeholder evaluations, markdown export |
 | `/arena` | **Proposal Arena** | Side-by-side proposal comparison with radar charts and score breakdowns |
 | `/costs` | **Cost-Benefit Analysis** | War costs vs. peace benefits by channel/stakeholder, treemaps, and methodology framework |
-| `/stakeholders` | **Stakeholder Gallery** | Profile cards for all conflict actors with tier badges |
-| `/stakeholders/compare` | **Stakeholder Comparison** | Multi-select comparison tool for up to 4 stakeholders |
-| `/stakeholders/lens` | **Stakeholder Lens** | Immersive view filtering all data through one stakeholder's perspective |
+| `/stakeholders` | **Stakeholders** | Multi-tab page: Gallery (profile cards with tier badges), Compare (side-by-side up to 4 actors), Lens (all data filtered through one stakeholder's perspective) |
 | `/evidence` | **Evidence Explorer** | Searchable, filterable corpus of ingested evidence items |
 | `/live` | **Live Monitor** | Real-time cycle monitoring with full LLM call detail logging (model, tokens, cost, duration) |
-| `/lab` | **Autoresearch Lab** | Pipeline evolution history, solution tree visualization |
+| `/lab` | **Autoresearch Lab** | Multi-tab page: Changelog (cycle update timeline, default), Deal Timeline, Pipeline Evolution, Live Status |
 | `/submit` | **Submit Proposal** | Public form for community peace proposal submissions with AI screening |
 | `/data` | **Data Portal** | JSON/CSV download links for research datasets + RSS |
 | `/api-docs` | **API Documentation** | Interactive documentation for all endpoints, filterable by tag |
 | `/methodology` | **Methodology** | Academic-style paper describing the system architecture, forecasting approach, and deal optimization pipeline |
-| `/changelog` | **Changelog** | Timeline of research cycle headlines and deltas |
 | `/changelog/:id` | **Changelog Entry** | Detailed view of a single research cycle update |
 | `/admin` | **Admin Panel** | Password-gated panel for model/provider config, proposal management, cycle triggers |
 
