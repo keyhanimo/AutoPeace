@@ -40,7 +40,10 @@ function parseLLMJsonScoring(text: string): Record<string, unknown> {
   const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/)
     ?? text.match(/(\{[\s\S]*\})/);
   if (!jsonMatch?.[1]) throw new Error(`No JSON found in: ${text.slice(0, 200)}`);
-  return JSON.parse(jsonMatch[1].trim());
+  let raw = jsonMatch[1].trim();
+  raw = raw.replace(/,\s*([}\]])/g, "$1");
+  raw = raw.replace(/[\x00-\x1f\x7f]/g, (c) => c === "\n" || c === "\r" || c === "\t" ? c : "");
+  return JSON.parse(raw);
 }
 
 type TestCase = { label: string; input: string; shouldPass: boolean; expectedType?: "object" | "array"; scoringShouldPass?: boolean };
@@ -69,21 +72,18 @@ const testCases: TestCase[] = [
     input: '{"status": "ok", "count": 5,}',
     shouldPass: true,
     expectedType: "object",
-    scoringShouldPass: false,
   },
   {
     label: "JSON with trailing comma in array",
     input: '{"items": ["a", "b", "c",]}',
     shouldPass: true,
     expectedType: "object",
-    scoringShouldPass: false,
   },
   {
     label: "JSON with nested trailing commas",
     input: '{"outer": {"inner": [1, 2, 3,],},}',
     shouldPass: true,
     expectedType: "object",
-    scoringShouldPass: false,
   },
   {
     label: "JSON wrapped in text",
@@ -114,7 +114,6 @@ const testCases: TestCase[] = [
     input: '{"status": "ok\x01\x02", "value": 5}',
     shouldPass: true,
     expectedType: "object",
-    scoringShouldPass: false,
   },
   {
     label: "JSON with newlines in values (should preserve)",

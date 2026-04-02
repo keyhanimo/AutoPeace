@@ -819,7 +819,7 @@ For each stakeholder, consider: (1) Does what they receive justify what they mus
 
 Return JSON with ALL stakeholder IDs: { "iran": { verdict, rationale, redLineViolations, conditions }, "us": {...}, "uae": {...}, ... }`;
 
-  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 2, "evaluation", modelConfig, { maxTokens: 16384, timeoutMs: 300_000 });
+  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 2, "evaluation", modelConfig, { maxTokens: 8192, timeoutMs: 300_000 });
 
   const parsed = parseLLMJson<Record<string, StakeholderVerdict>>(content, "stakeholder-evaluation");
 
@@ -912,7 +912,7 @@ Return JSON object keyed by audience key:
   }
 }`;
 
-  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 3, "evaluation", modelConfig, { maxTokens: 8192 });
+  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 3, "evaluation", modelConfig, { maxTokens: 8192, timeoutMs: 180_000 });
 
   const parsed = parseLLMJson<Record<string, DomesticFramingStrategy>>(content, "domestic-framing");
   return { strategies: parsed, tokens };
@@ -1018,7 +1018,7 @@ Return JSON:
 
 CREATIVE MANDATE: Include at least 2 creative tradeoffs even if no stakeholders reject. These should be novel cross-issue deals that create new value. Think about asymmetric valuations — what is cheap for one party but precious for another?`;
 
-  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 5, "generation", modelConfig, { maxTokens: 16384, timeoutMs: 300_000 });
+  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 5, "generation", modelConfig, { maxTokens: 8192, timeoutMs: 300_000 });
   const result = parseLLMJson<NegotiatorResult & { creativeTradeoffs?: CreativeTradeoff[] }>(content, "negotiator");
   return { result, tokens };
 }
@@ -1063,7 +1063,7 @@ ${audienceList.map(a => `- ${a.key}: ${a.label}`).join("\n")}
 
 Return JSON where each key maps to { "audience": "label", "verdict": "sellable|difficult|unsellable", "rationale": "brief" }.`;
 
-  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 3, "evaluation", modelConfig);
+  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 3, "evaluation", modelConfig, { maxTokens: 4096, timeoutMs: 180_000 });
 
   const parsed = parseLLMJson<Record<string, DomesticVerdict>>(content, "domestic-audiences");
   return { evaluations: parsed, tokens };
@@ -1099,7 +1099,7 @@ Sequencing: ${terms.sequencing}${innovativeContext}
 
 Return JSON array: [{ "attack": "description", "severity": "low|medium|high|critical", "response": "how proponents respond", "survived": true|false }, ...]`;
 
-  const { content, tokens } = await callLLMForStage(prompt, "You are an adversarial analyst. Output JSON.", 4, "adversarial", modelConfig);
+  const { content, tokens } = await callLLMForStage(prompt, "You are an adversarial analyst. Output JSON.", 4, "adversarial", modelConfig, { maxTokens: 4096, timeoutMs: 180_000 });
 
   const parsed = parseLLMJson<RedTeamResult[]>(content, "red-team");
   return { results: parsed, tokens };
@@ -1421,7 +1421,7 @@ IMPORTANT: The promptImprovements field is how this pipeline evolves over time. 
 
 CONSTRAINT ON PROMPT IMPROVEMENTS: Every stage's output must be SELF-CONTAINED — fully understandable without reference to any prior deal or cycle. Your suggested prompt changes must NEVER encourage the model to say "revised," "amended," "updated," or refer to "existing provisions," "key changes from previous version," or any language implying the output modifies a prior document. Each deal must read as the first and only deal the reader will ever see.`;
 
-  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 7, "evaluation", modelConfig, { maxTokens: 16384, timeoutMs: 300_000 });
+  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 7, "evaluation", modelConfig, { maxTokens: 8192, timeoutMs: 300_000 });
   const result = parseLLMJson<MetaEvaluatorResult>(content, "meta-evaluator");
   return { result, tokens };
 }
@@ -1468,7 +1468,7 @@ ${tierWarning}
 ACCEPTANCE HIERARCHY: Iran + US acceptance is REQUIRED (deal-breaker if either rejects). Israel is CRITICAL (near-fatal). Others are influential but not gatekeepers.
 Be specific about which stakeholder objections and which structural weakness are most critical to fix.`;
 
-  const { content, tokens } = await callLLMForStage(prompt, "You are a strategic conflict analyst. Provide a concise diagnosis paragraph. No JSON.", 8, "adversarial", modelConfig);
+  const { content, tokens } = await callLLMForStage(prompt, "You are a strategic conflict analyst. Provide a concise diagnosis paragraph. No JSON.", 8, "adversarial", modelConfig, { maxTokens: 2048, timeoutMs: 120_000 });
   return {
     diagnosis: content.trim().replace(/^```[\s\S]*?```$/m, "").trim() || "Deal faces significant stakeholder resistance. Nuclear verification and domestic political constraints are the primary barriers.",
     tokens,

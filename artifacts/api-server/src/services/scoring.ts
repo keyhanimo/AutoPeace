@@ -47,5 +47,8 @@ export function parseLLMJson(text: string): Record<string, unknown> {
   const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/) 
     ?? text.match(/(\{[\s\S]*\})/);
   if (!jsonMatch?.[1]) throw new Error(`No JSON found in: ${text.slice(0, 200)}`);
-  return JSON.parse(jsonMatch[1].trim());
+  let raw = jsonMatch[1].trim();
+  raw = raw.replace(/,\s*([}\]])/g, "$1");
+  raw = raw.replace(/[\x00-\x1f\x7f]/g, (c) => c === "\n" || c === "\r" || c === "\t" ? c : "");
+  return JSON.parse(raw);
 }

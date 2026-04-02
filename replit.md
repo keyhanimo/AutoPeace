@@ -101,7 +101,11 @@ All text LLM calls route through `artifacts/api-server/src/services/llm-router.t
 
 **Admin config roles**: `generation`, `evaluation`, `adversarial`, `forecasting`, `extraction` — each with independent `{provider, model}` settings. Per-stage overrides take highest priority.
 
-**Cross-Provider Fallback System**: Each role has a configurable fallback `{provider, model}` pair. When a primary provider exhausts retries (3 attempts with exponential backoff), `callLLM` automatically tries the fallback provider. Defaults: generation→openai/gpt-5.2, evaluation→gemini/gemini-3.1-pro-preview, adversarial→anthropic/claude-opus-4-6, forecasting→openai/gpt-5.2, extraction→openai/gpt-5.2. Admin-configurable via Admin Panel "Cross-Provider Fallback Models" card. Same-provider warnings shown in UI. Fallback config stored in `admin_config` key-value store (keys: `{role}FallbackProvider`, `{role}FallbackModel`).
+**Cross-Provider Fallback System**: Each role has a configurable fallback `{provider, model}` pair. When a primary provider exhausts retries (3 attempts with exponential backoff), `callLLM` automatically tries the fallback provider. Defaults: generation→openai/gpt-5.2, evaluation→anthropic/claude-opus-4-6, adversarial→anthropic/claude-opus-4-6, forecasting→openai/gpt-5.2, extraction→openai/gpt-5.2. Admin-configurable via Admin Panel "Cross-Provider Fallback Models" card. Same-provider warnings shown in UI. Fallback config stored in `admin_config` key-value store (keys: `{role}FallbackProvider`, `{role}FallbackModel`).
+
+**Model Defaults (latency-optimized)**: generation→anthropic (most creative), evaluation→openai (fastest at 2-5s), adversarial→openai (fast short-output stages), forecasting→anthropic, extraction→anthropic. Gemini is slowest (11-22s/call) and not used as primary for any role.
+
+**Stage-Specific Timeouts & Token Limits**: Brainstorm/proposal stages use `maxTokens: 16384` (large structured output). Evaluation/negotiator/meta-evaluator use `maxTokens: 8192`. Domestic audiences/red-team use `maxTokens: 4096, timeoutMs: 180_000`. Diagnosis stage uses `maxTokens: 2048, timeoutMs: 120_000`. Default timeout is 300s for heavy stages.
 
 **Compounding Retry Fix**: Anthropic SDK `maxRetries` set to 0 (was 2). Outer wrapper `MAX_LLM_RETRIES: 2` handles all retries with exponential backoff (5s, 10s). Max 3 attempts per provider, up to 6 with fallback. Timeout reduced from 600s to 300s in deal-engine.
 
