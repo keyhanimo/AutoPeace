@@ -77,7 +77,7 @@ function AIvsHumanChart({ aiDeal, humanProposals }: { aiDeal: { scores: unknown;
 
 function calculatePeaceProbability(forecasts: Forecast[]): number {
   if (!forecasts || forecasts.length === 0) return 0;
-  const f30 = forecasts.find(f => f.timeHorizon === '30d') ?? forecasts[0];
+  const f30 = forecasts.find(f => f.timeHorizon === '10d') ?? forecasts.find(f => f.timeHorizon === '30d') ?? forecasts[0];
   if (!f30) return 0;
   const p = f30.probabilities;
   return ([p.humanitarian_mini_deal, p.sanctions_partial_deal, p.regional_framework, p.broad_settlement]
@@ -97,7 +97,7 @@ const OUTCOME_LABELS: Record<string, string> = {
 };
 
 function OutcomeSparkbar({ forecasts }: { forecasts: Forecast[] }) {
-  const f30 = forecasts.find(f => f.timeHorizon === '30d') ?? forecasts[0];
+  const f30 = forecasts.find(f => f.timeHorizon === '10d') ?? forecasts.find(f => f.timeHorizon === '30d') ?? forecasts[0];
   if (!f30) return null;
   const probs = Object.entries(f30.probabilities)
     .sort((a, b) => b[1] - a[1])

@@ -54,7 +54,7 @@ const OUTCOMES = [
   "major_escalation",
 ];
 
-const TIME_HORIZONS = ["30d", "90d", "180d", "1y"];
+const TIME_HORIZONS = ["10d", "30d", "90d", "180d", "1y"];
 
 export type GeneratedForecast = {
   timeHorizon: string;

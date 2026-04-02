@@ -167,7 +167,7 @@ async function runCycleAsync(cycleId: string): Promise<void> {
     }
 
     setStage("forecasting");
-    emitCycleLog({ cycleId, level: "stage", stage: "forecasting", message: "Sending all available evidence to an AI model to generate Bayesian probability forecasts. The model will estimate the likelihood of 8 possible conflict outcomes (e.g., nuclear deal, military escalation, status quo, diplomatic breakthrough) across multiple time horizons (30 days, 90 days, 1 year, 5 years)." });
+    emitCycleLog({ cycleId, level: "stage", stage: "forecasting", message: "Sending all available evidence to an AI model to generate Bayesian probability forecasts. The model will estimate the likelihood of 8 possible conflict outcomes (e.g., nuclear deal, military escalation, status quo, diplomatic breakthrough) across multiple time horizons (10 days, 30 days, 90 days, 180 days, 1 year)." });
     const forecastStart = Date.now();
     const evidencePackVersion = new Date().toISOString().slice(0, 10);
     const forecasts = await generateForecasts(cycleId, evidencePackVersion);

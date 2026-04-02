@@ -20,7 +20,7 @@ const DATASETS: Dataset[] = [
   {
     id: "forecasts",
     name: "Forecasts",
-    description: "All AI-generated probability forecasts for 8 conflict outcomes across 4 time horizons.",
+    description: "All AI-generated probability forecasts for 8 conflict outcomes across 5 time horizons.",
     urlJson: `${API}/forecasts.json`,
     urlCsv: `${API}/forecasts.csv`,
     icon: <Globe className="w-4 h-4" />,

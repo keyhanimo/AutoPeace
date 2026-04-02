@@ -41,7 +41,7 @@ const ENDPOINTS: Endpoint[] = [
     params: [
       { name: "limit", in: "query", description: "Max records to return (default 20, max 100)" },
       { name: "offset", in: "query", description: "Number of records to skip for pagination" },
-      { name: "timeHorizon", in: "query", description: "Filter by time horizon: 30d, 90d, 180d, or 1y" },
+      { name: "timeHorizon", in: "query", description: "Filter by time horizon: 10d, 30d, 90d, 180d, or 1y" },
       { name: "cycleId", in: "query", description: "Filter by research cycle ID" },
     ],
     example: `curl "${BASE}/api/forecasts?timeHorizon=90d&limit=10"`,
@@ -233,7 +233,7 @@ const ENDPOINTS: Endpoint[] = [
   {
     method: "GET", path: "/api/community-forecasts/aggregate", summary: "Get aggregated community probability forecast",
     tags: ["community"],
-    params: [{ name: "timeHorizon", in: "query", description: "30d, 90d, 180d, or 1y" }],
+    params: [{ name: "timeHorizon", in: "query", description: "10d, 30d, 90d, 180d, or 1y" }],
     example: `curl "${BASE}/api/community-forecasts/aggregate?timeHorizon=90d"`,
   },
 

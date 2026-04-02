@@ -10,6 +10,7 @@ export type ForecastTimeHorizon =
   (typeof ForecastTimeHorizon)[keyof typeof ForecastTimeHorizon];
 
 export const ForecastTimeHorizon = {
+  "10d": "10d",
   "30d": "30d",
   "90d": "90d",
   "180d": "180d",

@@ -42,8 +42,8 @@ router.post("/community-forecasts", async (req, res) => {
       return;
     }
 
-    if (!["30d", "90d", "180d", "1y"].includes(timeHorizon)) {
-      res.status(400).json({ error: "Invalid timeHorizon. Must be 30d, 90d, 180d, or 1y" });
+    if (!["10d", "30d", "90d", "180d", "1y"].includes(timeHorizon)) {
+      res.status(400).json({ error: "Invalid timeHorizon. Must be 10d, 30d, 90d, 180d, or 1y" });
       return;
     }
 

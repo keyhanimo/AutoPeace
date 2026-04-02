@@ -10,6 +10,7 @@ export type ListForecastsTimeHorizon =
   (typeof ListForecastsTimeHorizon)[keyof typeof ListForecastsTimeHorizon];
 
 export const ListForecastsTimeHorizon = {
+  "10d": "10d",
   "30d": "30d",
   "90d": "90d",
   "180d": "180d",

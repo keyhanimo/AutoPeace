@@ -14,7 +14,7 @@ import { AlertCircle, Clock, CheckCircle2, FileText, Target, TrendingUp, BarChar
 import { DataSourceNote, DataFreshness } from "@/components/DataSourceNote";
 import { ForecastAutoresearchBadge } from "@/components/AutoresearchBadge";
 
-const TIME_HORIZONS = ['30d', '90d', '180d', '1y'] as const;
+const TIME_HORIZONS = ['10d', '30d', '90d', '180d', '1y'] as const;
 
 const CATEGORIES = [
   { key: 'continued_conflict', label: 'Continued Conflict', shortLabel: 'Conflict', color: '#ef4444' },
@@ -36,6 +36,7 @@ const PREDICTION_MARKETS = [
 ];
 
 const HORIZON_LABELS: Record<string, string> = {
+  "10d": "10 days",
   "30d": "30 days",
   "90d": "90 days",
   "180d": "180 days",
@@ -43,7 +44,7 @@ const HORIZON_LABELS: Record<string, string> = {
 };
 
 function horizonDeadline(h: string): string {
-  const days = h === "30d" ? 30 : h === "90d" ? 90 : h === "180d" ? 180 : 365;
+  const days = h === "10d" ? 10 : h === "30d" ? 30 : h === "90d" ? 90 : h === "180d" ? 180 : 365;
   const d = new Date();
   d.setDate(d.getDate() + days);
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -72,7 +73,7 @@ function isAlreadySubmitted(horizon: string): boolean {
 }
 
 function CommunityForecastPanel({ activeForecast }: { activeForecast: Forecast }) {
-  const [horizon, setHorizon] = useState<"30d" | "90d" | "180d" | "1y">("90d");
+  const [horizon, setHorizon] = useState<"10d" | "30d" | "90d" | "180d" | "1y">("90d");
   const [tab, setTab] = useState<"results" | "submit">("results");
   const [estimates, setEstimates] = useState<Record<string, number>>(() =>
     Object.fromEntries(CATEGORIES.map(c => [c.key, parseFloat((100 / CATEGORIES.length).toFixed(1))]))
@@ -141,7 +142,7 @@ function CommunityForecastPanel({ activeForecast }: { activeForecast: Forecast }
           <Users className="w-4 h-4 text-primary" /> Community Forecast
         </h3>
         <div className="flex gap-1">
-          {(["30d", "90d", "180d", "1y"] as const).map(h => (
+          {(["10d", "30d", "90d", "180d", "1y"] as const).map(h => (
             <button
               key={h}
               onClick={() => { setHorizon(h); setAlreadySubmitted(isAlreadySubmitted(h)); }}
@@ -687,7 +688,7 @@ export default function ForecastDashboard() {
 
           <DataSourceNote
             title="Forecasting Methodology & Sources"
-            methodology="Forecasts are generated using a multi-model pipeline. Claude produces probability distributions across 8 mutually exclusive, collectively exhaustive (MECE) outcome states for 4 time horizons (30d, 90d, 180d, 1y). Probabilities are conditioned on the 30 most recent evidence items from RSS feeds (Reuters, AP, Guardian, BBC, Al Jazeera), ACLED, and GDELT."
+            methodology="Forecasts are generated using a multi-model pipeline. Claude produces probability distributions across 8 mutually exclusive, collectively exhaustive (MECE) outcome states for 5 time horizons (10d, 30d, 90d, 180d, 1y). Probabilities are conditioned on the 30 most recent evidence items from RSS feeds (Reuters, AP, Guardian, BBC, Al Jazeera), ACLED, and GDELT."
             sources={[
               { label: "Evidence corpus", detail: "RSS (Reuters, AP, Guardian, BBC, Al Jazeera), ACLED conflict data, GDELT event database" },
               { label: "Forecasting model", detail: "Anthropic Claude (base forecast generation)" },

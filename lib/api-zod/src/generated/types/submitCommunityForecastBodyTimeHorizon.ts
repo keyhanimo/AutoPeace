@@ -10,6 +10,7 @@ export type SubmitCommunityForecastBodyTimeHorizon =
   (typeof SubmitCommunityForecastBodyTimeHorizon)[keyof typeof SubmitCommunityForecastBodyTimeHorizon];
 
 export const SubmitCommunityForecastBodyTimeHorizon = {
+  "10d": "10d",
   "30d": "30d",
   "90d": "90d",
   "180d": "180d",

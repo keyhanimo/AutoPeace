@@ -37,7 +37,7 @@ router.get("/forecasts", async (req, res) => {
 
 router.get("/forecasts/latest", async (_req, res) => {
   try {
-    const horizons = ["30d", "90d", "180d", "1y"];
+    const horizons = ["10d", "30d", "90d", "180d", "1y"];
     const results = await Promise.all(
       horizons.map(h =>
         db.select().from(forecastsTable)

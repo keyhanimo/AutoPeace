@@ -56,7 +56,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [30d, 90d, 180d, 1y]
+            enum: [10d, 30d, 90d, 180d, 1y]
         - name: cycleId
           in: query
           schema:
@@ -1131,7 +1131,7 @@ paths:
                   type: string
                 timeHorizon:
                   type: string
-                  enum: [30d, 90d, 180d, 1y]
+                  enum: [10d, 30d, 90d, 180d, 1y]
                 estimates:
                   type: object
                   additionalProperties:
@@ -1161,7 +1161,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [30d, 90d, 180d, 1y]
+            enum: [10d, 30d, 90d, 180d, 1y]
             default: 90d
       responses:
         "200":
@@ -1743,7 +1743,7 @@ components:
           type: string
         timeHorizon:
           type: string
-          enum: [30d, 90d, 180d, 1y]
+          enum: [10d, 30d, 90d, 180d, 1y]
         probabilities:
           $ref: "#/components/schemas/ForecastProbabilities"
         rationale:

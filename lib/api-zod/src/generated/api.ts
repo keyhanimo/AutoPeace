@@ -21,7 +21,7 @@ export const listForecastsQueryLimitDefault = 20;
 export const listForecastsQueryOffsetDefault = 0;
 
 export const ListForecastsQueryParams = zod.object({
-  timeHorizon: zod.enum(["30d", "90d", "180d", "1y"]).optional(),
+  timeHorizon: zod.enum(["10d", "30d", "90d", "180d", "1y"]).optional(),
   cycleId: zod.coerce.string().optional(),
   limit: zod.coerce.number().default(listForecastsQueryLimitDefault),
   offset: zod.coerce.number().default(listForecastsQueryOffsetDefault),
@@ -34,7 +34,7 @@ export const ListForecastsResponse = zod.object({
       cycleId: zod.string(),
       experimentId: zod.string().nullish(),
       evidencePackVersion: zod.string(),
-      timeHorizon: zod.enum(["30d", "90d", "180d", "1y"]),
+      timeHorizon: zod.enum(["10d", "30d", "90d", "180d", "1y"]),
       probabilities: zod.object({
         continued_conflict: zod.number(),
         informal_deescalation: zod.number(),
@@ -64,7 +64,7 @@ export const GetLatestForecastsResponse = zod.object({
       cycleId: zod.string(),
       experimentId: zod.string().nullish(),
       evidencePackVersion: zod.string(),
-      timeHorizon: zod.enum(["30d", "90d", "180d", "1y"]),
+      timeHorizon: zod.enum(["10d", "30d", "90d", "180d", "1y"]),
       probabilities: zod.object({
         continued_conflict: zod.number(),
         informal_deescalation: zod.number(),
@@ -95,7 +95,7 @@ export const GetForecastResponse = zod.object({
   cycleId: zod.string(),
   experimentId: zod.string().nullish(),
   evidencePackVersion: zod.string(),
-  timeHorizon: zod.enum(["30d", "90d", "180d", "1y"]),
+  timeHorizon: zod.enum(["10d", "30d", "90d", "180d", "1y"]),
   probabilities: zod.object({
     continued_conflict: zod.number(),
     informal_deescalation: zod.number(),
@@ -1579,7 +1579,7 @@ export const GetPipelineConfigResponse = zod.object({
  */
 export const SubmitCommunityForecastBody = zod.object({
   sessionId: zod.string(),
-  timeHorizon: zod.enum(["30d", "90d", "180d", "1y"]),
+  timeHorizon: zod.enum(["10d", "30d", "90d", "180d", "1y"]),
   estimates: zod.record(zod.string(), zod.number()),
 });
 
@@ -1595,7 +1595,7 @@ export const getCommunityForecastAggregateQueryTimeHorizonDefault = `90d`;
 
 export const GetCommunityForecastAggregateQueryParams = zod.object({
   timeHorizon: zod
-    .enum(["30d", "90d", "180d", "1y"])
+    .enum(["10d", "30d", "90d", "180d", "1y"])
     .default(getCommunityForecastAggregateQueryTimeHorizonDefault),
 });
 

@@ -172,7 +172,7 @@ export default function Methodology() {
             </li>
             <li className="bg-card p-3 border border-border flex items-start gap-3">
               <span className="bg-primary/20 text-primary font-mono text-xs px-2 py-1 shrink-0">Step 3</span>
-              <div><strong className="text-foreground">Base Forecasting (Task A)</strong> — Generate probability distributions across 4 time horizons (30d, 90d, 180d, 1y) for 8 outcome states using the forecasting model <ModelTag value={stm(null, "forecasting")} />.</div>
+              <div><strong className="text-foreground">Base Forecasting (Task A)</strong> — Generate probability distributions across 5 time horizons (10d, 30d, 90d, 180d, 1y) for 8 outcome states using the forecasting model <ModelTag value={stm(null, "forecasting")} />.</div>
             </li>
             <li className="bg-card p-3 border border-border flex items-start gap-3">
               <span className="bg-primary/20 text-primary font-mono text-xs px-2 py-1 shrink-0">Step 4</span>
@@ -219,7 +219,7 @@ export default function Methodology() {
             <BarChart3 className="w-6 h-6 text-primary" /> 5. Task A: Bayesian Conflict Forecasting
           </h2>
           <p>
-            The forecasting model produces probability distributions over eight mutually exclusive and collectively exhaustive (MECE) conflict outcome states across four time horizons. This is the system's "Task A" — the probabilistic assessment of where the conflict is heading.
+            The forecasting model produces probability distributions over eight mutually exclusive and collectively exhaustive (MECE) conflict outcome states across five time horizons. This is the system's "Task A" — the probabilistic assessment of where the conflict is heading.
           </p>
           <h3 className="text-xl font-bold font-display text-foreground mt-6">5.1 Outcome Taxonomy</h3>
           <p>The system uses a rigid taxonomy of 8 MECE states. Probabilities across all states must sum to 1.0 and are automatically normalized if they don't:</p>
@@ -236,7 +236,7 @@ export default function Methodology() {
 
           <h3 className="text-xl font-bold font-display text-foreground mt-6">5.2 Time Horizons</h3>
           <p>
-            Forecasts are generated independently for four time horizons: <strong>30 days</strong>, <strong>90 days</strong>, <strong>180 days</strong>, and <strong>1 year</strong>. Each horizon receives its own prompt with identical evidence but horizon-specific framing.
+            Forecasts are generated independently for five time horizons: <strong>10 days</strong>, <strong>30 days</strong>, <strong>90 days</strong>, <strong>180 days</strong>, and <strong>1 year</strong>. Each horizon receives its own prompt with identical evidence but horizon-specific framing.
           </p>
 
           <h3 className="text-xl font-bold font-display text-foreground mt-6">5.3 Forecasting Model</h3>
@@ -249,7 +249,7 @@ export default function Methodology() {
             <li>A requirement to provide rationale and cite key evidence items for each forecast</li>
           </ul>
           <p>
-            All four time-horizon forecasts are processed in parallel with a concurrency limit of 2 and up to 2 retries per horizon. Raw LLM probability outputs are normalized to ensure they sum to exactly 1.0, with any missing states receiving zero probability before normalization.
+            All five time-horizon forecasts are processed in parallel with a concurrency limit of 2 and up to 2 retries per horizon. Raw LLM probability outputs are normalized to ensure they sum to exactly 1.0, with any missing states receiving zero probability before normalization.
           </p>
         </Card>
 
@@ -258,7 +258,7 @@ export default function Methodology() {
             <RefreshCw className="w-6 h-6 text-primary" /> 6. Forecast Generation
           </h2>
           <p>
-            Each research cycle generates a single set of probability forecasts across 4 time horizons (30d, 90d, 180d, 1y) for 8 mutually exclusive outcome states. The forecasting model produces probability distributions conditioned on the latest evidence pack, incorporating both recent tactical developments and longer-term structural factors.
+            Each research cycle generates a single set of probability forecasts across 5 time horizons (10d, 30d, 90d, 180d, 1y) for 8 mutually exclusive outcome states. The forecasting model produces probability distributions conditioned on the latest evidence pack, incorporating both recent tactical developments and longer-term structural factors.
           </p>
 
           <h3 className="text-xl font-bold font-display text-foreground mt-6">6.1 Forecast Output</h3>
@@ -613,7 +613,7 @@ export default function Methodology() {
 
           <h3 className="text-xl font-bold font-display text-foreground mt-4">10.1 Task A (Forecasting)</h3>
           <p>
-            Forecasting does not use a scoring or optimization loop. Each cycle generates a single set of probability distributions across 4 time horizons conditioned on the latest evidence. Forecasts are persisted and the most recent set is marked as "current." Historical forecasts are retained for trend comparison across cycles, but no automated quality metric (e.g., Brier score) is computed or used to select between forecast variants.
+            Forecasting does not use a scoring or optimization loop. Each cycle generates a single set of probability distributions across 5 time horizons conditioned on the latest evidence. Forecasts are persisted and the most recent set is marked as "current." Historical forecasts are retained for trend comparison across cycles, but no automated quality metric (e.g., Brier score) is computed or used to select between forecast variants.
           </p>
 
           <h3 className="text-xl font-bold font-display text-foreground mt-6">10.2 Task B &amp; C Scoring (Deal &amp; Proposal Quality)</h3>

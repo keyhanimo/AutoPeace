@@ -58,7 +58,7 @@ AutoPeace is an open-source, AI-powered research and forecasting platform focuse
 
 The platform operates two continuous research tasks:
 
-- **Task A (Forecasting):** Generates Bayesian probability distributions across 8 mutually exclusive conflict outcome states over four time horizons (30 days, 90 days, 180 days, 1 year).
+- **Task A (Forecasting):** Generates Bayesian probability distributions across 8 mutually exclusive conflict outcome states over five time horizons (10 days, 30 days, 90 days, 180 days, 1 year).
 - **Task B (Deal Design):** Uses a multi-agent negotiation pipeline to design, stress-test, and optimize structured peace deal proposals evaluated by simulated stakeholder agents.
 
 Every experiment, LLM prompt, reasoning step, and evaluation is logged and publicly browsable — embodying a philosophy of radical transparency.
@@ -85,7 +85,7 @@ AutoPeace runs a continuous research cycle that can be scheduled hourly, daily, 
 │              │                                                     │
 │              ▼                                                     │
 │  3. Multi-Model Forecasting (Task A)                               │
-│     Bayesian probabilities × 8 outcomes × 4 time horizons         │
+│     Bayesian probabilities × 8 outcomes × 5 time horizons         │
 │              │                                                     │
 │              ▼                                                     │
 │  4. Red-Team Challenge                                             │
@@ -124,7 +124,7 @@ The forecasting engine produces probability distributions across **8 MECE (Mutua
 | Partial Settlement | Binding agreement resolving some but not all disputes |
 | Broad Settlement | Comprehensive peace deal addressing all major issues |
 
-Forecasts are generated for **four time horizons**: 30 days, 90 days, 180 days, and 1 year. The system self-improves through hill-climbing prompt optimization, mutating its own prompts (Adversarial, Pessimistic, Base-Rate) and retaining those that improve calibration against backtested Brier and Log scores.
+Forecasts are generated for **five time horizons**: 10 days, 30 days, 90 days, 180 days, and 1 year. The system self-improves through hill-climbing prompt optimization, mutating its own prompts (Adversarial, Pessimistic, Base-Rate) and retaining those that improve calibration against backtested Brier and Log scores.
 
 ### Task B: Deal Design
 
@@ -138,7 +138,7 @@ The deal engine uses a **grand coalition cooperative game theory framework** wit
 
 ## Features
 
-- **Bayesian Conflict Forecasting** — Continuously updated probability distributions across 8 outcome states and 4 time horizons
+- **Bayesian Conflict Forecasting** — Continuously updated probability distributions across 8 outcome states and 5 time horizons
 - **Multi-Agent Deal Negotiation** — 8-stage pipeline with proposal, stakeholder evaluation, domestic audience analysis, red-teaming, and creative negotiation
 - **32+ Stakeholder Profiles** — Tiered acceptance system (Required → Critical → Influential → Contextual) with red lines, goals, and communication styles
 - **What-If Scenarios** — Pre-computed probability shifts for hypothetical trigger events (e.g., "Hormuz Closure", "Major Cyberattack")
@@ -416,7 +416,7 @@ Evidence items are classified by type, tagged with relevance scores, and stored 
 
 ### Bayesian Forecasting Engine
 
-Each cycle generates probabilities across 8 outcome states for 4 time horizons using the admin-configured forecasting model. The forecasting pipeline:
+Each cycle generates probabilities across 8 outcome states for 5 time horizons using the admin-configured forecasting model. The forecasting pipeline:
 
 1. Collects recent evidence and prior forecasts as context
 2. Generates new probability distributions constrained to sum to 1.0

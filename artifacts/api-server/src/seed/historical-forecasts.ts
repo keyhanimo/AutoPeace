@@ -8,6 +8,30 @@ const CURRENT_SEED_CYCLE = "seed-current-2025-03";
 
 const CURRENT_FORECASTS = [
   {
+    id: "seed-current-2025-03-10d",
+    cycleId: CURRENT_SEED_CYCLE,
+    evidencePackVersion: "2025-03-01",
+    timeHorizon: "10d",
+    probabilities: {
+      continued_conflict: 0.68,
+      major_escalation: 0.17,
+      informal_deescalation: 0.06,
+      limited_ceasefire: 0.04,
+      humanitarian_mini_deal: 0.02,
+      sanctions_partial_deal: 0.01,
+      regional_framework: 0.01,
+      broad_settlement: 0.01,
+    },
+    rationale: "March 2025 (10d): In a 10-day window, the status quo strongly dominates. Maximum pressure campaign continues with no imminent diplomatic openings. Gaza ceasefire holding but fragile. Escalation risk is present but unlikely to crystallize within 10 days absent a specific trigger event. Very little probability mass on any positive outcomes at this ultra-short horizon.",
+    keyEvidenceItems: [
+      "Trump executive order expanding Iran sanctions (Jan 2025)",
+      "IAEA: Iran enrichment at 60%, ~4kg near-weapons-grade material (Feb 2025)",
+      "No scheduled US-Iran diplomatic contacts in March 2025",
+    ],
+    isCurrent: true,
+    isHistorical: false,
+  },
+  {
     id: "seed-current-2025-03-30d",
     cycleId: CURRENT_SEED_CYCLE,
     evidencePackVersion: "2025-03-01",

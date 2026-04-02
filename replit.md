@@ -109,7 +109,7 @@ All text LLM calls route through `artifacts/api-server/src/services/llm-router.t
 
 Each cycle (triggered manually or by cron):
 1. **Evidence ingestion** — RSS feeds (Reuters, AP, Guardian, BBC, Al Jazeera) filtered by Iran keywords
-2. **Forecasting** — generates a single set of probabilities for 4 time horizons (30d, 90d, 180d, 1y) via admin-configured forecasting provider/model (no experimentation or hill-climbing)
+2. **Forecasting** — generates a single set of probabilities for 5 time horizons (10d, 30d, 90d, 180d, 1y) via admin-configured forecasting provider/model (no experimentation or hill-climbing)
 3. **Changelog** — auto-headline generated from 90d probability leader
 4. **Deal engine** — generates and evaluates peace deal proposals through multi-stage pipeline; hill-climbing/autoresearch applies only here, with composite scoring metric
 
