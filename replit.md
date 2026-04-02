@@ -39,9 +39,9 @@ artifacts-monorepo/
 │   ├── api-client-react/   # Generated React Query hooks
 │   ├── api-zod/            # Generated Zod schemas from OpenAPI
 │   ├── db/                 # Drizzle ORM schema + DB connection
-│   ├── integrations-anthropic-ai/    # Anthropic client + batchProcess
-│   ├── integrations-openai-ai-server/ # OpenAI client + batchProcess
-│   └── integrations-gemini-ai/        # Gemini AI client
+│   ├── integrations-anthropic-ai/    # (legacy, no longer used by api-server)
+│   ├── integrations-openai-ai-server/ # (legacy, no longer used by api-server)
+│   └── integrations-gemini-ai/        # (legacy, no longer used by api-server)
 ├── scripts/                # Utility scripts
 ├── pnpm-workspace.yaml
 ├── tsconfig.base.json
@@ -95,7 +95,7 @@ Run migrations: `pnpm --filter @workspace/db run push`
 
 ## Unified LLM Router (`llm-router.ts`)
 
-All text LLM calls route through `artifacts/api-server/src/services/llm-router.ts`, the single source of truth for model defaults, provider-specific parameters, and admin config resolution. Zero hardcoded model names exist outside this module.
+All text LLM calls route through `artifacts/api-server/src/services/llm-router.ts`, the single source of truth for model defaults, provider-specific parameters, and admin config resolution. Zero hardcoded model names exist outside this module. SDK clients are instantiated directly using env vars (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`) — no Replit integration wrappers.
 
 **Exports**: `callLLM`, `callLLMForStage`, `getModelConfig`, `getConfigValue`, `resolveStageConfig`, `validateModelConfig`, `DEFAULT_ANTHROPIC_MODEL`, `DEFAULT_OPENAI_MODEL`, `DEFAULT_GEMINI_MODEL`, `MODEL_DEFAULTS`
 

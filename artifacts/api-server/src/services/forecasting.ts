@@ -1,13 +1,41 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { callLLM, getModelConfig, getAnthropic } from "./llm-router";
-type BatchProcess = typeof import("@workspace/integrations-anthropic-ai/batch")["batchProcess"];
-let _batchProcess: BatchProcess | null = null;
-async function getBatchProcess(): Promise<BatchProcess> {
-  if (!_batchProcess) {
-    const batchMod = await import("@workspace/integrations-anthropic-ai/batch");
-    _batchProcess = batchMod.batchProcess;
+
+async function batchProcess<T, R>(
+  items: T[],
+  processor: (item: T, index: number) => Promise<R>,
+  options: { concurrency?: number; retries?: number } = {},
+): Promise<R[]> {
+  const { concurrency = 2, retries = 2 } = options;
+  const results: R[] = new Array(items.length);
+  let cursor = 0;
+
+  async function runOne(index: number): Promise<void> {
+    let lastErr: unknown;
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        results[index] = await processor(items[index], index);
+        return;
+      } catch (err) {
+        lastErr = err;
+        if (attempt < retries) {
+          await new Promise(r => setTimeout(r, 2000 * Math.pow(2, attempt)));
+        }
+      }
+    }
+    throw lastErr;
   }
-  return _batchProcess!;
+
+  async function worker(): Promise<void> {
+    while (cursor < items.length) {
+      const idx = cursor++;
+      await runOne(idx);
+    }
+  }
+
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, () => worker());
+  await Promise.all(workers);
+  return results;
 }
 import { normalizeProbabilities, parseLLMJson, type ForecastProbabilities } from "./scoring";
 export type { ForecastProbabilities };
@@ -88,7 +116,6 @@ Respond ONLY with a JSON code block containing:
 }`,
   }));
 
-  const batchProcess = await getBatchProcess();
   const results = await batchProcess(
     tasks,
     async (task) => {

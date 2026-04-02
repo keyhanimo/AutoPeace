@@ -142,8 +142,8 @@ export function resolveStageConfig(
 let _openai: import("openai").OpenAI | null = null;
 async function getOpenAI() {
   if (!_openai) {
-    const mod = await import("@workspace/integrations-openai-ai-server");
-    _openai = mod.openai;
+    const { default: OpenAI } = await import("openai");
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   }
   return _openai;
 }
@@ -151,8 +151,8 @@ async function getOpenAI() {
 let _gemini: import("@google/genai").GoogleGenAI | null = null;
 async function getGemini() {
   if (!_gemini) {
-    const mod = await import("@workspace/integrations-gemini-ai");
-    _gemini = mod.ai;
+    const { GoogleGenAI } = await import("@google/genai");
+    _gemini = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   }
   return _gemini;
 }
@@ -160,8 +160,8 @@ async function getGemini() {
 let _anthropic: import("@anthropic-ai/sdk").Anthropic | null = null;
 async function getAnthropic() {
   if (!_anthropic) {
-    const mod = await import("@workspace/integrations-anthropic-ai");
-    _anthropic = mod.anthropic;
+    const { default: Anthropic } = await import("@anthropic-ai/sdk");
+    _anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   }
   return _anthropic;
 }
