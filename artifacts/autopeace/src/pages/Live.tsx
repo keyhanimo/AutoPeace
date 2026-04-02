@@ -538,6 +538,7 @@ export default function Live() {
   const [status, setStatus] = useState<CycleStatus | null>(null);
   const [connected, setConnected] = useState(false);
   const [nextRunAt, setNextRunAt] = useState<number | null>(null);
+  const [viewingPrevious, setViewingPrevious] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
   const logEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -640,6 +641,10 @@ export default function Live() {
   }, [logs, scrollToBottom]);
 
   useEffect(() => {
+    if (status?.isRunning) setViewingPrevious(false);
+  }, [status?.isRunning]);
+
+  useEffect(() => {
     if (status?.isRunning) return;
     const fetchNext = async () => {
       try {
@@ -653,7 +658,8 @@ export default function Live() {
     return () => clearInterval(iv);
   }, [status?.isRunning]);
 
-  const displayLogs = logs.length > 0 ? logs : (!status?.isRunning ? previousLogs : []);
+  const isShowingPrevious = viewingPrevious || (logs.length === 0 && !status?.isRunning);
+  const displayLogs = isShowingPrevious ? previousLogs : logs;
 
   const totalTokens = displayLogs.reduce((sum, l) => sum + (l.tokens ?? 0), 0);
   const stageEntries = displayLogs.filter(l => l.level === "stage");
@@ -677,8 +683,8 @@ export default function Live() {
                 Running for <ElapsedTimer startedAt={status.cycleStartedAt} />
               </span>
             )}
-            {!status?.isRunning && logs.length === 0 && previousLogs.length > 0 && (
-              <span className="text-xs text-slate-500">Showing previous cycle</span>
+            {!status?.isRunning && isShowingPrevious && previousLogs.length > 0 && (
+              <span className="text-xs text-blue-400/70 bg-blue-500/10 px-2 py-0.5 rounded">Previous cycle</span>
             )}
           </div>
           <div className="flex items-center gap-4 text-xs text-slate-400">
@@ -731,21 +737,40 @@ export default function Live() {
           </div>
         )}
 
-        {!status?.isRunning && displayLogs.length > 0 && (
-          <div className="mt-2 text-xs text-slate-500">
-            {logs.length === 0 ? "Showing logs from previous cycle." : "Cycle complete."} These will be replaced when a new cycle starts.
-          </div>
-        )}
       </div>
 
       {status?.isRunning && <ActiveLLMCallBanner logs={displayLogs} />}
 
-      {!status?.isRunning && displayLogs.length > 0 && nextRunAt && (
-        <div className="flex items-center gap-3 px-4 py-3 bg-blue-500/[0.06] border-b border-blue-500/10">
-          <div className="w-2 h-2 rounded-full bg-blue-400/60" />
-          <div className="flex items-center gap-2 text-sm text-blue-300">
-            <Timer className="w-4 h-4" />
-            <span>Next cycle in <span className="font-mono font-semibold"><CountdownTimer targetTime={nextRunAt} /></span></span>
+      {!status?.isRunning && (displayLogs.length > 0 || previousLogs.length > 0) && (
+        <div className="flex items-center justify-between px-4 py-3 bg-blue-500/[0.06] border-b border-blue-500/10">
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-2 rounded-full bg-blue-400/60" />
+            {nextRunAt ? (
+              <div className="flex items-center gap-2 text-sm text-blue-300">
+                <Timer className="w-4 h-4" />
+                <span>Next cycle in <span className="font-mono font-semibold"><CountdownTimer targetTime={nextRunAt} /></span></span>
+              </div>
+            ) : (
+              <span className="text-sm text-slate-400">Cycle complete</span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {isShowingPrevious && logs.length > 0 && (
+              <button
+                onClick={() => setViewingPrevious(false)}
+                className="text-xs px-3 py-1.5 rounded bg-slate-700/60 hover:bg-slate-600/60 text-slate-300 hover:text-white transition-colors"
+              >
+                Back to current cycle
+              </button>
+            )}
+            {!isShowingPrevious && previousLogs.length > 0 && (
+              <button
+                onClick={() => setViewingPrevious(true)}
+                className="text-xs px-3 py-1.5 rounded bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 hover:text-blue-200 border border-blue-500/20 transition-colors"
+              >
+                View previous cycle logs
+              </button>
+            )}
           </div>
         </div>
       )}
