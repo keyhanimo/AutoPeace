@@ -360,7 +360,9 @@ class LLMParseError extends Error {
   }
 }
 
-function parseLLMJson<T>(text: string, label: string): T {
+type RepairFn = (brokenText: string) => Promise<{ content: string; tokens: number }>;
+
+function tryParseJsonStrategies<T>(text: string): T | null {
   const strategies = [
     () => {
       const match = text.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -390,6 +392,35 @@ function parseLLMJson<T>(text: string, label: string): T {
       if (parsed !== null && parsed !== undefined) return parsed;
     } catch {
       continue;
+    }
+  }
+  return null;
+}
+
+function parseLLMJsonSync<T>(text: string, label: string): T {
+  const result = tryParseJsonStrategies<T>(text);
+  if (result !== null) return result;
+  logger.error({ label, textSnippet: text.slice(0, 500) }, "parseLLMJson FAILED — all parse strategies exhausted, no fallback");
+  throw new LLMParseError(label, text.slice(0, 500));
+}
+
+async function parseLLMJson<T>(text: string, label: string, repairFn?: RepairFn): Promise<T> {
+  const result = tryParseJsonStrategies<T>(text);
+  if (result !== null) return result;
+
+  if (repairFn) {
+    logger.warn({ label, textSnippet: text.slice(0, 300) }, "parseLLMJson — all strategies failed, attempting LLM repair");
+    try {
+      const { content: repairedText, tokens } = await repairFn(text);
+      logger.info({ label, repairTokens: tokens }, "LLM repair response received");
+      const repaired = tryParseJsonStrategies<T>(repairedText);
+      if (repaired !== null) {
+        logger.info({ label }, "parseLLMJson — LLM repair succeeded");
+        return repaired;
+      }
+      logger.warn({ label, repairedSnippet: repairedText.slice(0, 300) }, "parseLLMJson — LLM repair output also unparseable");
+    } catch (repairErr) {
+      logger.warn({ label, repairError: repairErr instanceof Error ? repairErr.message : String(repairErr) }, "parseLLMJson — LLM repair call failed");
     }
   }
 
@@ -590,7 +621,7 @@ Generate at least 4 historical analogies, 5 creative provisions (at least 2 at '
   ];
   const selectedAnalogies = fisherYatesShuffle(ANALOGY_POOL).slice(0, 3 + Math.floor(Math.random() * 2));
 
-  const insights = parseLLMJson<BrainstormInsights>(content, "brainstorm");
+  const insights = parseLLMJsonSync<BrainstormInsights>(content, "brainstorm");
   return { insights, tokens };
 }
 
@@ -738,7 +769,7 @@ IMPORTANT: Iran and US are REQUIRED parties. Israel is CRITICAL. Every stakehold
 REMINDER: Write every field as a STANDALONE statement. Do NOT say "revised," "updated," "key changes," "modified from," or reference any prior deal. The reader sees only THIS deal.`;
 
   const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 1, "generation", modelConfig, { maxTokens: 16384, timeoutMs: 300_000 });
-  const terms = parseLLMJson<DealTerms>(content, "proposal");
+  const terms = parseLLMJsonSync<DealTerms>(content, "proposal");
 
   if (!terms.innovativeProvisions || terms.innovativeProvisions.length === 0) {
     logger.error({ architecture }, "LLM proposal missing innovativeProvisions — deal will be stored without them");
@@ -821,7 +852,7 @@ Return JSON with ALL stakeholder IDs: { "iran": { verdict, rationale, redLineVio
 
   const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 2, "evaluation", modelConfig, { maxTokens: 8192, timeoutMs: 300_000 });
 
-  const parsed = parseLLMJson<Record<string, StakeholderVerdict>>(content, "stakeholder-evaluation");
+  const parsed = parseLLMJsonSync<Record<string, StakeholderVerdict>>(content, "stakeholder-evaluation");
 
   const normalized: Record<string, StakeholderVerdict> = { ...parsed };
   const REQUIRED_IDS = ["iran", "us"];
@@ -1019,7 +1050,7 @@ Return JSON:
 CREATIVE MANDATE: Include at least 2 creative tradeoffs even if no stakeholders reject. These should be novel cross-issue deals that create new value. Think about asymmetric valuations — what is cheap for one party but precious for another?`;
 
   const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 5, "generation", modelConfig, { maxTokens: 8192, timeoutMs: 300_000 });
-  const result = parseLLMJson<NegotiatorResult & { creativeTradeoffs?: CreativeTradeoff[] }>(content, "negotiator");
+  const result = parseLLMJsonSync<NegotiatorResult & { creativeTradeoffs?: CreativeTradeoff[] }>(content, "negotiator");
   return { result, tokens };
 }
 
@@ -1065,7 +1096,7 @@ Return JSON where each key maps to { "audience": "label", "verdict": "sellable|d
 
   const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 3, "evaluation", modelConfig, { maxTokens: 4096, timeoutMs: 180_000 });
 
-  const parsed = parseLLMJson<Record<string, DomesticVerdict>>(content, "domestic-audiences");
+  const parsed = parseLLMJsonSync<Record<string, DomesticVerdict>>(content, "domestic-audiences");
   return { evaluations: parsed, tokens };
 }
 
@@ -1101,7 +1132,7 @@ Return JSON array: [{ "attack": "description", "severity": "low|medium|high|crit
 
   const { content, tokens } = await callLLMForStage(prompt, "You are an adversarial analyst. Output JSON.", 4, "adversarial", modelConfig, { maxTokens: 4096, timeoutMs: 180_000 });
 
-  const parsed = parseLLMJson<RedTeamResult[]>(content, "red-team");
+  const parsed = parseLLMJsonSync<RedTeamResult[]>(content, "red-team");
   return { results: parsed, tokens };
 }
 
@@ -1236,7 +1267,7 @@ Return JSON with scores and rationale for each dimension:
       const resp = await callLLM(prompt, systemPrompt, provider, model, { timeoutMs: 300_000 });
       const { content, tokens } = resp;
 
-      const parsed = parseLLMJson<Record<string, unknown>>(content, `judge-panel-${provider}`);
+      const parsed = parseLLMJsonSync<Record<string, unknown>>(content, `judge-panel-${provider}`);
 
       let validDimensions = 0;
       const scores: Record<string, number> = {};
@@ -1422,7 +1453,7 @@ IMPORTANT: The promptImprovements field is how this pipeline evolves over time. 
 CONSTRAINT ON PROMPT IMPROVEMENTS: Every stage's output must be SELF-CONTAINED — fully understandable without reference to any prior deal or cycle. Your suggested prompt changes must NEVER encourage the model to say "revised," "amended," "updated," or refer to "existing provisions," "key changes from previous version," or any language implying the output modifies a prior document. Each deal must read as the first and only deal the reader will ever see.`;
 
   const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 7, "evaluation", modelConfig, { maxTokens: 8192, timeoutMs: 300_000 });
-  const result = parseLLMJson<MetaEvaluatorResult>(content, "meta-evaluator");
+  const result = parseLLMJsonSync<MetaEvaluatorResult>(content, "meta-evaluator");
   return { result, tokens };
 }
 
@@ -1508,7 +1539,7 @@ Limit to 6 items total.`;
   const fallback = resolveFallbackConfig("evaluation", modelConfig);
   const { content } = await callLLM(prompt, systemPrompt, provider, model, { fallbackProvider: fallback?.provider, fallbackModel: fallback?.model });
 
-  return parseLLMJson<Array<{ stakeholder: string; requirement: string; feasibility: "low" | "medium" | "high" }>>(content, "what-would-it-take");
+  return parseLLMJsonSync<Array<{ stakeholder: string; requirement: string; feasibility: "low" | "medium" | "high" }>>(content, "what-would-it-take");
 }
 
 /**
