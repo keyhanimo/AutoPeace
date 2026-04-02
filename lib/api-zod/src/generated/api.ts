@@ -507,6 +507,27 @@ export const GetAdminConfigResponse = zod.object({
   judgePanelAnthropicModel: zod.string().optional(),
   judgePanelOpenaiModel: zod.string().optional(),
   judgePanelGeminiModel: zod.string().optional(),
+  submissionScreeningModel: zod.string().optional(),
+  generationFallbackProvider: zod
+    .enum(["anthropic", "openai", "gemini"])
+    .optional(),
+  generationFallbackModel: zod.string().optional(),
+  evaluationFallbackProvider: zod
+    .enum(["anthropic", "openai", "gemini"])
+    .optional(),
+  evaluationFallbackModel: zod.string().optional(),
+  adversarialFallbackProvider: zod
+    .enum(["anthropic", "openai", "gemini"])
+    .optional(),
+  adversarialFallbackModel: zod.string().optional(),
+  forecastingFallbackProvider: zod
+    .enum(["anthropic", "openai", "gemini"])
+    .optional(),
+  forecastingFallbackModel: zod.string().optional(),
+  extractionFallbackProvider: zod
+    .enum(["anthropic", "openai", "gemini"])
+    .optional(),
+  extractionFallbackModel: zod.string().optional(),
   stage1Provider: zod.enum(["anthropic", "openai", "gemini"]).optional(),
   stage1Model: zod.string().optional(),
   stage2Provider: zod.enum(["anthropic", "openai", "gemini"]).optional(),
@@ -550,6 +571,27 @@ export const UpdateAdminConfigBody = zod.object({
   judgePanelAnthropicModel: zod.string().optional(),
   judgePanelOpenaiModel: zod.string().optional(),
   judgePanelGeminiModel: zod.string().optional(),
+  submissionScreeningModel: zod.string().optional(),
+  generationFallbackProvider: zod
+    .enum(["anthropic", "openai", "gemini"])
+    .optional(),
+  generationFallbackModel: zod.string().optional(),
+  evaluationFallbackProvider: zod
+    .enum(["anthropic", "openai", "gemini"])
+    .optional(),
+  evaluationFallbackModel: zod.string().optional(),
+  adversarialFallbackProvider: zod
+    .enum(["anthropic", "openai", "gemini"])
+    .optional(),
+  adversarialFallbackModel: zod.string().optional(),
+  forecastingFallbackProvider: zod
+    .enum(["anthropic", "openai", "gemini"])
+    .optional(),
+  forecastingFallbackModel: zod.string().optional(),
+  extractionFallbackProvider: zod
+    .enum(["anthropic", "openai", "gemini"])
+    .optional(),
+  extractionFallbackModel: zod.string().optional(),
   stage1Provider: zod.enum(["anthropic", "openai", "gemini"]).optional(),
   stage1Model: zod.string().optional(),
   stage2Provider: zod.enum(["anthropic", "openai", "gemini"]).optional(),
@@ -595,6 +637,27 @@ export const UpdateAdminConfigResponse = zod.object({
   judgePanelAnthropicModel: zod.string().optional(),
   judgePanelOpenaiModel: zod.string().optional(),
   judgePanelGeminiModel: zod.string().optional(),
+  submissionScreeningModel: zod.string().optional(),
+  generationFallbackProvider: zod
+    .enum(["anthropic", "openai", "gemini"])
+    .optional(),
+  generationFallbackModel: zod.string().optional(),
+  evaluationFallbackProvider: zod
+    .enum(["anthropic", "openai", "gemini"])
+    .optional(),
+  evaluationFallbackModel: zod.string().optional(),
+  adversarialFallbackProvider: zod
+    .enum(["anthropic", "openai", "gemini"])
+    .optional(),
+  adversarialFallbackModel: zod.string().optional(),
+  forecastingFallbackProvider: zod
+    .enum(["anthropic", "openai", "gemini"])
+    .optional(),
+  forecastingFallbackModel: zod.string().optional(),
+  extractionFallbackProvider: zod
+    .enum(["anthropic", "openai", "gemini"])
+    .optional(),
+  extractionFallbackModel: zod.string().optional(),
   stage1Provider: zod.enum(["anthropic", "openai", "gemini"]).optional(),
   stage1Model: zod.string().optional(),
   stage2Provider: zod.enum(["anthropic", "openai", "gemini"]).optional(),

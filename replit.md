@@ -97,9 +97,13 @@ Run migrations: `pnpm --filter @workspace/db run push`
 
 All text LLM calls route through `artifacts/api-server/src/services/llm-router.ts`, the single source of truth for model defaults, provider-specific parameters, and admin config resolution. Zero hardcoded model names exist outside this module. SDK clients are instantiated directly using env vars (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`) — no Replit integration wrappers.
 
-**Exports**: `callLLM`, `callLLMForStage`, `getModelConfig`, `getConfigValue`, `resolveStageConfig`, `validateModelConfig`, `DEFAULT_ANTHROPIC_MODEL`, `DEFAULT_OPENAI_MODEL`, `DEFAULT_GEMINI_MODEL`, `MODEL_DEFAULTS`
+**Exports**: `callLLM`, `callLLMForStage`, `getModelConfig`, `getConfigValue`, `resolveStageConfig`, `resolveFallbackConfig`, `validateModelConfig`, `isRetryableError`, `DEFAULT_ANTHROPIC_MODEL`, `DEFAULT_OPENAI_MODEL`, `DEFAULT_GEMINI_MODEL`, `MODEL_DEFAULTS`, `FALLBACK_DEFAULTS`
 
 **Admin config roles**: `generation`, `evaluation`, `adversarial`, `forecasting`, `extraction` — each with independent `{provider, model}` settings. Per-stage overrides take highest priority.
+
+**Cross-Provider Fallback System**: Each role has a configurable fallback `{provider, model}` pair. When a primary provider exhausts retries (3 attempts with exponential backoff), `callLLM` automatically tries the fallback provider. Defaults: generation→openai/gpt-5.2, evaluation→gemini/gemini-3.1-pro-preview, adversarial→anthropic/claude-opus-4-6, forecasting→openai/gpt-5.2, extraction→openai/gpt-5.2. Admin-configurable via Admin Panel "Cross-Provider Fallback Models" card. Same-provider warnings shown in UI. Fallback config stored in `admin_config` key-value store (keys: `{role}FallbackProvider`, `{role}FallbackModel`).
+
+**Compounding Retry Fix**: Anthropic SDK `maxRetries` set to 0 (was 2). Outer wrapper `MAX_LLM_RETRIES: 2` handles all retries with exponential backoff (5s, 10s). Max 3 attempts per provider, up to 6 with fallback. Timeout reduced from 600s to 300s in deal-engine.
 
 **Provider-specific handling**: OpenAI uses `max_completion_tokens` (no temperature), Anthropic uses `max_tokens`, Gemini uses `contents` array format. All handled automatically by the router.
 
@@ -284,6 +288,23 @@ Enhanced multi-agent pipeline (`deal-engine.ts`) with **grand coalition** cooper
 - `artifacts/autopeace/src/App.tsx` — React router + page layout
 - `lib/api-spec/openapi.yaml` — full OpenAPI 3.1 spec (all new endpoints documented)
 - `lib/api-client-react/src/generated/` — orval-generated React Query hooks
+- `artifacts/api-server/src/tests/` — LLM diagnostic test suite (8 tests + run-all runner)
+
+## LLM Diagnostic Test Suite
+
+8 diagnostic scripts in `artifacts/api-server/src/tests/`:
+- **01**: Provider connectivity (Anthropic/OpenAI/Gemini)
+- **02**: Timeout & max_tokens experiments
+- **03**: Prompt size stress testing
+- **04**: Retry & backoff validation (offline — tests `isRetryableError()` + compounding analysis)
+- **05**: Frontier model comparison benchmarks
+- **06**: JSON parsing robustness (offline — tests deal-engine and scoring parsers)
+- **07**: Pipeline smoke test (all 8 stages)
+- **08**: Compound failure scenarios (production error patterns)
+
+Run offline tests: `cd artifacts/api-server && npx tsx src/tests/run-all.ts --offline`
+Run all tests: `cd artifacts/api-server && npx tsx src/tests/run-all.ts`
+Run single test: `cd artifacts/api-server && npx tsx src/tests/04-retry-backoff-validation.ts`
 
 ## Shared UI Components
 

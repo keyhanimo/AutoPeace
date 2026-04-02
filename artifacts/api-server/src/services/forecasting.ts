@@ -1,5 +1,5 @@
 import type Anthropic from "@anthropic-ai/sdk";
-import { callLLM, getModelConfig, getAnthropic } from "./llm-router";
+import { callLLM, getModelConfig, getAnthropic, resolveFallbackConfig } from "./llm-router";
 
 async function batchProcess<T, R>(
   items: T[],
@@ -119,7 +119,8 @@ Respond ONLY with a JSON code block containing:
   const results = await batchProcess(
     tasks,
     async (task) => {
-      const resp = await callLLM(task.prompt, systemPrompt, forecastingProvider, forecastingModel, { maxTokens: 4096 });
+      const fbConfig = resolveFallbackConfig("forecasting", modelConfig);
+      const resp = await callLLM(task.prompt, systemPrompt, forecastingProvider, forecastingModel, { maxTokens: 4096, fallbackProvider: fbConfig?.provider, fallbackModel: fbConfig?.model });
       const text = resp.content;
       const parsed = parseLLMJson(text);
       const rawProbs = parsed["probabilities"] as Record<string, number>;
@@ -205,7 +206,8 @@ Respond ONLY with a JSON code block:
   "rationale": "<2-3 sentence explanation of how this scenario shifts the probabilities>"
 }`;
 
-  const resp = await callLLM(userPrompt, systemPrompt, modelConfig.forecastingProvider, modelConfig.forecastingModel, { maxTokens: 4096 });
+  const fbConfig = resolveFallbackConfig("forecasting", modelConfig);
+  const resp = await callLLM(userPrompt, systemPrompt, modelConfig.forecastingProvider, modelConfig.forecastingModel, { maxTokens: 4096, fallbackProvider: fbConfig?.provider, fallbackModel: fbConfig?.model });
   const text = resp.content;
   const parsed = parseLLMJson(text);
   const rawProbs = parsed["probabilities"] as Record<string, number>;

@@ -246,7 +246,17 @@ export default function AdminPanel() {
         judgePanelAnthropicModel: config.judgePanelAnthropicModel ?? "",
         judgePanelOpenaiModel: config.judgePanelOpenaiModel ?? "",
         judgePanelGeminiModel: config.judgePanelGeminiModel ?? "",
-        submissionScreeningModel: config.submissionScreeningModel ?? "",
+        submissionScreeningModel: (cfg as Record<string, string | undefined>)["submissionScreeningModel"] ?? "",
+        generationFallbackProvider: (cfg as Record<string, string | undefined>)["generationFallbackProvider"] as AdminConfigUpdate["generationFallbackProvider"],
+        generationFallbackModel: (cfg as Record<string, string | undefined>)["generationFallbackModel"] ?? "",
+        evaluationFallbackProvider: (cfg as Record<string, string | undefined>)["evaluationFallbackProvider"] as AdminConfigUpdate["evaluationFallbackProvider"],
+        evaluationFallbackModel: (cfg as Record<string, string | undefined>)["evaluationFallbackModel"] ?? "",
+        adversarialFallbackProvider: (cfg as Record<string, string | undefined>)["adversarialFallbackProvider"] as AdminConfigUpdate["adversarialFallbackProvider"],
+        adversarialFallbackModel: (cfg as Record<string, string | undefined>)["adversarialFallbackModel"] ?? "",
+        forecastingFallbackProvider: (cfg as Record<string, string | undefined>)["forecastingFallbackProvider"] as AdminConfigUpdate["forecastingFallbackProvider"],
+        forecastingFallbackModel: (cfg as Record<string, string | undefined>)["forecastingFallbackModel"] ?? "",
+        extractionFallbackProvider: (cfg as Record<string, string | undefined>)["extractionFallbackProvider"] as AdminConfigUpdate["extractionFallbackProvider"],
+        extractionFallbackModel: (cfg as Record<string, string | undefined>)["extractionFallbackModel"] ?? "",
         ...stageFields,
       });
     }
@@ -648,6 +658,55 @@ export default function AdminPanel() {
             <p className="text-xs text-muted-foreground mt-2 bg-amber-950/20 border border-amber-700/30 rounded-lg px-3 py-2">
               ⚠ Generation and evaluation role providers must use different providers (enforced at save time). Per-agent overrides (● rows) still respect this constraint — a stage override cannot place the same provider in both generation and evaluation roles.
             </p>
+          </Card>
+
+          <Card className="p-6">
+            <h3 className="text-lg font-bold mb-4 border-b border-border/50 pb-2 flex items-center gap-2">
+              <ShieldAlert className="w-5 h-5 text-red-400" /> Cross-Provider Fallback Models
+            </h3>
+            <p className="text-xs text-muted-foreground mb-4">
+              When the primary model for a role fails after retries, the pipeline automatically falls back to the configured fallback provider/model. This prevents timeouts from killing the entire pipeline. Choose a different provider than the primary for maximum resilience.
+            </p>
+            <div className="space-y-4">
+              {(["generation", "evaluation", "adversarial", "forecasting", "extraction"] as const).map(role => {
+                const fbProviderKey = `${role}FallbackProvider` as keyof AdminConfigUpdate;
+                const fbModelKey = `${role}FallbackModel` as keyof AdminConfigUpdate;
+                const primaryProviderKey = `${role}Provider` as keyof AdminConfigUpdate;
+                const fbProviderVal = ((formData as Record<string, unknown>)[fbProviderKey] ?? "") as string;
+                const fbModelVal = ((formData as Record<string, unknown>)[fbModelKey] ?? "") as string;
+                const primaryProviderVal = ((formData as Record<string, unknown>)[primaryProviderKey] ?? "") as string;
+                const roleLabel = role === "generation" ? "Generation" : role === "evaluation" ? "Evaluation" : role === "adversarial" ? "Adversarial" : role === "forecasting" ? "Forecasting" : "Extraction";
+                const roleColor = role === "generation" ? "text-violet-400" : role === "evaluation" ? "text-blue-400" : role === "adversarial" ? "text-orange-400" : role === "forecasting" ? "text-emerald-400" : "text-cyan-400";
+                const isSameProvider = fbProviderVal === primaryProviderVal && fbProviderVal !== "";
+                return (
+                  <div key={role} className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className={`text-xs font-semibold ${roleColor}`}>{roleLabel} Fallback Provider</label>
+                      <select
+                        className="w-full h-9 rounded-xl border border-border bg-background/50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                        value={fbProviderVal}
+                        onChange={e => setFormData({ ...formData, [fbProviderKey]: e.target.value as "anthropic" | "openai" | "gemini" })}
+                      >
+                        <option value="anthropic">Anthropic (Claude)</option>
+                        <option value="openai">OpenAI (GPT)</option>
+                        <option value="gemini">Google (Gemini)</option>
+                      </select>
+                      {isSameProvider && (
+                        <p className="text-[10px] text-amber-400">Same as primary — use a different provider for better resilience</p>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Fallback Model</label>
+                      <Input
+                        value={fbModelVal}
+                        onChange={e => setFormData({ ...formData, [fbModelKey]: e.target.value })}
+                        placeholder={`Fallback model for ${role}`}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </Card>
 
           <Card className="p-6">

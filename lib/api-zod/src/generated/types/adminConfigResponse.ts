@@ -5,11 +5,16 @@
  * AutoPeace API — AI-powered conflict forecasting and peace research
  * OpenAPI spec version: 0.1.0
  */
+import type { AdminConfigResponseAdversarialFallbackProvider } from "./adminConfigResponseAdversarialFallbackProvider";
 import type { AdminConfigResponseAdversarialProvider } from "./adminConfigResponseAdversarialProvider";
 import type { AdminConfigResponseCadence } from "./adminConfigResponseCadence";
+import type { AdminConfigResponseEvaluationFallbackProvider } from "./adminConfigResponseEvaluationFallbackProvider";
 import type { AdminConfigResponseEvaluationProvider } from "./adminConfigResponseEvaluationProvider";
+import type { AdminConfigResponseExtractionFallbackProvider } from "./adminConfigResponseExtractionFallbackProvider";
 import type { AdminConfigResponseExtractionProvider } from "./adminConfigResponseExtractionProvider";
+import type { AdminConfigResponseForecastingFallbackProvider } from "./adminConfigResponseForecastingFallbackProvider";
 import type { AdminConfigResponseForecastingProvider } from "./adminConfigResponseForecastingProvider";
+import type { AdminConfigResponseGenerationFallbackProvider } from "./adminConfigResponseGenerationFallbackProvider";
 import type { AdminConfigResponseGenerationProvider } from "./adminConfigResponseGenerationProvider";
 import type { AdminConfigResponseStage1Provider } from "./adminConfigResponseStage1Provider";
 import type { AdminConfigResponseStage2Provider } from "./adminConfigResponseStage2Provider";
@@ -40,6 +45,17 @@ export interface AdminConfigResponse {
   judgePanelAnthropicModel?: string;
   judgePanelOpenaiModel?: string;
   judgePanelGeminiModel?: string;
+  submissionScreeningModel?: string;
+  generationFallbackProvider?: AdminConfigResponseGenerationFallbackProvider;
+  generationFallbackModel?: string;
+  evaluationFallbackProvider?: AdminConfigResponseEvaluationFallbackProvider;
+  evaluationFallbackModel?: string;
+  adversarialFallbackProvider?: AdminConfigResponseAdversarialFallbackProvider;
+  adversarialFallbackModel?: string;
+  forecastingFallbackProvider?: AdminConfigResponseForecastingFallbackProvider;
+  forecastingFallbackModel?: string;
+  extractionFallbackProvider?: AdminConfigResponseExtractionFallbackProvider;
+  extractionFallbackModel?: string;
   stage1Provider?: AdminConfigResponseStage1Provider;
   stage1Model?: string;
   stage2Provider?: AdminConfigResponseStage2Provider;

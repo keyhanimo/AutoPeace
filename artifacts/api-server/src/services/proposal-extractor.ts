@@ -15,7 +15,7 @@ import {
   getRecentEvidenceSummary,
   type DealTerms,
 } from "./deal-engine";
-import { callLLM, getModelConfig, type ModelConfig } from "./llm-router";
+import { callLLM, getModelConfig, resolveFallbackConfig, type ModelConfig } from "./llm-router";
 import { parseLLMJson } from "./scoring";
 
 function proposalStableId(name: string, source: string): string {
@@ -114,12 +114,13 @@ export async function extractProposalsFromEvidence(cycleId?: string): Promise<nu
   let extracted: ExtractedProposal[] = [];
   try {
     const extractionConfig = await getModelConfig();
+    const fallback = resolveFallbackConfig("extraction", extractionConfig);
     const resp = await callLLM(
       EXTRACTION_USER_PROMPT(articleBatch),
       EXTRACTION_SYSTEM_PROMPT,
       extractionConfig.extractionProvider,
       extractionConfig.extractionModel,
-      { maxTokens: 3000 },
+      { maxTokens: 3000, fallbackProvider: fallback?.provider, fallbackModel: fallback?.model },
     );
 
     const text = resp.content;

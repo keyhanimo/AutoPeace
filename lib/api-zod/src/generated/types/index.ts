@@ -7,11 +7,16 @@
  */
 
 export * from "./adminConfigResponse";
+export * from "./adminConfigResponseAdversarialFallbackProvider";
 export * from "./adminConfigResponseAdversarialProvider";
 export * from "./adminConfigResponseCadence";
+export * from "./adminConfigResponseEvaluationFallbackProvider";
 export * from "./adminConfigResponseEvaluationProvider";
+export * from "./adminConfigResponseExtractionFallbackProvider";
 export * from "./adminConfigResponseExtractionProvider";
+export * from "./adminConfigResponseForecastingFallbackProvider";
 export * from "./adminConfigResponseForecastingProvider";
+export * from "./adminConfigResponseGenerationFallbackProvider";
 export * from "./adminConfigResponseGenerationProvider";
 export * from "./adminConfigResponseStage1Provider";
 export * from "./adminConfigResponseStage2Provider";
@@ -22,11 +27,16 @@ export * from "./adminConfigResponseStage6Provider";
 export * from "./adminConfigResponseStage7Provider";
 export * from "./adminConfigResponseStage8Provider";
 export * from "./adminConfigUpdate";
+export * from "./adminConfigUpdateAdversarialFallbackProvider";
 export * from "./adminConfigUpdateAdversarialProvider";
 export * from "./adminConfigUpdateCadence";
+export * from "./adminConfigUpdateEvaluationFallbackProvider";
 export * from "./adminConfigUpdateEvaluationProvider";
+export * from "./adminConfigUpdateExtractionFallbackProvider";
 export * from "./adminConfigUpdateExtractionProvider";
+export * from "./adminConfigUpdateForecastingFallbackProvider";
 export * from "./adminConfigUpdateForecastingProvider";
+export * from "./adminConfigUpdateGenerationFallbackProvider";
 export * from "./adminConfigUpdateGenerationProvider";
 export * from "./adminConfigUpdateStage1Provider";
 export * from "./adminConfigUpdateStage2Provider";

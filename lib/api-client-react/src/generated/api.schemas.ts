@@ -260,6 +260,51 @@ export const AdminConfigResponseExtractionProvider = {
   gemini: "gemini",
 } as const;
 
+export type AdminConfigResponseGenerationFallbackProvider =
+  (typeof AdminConfigResponseGenerationFallbackProvider)[keyof typeof AdminConfigResponseGenerationFallbackProvider];
+
+export const AdminConfigResponseGenerationFallbackProvider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
+export type AdminConfigResponseEvaluationFallbackProvider =
+  (typeof AdminConfigResponseEvaluationFallbackProvider)[keyof typeof AdminConfigResponseEvaluationFallbackProvider];
+
+export const AdminConfigResponseEvaluationFallbackProvider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
+export type AdminConfigResponseAdversarialFallbackProvider =
+  (typeof AdminConfigResponseAdversarialFallbackProvider)[keyof typeof AdminConfigResponseAdversarialFallbackProvider];
+
+export const AdminConfigResponseAdversarialFallbackProvider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
+export type AdminConfigResponseForecastingFallbackProvider =
+  (typeof AdminConfigResponseForecastingFallbackProvider)[keyof typeof AdminConfigResponseForecastingFallbackProvider];
+
+export const AdminConfigResponseForecastingFallbackProvider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
+export type AdminConfigResponseExtractionFallbackProvider =
+  (typeof AdminConfigResponseExtractionFallbackProvider)[keyof typeof AdminConfigResponseExtractionFallbackProvider];
+
+export const AdminConfigResponseExtractionFallbackProvider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
 export type AdminConfigResponseStage1Provider =
   (typeof AdminConfigResponseStage1Provider)[keyof typeof AdminConfigResponseStage1Provider];
 
@@ -352,6 +397,17 @@ export interface AdminConfigResponse {
   judgePanelAnthropicModel?: string;
   judgePanelOpenaiModel?: string;
   judgePanelGeminiModel?: string;
+  submissionScreeningModel?: string;
+  generationFallbackProvider?: AdminConfigResponseGenerationFallbackProvider;
+  generationFallbackModel?: string;
+  evaluationFallbackProvider?: AdminConfigResponseEvaluationFallbackProvider;
+  evaluationFallbackModel?: string;
+  adversarialFallbackProvider?: AdminConfigResponseAdversarialFallbackProvider;
+  adversarialFallbackModel?: string;
+  forecastingFallbackProvider?: AdminConfigResponseForecastingFallbackProvider;
+  forecastingFallbackModel?: string;
+  extractionFallbackProvider?: AdminConfigResponseExtractionFallbackProvider;
+  extractionFallbackModel?: string;
   stage1Provider?: AdminConfigResponseStage1Provider;
   stage1Model?: string;
   stage2Provider?: AdminConfigResponseStage2Provider;
@@ -422,6 +478,51 @@ export type AdminConfigUpdateExtractionProvider =
   (typeof AdminConfigUpdateExtractionProvider)[keyof typeof AdminConfigUpdateExtractionProvider];
 
 export const AdminConfigUpdateExtractionProvider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
+export type AdminConfigUpdateGenerationFallbackProvider =
+  (typeof AdminConfigUpdateGenerationFallbackProvider)[keyof typeof AdminConfigUpdateGenerationFallbackProvider];
+
+export const AdminConfigUpdateGenerationFallbackProvider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
+export type AdminConfigUpdateEvaluationFallbackProvider =
+  (typeof AdminConfigUpdateEvaluationFallbackProvider)[keyof typeof AdminConfigUpdateEvaluationFallbackProvider];
+
+export const AdminConfigUpdateEvaluationFallbackProvider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
+export type AdminConfigUpdateAdversarialFallbackProvider =
+  (typeof AdminConfigUpdateAdversarialFallbackProvider)[keyof typeof AdminConfigUpdateAdversarialFallbackProvider];
+
+export const AdminConfigUpdateAdversarialFallbackProvider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
+export type AdminConfigUpdateForecastingFallbackProvider =
+  (typeof AdminConfigUpdateForecastingFallbackProvider)[keyof typeof AdminConfigUpdateForecastingFallbackProvider];
+
+export const AdminConfigUpdateForecastingFallbackProvider = {
+  anthropic: "anthropic",
+  openai: "openai",
+  gemini: "gemini",
+} as const;
+
+export type AdminConfigUpdateExtractionFallbackProvider =
+  (typeof AdminConfigUpdateExtractionFallbackProvider)[keyof typeof AdminConfigUpdateExtractionFallbackProvider];
+
+export const AdminConfigUpdateExtractionFallbackProvider = {
   anthropic: "anthropic",
   openai: "openai",
   gemini: "gemini",
@@ -519,6 +620,17 @@ export interface AdminConfigUpdate {
   judgePanelAnthropicModel?: string;
   judgePanelOpenaiModel?: string;
   judgePanelGeminiModel?: string;
+  submissionScreeningModel?: string;
+  generationFallbackProvider?: AdminConfigUpdateGenerationFallbackProvider;
+  generationFallbackModel?: string;
+  evaluationFallbackProvider?: AdminConfigUpdateEvaluationFallbackProvider;
+  evaluationFallbackModel?: string;
+  adversarialFallbackProvider?: AdminConfigUpdateAdversarialFallbackProvider;
+  adversarialFallbackModel?: string;
+  forecastingFallbackProvider?: AdminConfigUpdateForecastingFallbackProvider;
+  forecastingFallbackModel?: string;
+  extractionFallbackProvider?: AdminConfigUpdateExtractionFallbackProvider;
+  extractionFallbackModel?: string;
   stage1Provider?: AdminConfigUpdateStage1Provider;
   stage1Model?: string;
   stage2Provider?: AdminConfigUpdateStage2Provider;

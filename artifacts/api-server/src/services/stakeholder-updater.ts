@@ -3,8 +3,7 @@ import { stakeholdersTable, evidenceItemsTable } from "@workspace/db/schema";
 import { desc, isNull } from "drizzle-orm";
 import { eq } from "drizzle-orm";
 import { logger } from "../lib/logger";
-import { callLLM } from "./llm-router";
-import { getModelConfig } from "./llm-router";
+import { callLLM, getModelConfig, resolveFallbackConfig } from "./llm-router";
 
 const PIPELINE_STAKEHOLDER_IDS = [
   "iran", "us", "israel",
@@ -114,11 +113,13 @@ Return a JSON array of updates (empty array if no updates needed):
   "reasoning": "what evidence triggered this update"
 }]`;
 
+  const fallback = resolveFallbackConfig("extraction", modelConfig);
   const { content } = await callLLM(
     prompt,
     systemPrompt,
     modelConfig.extractionProvider ?? "anthropic",
     modelConfig.extractionModel ?? "claude-sonnet-4-20250514",
+    { fallbackProvider: fallback?.provider, fallbackModel: fallback?.model },
   );
 
   const updates = parseLLMJson<StakeholderUpdate[]>(content, "stakeholder-profile-update");

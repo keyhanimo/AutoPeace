@@ -3,8 +3,7 @@ import { dealsTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
 import pino from "pino";
 import { dealToMarkdown } from "./deal-markdown";
-import { callLLM } from "./llm-router";
-import { getModelConfig } from "./llm-router";
+import { callLLM, getModelConfig, resolveFallbackConfig } from "./llm-router";
 
 const logger = pino({ name: "deal-narrative" });
 
@@ -38,12 +37,13 @@ export async function generateDealNarrative(dealId: string): Promise<string> {
   const prompt = `Produce a concise narrative summary of this peace deal proposal. Remember: plain prose only, no markdown, no bullet points, no headings.\n\n${markdown}`;
 
   const config = await getModelConfig();
+  const fallback = resolveFallbackConfig("generation", config);
   const result = await callLLM(
     prompt,
     NARRATIVE_SYSTEM_PROMPT,
     config.generationProvider,
     config.generationModel,
-    { maxTokens: 1000 },
+    { maxTokens: 1000, fallbackProvider: fallback?.provider, fallbackModel: fallback?.model },
   );
 
   const narrative = result.content.trim();

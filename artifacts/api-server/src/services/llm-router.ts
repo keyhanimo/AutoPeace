@@ -22,6 +22,16 @@ export type ModelConfig = {
   forecastingModel: string;
   extractionProvider: ProviderName;
   extractionModel: string;
+  generationFallbackProvider?: ProviderName;
+  generationFallbackModel?: string;
+  evaluationFallbackProvider?: ProviderName;
+  evaluationFallbackModel?: string;
+  adversarialFallbackProvider?: ProviderName;
+  adversarialFallbackModel?: string;
+  forecastingFallbackProvider?: ProviderName;
+  forecastingFallbackModel?: string;
+  extractionFallbackProvider?: ProviderName;
+  extractionFallbackModel?: string;
   judgePanelAnthropicModel?: string;
   judgePanelOpenaiModel?: string;
   judgePanelGeminiModel?: string;
@@ -39,6 +49,14 @@ export const DEFAULT_ANTHROPIC_MODEL = "claude-opus-4-6";
 export const DEFAULT_OPENAI_MODEL = "gpt-5.2";
 export const DEFAULT_GEMINI_MODEL = "gemini-3.1-pro-preview";
 
+export const FALLBACK_DEFAULTS: Record<string, { provider: ProviderName; model: string }> = {
+  generation: { provider: "openai", model: DEFAULT_OPENAI_MODEL },
+  evaluation: { provider: "gemini", model: DEFAULT_GEMINI_MODEL },
+  adversarial: { provider: "anthropic", model: DEFAULT_ANTHROPIC_MODEL },
+  forecasting: { provider: "openai", model: DEFAULT_OPENAI_MODEL },
+  extraction: { provider: "openai", model: DEFAULT_OPENAI_MODEL },
+};
+
 export const MODEL_DEFAULTS: ModelConfig = {
   anthropicModel: DEFAULT_ANTHROPIC_MODEL,
   openaiModel: DEFAULT_OPENAI_MODEL,
@@ -53,6 +71,16 @@ export const MODEL_DEFAULTS: ModelConfig = {
   forecastingModel: DEFAULT_ANTHROPIC_MODEL,
   extractionProvider: "anthropic",
   extractionModel: DEFAULT_ANTHROPIC_MODEL,
+  generationFallbackProvider: FALLBACK_DEFAULTS.generation!.provider,
+  generationFallbackModel: FALLBACK_DEFAULTS.generation!.model,
+  evaluationFallbackProvider: FALLBACK_DEFAULTS.evaluation!.provider,
+  evaluationFallbackModel: FALLBACK_DEFAULTS.evaluation!.model,
+  adversarialFallbackProvider: FALLBACK_DEFAULTS.adversarial!.provider,
+  adversarialFallbackModel: FALLBACK_DEFAULTS.adversarial!.model,
+  forecastingFallbackProvider: FALLBACK_DEFAULTS.forecasting!.provider,
+  forecastingFallbackModel: FALLBACK_DEFAULTS.forecasting!.model,
+  extractionFallbackProvider: FALLBACK_DEFAULTS.extraction!.provider,
+  extractionFallbackModel: FALLBACK_DEFAULTS.extraction!.model,
 };
 
 export class LLMCallError extends Error {
@@ -84,6 +112,17 @@ export async function getModelConfig(): Promise<ModelConfig> {
       return fallbackModel;
     };
 
+    const resolveFallbackModel = (role: string): string => {
+      const key = `${role}FallbackModel`;
+      if (cfg[key]) return cfg[key];
+      const providerKey = `${role}FallbackProvider`;
+      const provider = cfg[providerKey] ?? FALLBACK_DEFAULTS[role]?.provider;
+      if (provider === "anthropic") return anthropicModel;
+      if (provider === "openai") return openaiModel;
+      if (provider === "gemini") return geminiModel;
+      return FALLBACK_DEFAULTS[role]?.model ?? openaiModel;
+    };
+
     const base: ModelConfig = {
       anthropicModel,
       openaiModel,
@@ -98,6 +137,16 @@ export async function getModelConfig(): Promise<ModelConfig> {
       forecastingModel: resolveModel("forecastingModel", "forecastingProvider", anthropicModel),
       extractionProvider: (cfg["extractionProvider"] ?? "anthropic") as ProviderName,
       extractionModel: resolveModel("extractionModel", "extractionProvider", anthropicModel),
+      generationFallbackProvider: (cfg["generationFallbackProvider"] ?? FALLBACK_DEFAULTS.generation!.provider) as ProviderName,
+      generationFallbackModel: resolveFallbackModel("generation"),
+      evaluationFallbackProvider: (cfg["evaluationFallbackProvider"] ?? FALLBACK_DEFAULTS.evaluation!.provider) as ProviderName,
+      evaluationFallbackModel: resolveFallbackModel("evaluation"),
+      adversarialFallbackProvider: (cfg["adversarialFallbackProvider"] ?? FALLBACK_DEFAULTS.adversarial!.provider) as ProviderName,
+      adversarialFallbackModel: resolveFallbackModel("adversarial"),
+      forecastingFallbackProvider: (cfg["forecastingFallbackProvider"] ?? FALLBACK_DEFAULTS.forecasting!.provider) as ProviderName,
+      forecastingFallbackModel: resolveFallbackModel("forecasting"),
+      extractionFallbackProvider: (cfg["extractionFallbackProvider"] ?? FALLBACK_DEFAULTS.extraction!.provider) as ProviderName,
+      extractionFallbackModel: resolveFallbackModel("extraction"),
       judgePanelAnthropicModel: cfg["judgePanelAnthropicModel"] || undefined,
       judgePanelOpenaiModel: cfg["judgePanelOpenaiModel"] || undefined,
       judgePanelGeminiModel: cfg["judgePanelGeminiModel"] || undefined,
@@ -140,6 +189,18 @@ export function resolveStageConfig(
   return { provider: config[`${role}Provider`], model: config[`${role}Model`] };
 }
 
+export function resolveFallbackConfig(
+  role: "generation" | "evaluation" | "adversarial" | "forecasting" | "extraction",
+  config: ModelConfig,
+): { provider: ProviderName; model: string } | null {
+  const fbProvider = config[`${role}FallbackProvider` as keyof ModelConfig] as ProviderName | undefined;
+  const fbModel = config[`${role}FallbackModel` as keyof ModelConfig] as string | undefined;
+  if (fbProvider && fbModel) return { provider: fbProvider, model: fbModel };
+  const defaults = FALLBACK_DEFAULTS[role];
+  if (defaults) return defaults;
+  return null;
+}
+
 let _openai: import("openai").OpenAI | null = null;
 async function getOpenAI() {
   if (!_openai) {
@@ -172,6 +233,8 @@ export { getOpenAI, getGemini, getAnthropic };
 export interface CallLLMOptions {
   maxTokens?: number;
   timeoutMs?: number;
+  fallbackProvider?: ProviderName;
+  fallbackModel?: string;
 }
 
 async function callOpenAI(
@@ -267,7 +330,7 @@ async function callAnthropic(
       max_tokens: maxTokens,
       system: systemPrompt,
       messages: [{ role: "user", content: prompt }],
-    }, { timeout: opts.timeoutMs ?? 300_000, maxRetries: 2 });
+    }, { timeout: opts.timeoutMs ?? 300_000, maxRetries: 0 });
     const elapsedSec = ((Date.now() - startMs) / 1000).toFixed(1);
     const block = resp.content[0];
     const content = block?.type === "text" ? block.text : null;
@@ -292,7 +355,7 @@ async function callAnthropic(
 const MAX_LLM_RETRIES = 2;
 const RETRY_BASE_DELAY_MS = 5_000;
 
-function isRetryableError(err: unknown): boolean {
+export function isRetryableError(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err);
   if (/timed?\s*out|timeout/i.test(msg)) return true;
   if (/overloaded|529|503|502|rate.?limit|too many requests|429/i.test(msg)) return true;
@@ -301,7 +364,7 @@ function isRetryableError(err: unknown): boolean {
   return false;
 }
 
-export async function callLLM(
+async function callProviderWithRetries(
   prompt: string,
   systemPrompt: string,
   provider: ProviderName,
@@ -310,21 +373,6 @@ export async function callLLM(
 ): Promise<{ content: string; tokens: number }> {
   const timeoutMs = opts.timeoutMs ?? 300_000;
   let lastErr: unknown;
-  const ctx = getActiveCycleContext();
-  const callStart = Date.now();
-
-  if (ctx) {
-    emitCycleLog({
-      cycleId: ctx.cycleId,
-      level: "llm_start",
-      stage: ctx.stage,
-      message: `Calling ${provider}/${model}...`,
-      provider,
-      model,
-      prompt,
-      metadata: { systemPrompt },
-    });
-  }
 
   for (let attempt = 0; attempt <= MAX_LLM_RETRIES; attempt++) {
     if (attempt > 0) {
@@ -354,21 +402,6 @@ export async function callLLM(
           setTimeout(() => reject(new Error(`LLM call to ${provider}/${model} timed out after ${timeoutMs / 1000}s`)), timeoutMs)
         ),
       ]);
-
-      if (ctx) {
-        emitCycleLog({
-          cycleId: ctx.cycleId,
-          level: "llm_complete",
-          stage: ctx.stage,
-          message: `${provider}/${model} responded — ${result.tokens.toLocaleString()} tokens in ${((Date.now() - callStart) / 1000).toFixed(1)}s`,
-          provider,
-          model,
-          tokens: result.tokens,
-          durationMs: Date.now() - callStart,
-          output: result.content,
-        });
-      }
-
       return result;
     } catch (err) {
       lastErr = err;
@@ -379,20 +412,115 @@ export async function callLLM(
     }
   }
 
+  throw lastErr;
+}
+
+export async function callLLM(
+  prompt: string,
+  systemPrompt: string,
+  provider: ProviderName,
+  model: string,
+  opts: CallLLMOptions = {},
+): Promise<{ content: string; tokens: number }> {
+  const ctx = getActiveCycleContext();
+  const callStart = Date.now();
+
   if (ctx) {
     emitCycleLog({
       cycleId: ctx.cycleId,
-      level: "llm_error",
+      level: "llm_start",
       stage: ctx.stage,
-      message: `${provider}/${model} failed: ${lastErr instanceof Error ? lastErr.message : String(lastErr)}`,
+      message: `Calling ${provider}/${model}...`,
       provider,
       model,
-      durationMs: Date.now() - callStart,
+      prompt,
+      metadata: { systemPrompt },
     });
   }
 
-  if (lastErr instanceof LLMCallError) throw lastErr;
-  throw new LLMCallError(provider, model, lastErr);
+  try {
+    const result = await callProviderWithRetries(prompt, systemPrompt, provider, model, opts);
+
+    if (ctx) {
+      emitCycleLog({
+        cycleId: ctx.cycleId,
+        level: "llm_complete",
+        stage: ctx.stage,
+        message: `${provider}/${model} responded — ${result.tokens.toLocaleString()} tokens in ${((Date.now() - callStart) / 1000).toFixed(1)}s`,
+        provider,
+        model,
+        tokens: result.tokens,
+        durationMs: Date.now() - callStart,
+        output: result.content,
+      });
+    }
+
+    return result;
+  } catch (primaryErr) {
+    const fbProvider = opts.fallbackProvider;
+    const fbModel = opts.fallbackModel;
+
+    if (fbProvider && fbModel && (fbProvider !== provider || fbModel !== model)) {
+      logger.warn(
+        { primaryProvider: provider, primaryModel: model, fallbackProvider: fbProvider, fallbackModel: fbModel,
+          primaryError: primaryErr instanceof Error ? primaryErr.message : String(primaryErr) },
+        "Primary LLM failed — attempting fallback frontier model"
+      );
+
+      if (ctx) {
+        emitCycleLog({
+          cycleId: ctx.cycleId,
+          level: "warn",
+          stage: ctx.stage,
+          message: `${provider}/${model} failed after retries — falling back to ${fbProvider}/${fbModel}`,
+          provider,
+          model,
+          durationMs: Date.now() - callStart,
+        });
+      }
+
+      try {
+        const fbResult = await callProviderWithRetries(prompt, systemPrompt, fbProvider, fbModel, opts);
+
+        if (ctx) {
+          emitCycleLog({
+            cycleId: ctx.cycleId,
+            level: "llm_complete",
+            stage: ctx.stage,
+            message: `Fallback ${fbProvider}/${fbModel} responded — ${fbResult.tokens.toLocaleString()} tokens in ${((Date.now() - callStart) / 1000).toFixed(1)}s`,
+            provider: fbProvider,
+            model: fbModel,
+            tokens: fbResult.tokens,
+            durationMs: Date.now() - callStart,
+            output: fbResult.content,
+          });
+        }
+
+        return fbResult;
+      } catch (fbErr) {
+        logger.error(
+          { fallbackProvider: fbProvider, fallbackModel: fbModel,
+            fallbackError: fbErr instanceof Error ? fbErr.message : String(fbErr) },
+          "Fallback LLM also failed"
+        );
+      }
+    }
+
+    if (ctx) {
+      emitCycleLog({
+        cycleId: ctx.cycleId,
+        level: "llm_error",
+        stage: ctx.stage,
+        message: `${provider}/${model} failed: ${primaryErr instanceof Error ? primaryErr.message : String(primaryErr)}`,
+        provider,
+        model,
+        durationMs: Date.now() - callStart,
+      });
+    }
+
+    if (primaryErr instanceof LLMCallError) throw primaryErr;
+    throw new LLMCallError(provider, model, primaryErr);
+  }
 }
 
 export async function callLLMForStage(
@@ -404,7 +532,13 @@ export async function callLLMForStage(
   opts: CallLLMOptions = {},
 ): Promise<{ content: string; tokens: number }> {
   const { provider, model } = resolveStageConfig(stage, role, config);
-  return callLLM(prompt, systemPrompt, provider, model, opts);
+  const fallback = resolveFallbackConfig(role, config);
+  const enrichedOpts: CallLLMOptions = {
+    ...opts,
+    fallbackProvider: opts.fallbackProvider ?? fallback?.provider,
+    fallbackModel: opts.fallbackModel ?? fallback?.model,
+  };
+  return callLLM(prompt, systemPrompt, provider, model, enrichedOpts);
 }
 
 export function resolveProviderModel(

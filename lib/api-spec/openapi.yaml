@@ -2175,6 +2175,33 @@ components:
           type: string
         judgePanelGeminiModel:
           type: string
+        submissionScreeningModel:
+          type: string
+        generationFallbackProvider:
+          type: string
+          enum: [anthropic, openai, gemini]
+        generationFallbackModel:
+          type: string
+        evaluationFallbackProvider:
+          type: string
+          enum: [anthropic, openai, gemini]
+        evaluationFallbackModel:
+          type: string
+        adversarialFallbackProvider:
+          type: string
+          enum: [anthropic, openai, gemini]
+        adversarialFallbackModel:
+          type: string
+        forecastingFallbackProvider:
+          type: string
+          enum: [anthropic, openai, gemini]
+        forecastingFallbackModel:
+          type: string
+        extractionFallbackProvider:
+          type: string
+          enum: [anthropic, openai, gemini]
+        extractionFallbackModel:
+          type: string
         stage1Provider:
           type: string
           enum: [anthropic, openai, gemini]
@@ -2279,6 +2306,33 @@ components:
         judgePanelOpenaiModel:
           type: string
         judgePanelGeminiModel:
+          type: string
+        submissionScreeningModel:
+          type: string
+        generationFallbackProvider:
+          type: string
+          enum: [anthropic, openai, gemini]
+        generationFallbackModel:
+          type: string
+        evaluationFallbackProvider:
+          type: string
+          enum: [anthropic, openai, gemini]
+        evaluationFallbackModel:
+          type: string
+        adversarialFallbackProvider:
+          type: string
+          enum: [anthropic, openai, gemini]
+        adversarialFallbackModel:
+          type: string
+        forecastingFallbackProvider:
+          type: string
+          enum: [anthropic, openai, gemini]
+        forecastingFallbackModel:
+          type: string
+        extractionFallbackProvider:
+          type: string
+          enum: [anthropic, openai, gemini]
+        extractionFallbackModel:
           type: string
         stage1Provider:
           type: string

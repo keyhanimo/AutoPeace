@@ -6,6 +6,7 @@ import {
   callLLM as sharedCallLLM,
   callLLMForStage as sharedCallLLMForStage,
   resolveStageConfig as sharedResolveStageConfig,
+  resolveFallbackConfig as sharedResolveFallbackConfig,
   validateModelConfig as sharedValidateModelConfig,
   getModelConfig as sharedGetModelConfig,
   LLMCallError,
@@ -130,7 +131,7 @@ ${evidenceBlock}`;
       systemPrompt,
       config.extractionProvider,
       config.extractionModel ?? config.anthropicModel,
-      { maxTokens: 2000 },
+      { maxTokens: 2000, fallbackProvider: config.extractionFallbackProvider, fallbackModel: config.extractionFallbackModel },
     );
 
     const summary = `STRATEGIC SITUATION ASSESSMENT (synthesized from ${items.length} items, ${oldest} to ${newest}):\n\n${content.trim()}`;
@@ -341,6 +342,7 @@ const DEFAULT_MODELS = MODEL_DEFAULTS;
 
 const callLLM = sharedCallLLM;
 const callLLMForStage = sharedCallLLMForStage;
+const resolveFallbackConfig = sharedResolveFallbackConfig;
 
 function fisherYatesShuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -558,7 +560,7 @@ Return JSON:
 
 Generate at least 4 historical analogies, 5 creative provisions (at least 2 at 'breakthrough' novelty), 4 cross-issue linkages, and 4 unconventional approaches.`;
 
-  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 1, "generation", modelConfig, { maxTokens: 16384, timeoutMs: 600_000 });
+  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 1, "generation", modelConfig, { maxTokens: 16384, timeoutMs: 300_000 });
 
   const PROVISION_POOL: BrainstormInsights["creativeProvisions"] = [
     { idea: "Regional Water-Energy Nexus Agreement linking Gulf desalination tech to Iranian gas exports", rationale: "Creates economic interdependence that raises cost of conflict", noveltyLevel: "breakthrough" },
@@ -735,7 +737,7 @@ IMPORTANT: Iran and US are REQUIRED parties. Israel is CRITICAL. Every stakehold
 
 REMINDER: Write every field as a STANDALONE statement. Do NOT say "revised," "updated," "key changes," "modified from," or reference any prior deal. The reader sees only THIS deal.`;
 
-  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 1, "generation", modelConfig, { maxTokens: 16384, timeoutMs: 600_000 });
+  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 1, "generation", modelConfig, { maxTokens: 16384, timeoutMs: 300_000 });
   const terms = parseLLMJson<DealTerms>(content, "proposal");
 
   if (!terms.innovativeProvisions || terms.innovativeProvisions.length === 0) {
@@ -817,7 +819,7 @@ For each stakeholder, consider: (1) Does what they receive justify what they mus
 
 Return JSON with ALL stakeholder IDs: { "iran": { verdict, rationale, redLineViolations, conditions }, "us": {...}, "uae": {...}, ... }`;
 
-  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 2, "evaluation", modelConfig, { maxTokens: 16384, timeoutMs: 600_000 });
+  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 2, "evaluation", modelConfig, { maxTokens: 16384, timeoutMs: 300_000 });
 
   const parsed = parseLLMJson<Record<string, StakeholderVerdict>>(content, "stakeholder-evaluation");
 
@@ -1016,7 +1018,7 @@ Return JSON:
 
 CREATIVE MANDATE: Include at least 2 creative tradeoffs even if no stakeholders reject. These should be novel cross-issue deals that create new value. Think about asymmetric valuations — what is cheap for one party but precious for another?`;
 
-  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 5, "generation", modelConfig, { maxTokens: 16384, timeoutMs: 600_000 });
+  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 5, "generation", modelConfig, { maxTokens: 16384, timeoutMs: 300_000 });
   const result = parseLLMJson<NegotiatorResult & { creativeTradeoffs?: CreativeTradeoff[] }>(content, "negotiator");
   return { result, tokens };
 }
@@ -1231,7 +1233,7 @@ Return JSON with scores and rationale for each dimension:
 
   const results = await Promise.allSettled(
     providers.map(async ({ provider, model }) => {
-      const resp = await callLLM(prompt, systemPrompt, provider, model, { timeoutMs: 600_000 });
+      const resp = await callLLM(prompt, systemPrompt, provider, model, { timeoutMs: 300_000 });
       const { content, tokens } = resp;
 
       const parsed = parseLLMJson<Record<string, unknown>>(content, `judge-panel-${provider}`);
@@ -1419,7 +1421,7 @@ IMPORTANT: The promptImprovements field is how this pipeline evolves over time. 
 
 CONSTRAINT ON PROMPT IMPROVEMENTS: Every stage's output must be SELF-CONTAINED — fully understandable without reference to any prior deal or cycle. Your suggested prompt changes must NEVER encourage the model to say "revised," "amended," "updated," or refer to "existing provisions," "key changes from previous version," or any language implying the output modifies a prior document. Each deal must read as the first and only deal the reader will ever see.`;
 
-  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 7, "evaluation", modelConfig, { maxTokens: 16384, timeoutMs: 600_000 });
+  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 7, "evaluation", modelConfig, { maxTokens: 16384, timeoutMs: 300_000 });
   const result = parseLLMJson<MetaEvaluatorResult>(content, "meta-evaluator");
   return { result, tokens };
 }
@@ -1503,7 +1505,8 @@ Return JSON array: [{ "stakeholder": "id", "requirement": "specific concrete req
 Limit to 6 items total.`;
 
   const { provider, model } = resolveStageConfig(6, "evaluation", modelConfig);
-  const { content } = await callLLM(prompt, systemPrompt, provider, model);
+  const fallback = resolveFallbackConfig("evaluation", modelConfig);
+  const { content } = await callLLM(prompt, systemPrompt, provider, model, { fallbackProvider: fallback?.provider, fallbackModel: fallback?.model });
 
   return parseLLMJson<Array<{ stakeholder: string; requirement: string; feasibility: "low" | "medium" | "high" }>>(content, "what-would-it-take");
 }

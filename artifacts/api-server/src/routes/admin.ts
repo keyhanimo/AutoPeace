@@ -11,6 +11,7 @@ import {
   DEFAULT_OPENAI_MODEL,
   DEFAULT_GEMINI_MODEL,
   MODEL_DEFAULTS,
+  FALLBACK_DEFAULTS,
 } from "../services/llm-router";
 
 const router = Router();
@@ -47,6 +48,16 @@ const CONFIG_DEFAULTS: Record<string, string> = {
   judgePanelOpenaiModel: "",
   judgePanelGeminiModel: "",
   submissionScreeningModel: "claude-sonnet-4-5",
+  generationFallbackProvider: FALLBACK_DEFAULTS.generation!.provider,
+  generationFallbackModel: FALLBACK_DEFAULTS.generation!.model,
+  evaluationFallbackProvider: FALLBACK_DEFAULTS.evaluation!.provider,
+  evaluationFallbackModel: FALLBACK_DEFAULTS.evaluation!.model,
+  adversarialFallbackProvider: FALLBACK_DEFAULTS.adversarial!.provider,
+  adversarialFallbackModel: FALLBACK_DEFAULTS.adversarial!.model,
+  forecastingFallbackProvider: FALLBACK_DEFAULTS.forecasting!.provider,
+  forecastingFallbackModel: FALLBACK_DEFAULTS.forecasting!.model,
+  extractionFallbackProvider: FALLBACK_DEFAULTS.extraction!.provider,
+  extractionFallbackModel: FALLBACK_DEFAULTS.extraction!.model,
 };
 
 async function getConfigMap(): Promise<Record<string, string>> {
@@ -80,6 +91,16 @@ function mapToResponse(cfg: Record<string, string>) {
     judgePanelOpenaiModel: cfg["judgePanelOpenaiModel"] ?? "",
     judgePanelGeminiModel: cfg["judgePanelGeminiModel"] ?? "",
     submissionScreeningModel: cfg["submissionScreeningModel"] ?? "claude-sonnet-4-5",
+    generationFallbackProvider: cfg["generationFallbackProvider"] ?? FALLBACK_DEFAULTS.generation!.provider,
+    generationFallbackModel: cfg["generationFallbackModel"] ?? FALLBACK_DEFAULTS.generation!.model,
+    evaluationFallbackProvider: cfg["evaluationFallbackProvider"] ?? FALLBACK_DEFAULTS.evaluation!.provider,
+    evaluationFallbackModel: cfg["evaluationFallbackModel"] ?? FALLBACK_DEFAULTS.evaluation!.model,
+    adversarialFallbackProvider: cfg["adversarialFallbackProvider"] ?? FALLBACK_DEFAULTS.adversarial!.provider,
+    adversarialFallbackModel: cfg["adversarialFallbackModel"] ?? FALLBACK_DEFAULTS.adversarial!.model,
+    forecastingFallbackProvider: cfg["forecastingFallbackProvider"] ?? FALLBACK_DEFAULTS.forecasting!.provider,
+    forecastingFallbackModel: cfg["forecastingFallbackModel"] ?? FALLBACK_DEFAULTS.forecasting!.model,
+    extractionFallbackProvider: cfg["extractionFallbackProvider"] ?? FALLBACK_DEFAULTS.extraction!.provider,
+    extractionFallbackModel: cfg["extractionFallbackModel"] ?? FALLBACK_DEFAULTS.extraction!.model,
   };
   // Include per-stage overrides if present
   for (let s = 1; s <= 8; s++) {
