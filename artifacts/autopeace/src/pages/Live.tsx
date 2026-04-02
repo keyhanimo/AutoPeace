@@ -538,7 +538,6 @@ export default function Live() {
   const [status, setStatus] = useState<CycleStatus | null>(null);
   const [connected, setConnected] = useState(false);
   const [nextRunAt, setNextRunAt] = useState<number | null>(null);
-  const [showPrevious, setShowPrevious] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
   const logEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -597,9 +596,6 @@ export default function Live() {
             }
 
             setPreviousLogs(data.previousLogs ?? []);
-            if (!data.status?.isRunning && (data.previousLogs?.length ?? 0) > 0 && serverLogs.length === 0) {
-              setShowPrevious(true);
-            }
           } else if (data.type === "entry") {
             const entry = data.entry as CycleLogEntry;
             if (currentCycleIdRef.current && entry.cycleId !== currentCycleIdRef.current) {
@@ -615,7 +611,6 @@ export default function Live() {
                 return [...prev, entry];
               });
             }
-            setShowPrevious(false);
           } else if (data.type === "status") {
             setStatus(data.status);
           }
@@ -658,7 +653,7 @@ export default function Live() {
     return () => clearInterval(iv);
   }, [status?.isRunning]);
 
-  const displayLogs = showPrevious && logs.length === 0 ? previousLogs : logs;
+  const displayLogs = logs.length > 0 ? logs : (!status?.isRunning ? previousLogs : []);
 
   const totalTokens = displayLogs.reduce((sum, l) => sum + (l.tokens ?? 0), 0);
   const stageEntries = displayLogs.filter(l => l.level === "stage");
@@ -682,10 +677,8 @@ export default function Live() {
                 Running for <ElapsedTimer startedAt={status.cycleStartedAt} />
               </span>
             )}
-            {!status?.isRunning && !showPrevious && logs.length === 0 && previousLogs.length > 0 && (
-              <button onClick={() => setShowPrevious(true)} className="text-xs text-blue-400 hover:text-blue-300 underline underline-offset-2">
-                Show previous cycle logs
-              </button>
+            {!status?.isRunning && logs.length === 0 && previousLogs.length > 0 && (
+              <span className="text-xs text-slate-500">Showing previous cycle</span>
             )}
           </div>
           <div className="flex items-center gap-4 text-xs text-slate-400">
@@ -738,26 +731,43 @@ export default function Live() {
           </div>
         )}
 
-        {showPrevious && !status?.isRunning && previousLogs.length > 0 && logs.length === 0 && (
+        {!status?.isRunning && displayLogs.length > 0 && (
           <div className="mt-2 text-xs text-slate-500">
-            Showing logs from previous cycle. These will be replaced when a new cycle starts.
+            {logs.length === 0 ? "Showing logs from previous cycle." : "Cycle complete."} These will be replaced when a new cycle starts.
           </div>
         )}
       </div>
 
       {status?.isRunning && <ActiveLLMCallBanner logs={displayLogs} />}
 
+      {!status?.isRunning && displayLogs.length > 0 && nextRunAt && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-blue-500/[0.06] border-b border-blue-500/10">
+          <div className="w-2 h-2 rounded-full bg-blue-400/60" />
+          <div className="flex items-center gap-2 text-sm text-blue-300">
+            <Timer className="w-4 h-4" />
+            <span>Next cycle in <span className="font-mono font-semibold"><CountdownTimer targetTime={nextRunAt} /></span></span>
+          </div>
+        </div>
+      )}
+
       <div ref={containerRef} className="flex-1 overflow-y-auto bg-[#0a0e1a] min-h-0">
         {displayLogs.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-slate-500">
-            <Activity className="w-8 h-8 mb-3 opacity-30" />
-            <p className="text-sm">
-              {status?.isRunning ? "Waiting for cycle events..." : "No cycle running. Logs will appear here when a cycle starts."}
-            </p>
-            {!status?.isRunning && nextRunAt && (
-              <p className="text-xs mt-2">
-                Next scheduled run in <CountdownTimer targetTime={nextRunAt} />
-              </p>
+            {!status?.isRunning && nextRunAt ? (
+              <>
+                <Timer className="w-8 h-8 mb-3 opacity-40 text-blue-400" />
+                <p className="text-sm">No cycle running</p>
+                <p className="text-sm text-blue-400 mt-1 font-mono">
+                  Next cycle in <CountdownTimer targetTime={nextRunAt} />
+                </p>
+              </>
+            ) : (
+              <>
+                <Activity className="w-8 h-8 mb-3 opacity-30" />
+                <p className="text-sm">
+                  {status?.isRunning ? "Waiting for cycle events..." : "No cycle running. Logs will appear here when a cycle starts."}
+                </p>
+              </>
             )}
           </div>
         ) : (
