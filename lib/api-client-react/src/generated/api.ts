@@ -47,6 +47,8 @@ import type {
   GetAutoresearchTimelineParams,
   GetCommunityForecastAggregate200,
   GetCommunityForecastAggregateParams,
+  GetCurrentDealNarrative200,
+  GetCurrentDealNarrativeParams,
   GetDealHistory200,
   GetDealHistoryParams,
   GetDealRobustness200,
@@ -2159,6 +2161,109 @@ export function useGetCurrentDeal<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetCurrentDealQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get a concise narrative summary of the current champion deal
+ */
+export const getGetCurrentDealNarrativeUrl = (
+  params?: GetCurrentDealNarrativeParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/deals/current/narrative?${stringifiedParams}`
+    : `/api/deals/current/narrative`;
+};
+
+export const getCurrentDealNarrative = async (
+  params?: GetCurrentDealNarrativeParams,
+  options?: RequestInit,
+): Promise<GetCurrentDealNarrative200> => {
+  return customFetch<GetCurrentDealNarrative200>(
+    getGetCurrentDealNarrativeUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetCurrentDealNarrativeQueryKey = (
+  params?: GetCurrentDealNarrativeParams,
+) => {
+  return [`/api/deals/current/narrative`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetCurrentDealNarrativeQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCurrentDealNarrative>>,
+  TError = ErrorType<void>,
+>(
+  params?: GetCurrentDealNarrativeParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCurrentDealNarrative>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetCurrentDealNarrativeQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getCurrentDealNarrative>>
+  > = ({ signal }) =>
+    getCurrentDealNarrative(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCurrentDealNarrative>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCurrentDealNarrativeQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCurrentDealNarrative>>
+>;
+export type GetCurrentDealNarrativeQueryError = ErrorType<void>;
+
+/**
+ * @summary Get a concise narrative summary of the current champion deal
+ */
+
+export function useGetCurrentDealNarrative<
+  TData = Awaited<ReturnType<typeof getCurrentDealNarrative>>,
+  TError = ErrorType<void>,
+>(
+  params?: GetCurrentDealNarrativeParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCurrentDealNarrative>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCurrentDealNarrativeQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

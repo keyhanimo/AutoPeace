@@ -18,6 +18,7 @@ import {
 import { setDealSubStage, type DealSubStage } from "../lib/cycle-status";
 import { getModelConfig } from "./llm-router";
 import { ingestAllSources } from "./evidence-ingestion";
+import { generateDealNarrative } from "./deal-narrative";
 import { emitCycleLog, setActiveCycleContext, clearActiveCycleContext } from "../lib/cycle-log";
 
 let dealCycleRunning = false;
@@ -599,6 +600,16 @@ async function runDealCycleAsync(cycleId: string): Promise<void> {
     });
 
     await updateParetoFrontier();
+
+    if (isBetterThanCurrent) {
+      try {
+        await generateDealNarrative(dealId);
+        emitCycleLog({ cycleId, level: "info", stage: "deal_engine", message: "Generated narrative summary for new champion deal." });
+      } catch (err) {
+        logger.warn({ dealId, err }, "Failed to generate deal narrative (non-critical)");
+        emitCycleLog({ cycleId, level: "warn", stage: "deal_engine", message: `Narrative generation failed (non-critical): ${err instanceof Error ? err.message : String(err)}` });
+      }
+    }
 
     const parentScores = currentBest?.scores ? (currentBest.scores as DealScores) : null;
     await recordProvisionOutcomes(

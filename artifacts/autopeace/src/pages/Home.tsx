@@ -1,10 +1,9 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, Trophy, Users } from "lucide-react";
-import { useGetLatestForecasts, useGetCurrentDeal, useListProposals, type Forecast, type DealScores, type Proposal } from "@workspace/api-client-react";
+import { ArrowRight, Trophy, Users, FileText, ExternalLink } from "lucide-react";
+import { useGetLatestForecasts, useGetCurrentDeal, useListProposals, useGetCurrentDealNarrative, type Forecast, type DealScores, type Proposal } from "@workspace/api-client-react";
 import { Card, Button, Badge } from "@/components/ui";
-import { AutoresearchPulse } from "@/components/AutoresearchBadge";
 
 const OUTCOME_COLORS: Record<string, string> = {
   continued_conflict: '#ef4444',
@@ -125,6 +124,96 @@ function OutcomeSparkbar({ forecasts }: { forecasts: Forecast[] }) {
   );
 }
 
+
+function ChampionDealNarrative() {
+  const { data: initial, isLoading: initialLoading } = useGetCurrentDealNarrative();
+
+  const needsGeneration = initial && !initial.narrative && !initial.generating;
+
+  const { data: generated, isLoading: generating } = useGetCurrentDealNarrative(
+    { generate: "true" },
+    { query: { enabled: !!needsGeneration } },
+  );
+
+  const data = generated?.narrative ? generated : initial;
+  const isLoading = initialLoading;
+  const isGenerating = generating && needsGeneration;
+
+  if (isLoading) {
+    return (
+      <div className="border border-border/50 bg-card rounded-sm p-6">
+        <div className="animate-pulse space-y-3">
+          <div className="h-4 bg-secondary/50 rounded w-1/3" />
+          <div className="h-3 bg-secondary/30 rounded w-full" />
+          <div className="h-3 bg-secondary/30 rounded w-5/6" />
+          <div className="h-3 bg-secondary/30 rounded w-4/5" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) return null;
+
+  if (!data.narrative) {
+    if (isGenerating) {
+      return (
+        <section className="border border-border/50 bg-card rounded-sm p-6 space-y-3">
+          <div className="flex items-center gap-2">
+            <FileText className="w-4 h-4 text-primary" />
+            <h2 className="text-sm font-bold uppercase tracking-wider text-primary">Champion Deal Summary</h2>
+          </div>
+          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+            Generating narrative summary of the champion deal...
+          </div>
+        </section>
+      );
+    }
+    return null;
+  }
+
+  const compositePct = data.composite != null ? Math.round(data.composite * 100) : null;
+  const label = data.composite != null ? scoreLabel(data.composite) : null;
+
+  return (
+    <section className="border border-border/50 bg-card rounded-sm p-6 space-y-4">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <FileText className="w-4 h-4 text-primary shrink-0" />
+          <h2 className="text-sm font-bold uppercase tracking-wider text-primary">Champion Deal Summary</h2>
+        </div>
+        {compositePct != null && label && (
+          <div className="flex items-center gap-2 shrink-0">
+            <span className={`text-xs font-semibold ${label.color}`}>{label.text}</span>
+            <span className="text-lg font-bold font-mono">{compositePct}%</span>
+          </div>
+        )}
+      </div>
+
+      {data.architecture && (
+        <Badge variant="outline" className="text-[10px] uppercase tracking-widest">
+          {data.architecture.replace(/-/g, " ")}
+        </Badge>
+      )}
+
+      <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+        {data.narrative}
+      </p>
+
+      <div className="flex items-center justify-between pt-2 border-t border-border/30">
+        <span className="text-[10px] text-muted-foreground/60">
+          {data.createdAt ? new Date(data.createdAt).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true }) : ""}
+        </span>
+        <Link
+          to={`/deals/${data.dealId}`}
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+        >
+          See Full Details <ExternalLink className="w-3 h-3" />
+        </Link>
+      </div>
+    </section>
+  );
+}
 
 export default function Home() {
   const { data: latestRes, isLoading: forecastLoading } = useGetLatestForecasts();
@@ -248,8 +337,7 @@ export default function Home() {
         </div>
       </section>
 
-      <AutoresearchPulse />
-
+      <ChampionDealNarrative />
 
     </div>
   );

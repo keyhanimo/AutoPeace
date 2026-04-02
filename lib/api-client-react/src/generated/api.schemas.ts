@@ -885,6 +885,31 @@ export type ListDeals200 = {
   total: number;
 };
 
+export type GetCurrentDealNarrativeParams = {
+  /**
+   * If "true" and no narrative exists yet, generates one on-demand via LLM
+   */
+  generate?: GetCurrentDealNarrativeGenerate;
+};
+
+export type GetCurrentDealNarrativeGenerate =
+  (typeof GetCurrentDealNarrativeGenerate)[keyof typeof GetCurrentDealNarrativeGenerate];
+
+export const GetCurrentDealNarrativeGenerate = {
+  true: "true",
+  false: "false",
+} as const;
+
+export type GetCurrentDealNarrative200 = {
+  dealId: string;
+  architecture: string;
+  composite?: number | null;
+  narrative?: string | null;
+  generating?: boolean;
+  generationError?: string;
+  createdAt: string;
+};
+
 export type GetParetoDeals200 = {
   data: Deal[];
 };

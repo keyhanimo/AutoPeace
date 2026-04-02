@@ -670,6 +670,48 @@ paths:
         "404":
           description: No deal found yet
 
+  /deals/current/narrative:
+    get:
+      operationId: getCurrentDealNarrative
+      tags: [deals]
+      summary: Get a concise narrative summary of the current champion deal
+      parameters:
+        - name: generate
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: ["true", "false"]
+          description: If "true" and no narrative exists yet, generates one on-demand via LLM
+      responses:
+        "200":
+          description: Narrative summary of the current deal
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  dealId:
+                    type: string
+                  architecture:
+                    type: string
+                  composite:
+                    type: number
+                    nullable: true
+                  narrative:
+                    type: string
+                    nullable: true
+                  generating:
+                    type: boolean
+                  generationError:
+                    type: string
+                  createdAt:
+                    type: string
+                    format: date-time
+                required: [dealId, architecture, createdAt]
+        "404":
+          description: No deal found yet
+
   /deals/pareto:
     get:
       operationId: getParetoDeals

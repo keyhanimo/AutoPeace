@@ -60,7 +60,7 @@ artifacts-monorepo/
 - **cost_of_war** — economic/human cost data for Iran, US, Israel
 - **changelog_entries** — auto-generated headlines summarizing each forecast cycle and deal engine cycle (includes `scoreDelta` for deals, `forecastDelta` for forecasts)
 - **admin_config** — key/value config (isPaused, cadence, etc.)
-- **deals** — includes `innovativeProvisions` (jsonb), `domesticFramingStrategies` (jsonb), `brainstormInsights` (jsonb), `pipelineConfig` (jsonb) columns for enhanced pipeline data. `evidence_summary` (text) stores the full evidence context snapshot used to generate each deal, surfaced in API and UI with timestamp.
+- **deals** — includes `innovativeProvisions` (jsonb), `domesticFramingStrategies` (jsonb), `brainstormInsights` (jsonb), `pipelineConfig` (jsonb) columns for enhanced pipeline data. `evidence_summary` (text) stores the full evidence context snapshot used to generate each deal, surfaced in API and UI with timestamp. `narrative_summary` (text) stores an LLM-generated concise prose narrative of the deal, auto-generated when a new champion is crowned.
 - **provision_outcomes** — tracks per-provision performance: score deltas, dimension deltas, stakeholder reactions, category. Used by deal memory system for provision-level learning.
 - **pipeline_evolution** — tracks cumulative prompt overrides per stage key for pipeline hill-climbing
 
@@ -128,7 +128,7 @@ Both layers are concatenated and injected into stages 0-4 and 6 of the deal pipe
 
 | Route | Page |
 |---|---|
-| `/` | Home — hero, peace gauge, stakeholder grid, DealHeroSection |
+| `/` | Home — hero, peace gauge, AI vs Human comparison, champion deal narrative summary |
 | `/forecasts` | Forecast Dashboard — bar chart, community forecast panel |
 | `/deals` | Deal Dashboard — solution tree, Pareto frontier, deal cards |
 | `/deals/history` | Deal History — standalone archive of all AI deal iterations with score evolution chart and expandable details |
@@ -275,7 +275,8 @@ Enhanced multi-agent pipeline (`deal-engine.ts`) with **grand coalition** cooper
 - `artifacts/api-server/src/services/deal-engine.ts` — 8-stage deal pipeline; throws `LLMParseError` on unparseable output; `classifyStageError()` provides typed error context (llm_call/llm_parse/runtime) at pipeline boundary
 - `artifacts/api-server/src/services/stakeholder-updater.ts` — evidence-driven stakeholder profile updater (LLM-based; throws on parse failure)
 - `artifacts/api-server/src/services/deal-autoresearch.ts` — deal cycle loop, solution tree, Pareto. Architectures: standard (balanced, nuclear-first, hormuz-first, humanitarian-first) + radical (radical-restructure, asymmetric-grand-bargain, incremental-confidence, freeform). Freeform has no predetermined constraints — the AI decides the deal's organizing logic from evidence.
-- `artifacts/api-server/src/routes/deals.ts` — deal API endpoints incl. history/robustness/compare
+- `artifacts/api-server/src/services/deal-narrative.ts` — generates LLM-powered concise prose narrative from deal markdown; called on new champion and on-demand via `?generate=true`
+- `artifacts/api-server/src/routes/deals.ts` — deal API endpoints incl. history/robustness/compare/narrative
 - `artifacts/api-server/src/routes/proposals.ts` — proposals + admin evaluate endpoint
 - `artifacts/api-server/src/routes/admin.ts` — admin config + pipeline config with per-role providers
 - `artifacts/api-server/src/seed/proposals.ts` — seeds US 15-pt + Iran 5-pt proposals + AI auto-eval

@@ -872,6 +872,28 @@ export const GetCurrentDealResponse = zod.object({
 });
 
 /**
+ * @summary Get a concise narrative summary of the current champion deal
+ */
+export const GetCurrentDealNarrativeQueryParams = zod.object({
+  generate: zod
+    .enum(["true", "false"])
+    .optional()
+    .describe(
+      'If \"true\" and no narrative exists yet, generates one on-demand via LLM',
+    ),
+});
+
+export const GetCurrentDealNarrativeResponse = zod.object({
+  dealId: zod.string(),
+  architecture: zod.string(),
+  composite: zod.number().nullish(),
+  narrative: zod.string().nullish(),
+  generating: zod.boolean().optional(),
+  generationError: zod.string().optional(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
  * @summary Get Pareto frontier of deals (non-dominated set)
  */
 export const GetParetoDealsResponse = zod.object({

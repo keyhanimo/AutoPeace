@@ -100,6 +100,7 @@ export const dealsTable = pgTable("deals", {
   generatedBy: text("generated_by").notNull().default("ai"),
   tokensConsumed: integer("tokens_consumed").notNull().default(0),
   costUsd: real("cost_usd").notNull().default(0),
+  narrativeSummary: text("narrative_summary"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

@@ -4,6 +4,8 @@ import { dealsTable, solutionTreeTable } from "@workspace/db/schema";
 import { desc, eq, inArray } from "drizzle-orm";
 import { dealToMarkdown } from "../services/deal-markdown.js";
 import { callLLM, getModelConfig } from "../services/llm-router.js";
+import { generateDealNarrative } from "../services/deal-narrative.js";
+import { adminAuth } from "../lib/admin-auth.js";
 
 const router = Router();
 
@@ -309,6 +311,72 @@ Return ONLY the post text, nothing else.`;
     const result = await callLLM(prompt, systemPrompt, config.generationProvider, config.generationModel, { maxTokens: 500 });
 
     res.json({ platform, text: result.content.trim(), permalinkUrl });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+let narrativeGenerationInProgress: string | null = null;
+
+router.get("/deals/current/narrative", async (req, res) => {
+  try {
+    const [deal] = await db.select()
+      .from(dealsTable)
+      .where(eq(dealsTable.isCurrent, true))
+      .orderBy(desc(dealsTable.createdAt))
+      .limit(1);
+
+    if (!deal) {
+      res.status(404).json({ error: "No current deal found" });
+      return;
+    }
+
+    const generate = req.query["generate"] === "true";
+
+    if (!deal.narrativeSummary && generate && narrativeGenerationInProgress !== deal.id) {
+      narrativeGenerationInProgress = deal.id;
+      try {
+        const narrative = await generateDealNarrative(deal.id);
+        narrativeGenerationInProgress = null;
+        res.json({
+          dealId: deal.id,
+          architecture: deal.architecture,
+          composite: (deal.scores as Record<string, number> | null)?.composite ?? null,
+          narrative,
+          createdAt: deal.createdAt,
+        });
+        return;
+      } catch (err) {
+        narrativeGenerationInProgress = null;
+        res.json({
+          dealId: deal.id,
+          architecture: deal.architecture,
+          composite: (deal.scores as Record<string, number> | null)?.composite ?? null,
+          narrative: null,
+          generationError: String(err),
+          createdAt: deal.createdAt,
+        });
+        return;
+      }
+    }
+
+    res.json({
+      dealId: deal.id,
+      architecture: deal.architecture,
+      composite: (deal.scores as Record<string, number> | null)?.composite ?? null,
+      narrative: deal.narrativeSummary ?? null,
+      generating: narrativeGenerationInProgress === deal.id,
+      createdAt: deal.createdAt,
+    });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+router.post("/deals/:id/generate-narrative", adminAuth, async (req, res) => {
+  try {
+    const narrative = await generateDealNarrative(String(req.params["id"]));
+    res.json({ narrative });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }
