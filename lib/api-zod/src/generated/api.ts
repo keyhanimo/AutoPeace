@@ -891,6 +891,7 @@ export const GetCurrentDealNarrativeResponse = zod.object({
   generating: zod.boolean().optional(),
   generationError: zod.string().optional(),
   createdAt: zod.coerce.date(),
+  totalDeals: zod.number().optional(),
 });
 
 /**

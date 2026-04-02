@@ -14,4 +14,5 @@ export type GetCurrentDealNarrative200 = {
   generating?: boolean;
   generationError?: string;
   createdAt: Date;
+  totalDeals?: number;
 };

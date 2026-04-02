@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { dealsTable, solutionTreeTable } from "@workspace/db/schema";
-import { desc, eq, inArray } from "drizzle-orm";
+import { count, desc, eq, inArray } from "drizzle-orm";
 import { dealToMarkdown } from "../services/deal-markdown.js";
 import { callLLM, getModelConfig } from "../services/llm-router.js";
 import { generateDealNarrative } from "../services/deal-narrative.js";
@@ -320,16 +320,27 @@ let narrativeGenerationInProgress: string | null = null;
 
 router.get("/deals/current/narrative", async (req, res) => {
   try {
-    const [deal] = await db.select()
-      .from(dealsTable)
-      .where(eq(dealsTable.isCurrent, true))
-      .orderBy(desc(dealsTable.createdAt))
-      .limit(1);
+    const [[deal], [{ value: totalDeals }]] = await Promise.all([
+      db.select()
+        .from(dealsTable)
+        .where(eq(dealsTable.isCurrent, true))
+        .orderBy(desc(dealsTable.createdAt))
+        .limit(1),
+      db.select({ value: count() }).from(dealsTable),
+    ]);
 
     if (!deal) {
       res.status(404).json({ error: "No current deal found" });
       return;
     }
+
+    const base = {
+      dealId: deal.id,
+      architecture: deal.architecture,
+      composite: (deal.scores as Record<string, number> | null)?.composite ?? null,
+      createdAt: deal.createdAt,
+      totalDeals: Number(totalDeals),
+    };
 
     const generate = req.query["generate"] === "true";
 
@@ -338,35 +349,19 @@ router.get("/deals/current/narrative", async (req, res) => {
       try {
         const narrative = await generateDealNarrative(deal.id);
         narrativeGenerationInProgress = null;
-        res.json({
-          dealId: deal.id,
-          architecture: deal.architecture,
-          composite: (deal.scores as Record<string, number> | null)?.composite ?? null,
-          narrative,
-          createdAt: deal.createdAt,
-        });
+        res.json({ ...base, narrative });
         return;
       } catch (err) {
         narrativeGenerationInProgress = null;
-        res.json({
-          dealId: deal.id,
-          architecture: deal.architecture,
-          composite: (deal.scores as Record<string, number> | null)?.composite ?? null,
-          narrative: null,
-          generationError: String(err),
-          createdAt: deal.createdAt,
-        });
+        res.json({ ...base, narrative: null, generationError: String(err) });
         return;
       }
     }
 
     res.json({
-      dealId: deal.id,
-      architecture: deal.architecture,
-      composite: (deal.scores as Record<string, number> | null)?.composite ?? null,
+      ...base,
       narrative: deal.narrativeSummary ?? null,
       generating: narrativeGenerationInProgress === deal.id,
-      createdAt: deal.createdAt,
     });
   } catch (err) {
     res.status(500).json({ error: String(err) });

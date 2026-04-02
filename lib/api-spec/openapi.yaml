@@ -708,6 +708,8 @@ paths:
                   createdAt:
                     type: string
                     format: date-time
+                  totalDeals:
+                    type: integer
                 required: [dealId, architecture, createdAt]
         "404":
           description: No deal found yet

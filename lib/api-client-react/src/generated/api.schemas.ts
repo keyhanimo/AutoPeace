@@ -908,6 +908,7 @@ export type GetCurrentDealNarrative200 = {
   generating?: boolean;
   generationError?: string;
   createdAt: string;
+  totalDeals?: number;
 };
 
 export type GetParetoDeals200 = {
