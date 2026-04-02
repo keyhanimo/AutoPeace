@@ -266,7 +266,7 @@ async function callAnthropic(
       max_tokens: maxTokens,
       system: systemPrompt,
       messages: [{ role: "user", content: prompt }],
-    }, { timeout: opts.timeoutMs ?? 300_000, maxRetries: 0 });
+    }, { timeout: opts.timeoutMs ?? 300_000, maxRetries: 2 });
     const elapsedSec = ((Date.now() - startMs) / 1000).toFixed(1);
     const block = resp.content[0];
     const content = block?.type === "text" ? block.text : null;
@@ -288,6 +288,18 @@ async function callAnthropic(
   }
 }
 
+const MAX_LLM_RETRIES = 2;
+const RETRY_BASE_DELAY_MS = 5_000;
+
+function isRetryableError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  if (/timed?\s*out|timeout/i.test(msg)) return true;
+  if (/overloaded|529|503|502|rate.?limit|too many requests|429/i.test(msg)) return true;
+  const status = (err as Record<string, unknown>)?.status;
+  if (status === 429 || status === 529 || status === 503 || status === 502) return true;
+  return false;
+}
+
 export async function callLLM(
   prompt: string,
   systemPrompt: string,
@@ -296,32 +308,48 @@ export async function callLLM(
   opts: CallLLMOptions = {},
 ): Promise<{ content: string; tokens: number }> {
   const timeoutMs = opts.timeoutMs ?? 300_000;
-  try {
-    let llmCall: Promise<{ content: string; tokens: number }>;
-    switch (provider) {
-      case "anthropic":
-        llmCall = callAnthropic(prompt, systemPrompt, model, opts);
-        break;
-      case "openai":
-        llmCall = callOpenAI(prompt, systemPrompt, model, opts);
-        break;
-      case "gemini":
-        llmCall = callGemini(prompt, systemPrompt, model, opts);
-        break;
-      default:
-        throw new Error(`Unknown LLM provider: ${provider}`);
+  let lastErr: unknown;
+
+  for (let attempt = 0; attempt <= MAX_LLM_RETRIES; attempt++) {
+    if (attempt > 0) {
+      const delay = RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1);
+      logger.warn({ provider, model, attempt, delayMs: delay }, "Retrying LLM call after transient failure");
+      await new Promise(r => setTimeout(r, delay));
     }
-    const result = await Promise.race([
-      llmCall,
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error(`LLM call to ${provider}/${model} timed out after ${timeoutMs / 1000}s`)), timeoutMs)
-      ),
-    ]);
-    return result;
-  } catch (err) {
-    if (err instanceof LLMCallError) throw err;
-    throw new LLMCallError(provider, model, err);
+
+    try {
+      let llmCall: Promise<{ content: string; tokens: number }>;
+      switch (provider) {
+        case "anthropic":
+          llmCall = callAnthropic(prompt, systemPrompt, model, opts);
+          break;
+        case "openai":
+          llmCall = callOpenAI(prompt, systemPrompt, model, opts);
+          break;
+        case "gemini":
+          llmCall = callGemini(prompt, systemPrompt, model, opts);
+          break;
+        default:
+          throw new Error(`Unknown LLM provider: ${provider}`);
+      }
+      const result = await Promise.race([
+        llmCall,
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error(`LLM call to ${provider}/${model} timed out after ${timeoutMs / 1000}s`)), timeoutMs)
+        ),
+      ]);
+      return result;
+    } catch (err) {
+      lastErr = err;
+      if (attempt < MAX_LLM_RETRIES && isRetryableError(err)) {
+        continue;
+      }
+      break;
+    }
   }
+
+  if (lastErr instanceof LLMCallError) throw lastErr;
+  throw new LLMCallError(provider, model, lastErr);
 }
 
 export async function callLLMForStage(
