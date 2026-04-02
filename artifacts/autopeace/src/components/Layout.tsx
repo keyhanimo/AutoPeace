@@ -5,7 +5,7 @@ import {
   HelpCircle, Shield, ChevronRight, Handshake, Users, Swords,
   Search, GitCompare, Send, Database, Code2, Eye, MoreHorizontal, Microscope, Radio,
 } from "lucide-react";
-import { CycleStatusIndicator } from "./CycleStatusIndicator";
+import { CycleStatusIndicator, useCycleStatus } from "./CycleStatusIndicator";
 import { LiveCycleBanner } from "./LiveCycleBanner";
 
 type NavGroup = {
@@ -66,6 +66,8 @@ const BOTTOM_TABS = [
 export function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const cycleStatus = useCycleStatus();
+  const isCycleRunning = cycleStatus?.isRunning ?? false;
 
   const isActive = (href: string, exact?: boolean) =>
     location.pathname === href || (!exact && href !== "/" && location.pathname.startsWith(href));
@@ -95,6 +97,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <div className="space-y-0.5">
                 {group.items.map(({ href, label, icon: Icon, exact }) => {
                   const active = isActive(href, exact);
+                  const isLiveMonitor = href === "/live";
+                  const showPulse = isLiveMonitor && isCycleRunning;
                   return (
                     <Link
                       key={href}
@@ -102,12 +106,23 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       className={`flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all duration-100 group relative
                         ${active
                           ? "text-primary bg-primary/5"
-                          : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+                          : showPulse
+                            ? "text-emerald-400 bg-emerald-400/5"
+                            : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
                         }`}
                       aria-current={active ? "page" : undefined}
                     >
                       {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-r" />}
-                      <Icon className={`w-4 h-4 flex-shrink-0 ${active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"}`} />
+                      {showPulse && !active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-emerald-400 rounded-r" />}
+                      <span className="relative flex-shrink-0">
+                        <Icon className={`w-4 h-4 ${active ? "text-primary" : showPulse ? "text-emerald-400 animate-pulse" : "text-muted-foreground group-hover:text-foreground"}`} />
+                        {showPulse && (
+                          <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+                          </span>
+                        )}
+                      </span>
                       <span className="tracking-wide">{label}</span>
                       {active && <ChevronRight className="w-3 h-3 ml-auto text-primary/60" aria-hidden="true" />}
                     </Link>
@@ -151,17 +166,28 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   <div className="space-y-0.5">
                     {group.items.map(({ href, label, icon: Icon, exact }) => {
                       const active = isActive(href, exact);
+                      const isLiveMonitor = href === "/live";
+                      const showPulse = isLiveMonitor && isCycleRunning;
                       return (
                         <Link
                           key={href}
                           to={href}
                           onClick={() => setMobileOpen(false)}
                           className={`flex items-center gap-3 px-3 py-3 text-sm font-medium transition-colors relative
-                            ${active ? "text-primary bg-primary/5" : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"}`}
+                            ${active ? "text-primary bg-primary/5" : showPulse ? "text-emerald-400 bg-emerald-400/5" : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"}`}
                           aria-current={active ? "page" : undefined}
                         >
                           {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-r" />}
-                          <Icon className="w-4 h-4 flex-shrink-0" />
+                          {showPulse && !active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-emerald-400 rounded-r" />}
+                          <span className="relative flex-shrink-0">
+                            <Icon className={`w-4 h-4 ${showPulse && !active ? "text-emerald-400 animate-pulse" : ""}`} />
+                            {showPulse && (
+                              <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+                              </span>
+                            )}
+                          </span>
                           {label}
                         </Link>
                       );
