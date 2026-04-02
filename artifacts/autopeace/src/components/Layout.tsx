@@ -113,15 +113,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       {showPulse && !active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-emerald-400 rounded-r" />}
                       <span className="relative flex-shrink-0">
                         <Icon className={`w-4 h-4 ${active ? "text-primary" : showPulse ? "text-emerald-400 animate-pulse" : "text-muted-foreground group-hover:text-foreground"}`} />
-                        {showPulse && (
-                          <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
-                          </span>
-                        )}
                       </span>
                       <span className="tracking-wide">{label}</span>
-                      {active && <ChevronRight className="w-3 h-3 ml-auto text-primary/60" aria-hidden="true" />}
+                      {showPulse && (
+                        <span className="relative flex h-2 w-2 ml-auto flex-shrink-0">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+                        </span>
+                      )}
+                      {active && !showPulse && <ChevronRight className="w-3 h-3 ml-auto text-primary/60" aria-hidden="true" />}
                     </Link>
                   );
                 })}
@@ -178,14 +178,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
                           {showPulse && !active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-emerald-400 rounded-r" />}
                           <span className="relative flex-shrink-0">
                             <Icon className={`w-4 h-4 ${showPulse && !active ? "text-emerald-400 animate-pulse" : ""}`} />
-                            {showPulse && (
-                              <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
-                              </span>
-                            )}
                           </span>
-                          {label}
+                          <span className="tracking-wide">{label}</span>
+                          {showPulse && (
+                            <span className="relative flex h-2 w-2 ml-auto flex-shrink-0">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+                            </span>
+                          )}
                         </Link>
                       );
                     })}
