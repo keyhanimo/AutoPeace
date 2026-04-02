@@ -1,9 +1,9 @@
 import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
 import {
-  Menu, X, Activity, BarChart2, DollarSign, FlaskConical, BookOpen,
+  Menu, X, Activity, BarChart2, DollarSign, BookOpen,
   HelpCircle, Shield, ChevronRight, Handshake, Users, Swords,
-  Search, GitCompare, Send, Database, Code2, Eye, MoreHorizontal, Microscope, Radio,
+  Search, Send, Database, Code2, MoreHorizontal, Microscope, Radio,
 } from "lucide-react";
 import { CycleStatusIndicator, useCycleStatus } from "./CycleStatusIndicator";
 import { LiveCycleBanner } from "./LiveCycleBanner";
@@ -29,8 +29,6 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Explorer",
     items: [
       { href: "/stakeholders", label: "Stakeholders", icon: Users, exact: true },
-      { href: "/stakeholders/compare", label: "Compare Actors", icon: GitCompare },
-      { href: "/stakeholders/lens", label: "Stakeholder Lens", icon: Eye },
       { href: "/evidence", label: "Evidence Explorer", icon: Search },
       { href: "/live", label: "Live Monitor", icon: Radio },
       { href: "/lab", label: "Autoresearch Lab", icon: Microscope },
@@ -47,7 +45,6 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Info",
     items: [
-      { href: "/changelog", label: "Changelog", icon: BookOpen },
       { href: "/methodology", label: "Methodology", icon: HelpCircle },
       { href: "/admin", label: "Admin", icon: Shield },
     ],

@@ -55,7 +55,7 @@ export default function ChangelogEntry() {
     return (
       <div className="max-w-3xl mx-auto py-12 text-center space-y-4">
         <p className="text-muted-foreground">Changelog entry not found.</p>
-        <Link to="/changelog" className="inline-flex items-center gap-1 text-primary hover:underline text-sm">
+        <Link to="/lab" className="inline-flex items-center gap-1 text-primary hover:underline text-sm">
           <ArrowLeft className="w-4 h-4" /> Back to Changelog
         </Link>
       </div>
@@ -89,7 +89,7 @@ export default function ChangelogEntry() {
     <div className="space-y-8 animate-fade-in max-w-3xl mx-auto pb-12">
       <div>
         <Link
-          to="/changelog"
+          to="/lab"
           className="inline-flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors text-sm mb-6"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Changelog

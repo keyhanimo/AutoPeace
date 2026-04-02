@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,9 +7,7 @@ import { Layout } from "@/components/Layout";
 import Home from "@/pages/Home";
 import ForecastDashboard from "@/pages/ForecastDashboard";
 import CostsExplorer from "@/pages/CostsExplorer";
-import ExperimentLog from "@/pages/ExperimentLog";
 import AutoresearchLab from "@/pages/AutoresearchLab";
-import Changelog from "@/pages/Changelog";
 import ChangelogEntry from "@/pages/ChangelogEntry";
 import Methodology from "@/pages/Methodology";
 import AdminPanel from "@/pages/AdminPanel";
@@ -17,8 +15,6 @@ import DealDashboard from "@/pages/DealDashboard";
 import ProposalArena from "@/pages/ProposalArena";
 import Stakeholders from "@/pages/Stakeholders";
 import EvidenceExplorer from "@/pages/EvidenceExplorer";
-import StakeholderComparison from "@/pages/StakeholderComparison";
-import StakeholderLens from "@/pages/StakeholderLens";
 import SubmitProposal from "@/pages/SubmitProposal";
 import DataPortal from "@/pages/DataPortal";
 import ApiDocs from "@/pages/ApiDocs";
@@ -26,6 +22,13 @@ import Live from "@/pages/Live";
 import DealPermalink from "@/pages/DealPermalink";
 import DealHistory from "@/pages/DealHistory";
 import NotFound from "@/pages/not-found";
+
+function RedirectWithParams({ to, extraParams }: { to: string; extraParams: Record<string, string> }) {
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  Object.entries(extraParams).forEach(([k, v]) => params.set(k, v));
+  return <Navigate to={`${to}?${params.toString()}`} replace />;
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -47,8 +50,8 @@ function Router() {
         <Route path="/deals/:id" element={<DealPermalink />} />
         <Route path="/arena" element={<ProposalArena />} />
         <Route path="/stakeholders" element={<Stakeholders />} />
-        <Route path="/stakeholders/compare" element={<StakeholderComparison />} />
-        <Route path="/stakeholders/lens" element={<StakeholderLens />} />
+        <Route path="/stakeholders/compare" element={<RedirectWithParams to="/stakeholders" extraParams={{ tab: "compare" }} />} />
+        <Route path="/stakeholders/lens" element={<RedirectWithParams to="/stakeholders" extraParams={{ tab: "lens" }} />} />
         <Route path="/forecasts" element={<ForecastDashboard />} />
         <Route path="/costs" element={<CostsExplorer />} />
         <Route path="/lab" element={<AutoresearchLab />} />
@@ -57,7 +60,7 @@ function Router() {
         <Route path="/submit" element={<SubmitProposal />} />
         <Route path="/data" element={<DataPortal />} />
         <Route path="/api-docs" element={<ApiDocs />} />
-        <Route path="/changelog" element={<Changelog />} />
+        <Route path="/changelog" element={<Navigate to="/lab" replace />} />
         <Route path="/changelog/:id" element={<ChangelogEntry />} />
         <Route path="/methodology" element={<Methodology />} />
         <Route path="/live" element={<Live />} />
