@@ -73,14 +73,14 @@ function isAlreadySubmitted(horizon: string): boolean {
 }
 
 function CommunityForecastPanel({ activeForecast }: { activeForecast: Forecast }) {
-  const [horizon, setHorizon] = useState<"10d" | "30d" | "90d" | "180d" | "1y">("90d");
+  const [horizon, setHorizon] = useState<"10d" | "30d" | "90d" | "180d" | "1y">("10d");
   const [tab, setTab] = useState<"results" | "submit">("results");
   const [estimates, setEstimates] = useState<Record<string, number>>(() =>
     Object.fromEntries(CATEGORIES.map(c => [c.key, parseFloat((100 / CATEGORIES.length).toFixed(1))]))
   );
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
   const [sessionId] = useState(() => crypto.randomUUID());
-  const [alreadySubmitted, setAlreadySubmitted] = useState(() => isAlreadySubmitted("90d"));
+  const [alreadySubmitted, setAlreadySubmitted] = useState(() => isAlreadySubmitted("10d"));
 
   const { data, isLoading, refetch } = useGetCommunityForecastAggregate({ timeHorizon: horizon });
   const { mutateAsync, isPending } = useSubmitCommunityForecast();
@@ -319,7 +319,7 @@ export default function ForecastDashboard() {
   const { data: latestRes, isLoading, isError } = useGetLatestForecasts();
   const { data: historyRes } = useListForecasts({ limit: 100 });
   const { data: evidenceRes } = useListEvidence({ limit: 200 });
-  const [horizon, setHorizon] = useState<typeof TIME_HORIZONS[number]>('30d');
+  const [horizon, setHorizon] = useState<typeof TIME_HORIZONS[number]>('10d');
   const [activeTab, setActiveTab] = useState<'probabilities' | 'radar' | 'history'>('probabilities');
   const [historyWindow, setHistoryWindow] = useState(10);
   const activeForecast = useMemo(() => {

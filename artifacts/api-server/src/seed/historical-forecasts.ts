@@ -208,20 +208,13 @@ export async function seedHistoricalForecasts(): Promise<void> {
     }
   }
 
-  const hasCurrent = await db.select({ id: forecastsTable.id })
-    .from(forecastsTable)
-    .where(eq(forecastsTable.isCurrent, true))
-    .limit(1);
-
-  if (hasCurrent.length === 0) {
-    for (const record of CURRENT_FORECASTS) {
-      const existing = await db.select({ id: forecastsTable.id })
-        .from(forecastsTable)
-        .where(eq(forecastsTable.id, record.id))
-        .limit(1);
-      if (existing.length === 0) {
-        await db.insert(forecastsTable).values(record);
-      }
+  for (const record of CURRENT_FORECASTS) {
+    const existing = await db.select({ id: forecastsTable.id })
+      .from(forecastsTable)
+      .where(eq(forecastsTable.id, record.id))
+      .limit(1);
+    if (existing.length === 0) {
+      await db.insert(forecastsTable).values(record);
     }
   }
 }
