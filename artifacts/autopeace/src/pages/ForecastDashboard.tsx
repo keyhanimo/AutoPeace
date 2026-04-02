@@ -73,14 +73,14 @@ function isAlreadySubmitted(horizon: string): boolean {
 }
 
 function CommunityForecastPanel({ activeForecast }: { activeForecast: Forecast }) {
-  const [horizon, setHorizon] = useState<"10d" | "30d" | "90d" | "180d" | "1y">("10d");
+  const [horizon, setHorizon] = useState<"10d" | "30d" | "90d" | "180d" | "1y">("30d");
   const [tab, setTab] = useState<"results" | "submit">("results");
   const [estimates, setEstimates] = useState<Record<string, number>>(() =>
     Object.fromEntries(CATEGORIES.map(c => [c.key, parseFloat((100 / CATEGORIES.length).toFixed(1))]))
   );
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
   const [sessionId] = useState(() => crypto.randomUUID());
-  const [alreadySubmitted, setAlreadySubmitted] = useState(() => isAlreadySubmitted("10d"));
+  const [alreadySubmitted, setAlreadySubmitted] = useState(() => isAlreadySubmitted("30d"));
 
   const { data, isLoading, refetch } = useGetCommunityForecastAggregate({ timeHorizon: horizon });
   const { mutateAsync, isPending } = useSubmitCommunityForecast();
