@@ -500,9 +500,30 @@ export async function callLLM(
       } catch (fbErr) {
         logger.error(
           { fallbackProvider: fbProvider, fallbackModel: fbModel,
-            fallbackError: fbErr instanceof Error ? fbErr.message : String(fbErr) },
-          "Fallback LLM also failed"
+            fallbackError: fbErr instanceof Error ? fbErr.message : String(fbErr),
+            primaryError: primaryErr instanceof Error ? primaryErr.message : String(primaryErr) },
+          "Fallback LLM also failed — both primary and fallback exhausted"
         );
+
+        if (ctx) {
+          emitCycleLog({
+            cycleId: ctx.cycleId,
+            level: "llm_error",
+            stage: ctx.stage,
+            message: `Both ${provider}/${model} and fallback ${fbProvider}/${fbModel} failed`,
+            provider,
+            model,
+            durationMs: Date.now() - callStart,
+          });
+        }
+
+        const primaryMsg = primaryErr instanceof Error ? primaryErr.message : String(primaryErr);
+        const fbMsg = fbErr instanceof Error ? fbErr.message : String(fbErr);
+        const combined = new LLMCallError(
+          provider, model,
+          new Error(`Primary (${provider}/${model}): ${primaryMsg}; Fallback (${fbProvider}/${fbModel}): ${fbMsg}`),
+        );
+        throw combined;
       }
     }
 

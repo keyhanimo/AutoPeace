@@ -105,7 +105,7 @@ async function benchmark(provider: string, model: string): Promise<BenchResult> 
         base.analogiesCount = Array.isArray(parsed.historicalAnalogies) ? parsed.historicalAnalogies.length : 0;
         base.provisionsCount = Array.isArray(parsed.creativeProvisions) ? parsed.creativeProvisions.length : 0;
         base.breakthroughCount = Array.isArray(parsed.creativeProvisions)
-          ? parsed.creativeProvisions.filter((p: any) => p.noveltyLevel === "breakthrough").length : 0;
+          ? parsed.creativeProvisions.filter((p: Record<string, unknown>) => p.noveltyLevel === "breakthrough").length : 0;
         base.linkagesCount = Array.isArray(parsed.crossIssueLinkages) ? parsed.crossIssueLinkages.length : 0;
         base.unconventionalCount = Array.isArray(parsed.unconventionalApproaches) ? parsed.unconventionalApproaches.length : 0;
       }

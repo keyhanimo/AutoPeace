@@ -1,6 +1,7 @@
 import "dotenv/config";
+import { callLLMForStage, getModelConfig, resolveStageConfig } from "../services/llm-router";
 
-const STAGE_PROMPTS: { stage: number; name: string; role: "generation" | "evaluation" | "adversarial"; prompt: string; systemPrompt: string; maxTokens: number }[] = [
+const STAGE_PROMPTS: { stage: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8; name: string; role: "generation" | "evaluation" | "adversarial"; prompt: string; systemPrompt: string; maxTokens: number }[] = [
   {
     stage: 1, name: "Proposal Agent", role: "generation", maxTokens: 4096,
     systemPrompt: "You are an expert in peace deal design. Output valid JSON only.",
@@ -50,68 +51,43 @@ Return JSON: { "pipelineQuality": "adequate|good|excellent", "promptImprovements
   },
 ];
 
-async function callProvider(provider: string, model: string, systemPrompt: string, prompt: string, maxTokens: number, timeoutMs: number): Promise<{ ok: boolean; latencyMs: number; tokens?: number; error?: string; contentLength?: number }> {
-  const start = Date.now();
-  try {
-    if (provider === "anthropic") {
-      const { default: Anthropic } = await import("@anthropic-ai/sdk");
-      const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-      const resp = await client.messages.create({
-        model, max_tokens: maxTokens, system: systemPrompt,
-        messages: [{ role: "user", content: prompt }],
-      }, { timeout: timeoutMs, maxRetries: 0 });
-      const block = resp.content[0];
-      const content = block?.type === "text" ? block.text : "";
-      return { ok: !!content, latencyMs: Date.now() - start, tokens: (resp.usage?.input_tokens ?? 0) + (resp.usage?.output_tokens ?? 0), contentLength: content.length };
-    } else if (provider === "openai") {
-      const { default: OpenAI } = await import("openai");
-      const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: timeoutMs });
-      const resp = await client.chat.completions.create({
-        model, messages: [{ role: "system", content: systemPrompt }, { role: "user", content: prompt }],
-        max_completion_tokens: maxTokens,
-      });
-      const content = resp.choices[0]?.message?.content ?? "";
-      return { ok: !!content, latencyMs: Date.now() - start, tokens: resp.usage?.total_tokens ?? 0, contentLength: content.length };
-    } else if (provider === "gemini") {
-      const { GoogleGenAI } = await import("@google/genai");
-      const client = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const resp = await client.models.generateContent({
-        model, contents: prompt, config: { maxOutputTokens: maxTokens, systemInstruction: systemPrompt },
-      });
-      const content = resp.text ?? "";
-      return { ok: !!content, latencyMs: Date.now() - start, contentLength: content.length };
-    }
-    return { ok: false, latencyMs: 0, error: "Unknown provider" };
-  } catch (err: unknown) {
-    return { ok: false, latencyMs: Date.now() - start, error: err instanceof Error ? err.message : String(err) };
-  }
-}
-
-const ROLE_PROVIDERS: Record<string, { provider: string; model: string }> = {
-  generation: { provider: "anthropic", model: "claude-opus-4-6" },
-  evaluation: { provider: "openai", model: "gpt-5.2" },
-  adversarial: { provider: "gemini", model: "gemini-3.1-pro-preview" },
-};
-
 async function main() {
   console.log("=== Deal Pipeline Integration Smoke Test ===\n");
-  console.log("Using default role→provider mapping (no DB config needed)\n");
+
+  const modelConfig = await getModelConfig();
+  console.log("Loaded model config from DB (with admin overrides + fallback config)\n");
+
+  for (const stage of STAGE_PROMPTS) {
+    const resolved = resolveStageConfig(stage.stage, stage.role, modelConfig);
+    console.log(`  Stage ${stage.stage} (${stage.name}): ${resolved.provider}/${resolved.model} [role: ${stage.role}]`);
+  }
+  console.log();
 
   let passed = 0;
   let failed = 0;
   const TIMEOUT = 120_000;
 
   for (const stage of STAGE_PROMPTS) {
-    const { provider, model } = ROLE_PROVIDERS[stage.role]!;
-    process.stdout.write(`  Stage ${stage.stage} (${stage.name}) [${provider}/${model}]... `);
+    const resolved = resolveStageConfig(stage.stage, stage.role, modelConfig);
+    process.stdout.write(`  Stage ${stage.stage} (${stage.name}) [${resolved.provider}/${resolved.model}]... `);
 
-    const result = await callProvider(provider, model, stage.systemPrompt, stage.prompt, stage.maxTokens, TIMEOUT);
-
-    if (result.ok) {
-      console.log(`PASS | ${result.latencyMs}ms | ${result.tokens ?? "?"} tok | ${result.contentLength} chars`);
+    const start = Date.now();
+    try {
+      const result = await callLLMForStage(
+        stage.prompt,
+        stage.systemPrompt,
+        stage.stage,
+        stage.role,
+        modelConfig,
+        { maxTokens: stage.maxTokens, timeoutMs: TIMEOUT },
+      );
+      const durationMs = Date.now() - start;
+      console.log(`PASS | ${durationMs}ms | ${result.tokens} tok | ${result.content.length} chars`);
       passed++;
-    } else {
-      console.log(`FAIL | ${result.latencyMs}ms | ${result.error?.slice(0, 80)}`);
+    } catch (err: unknown) {
+      const durationMs = Date.now() - start;
+      const msg = err instanceof Error ? err.message : String(err);
+      console.log(`FAIL | ${durationMs}ms | ${msg.slice(0, 100)}`);
       failed++;
     }
   }
