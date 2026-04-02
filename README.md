@@ -1,13 +1,13 @@
 <p align="center">
   <h1 align="center">AutoPeace</h1>
   <p align="center">
-    <strong>AI-Powered Conflict Forecasting & Peace Research Platform</strong>
+    <strong>LLM-based Autonomous Peace Deal Optimization for Geopolitical Conflict using Multi-Agent Systems</strong>
   </p>
   <p align="center">
-    Automated research loops that generate Bayesian conflict forecasts and optimized peace deal proposals for the Iran–US–Israel conflict complex.
+    An autonomous research platform that generates Bayesian conflict forecasts and iteratively optimizes peace deal proposals for the Iran–US–Israel conflict complex.
   </p>
   <p align="center">
-    Developed by <strong>Mohammad Keyhani</strong>
+    Developed by <strong>Mohammad Keyhani</strong>, University of Calgary
   </p>
 </p>
 
@@ -17,9 +17,10 @@
 
 - [Overview](#overview)
 - [How It Works](#how-it-works)
-  - [The Autoresearch Loop](#the-autoresearch-loop)
-  - [Task A: Outcome Forecasting](#task-a-outcome-forecasting)
-  - [Task B: Deal Design](#task-b-deal-design)
+  - [The Autoresearch Cycle](#the-autoresearch-cycle)
+  - [Task A: Conflict Forecasting](#task-a-conflict-forecasting)
+  - [Task B: Autonomous Deal Optimization](#task-b-autonomous-deal-optimization)
+  - [Relationship Between Tasks A and B](#relationship-between-tasks-a-and-b)
 - [Features](#features)
 - [Tech Stack](#tech-stack)
 - [Architecture](#architecture)
@@ -36,9 +37,10 @@
 - [Frontend Pages](#frontend-pages)
 - [Intelligence Pipeline Deep Dive](#intelligence-pipeline-deep-dive)
   - [Evidence Ingestion](#evidence-ingestion)
-  - [Bayesian Forecasting Engine](#bayesian-forecasting-engine)
-  - [Hill-Climbing Optimization](#hill-climbing-optimization)
+  - [Forecasting Engine](#forecasting-engine)
   - [8-Stage Deal Engine](#8-stage-deal-engine)
+  - [Deal Memory & Provision-Level Learning](#deal-memory--provision-level-learning)
+  - [Pipeline Hill-Climbing (Self-Improving Prompts)](#pipeline-hill-climbing-self-improving-prompts)
   - [Proposal Extraction & Screening](#proposal-extraction--screening)
   - [Unified LLM Router](#unified-llm-router)
 - [Getting Started](#getting-started)
@@ -54,20 +56,20 @@
 
 ## Overview
 
-AutoPeace is an open-source, AI-powered research and forecasting platform focused on the Iran–US–Israel conflict complex. It demonstrates that automated AI research loops — inspired by Karpathy's "programming the program" philosophy and research systems like AIDE and GEPA — can contribute to solving complex global problems by providing transparent, measurable, and progressively improving forecasts and peace deal proposals.
+AutoPeace is an open-source, AI-powered research platform focused on the Iran–US–Israel conflict complex. It demonstrates that autonomous LLM research loops — inspired by Karpathy's autoresearch paradigm — can contribute to complex geopolitical problems by providing transparent, measurable, and progressively improving peace deal proposals alongside probabilistic conflict forecasts.
 
-The platform operates two continuous research tasks:
+The platform operates two research tasks:
 
-- **Task A (Forecasting):** Generates Bayesian probability distributions across 8 mutually exclusive conflict outcome states over five time horizons (10 days, 30 days, 90 days, 180 days, 1 year).
-- **Task B (Deal Design):** Uses a multi-agent negotiation pipeline to design, stress-test, and optimize structured peace deal proposals evaluated by simulated stakeholder agents.
+- **Task A (Conflict Forecasting):** Generates Bayesian probability distributions across 8 mutually exclusive conflict outcome states over five time horizons (10 days, 30 days, 90 days, 180 days, 1 year). Forecasting is a single-pass inference step — no experimentation, scoring optimization, or hill-climbing is applied to forecast outputs.
+- **Task B (Deal Optimization):** Uses a multi-agent negotiation pipeline (Stages 0–8) to design, stress-test, and iteratively optimize structured peace deal proposals through adversarial red-teaming, stakeholder simulation, and hill-climbing over a 7-dimension composite score.
 
-Every experiment, LLM prompt, reasoning step, and evaluation is logged and publicly browsable — embodying a philosophy of radical transparency.
+Both tasks share the same evidence corpus but are operationally independent — forecast probabilities are not consumed by the deal engine.
 
 ---
 
 ## How It Works
 
-### The Autoresearch Loop
+### The Autoresearch Cycle
 
 AutoPeace runs a continuous research cycle that can be scheduled hourly, daily, weekly, or triggered manually:
 
@@ -76,81 +78,79 @@ AutoPeace runs a continuous research cycle that can be scheduled hourly, daily, 
 │                        AUTORESEARCH CYCLE                          │
 │                                                                    │
 │  1. Evidence Ingestion                                             │
-│     RSS feeds (Reuters, AP, Guardian, BBC, Al Jazeera)             │
+│     RSS feeds (Reuters, AP, BBC, Al Jazeera, Guardian)             │
 │     + ACLED conflict data + GDELT event streams                    │
+│              │                                                     │
+│              ▼                                                     │
+│  1b. Stakeholder Profile Updates                                   │
+│      LLM updates 33 stakeholder profiles from latest evidence      │
 │              │                                                     │
 │              ▼                                                     │
 │  2. Proposal Extraction                                            │
 │     Auto-scan diplomatic evidence for real-world peace proposals   │
 │              │                                                     │
 │              ▼                                                     │
-│  3. Multi-Model Forecasting (Task A)                               │
-│     Bayesian probabilities × 8 outcomes × 5 time horizons         │
+│  3. Conflict Forecasting (Task A)                                  │
+│     Single-pass Bayesian probabilities × 8 outcomes × 5 horizons  │
 │              │                                                     │
 │              ▼                                                     │
-│  4. Red-Team Challenge                                             │
-│     Adversarial model attacks the 90-day forecast                  │
-│              │                                                     │
-│              ▼                                                     │
-│  5. Hill-Climbing Evaluation                                       │
-│     Evaluate mutation → retain if Brier/Log scores improve         │
-│              │                                                     │
-│              ▼                                                     │
-│  6. What-If Scenario Computation                                   │
-│     Pre-compute probability shifts for trigger events              │
-│              │                                                     │
-│              ▼                                                     │
-│  7. Deal Engine Optimization (Task B)                              │
+│  4. Deal Optimization (Task B)                                     │
 │     8-stage multi-agent pipeline → solution tree → Pareto frontier │
 │              │                                                     │
 │              ▼                                                     │
-│  8. Changelog Generation                                           │
-│     Auto-generate headline from forecast/deal deltas               │
+│  5. Changelog Generation                                           │
+│     Auto-generate headline from forecast deltas                    │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Task A: Outcome Forecasting
+### Task A: Conflict Forecasting
 
-The forecasting engine produces probability distributions across **8 MECE (Mutually Exclusive, Collectively Exhaustive) outcome categories**:
+The forecasting engine produces probability distributions across **8 MECE (Mutually Exclusive, Collectively Exhaustive) outcome states**:
 
-| Outcome | Description |
-|---|---|
-| Major Escalation | Full-scale regional conflict involving multiple state actors |
-| Limited Military Confrontation | Targeted strikes or proxy escalation without full war |
-| Status Quo / Frozen Conflict | Current tensions persist without significant change |
-| Limited Ceasefire | Partial or temporary ceasefire in one theater |
-| Broad Ceasefire | Comprehensive cessation of hostilities across theaters |
-| Framework Agreement | Preliminary diplomatic agreement on core issues |
-| Partial Settlement | Binding agreement resolving some but not all disputes |
-| Broad Settlement | Comprehensive peace deal addressing all major issues |
+| # | Outcome | Description |
+|---|---------|-------------|
+| 1 | Continued Conflict | Status quo friction without major escalation |
+| 2 | Informal De-escalation | Unspoken throttling of hostilities |
+| 3 | Limited Ceasefire | Temporary, tactical pause in kinetic action |
+| 4 | Humanitarian Mini-Deal | Narrow agreements on hostage or aid access |
+| 5 | Sanctions Partial Deal | Economic relief in exchange for specific concessions |
+| 6 | Regional Framework | Broad multi-lateral security architecture |
+| 7 | Broad Settlement | Comprehensive, enduring peace treaty |
+| 8 | Major Escalation | Severe expansion of kinetic theater |
 
-Forecasts are generated for **five time horizons**: 10 days, 30 days, 90 days, 180 days, and 1 year. The system self-improves through hill-climbing prompt optimization, mutating its own prompts (Adversarial, Pessimistic, Base-Rate) and retaining those that improve calibration against backtested Brier and Log scores.
+Forecasts are generated for **five time horizons**: 10 days, 30 days, 90 days, 180 days, and 1 year. Each cycle produces a single forecast per horizon conditioned on the latest evidence — no experimentation, no scoring optimization, and no hill-climbing is applied to forecasts.
 
-### Task B: Deal Design
+### Task B: Autonomous Deal Optimization
 
-The deal engine uses a **grand coalition cooperative game theory framework** with a multi-agent pipeline to generate, evaluate, and optimize peace proposals. It maintains:
+The deal engine uses a **multi-agent pipeline** to generate, evaluate, and iteratively optimize peace proposals. It maintains:
 
-- **Solution Tree:** A branching tree of deal versions (Balanced, Nuclear-First, Regional Security, etc.), allowing the AI to backtrack or branch when an approach stalls.
-- **Pareto Frontier:** Instead of one "best" deal, it presents a frontier of non-dominated deals that excel in different dimensions (e.g., "Most Robust" vs. "Most Acceptable to Iran").
-- **Pipeline Hill-Climbing:** The meta-evaluator suggests prompt improvements after each cycle, stored cumulatively and applied to future runs — enabling the AI to iteratively improve its own deal generation prompts.
+- **Solution Tree:** A branching tree of deal versions across 8 architectures (balanced, nuclear-first, hormuz-first, humanitarian-first, radical-restructure, asymmetric-grand-bargain, incremental-confidence, freeform), allowing backtracking or branching when an approach stalls.
+- **Pareto Frontier:** Instead of one "best" deal, the system preserves a frontier of non-dominated deals that excel in different dimensions.
+- **Pipeline Hill-Climbing:** The Meta-Evaluator (Stage 7) suggests prompt improvements after each cycle, applied cumulatively through a score-gated mechanism — enabling the system to iteratively improve its own deal generation prompts.
+- **Deal Memory:** Provision-level learning tracks which specific deal mechanisms historically improved or hurt scores across dimensions.
+
+### Relationship Between Tasks A and B
+
+In the current implementation, forecasting and deal optimization are operationally independent. Both consume the same underlying evidence corpus (RSS feeds, ACLED, GDELT), but the probability distributions produced by Task A are not programmatically passed to or consumed by the deal optimization pipeline. The deal engine receives a two-layer evidence context (a strategic situation assessment synthesized from up to 150 evidence items, plus the 30 most recent items) but does not condition on the forecast probabilities. The two tasks run sequentially within each cycle — forecasting completes first, then the deal engine launches — and they share evidence ingestion infrastructure, but the information flow between them is limited to this shared evidence base.
 
 ---
 
 ## Features
 
-- **Bayesian Conflict Forecasting** — Continuously updated probability distributions across 8 outcome states and 5 time horizons
-- **Multi-Agent Deal Negotiation** — 8-stage pipeline with proposal, stakeholder evaluation, domestic audience analysis, red-teaming, and creative negotiation
-- **32+ Stakeholder Profiles** — Tiered acceptance system (Required → Critical → Influential → Contextual) with red lines, goals, and communication styles
-- **What-If Scenarios** — Pre-computed probability shifts for hypothetical trigger events (e.g., "Hormuz Closure", "Major Cyberattack")
-- **Cost-of-War Analysis** — Economic, humanitarian, and strategic cost tracking across 8 channels for 32+ stakeholders
-- **Community Participation** — Users can submit their own forecasts and peace proposals for AI evaluation
-- **Proposal Arena** — Side-by-side comparison of human proposals vs. AI-generated deals with multi-dimensional scoring
-- **Evidence Corpus** — Searchable database of real-world events sourced from Reuters, AP, ACLED, GDELT, and other OSINT feeds
-- **Evolution Log** — Full transparency into prompt mutations, experiment results, and solution tree exploration
+- **Bayesian Conflict Forecasting** — Single-pass probability distributions across 8 outcome states and 5 time horizons per cycle
+- **Multi-Agent Deal Negotiation** — 8-stage pipeline with proposal generation, stakeholder evaluation, domestic audience analysis, creative reframing, red-teaming, Pareto-optimal negotiation, multi-model judicial scoring, meta-evaluation, and diagnosis
+- **33 Stakeholder Profiles** — Tiered acceptance system (Required → Critical → Influential → Contextual) with evidence-updated goals, red lines, and constraints
+- **8 Deal Architectures** — Sequential cycling through balanced, nuclear-first, hormuz-first, humanitarian-first, radical-restructure, asymmetric-grand-bargain, incremental-confidence, and freeform approaches
+- **Cost-Benefit Analysis** — Economic modeling across 8 channels for key stakeholders, injected into deal generation and evaluation prompts
+- **Deal Memory** — Provision-level learning that tracks which deal mechanisms improved or hurt scores, feeding insights into future cycles
+- **Self-Improving Prompts** — Score-gated hill-climbing on pipeline prompts with full evolutionary lineage tracking
+- **Live Monitor** — Real-time view of active research cycles with full LLM call logging (model, tokens, cost, duration)
+- **Community Forecasts** — Users can submit their own probability estimates for comparison
+- **Proposal Arena** — Side-by-side comparison of proposals with multi-dimensional scoring
+- **Evidence Corpus** — Searchable database of real-world events sourced from RSS, ACLED, and GDELT
+- **Deal Permalinks & Sharing** — Shareable deal pages with social metadata and markdown export
 - **Data Portal** — JSON and CSV exports for all research datasets
 - **RSS Feed** — Subscribe to research cycle updates via RSS 2.0
-- **AI Proposal Screening** — LLM-powered screening of community submissions for seriousness, legitimacy, and uniqueness
-- **Academic-Grade Sourcing** — Every data page includes expandable methodology panels with peer-reviewed citations, confidence notes, and limitations
 
 ---
 
@@ -162,7 +162,7 @@ The deal engine uses a **grand coalition cooperative game theory framework** wit
 | **Frontend** | React 19, Vite 7, Tailwind CSS 4, Recharts, Framer Motion, Shadcn UI |
 | **Backend** | Express 5, Node.js 24 |
 | **Database** | PostgreSQL + Drizzle ORM |
-| **AI Models** | Anthropic Claude Opus 4.6, OpenAI GPT-5.2, Google Gemini 3.1 Pro |
+| **AI Models** | Anthropic Claude, OpenAI GPT, Google Gemini (configurable per role) |
 | **Validation** | Zod v4, drizzle-zod |
 | **API Codegen** | Orval (from OpenAPI 3.1 spec) |
 | **Data Fetching** | TanStack React Query |
@@ -183,23 +183,25 @@ autopeace/
 │   │   └── src/
 │   │       ├── routes/          # API route handlers
 │   │       ├── services/        # Core business logic
-│   │       │   ├── autoresearch.ts        # Forecast cycle orchestrator
-│   │       │   ├── deal-engine.ts         # 8-stage deal pipeline (72KB)
+│   │       │   ├── autoresearch.ts        # Cycle orchestrator
+│   │       │   ├── deal-engine.ts         # 8-stage deal pipeline
 │   │       │   ├── deal-autoresearch.ts   # Deal cycle loop, solution tree, Pareto
 │   │       │   ├── forecasting.ts         # Bayesian forecasting engine
 │   │       │   ├── evidence-ingestion.ts  # RSS/ACLED/GDELT ingestion
 │   │       │   ├── llm-router.ts          # Unified LLM routing layer
 │   │       │   ├── proposal-extractor.ts  # Auto-extract proposals from evidence
 │   │       │   ├── proposal-screening.ts  # AI screening of community submissions
-│   │       │   └── scoring.ts             # Deal scoring utilities
-│   │       ├── seed/            # Seed data (stakeholders, proposals)
+│   │       │   ├── scoring.ts             # Deal scoring utilities
+│   │       │   └── cycle-log.ts           # Active cycle context & event emitter
+│   │       ├── seed/            # Seed data (stakeholders, proposals, forecasts)
+│   │       ├── lib/             # Admin auth, logger, cycle-log
 │   │       └── app.ts           # Express app setup
 │   │
 │   └── autopeace/               # React Vite frontend (dark navy theme)
 │       └── src/
-│           ├── pages/           # 17+ page components
+│           ├── pages/           # 20+ page components
 │           ├── components/      # Reusable UI components
-│           ├── hooks/           # Custom React hooks
+│           ├── hooks/           # Custom React hooks (useCycleStatus, etc.)
 │           └── App.tsx          # Router + layout
 │
 ├── lib/
@@ -207,14 +209,14 @@ autopeace/
 │   ├── api-client-react/        # Generated React Query hooks
 │   ├── api-zod/                 # Generated Zod schemas from OpenAPI
 │   ├── db/                      # Drizzle ORM schema + DB connection
-│   │   └── src/schema/          # Table definitions (10+ tables)
-│   ├── integrations-anthropic-ai/      # Anthropic client + batchProcess
-│   ├── integrations-openai-ai-server/  # OpenAI client + batchProcess
+│   │   └── src/schema/          # Table definitions
+│   ├── integrations-anthropic-ai/      # Anthropic client
+│   ├── integrations-openai-ai-server/  # OpenAI client
 │   └── integrations-gemini-ai/         # Gemini AI client
 │
 ├── scripts/                     # Utility & post-merge scripts
 ├── pnpm-workspace.yaml
-├── tsconfig.base.json           # Shared TypeScript config (composite: true)
+├── tsconfig.base.json           # Shared TypeScript config
 ├── tsconfig.json                # Project references
 └── package.json
 ```
@@ -223,17 +225,17 @@ autopeace/
 
 The UI is a dark-themed research dashboard built with React 19, Vite, Tailwind CSS, and Shadcn UI components. It uses TanStack React Query with auto-generated hooks from the OpenAPI spec for type-safe data fetching. The interface is organized into four navigation groups:
 
-- **Research** — Home dashboard, forecasts, deals, proposal arena, cost-benefit analysis
-- **Explorer** — Stakeholder profiles, comparisons, lens view, evidence corpus, evolution log
-- **Community** — Submit proposals, community forecasts
-- **Info** — Data portal, API docs, methodology, changelog, open source
+- **Research** — Home dashboard, deal dashboard, deal history, proposal arena, forecasts, cost-benefit analysis
+- **Explorer** — Stakeholder profiles, comparisons, stakeholder lens, evidence corpus, live monitor, autoresearch lab
+- **Community** — Submit proposals, data portal, API docs
+- **Info** — Changelog, methodology, admin panel
 
 ### Backend (Express API Server)
 
 The API server is built on Express 5 and serves three roles:
 
 1. **REST API** — 40+ endpoints serving forecasts, deals, stakeholders, evidence, and community data
-2. **Research Orchestrator** — Runs the autoresearch cycle (evidence ingestion → forecasting → red-teaming → deal optimization)
+2. **Research Orchestrator** — Runs the autoresearch cycle (evidence ingestion → stakeholder updates → proposal extraction → forecasting → deal optimization)
 3. **Admin Interface** — Protected endpoints for configuration, manual cycle triggers, and proposal management
 
 ### Shared Libraries
@@ -244,26 +246,26 @@ The API server is built on Express 5 and serves three roles:
 | `@workspace/api-spec` | OpenAPI 3.1 specification and Orval codegen configuration |
 | `@workspace/api-client-react` | Auto-generated React Query hooks from the OpenAPI spec |
 | `@workspace/api-zod` | Auto-generated Zod validation schemas from the OpenAPI spec |
-| `@workspace/integrations-anthropic-ai` | Anthropic Claude client with batch processing utilities |
-| `@workspace/integrations-openai-ai-server` | OpenAI GPT client with batch processing utilities |
+| `@workspace/integrations-anthropic-ai` | Anthropic Claude client |
+| `@workspace/integrations-openai-ai-server` | OpenAI GPT client |
 | `@workspace/integrations-gemini-ai` | Google Gemini client |
 
 ---
 
 ## Database Schema
 
-The PostgreSQL database uses Drizzle ORM and contains 10+ tables organized around the concept of **research cycles**:
+The PostgreSQL database uses Drizzle ORM and contains tables organized around the concept of **research cycles**:
 
 ### Core Tables
 
 | Table | Purpose |
 |---|---|
-| `cycles` | Tracks automated research runs (status, tokens consumed, cost, experiments run) |
+| `cycles` | Tracks automated research runs (status, timing, stage progression) |
 | `forecasts` | Probability distributions across 8 outcome states per time horizon, linked to cycles |
 | `deals` | Generated peace proposals with terms (JSONB), scores (JSONB), stakeholder evaluations; supports parent-child versioning |
-| `stakeholders` | 32 conflict actor profiles with roles, red lines, goals, and communication styles |
+| `stakeholders` | 33 conflict actor profiles with tiers, red lines, goals, and LLM-updated profiles |
 | `evidence_items` | Ingested news/events classified by type and source, used for AI grounding |
-| `evidence_sources` | RSS source configurations (5 feeds) |
+| `evidence_sources` | RSS source configurations |
 | `proposals` | Analyzed/scored real-world and community peace proposals |
 | `proposal_submissions` | Raw user-submitted proposals with screening status |
 
@@ -271,34 +273,19 @@ The PostgreSQL database uses Drizzle ORM and contains 10+ tables organized aroun
 
 | Table | Purpose |
 |---|---|
-| `experiments` | Detailed logs of prompt mutations and parameter variations during research cycles |
 | `pipeline_evolution` | Cumulative prompt overrides per pipeline stage for hill-climbing optimization |
+| `provision_outcomes` | Per-provision performance tracking (score deltas, dimension-level deltas, stakeholder reactions) |
 | `solution_tree` | Hierarchical representation of deal evolution branches |
 | `cost_of_war` | Economic, humanitarian, and strategic cost data per stakeholder |
-| `community_forecasts` | Aggregated user-submitted probability estimates |
+| `community_forecasts` | User-submitted probability estimates |
 | `changelog_entries` | Auto-generated summaries of research cycle deltas |
-| `email_subscriptions` | Newsletter/alert signups |
 | `admin_config` | Key-value store for system-wide configuration |
 
 ### Key Relationships
 
-- **One-to-Many:** `cycles` → `deals`, `forecasts`, `experiments`, `changelog_entries`
+- **One-to-Many:** `cycles` → `deals`, `forecasts`, `changelog_entries`
 - **Self-Reference:** `deals.parent_id` (deal evolution), `solution_tree.parent_node_id` (branch exploration)
 - **Flexible JSONB:** Stakeholder IDs used as keys in `deals.stakeholder_evaluations` and `proposals.stakeholder_evaluations` for schemaless flexibility
-
-### Stakeholder Categories
-
-The 32 stakeholders are organized into 7 categories:
-
-| Category | Count | Examples |
-|---|---|---|
-| Core Principal | 3 | Iran, United States, Israel |
-| Gulf State | 6 | Saudi Arabia, UAE, Qatar, Kuwait, Bahrain, Oman |
-| Regional Broker | 8 | Turkey, Iraq, Egypt, Jordan, Pakistan, etc. |
-| External Power | 8 | Russia, China, EU3, India, Japan, South Korea, etc. |
-| Global Bloc | 3 | Global North, Global South Energy Exporters/Importers |
-| International Org | 1 | IAEA |
-| Internal Faction | 2 | IRGC, US Congress |
 
 ---
 
@@ -321,17 +308,19 @@ All endpoints are prefixed with `/api`. Rate limits: 120 requests/min (public), 
 | `GET` | `/deals/history` | Chronological deal history |
 | `GET` | `/deals/robustness` | Red-team attack survival report |
 | `GET` | `/deals/compare` | Side-by-side deal comparison (via `ids` query param) |
-| `GET` | `/deals/:id` | Single deal detail |
+| `GET` | `/deals/:id` | Single deal detail with permalink metadata |
 | `GET` | `/deals/:id/stakeholder-evals` | Stakeholder evaluations for a deal |
+| `GET` | `/deals/:id/llm.md` | Markdown export of deal |
+| `POST` | `/deals/:id/share-text` | Generate social sharing text for a deal |
 | `GET` | `/proposals` | List analyzed proposals |
-| `GET` | `/proposals/arena` | Human vs. AI proposal comparison set |
+| `GET` | `/proposals/arena` | Proposal comparison set |
 | `GET` | `/proposals/:id` | Single proposal detail |
-| `GET` | `/stakeholders` | All 32 stakeholder profiles |
+| `GET` | `/stakeholders` | All stakeholder profiles |
 | `GET` | `/stakeholders/:id` | Single stakeholder profile |
 | `GET` | `/stakeholders/tiers` | Tier registry grouped by acceptance level |
 | `GET` | `/evidence` | Search/list evidence corpus |
 | `GET` | `/costs` | Cost-of-war data by stakeholder |
-| `GET` | `/experiments` | Experiment log (paginated) |
+| `GET` | `/experiments/stats` | Pipeline experiment statistics |
 | `GET` | `/changelog` | Research cycle changelog |
 | `GET` | `/changelog.xml` | RSS 2.0 feed |
 | `GET` | `/changelog/:id` | Single changelog entry |
@@ -343,8 +332,6 @@ All endpoints are prefixed with `/api`. Rate limits: 120 requests/min (public), 
 | `POST` | `/community-forecasts` | Submit user probability estimates |
 | `GET` | `/community-forecasts/aggregate` | Aggregated community forecast by time horizon |
 | `POST` | `/proposals/submit` | Submit a community peace proposal (AI-screened) |
-| `POST` | `/subscribe` | Subscribe to research digest |
-| `DELETE` | `/subscribe` | Unsubscribe |
 
 ### Data Export Endpoints
 
@@ -358,7 +345,6 @@ All endpoints are prefixed with `/api`. Rate limits: 120 requests/min (public), 
 | `GET` | `/downloads/stakeholders.json` | Export stakeholders as JSON |
 | `GET` | `/downloads/evidence.json` | Export evidence as JSON |
 | `GET` | `/downloads/costs.json` | Export cost-of-war data as JSON |
-| `GET` | `/downloads/experiments.csv` | Export experiments as CSV |
 
 ### Admin Endpoints
 
@@ -368,11 +354,13 @@ All admin endpoints require the `X-Admin-Key` header matching the `ADMIN_PASSWOR
 |---|---|---|
 | `GET` | `/admin/config` | View system configuration |
 | `POST` | `/admin/config` | Update configuration (cadence, models, budget, etc.) |
-| `POST` | `/admin/run` | Trigger a forecast research cycle (409 if already running) |
-| `POST` | `/admin/deal-run` | Trigger a deal generation cycle |
-| `POST` | `/admin/proposals` | Manually add a new proposal |
-| `GET` | `/admin/proposals/queue` | View community submission review queue |
-| `PATCH` | `/admin/proposals/queue/:id` | Approve or reject a submission |
+| `GET` | `/admin/pipeline/config` | View per-stage model assignments |
+| `GET` | `/admin/cycle-status` | Current cycle status |
+| `POST` | `/admin/run` | Trigger a full research cycle (409 if already running) |
+| `GET` | `/admin/deal-cycles` | List deal cycle history |
+| `GET` | `/admin/sources` | View evidence source configurations |
+| `PATCH` | `/admin/sources/:id` | Update an evidence source |
+| `POST` | `/proposals` | Manually add a new proposal (admin auth required) |
 | `POST` | `/admin/proposals/:id/evaluate` | Trigger full 8-stage AI evaluation for a proposal |
 
 ---
@@ -381,23 +369,25 @@ All admin endpoints require the `X-Admin-Key` header matching the `ADMIN_PASSWOR
 
 | Route | Page | Description |
 |---|---|---|
-| `/` | **Home** | Hero dashboard with Peace Outlook gauge, AI vs Human scores, live metrics (Brier scores, cycles, tokens), pipeline visualization |
-| `/forecasts` | **Forecast Dashboard** | Outcome probability charts, community forecast comparison, calibration scorecard |
-| `/deals` | **Deal Dashboard** | Current AI champion, 7-dimension radar charts, red-team results, stakeholder acceptance map, solution tree |
-| `/arena` | **Proposal Arena** | Human vs. AI deal comparison with side-by-side radar charts and score breakdowns |
-| `/costs` | **Cost-Benefit Analysis** | War costs vs. peace benefits by channel/stakeholder, humanitarian data, treemap, and methodology framework |
-| `/stakeholders` | **Stakeholder Gallery** | Expandable profile cards for all 32 conflict actors |
+| `/` | **Home** | Dashboard with 10-day outcome distribution, peace deal score, live metrics, pipeline status |
+| `/forecasts` | **Forecast Dashboard** | Outcome probability charts, time horizon selector, community forecast comparison, historical trend chart |
+| `/deals` | **Deal Dashboard** | Current AI champion deal, 7-dimension radar chart, red-team results, stakeholder acceptance map |
+| `/deals/history` | **Deal History** | Chronological list of all generated deals with scores and architecture tags |
+| `/deals/:id` | **Deal Permalink** | Shareable deal detail page with full terms, scores, stakeholder evaluations, markdown export |
+| `/arena` | **Proposal Arena** | Side-by-side proposal comparison with radar charts and score breakdowns |
+| `/costs` | **Cost-Benefit Analysis** | War costs vs. peace benefits by channel/stakeholder, treemaps, and methodology framework |
+| `/stakeholders` | **Stakeholder Gallery** | Profile cards for all conflict actors with tier badges |
 | `/stakeholders/compare` | **Stakeholder Comparison** | Multi-select comparison tool for up to 4 stakeholders |
 | `/stakeholders/lens` | **Stakeholder Lens** | Immersive view filtering all data through one stakeholder's perspective |
-| `/evidence` | **Evidence Explorer** | Searchable, filterable corpus of 54+ evidence items |
-| `/experiments` | **Evolution Log** | Prompt mutation history with result badges, solution tree visualization |
-| `/submit` | **Submit Proposal** | Public form for community peace proposal submissions with real-time AI screening |
-| `/data` | **Data Portal** | JSON/CSV download links for all 6 research datasets + RSS |
-| `/api-docs` | **API Documentation** | Interactive documentation for 20+ endpoints, filterable by tag |
-| `/methodology` | **Methodology** | Bayesian approach, 8-state MECE taxonomy, scoring framework |
+| `/evidence` | **Evidence Explorer** | Searchable, filterable corpus of ingested evidence items |
+| `/live` | **Live Monitor** | Real-time cycle monitoring with full LLM call detail logging (model, tokens, cost, duration) |
+| `/lab` | **Autoresearch Lab** | Pipeline evolution history, solution tree visualization |
+| `/submit` | **Submit Proposal** | Public form for community peace proposal submissions with AI screening |
+| `/data` | **Data Portal** | JSON/CSV download links for research datasets + RSS |
+| `/api-docs` | **API Documentation** | Interactive documentation for all endpoints, filterable by tag |
+| `/methodology` | **Methodology** | Academic-style paper describing the system architecture, forecasting approach, and deal optimization pipeline |
 | `/changelog` | **Changelog** | Timeline of research cycle headlines and deltas |
 | `/changelog/:id` | **Changelog Entry** | Detailed view of a single research cycle update |
-| `/open-source` | **Open Source** | Contributing guide, tech stack, and license information |
 | `/admin` | **Admin Panel** | Password-gated panel for model/provider config, proposal management, cycle triggers |
 
 ---
@@ -408,71 +398,80 @@ All admin endpoints require the `X-Admin-Key` header matching the `ADMIN_PASSWOR
 
 The system ingests real-world data from multiple sources:
 
-- **RSS Feeds:** Reuters, AP, The Guardian, BBC, Al Jazeera — filtered by Iran-related keywords
-- **ACLED:** Armed Conflict Location & Event Data
-- **GDELT:** Global Database of Events, Language, and Tone
+- **RSS Feeds:** Reuters, AP, The Guardian, BBC, Al Jazeera — filtered by Iran-related keywords (iran, tehran, nuclear, iaea, sanctions, irgc, hezbollah, hamas, houthi, strait of hormuz, jcpoa, enrichment, centrifuge, etc.)
+- **ACLED:** Armed Conflict Location & Event Data — battles, explosions, protests, and strategic developments in the Iran-Israel-Gulf region
+- **GDELT:** Global Database of Events, Language, and Tone — high-frequency event data with sentiment analysis
 
-Evidence items are classified by type, tagged with relevance scores, and stored for use in grounding AI reasoning. Diplomatic evidence is further processed by the Proposal Extractor.
+Evidence items are deduplicated using SHA-256 hashes, classified by type (military, diplomatic, economic, humanitarian, political), and linked to the cycle and forecast they influenced. After ingestion, stakeholder profiles are updated by an LLM based on newly ingested evidence.
 
-### Bayesian Forecasting Engine
+### Forecasting Engine
 
-Each cycle generates probabilities across 8 outcome states for 5 time horizons using the admin-configured forecasting model. The forecasting pipeline:
+Each cycle generates probability distributions across 8 outcome states for 5 time horizons using the admin-configured forecasting model. Forecasting is a **single-pass inference step**:
 
-1. Collects recent evidence and prior forecasts as context
+1. Collects the 30 most recent evidence items as context
 2. Generates new probability distributions constrained to sum to 1.0
-3. Produces rationale explaining the reasoning behind each probability shift
-4. Validates outputs against the MECE constraint
+3. Produces rationale explaining the reasoning behind each probability
+4. Normalizes outputs against the MECE constraint
+5. Persists all forecasts; marks the latest set as "current"
 
-### Hill-Climbing Optimization
-
-The system uses an evolutionary approach to improve forecast accuracy over time:
-
-1. An adversarial model generates a "mutated" forecast challenging the current one
-2. An independent evaluation model assesses both using Brier and Log scoring
-3. If the mutation scores better, it replaces the current approach
-4. Prompt variations (Adversarial, Pessimistic, Base-Rate) are tracked across experiments
-
-This ensures the system's predictions measurably improve with each cycle.
+No experimentation, automated scoring, or hill-climbing is applied to forecasts. Historical forecasts are retained for trend comparison but no quality metric (e.g., Brier score) is computed.
 
 ### 8-Stage Deal Engine
 
-The deal engine implements a sophisticated multi-agent pipeline using game theory principles:
+The deal engine implements a multi-agent pipeline where different LLM providers are deliberately assigned to different stages to ensure adversarial independence:
 
-| Stage | Role | Model Provider | Description |
+| Stage | Role | Provider Role | Description |
 |---|---|---|---|
-| **0. Innovation Brainstorm** | Pre-stage | Generation | Mines historical peace deal analogies, discovers cross-issue linkages, generates creative provisions |
-| **1. Proposal Agent** | Generation | Generation | Designs deal terms with binding stakeholder commitments and innovative provisions |
-| **2. Stakeholder Evaluator** | Evaluation | Evaluation | Assesses acceptance across 23 stakeholders in 4 tiers |
-| **3. Domestic Audiences** | Evaluation | Evaluation | Evaluates political sellability in Iran, US, and Israel |
-| **3.5 Creative Reframing** | Generation | Generation | Generates domestic selling narratives, transforming concessions into perceived victories |
-| **4. Red-Team Agent** | Adversarial | Adversarial | Runs 5 attack scenarios with severity and survival ratings |
-| **5. Creative Negotiator** | Generation | Generation | Searches for Pareto improvements and win-win tradeoffs |
-| **6. Judge Agent** | Evaluation | Evaluation | 7-dimension scoring with tier-aware acceptance hierarchy |
+| **0. Innovation Brainstorm** | Pre-stage | Generation | Mines historical peace deal analogies, discovers cross-issue linkages, generates creative provisions with deal memory context |
+| **1. Proposal Agent** | Generation | Generation | Designs deal terms with CBA data, brainstorm insights, deal memory, and previous diagnosis |
+| **2. Stakeholder Evaluator** | Evaluation | Evaluation | Assesses acceptance across 33 stakeholders in 4 tiers with evidence-updated profiles |
+| **3. Domestic Audiences** | Evaluation | Evaluation | Evaluates political sellability across 11 audiences in Iran, US, and Israel |
+| **3.5 Creative Reframing** | Generation | Generation | Generates domestic selling narratives, reframing concessions as victories |
+| **4. Red-Team Agent** | Adversarial | Adversarial | Runs 5 adversarial attack scenarios with severity and survival ratings |
+| **5. Creative Negotiator** | Generation | Generation | Searches for Pareto improvements and win-win tradeoffs across stakeholders |
+| **6. Judge Panel** | Judicial | All 3 Providers | Three independent LLM judges score on 7 dimensions; scores averaged |
 | **7. Meta-Evaluator** | Evaluation | Evaluation | Pipeline reasoning quality assessment + prompt improvement suggestions |
-| **8. Diagnosis Generator** | Adversarial | Adversarial | Tier-aware diagnosis with rejection warnings |
+| **8. Diagnosis Generator** | Adversarial | Adversarial | Tier-aware diagnosis fed forward to the next cycle's Proposal Agent |
 
-**Provider Independence:** The system enforces that the generation provider differs from the evaluation provider, ensuring evaluation independence (e.g., Anthropic generates, OpenAI evaluates).
+**Provider Independence:** The system enforces that the generation provider differs from the evaluation provider at the code level — the system throws an error if they match.
 
-**Tiered Stakeholder Acceptance:**
+**Tiered Stakeholder Acceptance with Graduated Penalties:**
 
-| Tier | Actors | Impact |
+| Tier | Actors | Rejection Impact |
 |---|---|---|
-| **Required** | Iran, United States | Both must accept; rejection caps feasibility at 0.15 |
-| **Critical** | Israel | Rejection caps feasibility at 0.35 |
-| **Influential** | Saudi Arabia, EU3, Russia, China, IAEA | Affects durability |
-| **Contextual** | UAE, Qatar, Turkey, Iraq, + 11 others | Affects regional stability |
+| **Required** | Iran, United States | Feasibility/durability compressed toward 0.10; −0.10 composite offset |
+| **Critical** | Israel | Feasibility compressed toward 0.20; −0.05 composite offset |
+| **Influential** | Saudi Arabia, EU3, Russia, China, IAEA | Affects durability and regional stability |
+| **Contextual** | UAE, Qatar, Turkey, Iraq, + 11 others | Affects regional stability assessment |
 
-**7 Scoring Dimensions:** Feasibility, Coherence, Evidence Quality, Domestic Sellability, Regional Stability, Implementability, Durability — each scored 0–1.
+**7 Scoring Dimensions:** Feasibility (15%), Coherence (15%), Evidence Grounding (12%), Domestic Sellability (15%), Regional Stability (13%), Implementability (15%), Durability (15%) — each scored 0.0–1.0 by the 3-model Judge Panel.
+
+### Deal Memory & Provision-Level Learning
+
+The system maintains structured memory across deal cycles:
+
+- **Deal History Context:** Top 5 highest-scoring deals with terms, scores, stakeholder verdicts, and diagnoses are injected into brainstorm and proposal stages
+- **Provision Outcomes:** Each innovative provision is tracked in a `provision_outcomes` table with composite score delta, per-dimension deltas, stakeholder reactions, category, and architecture
+- **Aggregated Insights:** Usage count, average score delta, and best/worst dimensions for each provision type are computed and injected into prompts, creating a genuine learning signal
+
+### Pipeline Hill-Climbing (Self-Improving Prompts)
+
+The Meta-Evaluator (Stage 7) suggests prompt improvements after each cycle. These are adopted through a score-gated mechanism:
+
+1. Each pipeline configuration must produce at least 2 deals before evolving
+2. New overrides are adopted only when the composite score exceeds the running average by a minimum threshold
+3. Accepted improvements are applied as cumulative addenda to stage prompts
+4. Full evolutionary lineage is tracked in the `pipeline_evolution` table
 
 ### Proposal Extraction & Screening
 
-**Auto-Extraction:** After evidence ingestion, the system scans diplomatic articles for real-world peace proposals using Anthropic Claude. Extracted proposals receive the full 8-stage evaluation pipeline. Deduplication uses a three-layer approach: stable ID hashing, exact name matching, and fuzzy word overlap detection.
+**Auto-Extraction:** After evidence ingestion, the system scans diplomatic articles for real-world peace proposals. Extracted proposals are mapped to the standard 7-dimension deal terms structure. Deduplication uses stable ID hashing and fuzzy word overlap detection.
 
 **Community Screening:** User-submitted proposals are screened by an LLM for seriousness, legitimacy, and uniqueness before entering the admin review queue. Rejected submissions receive specific feedback. The system fails open — if the screening API is unavailable, proposals pass through to human review.
 
 ### Unified LLM Router
 
-All text LLM calls route through a single `llm-router.ts` module — the single source of truth for model defaults, provider-specific parameters, and admin configuration. Zero hardcoded model names exist outside this module.
+All LLM calls route through a single `llm-router.ts` module — the single source of truth for model defaults, provider-specific parameters, and admin configuration. The router also emits detailed cycle events (model, provider, tokens consumed, cost, duration) for real-time monitoring on the Live Monitor page.
 
 **Five configurable roles:**
 - `generation` — Proposal and deal creation
@@ -481,7 +480,7 @@ All text LLM calls route through a single `llm-router.ts` module — the single 
 - `forecasting` — Outcome probability generation
 - `extraction` — Evidence processing and proposal extraction
 
-Each role has independent `{provider, model}` settings stored in the admin config database. Provider-specific handling (OpenAI's `max_completion_tokens`, Anthropic's `max_tokens`, Gemini's `contents` array format) is abstracted automatically.
+Each role has independent `{provider, model}` settings stored in the admin config database. Provider-specific handling (OpenAI's `max_completion_tokens`, Anthropic's `max_tokens`, Gemini's `contents` array format) is abstracted automatically. A three-tier resolution hierarchy applies: per-stage override > per-role bucket > global fallback.
 
 ---
 
@@ -497,8 +496,8 @@ Each role has independent `{provider, model}` settings stored in the admin confi
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/autopeace.git
-cd autopeace
+git clone https://github.com/keyhanimo/AutoPeace.git
+cd AutoPeace
 
 # Install dependencies
 pnpm install
@@ -506,18 +505,17 @@ pnpm install
 
 ### Environment Variables
 
-Create a `.env` file or set the following environment variables:
+Set the following environment variables (via Replit Secrets, `.env` file, or your deployment platform):
 
 | Variable | Required | Purpose |
 |---|---|---|
 | `DATABASE_URL` | Yes | PostgreSQL connection string |
 | `ADMIN_PASSWORD` | Yes | Password for admin API routes and panel |
-| `AI_INTEGRATIONS_ANTHROPIC_API_KEY` | Yes | Anthropic Claude API key |
-| `AI_INTEGRATIONS_ANTHROPIC_BASE_URL` | No | Anthropic proxy base URL (if using a proxy) |
-| `AI_INTEGRATIONS_OPENAI_API_KEY` | Yes | OpenAI GPT API key |
-| `AI_INTEGRATIONS_OPENAI_BASE_URL` | No | OpenAI proxy base URL (if using a proxy) |
-| `AI_INTEGRATIONS_GEMINI_API_KEY` | Yes | Google Gemini API key |
-| `AI_INTEGRATIONS_GEMINI_BASE_URL` | No | Gemini proxy base URL (if using a proxy) |
+| `ANTHROPIC_API_KEY` | Yes | Anthropic Claude API key |
+| `OPENAI_API_KEY` | Yes | OpenAI GPT API key |
+| `GEMINI_API_KEY` | Yes | Google Gemini API key |
+| `ACLED_API_KEY` | No | ACLED conflict data API key (for enhanced evidence ingestion) |
+| `ACLED_EMAIL` | No | ACLED account email |
 
 ### Database Setup
 
@@ -526,14 +524,14 @@ Create a `.env` file or set the following environment variables:
 pnpm --filter @workspace/db run push
 ```
 
-The API server performs a readiness check on startup and logs missing tables as warnings.
+The API server performs a readiness check on startup, runs seed data, and logs missing tables as warnings.
 
 ### Running the Application
 
 ```bash
 # Start both the API server and frontend
-pnpm --filter @workspace/api-server run dev   # API on port 8080
-pnpm --filter @workspace/autopeace run dev     # Frontend on its configured port
+pnpm --filter @workspace/api-server run dev   # API server
+pnpm --filter @workspace/autopeace run dev     # Frontend
 ```
 
 Or use the build command for production:
@@ -560,9 +558,8 @@ This regenerates both the React Query hooks (`lib/api-client-react`) and Zod sch
 The admin panel (`/admin`) provides runtime configuration for:
 
 - **Research Cadence** — hourly, daily (6:00 UTC default), weekly (Monday 6:00 UTC), or manual
-- **LLM Models** — Per-role provider and model selection for generation, evaluation, adversarial, forecasting, and extraction
+- **LLM Models** — Per-role and per-stage provider and model selection for generation, evaluation, adversarial, forecasting, and extraction
 - **Budget Cap** — Maximum USD spend per cycle
-- **Submission Screening Model** — Model used for community proposal screening
 - **Pause/Resume** — Toggle the autoresearch scheduler
 
 All configuration is stored in the `admin_config` database table and takes effect on the next cycle.

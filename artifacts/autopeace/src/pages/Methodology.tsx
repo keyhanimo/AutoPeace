@@ -272,7 +272,7 @@ export default function Methodology() {
           </div>
           <div className="border-l-2 border-slate-600 pl-4">
             <p className="font-semibold text-slate-200 mb-1">Stage 2: Stakeholder Evaluator <ModelTag value={stm(2, "evaluation")} /></p>
-            <p>Assesses how each of 23 stakeholders across 4 acceptance tiers would respond to the proposed deal. Stakeholder profiles are loaded from the database, reflecting the latest evidence-driven updates. Required tier (Iran, US)&mdash;both must accept; rejection triggers graduated penalties. Critical tier (Israel)&mdash;rejection triggers penalties on feasibility, durability, and regional stability. Influential tier (Saudi Arabia, IAEA, Russia, China, EU3)&mdash;affects durability and regional stability. Contextual tier (15 regional and global actors)&mdash;affects regional stability. Each stakeholder returns a verdict: accept, conditional, or reject, with rationale.</p>
+            <p>Assesses how each of 33 stakeholders across 4 acceptance tiers would respond to the proposed deal. Stakeholder profiles are loaded from the database, reflecting the latest evidence-driven updates. Required tier (Iran, US)&mdash;both must accept; rejection triggers graduated penalties. Critical tier (Israel)&mdash;rejection triggers penalties on feasibility, durability, and regional stability. Influential tier (Saudi Arabia, IAEA, Russia, China, EU3)&mdash;affects durability and regional stability. Contextual tier (15 regional and global actors)&mdash;affects regional stability. Each stakeholder returns a verdict: accept, conditional, or reject, with rationale.</p>
           </div>
           <div className="border-l-2 border-slate-600 pl-4">
             <p className="font-semibold text-slate-200 mb-1">Stage 3: Domestic Audience Agent <ModelTag value={stm(3, "evaluation")} /></p>
@@ -475,7 +475,7 @@ export default function Methodology() {
 
         <h3 className="text-lg font-semibold text-slate-200 mt-6 mb-3">9.2 Deal Scoring (Task&nbsp;B)</h3>
         <p className="mb-3">
-          Deal evaluation is fundamentally forward-looking&mdash;it does not use historical backtesting. Quality is assessed through multi-agent LLM stakeholder simulations (23 stakeholders across 4 acceptance tiers, 11 domestic audiences, adversarial red-teaming) grounded in cost-benefit economic modeling. The Judge Panel (Stage&nbsp;6) synthesizes these simulation results and scores each deal on 7 dimensions, each rated 0.0 to 1.0 with rationale:
+          Deal evaluation is fundamentally forward-looking&mdash;it does not use historical backtesting. Quality is assessed through multi-agent LLM stakeholder simulations (33 stakeholders across 4 acceptance tiers, 11 domestic audiences, adversarial red-teaming) grounded in cost-benefit economic modeling. The Judge Panel (Stage&nbsp;6) synthesizes these simulation results and scores each deal on 7 dimensions, each rated 0.0 to 1.0 with rationale:
         </p>
         <div className="overflow-x-auto mb-4">
           <table className="w-full text-sm border-collapse">
