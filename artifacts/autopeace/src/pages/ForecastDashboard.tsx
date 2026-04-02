@@ -361,9 +361,14 @@ export default function ForecastDashboard() {
   const historyData = useMemo(() => {
     return allHistoryForHorizon.slice(-historyWindow).map((f, i) => {
       const p = getProbs(f);
+      const dt = f.createdAt ? new Date(f.createdAt) : null;
+      const timestamp = dt
+        ? `${String(dt.getFullYear()).slice(2)}:${String(dt.getMonth() + 1).padStart(2, '0')}:${String(dt.getDate()).padStart(2, '0')} ${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}:${String(dt.getSeconds()).padStart(2, '0')}`
+        : '';
       return {
         cycle: `C${i + 1}`,
-        date: f.createdAt ? new Date(f.createdAt).toLocaleDateString() : '',
+        timestamp,
+        xLabel: timestamp ? `C${i + 1}\n${timestamp}` : `C${i + 1}`,
         peace: parseFloat((computePeaceProb(p) * 100).toFixed(1)),
         conflict: parseFloat(((p['continued_conflict'] ?? 0) * 100).toFixed(1)),
         escalation: parseFloat(((p['major_escalation'] ?? 0) * 100).toFixed(1)),
@@ -571,21 +576,46 @@ export default function ForecastDashboard() {
                   ) : (
                     <div className="flex-1 min-h-[340px]">
                       <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={historyData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                          <XAxis dataKey="cycle" stroke="#475569" />
+                        <LineChart data={historyData} margin={{ top: 5, right: 20, left: 0, bottom: 50 }}>
+                          <XAxis
+                            dataKey="cycle"
+                            stroke="#475569"
+                            tick={({ x, y, payload }: { x: number; y: number; payload: { value: string; index: number } }) => {
+                              const item = historyData[payload.index];
+                              return (
+                                <g transform={`translate(${x},${y})`}>
+                                  <text x={0} y={0} dy={12} textAnchor="middle" fill="#94a3b8" fontSize={11} fontWeight={600}>
+                                    {payload.value}
+                                  </text>
+                                  {item?.timestamp && (
+                                    <text x={0} y={0} dy={26} textAnchor="middle" fill="#64748b" fontSize={9}>
+                                      {item.timestamp}
+                                    </text>
+                                  )}
+                                </g>
+                              );
+                            }}
+                            height={50}
+                            interval={historyData.length > 12 ? Math.floor(historyData.length / 8) : 0}
+                          />
                           <YAxis stroke="#475569" tickFormatter={(v: number) => `${v}%`} />
                           <Tooltip
                             contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', color: '#f8fafc' }}
                             formatter={(value: number) => [`${value.toFixed(1)}%`]}
-                            labelFormatter={(label, payload) => {
-                              const item = payload?.[0]?.payload as { cycle: string; date: string } | undefined;
-                              return item ? `${item.cycle} (${item.date})` : label;
+                            labelFormatter={(_label, payload) => {
+                              const item = payload?.[0]?.payload as { cycle: string; timestamp: string } | undefined;
+                              return item ? `${item.cycle} — ${item.timestamp}` : String(_label);
                             }}
                           />
-                          <Legend />
-                          <Line type="monotone" dataKey="peace" stroke="#10b981" name="Peace" strokeWidth={2} dot={false} />
-                          <Line type="monotone" dataKey="conflict" stroke="#ef4444" name="Conflict" strokeWidth={2} dot={false} />
-                          <Line type="monotone" dataKey="escalation" stroke="#b91c1c" name="Escalation" strokeWidth={2} dot={false} />
+                          <Legend
+                            verticalAlign="top"
+                            align="right"
+                            wrapperStyle={{ paddingBottom: 8, fontSize: 12 }}
+                            iconType="plainline"
+                          />
+                          <Line type="monotone" dataKey="peace" stroke="#10b981" name="Peace Probability" strokeWidth={2} dot={false} />
+                          <Line type="monotone" dataKey="conflict" stroke="#ef4444" name="Continued Conflict" strokeWidth={2} dot={false} />
+                          <Line type="monotone" dataKey="escalation" stroke="#b91c1c" name="Major Escalation" strokeWidth={2} dot={false} />
                         </LineChart>
                       </ResponsiveContainer>
                     </div>
