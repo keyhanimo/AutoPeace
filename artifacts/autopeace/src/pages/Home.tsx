@@ -176,7 +176,7 @@ function ChampionDealNarrative() {
   const label = data.composite != null ? scoreLabel(data.composite) : null;
 
   const createdDate = data.createdAt
-    ? new Date(data.createdAt).toLocaleString("en-US", { month: "long", day: "numeric", year: "numeric" })
+    ? new Date(data.createdAt).toLocaleString("en-US", { month: "long", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true })
     : null;
 
   return (
