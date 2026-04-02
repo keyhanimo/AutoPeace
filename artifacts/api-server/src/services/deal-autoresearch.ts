@@ -478,8 +478,13 @@ async function runDealCycleAsync(cycleId: string): Promise<void> {
     const totalDeals = await db.select({ count: sql<number>`count(*)` }).from(dealsTable);
     const dealCount = totalDeals[0]?.count ?? 0;
 
-    const currentArchIdx = currentBest
-      ? DEAL_ARCHITECTURES.indexOf(currentBest.architecture as typeof DEAL_ARCHITECTURES[number])
+    const [mostRecentDeal] = await db.select({ architecture: dealsTable.architecture })
+      .from(dealsTable)
+      .orderBy(desc(dealsTable.createdAt))
+      .limit(1);
+
+    const currentArchIdx = mostRecentDeal
+      ? DEAL_ARCHITECTURES.indexOf(mostRecentDeal.architecture as typeof DEAL_ARCHITECTURES[number])
       : 0;
 
     const [currentBestNode] = currentBest
