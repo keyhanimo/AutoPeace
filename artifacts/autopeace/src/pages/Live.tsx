@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Activity, Clock, CheckCircle2, AlertTriangle, XCircle, Zap, Timer, Radio, ChevronDown, ChevronRight } from "lucide-react";
+import { Activity, Clock, CheckCircle2, AlertTriangle, XCircle, Zap, Timer, Radio, ChevronDown, ChevronRight, Copy, Check, ArrowRight } from "lucide-react";
 
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -54,6 +54,26 @@ const STAGE_LABELS: Record<string, string> = {
   failed: "Failed",
 };
 
+const PIPELINE_STAGE_ORDER = [
+  "deal.brainstorm",
+  "deal.proposal",
+  "deal.stakeholders",
+  "deal.domestic",
+  "deal.framing",
+  "deal.redteam",
+  "deal.negotiator",
+  "deal.judge",
+  "deal.meta_eval",
+  "deal.diagnosis",
+];
+
+function getNextStage(currentStage: string | null): string | null {
+  if (!currentStage) return null;
+  const idx = PIPELINE_STAGE_ORDER.indexOf(currentStage);
+  if (idx === -1 || idx >= PIPELINE_STAGE_ORDER.length - 1) return null;
+  return PIPELINE_STAGE_ORDER[idx + 1];
+}
+
 function formatDuration(ms: number): string {
   if (ms < 1000) return `${ms}ms`;
   if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
@@ -76,78 +96,71 @@ function formatCountdown(ms: number): string {
   return `${secs}s`;
 }
 
-function formatMetaKey(key: string): string {
-  const labels: Record<string, string> = {
-    ingestedCount: "Items Ingested",
-    extractedProposals: "Proposals Found",
-    forecastCount: "Forecasts",
-    horizons: "Time Horizons",
-    probabilities: "Probability Distribution",
-    totalTokens: "Total Tokens",
-    composite: "Composite Score",
-    feasibility: "Feasibility",
-    coherence: "Coherence",
-    evidenceGrounding: "Evidence Grounding",
-    domesticSellability: "Domestic Sellability",
-    regionalStability: "Regional Stability",
-    implementability: "Implementability",
-    durability: "Durability",
-    accepts: "Stakeholders Accepting",
-    rejects: "Stakeholders Rejecting",
-    conditionals: "Conditional Accept",
-    rejectingStakeholders: "Rejecting Parties",
-    countries: "Countries Evaluated",
-    vulnerabilitiesFound: "Vulnerabilities Found",
-    amendments: "Proposed Amendments",
-    tradeoffs: "Creative Tradeoffs",
-    pipelineQuality: "Pipeline Quality",
-    promptImprovements: "Prompt Improvements",
-    analogies: "Historical Analogies",
-    provisions: "Creative Provisions",
-    innovativeProvisions: "Innovative Provisions",
-    architecture: "Deal Architecture",
-    chosenArch: "Chosen Architecture",
-    dealCount: "Total Deals",
-    currentBestComposite: "Current Best Score",
-    topDeals: "Top Deals in Memory",
-    provisionInsights: "Provision Insights",
-    pipelineGeneration: "Pipeline Generation",
-    newComposite: "New Score",
-    prevComposite: "Previous Best",
-    improvement: "Score Change",
-    tokensConsumed: "Tokens Used",
-    errorType: "Error Type",
-    provider: "AI Provider",
-    failedStage: "Failed At Stage",
-    evidenceLength: "Evidence Length",
-    strategicTokens: "Strategy Tokens",
-    stallCount: "Stall Count",
-    headline: "Headline",
-    keyEvidence: "Key Evidence",
-    elapsedSeconds: "Elapsed Time",
-    totalCost: "Estimated Cost",
-    overrides: "Prompt Overrides",
-    overrideKeys: "Override Targets",
-    newGeneration: "New Generation",
-    hasNuclearProtocol: "Nuclear Protocol",
-    hasSanctionsRelief: "Sanctions Relief",
-    hasHormuzArrangements: "Hormuz Arrangements",
-  };
-  return labels[key] ?? key.replace(/([A-Z])/g, " $1").replace(/^./, s => s.toUpperCase()).trim();
-}
+const SCALAR_META_LABELS: Record<string, string> = {
+  ingestedCount: "Items Ingested",
+  extractedProposals: "Proposals Found",
+  forecastCount: "Forecasts",
+  horizons: "Time Horizons",
+  totalTokens: "Total Tokens",
+  composite: "Composite Score",
+  feasibility: "Feasibility",
+  coherence: "Coherence",
+  evidenceGrounding: "Evidence Grounding",
+  domesticSellability: "Domestic Sellability",
+  regionalStability: "Regional Stability",
+  implementability: "Implementability",
+  durability: "Durability",
+  accepts: "Stakeholders Accepting",
+  rejects: "Stakeholders Rejecting",
+  conditionals: "Conditional Accept",
+  vulnerabilitiesFound: "Vulnerabilities Found",
+  pipelineQuality: "Pipeline Quality",
+  architecture: "Deal Architecture",
+  chosenArch: "Chosen Architecture",
+  dealCount: "Total Deals",
+  currentBestComposite: "Current Best Score",
+  topDeals: "Top Deals in Memory",
+  provisionInsights: "Provision Insights",
+  pipelineGeneration: "Pipeline Generation",
+  newComposite: "New Score",
+  prevComposite: "Previous Best",
+  improvement: "Score Change",
+  tokensConsumed: "Tokens Used",
+  errorType: "Error Type",
+  provider: "AI Provider",
+  failedStage: "Failed At Stage",
+  evidenceLength: "Evidence Length",
+  strategicTokens: "Strategy Tokens",
+  stallCount: "Stall Count",
+  headline: "Headline",
+  elapsedSeconds: "Elapsed Time",
+  totalCost: "Estimated Cost",
+  newGeneration: "New Generation",
+  hasNuclearProtocol: "Nuclear Protocol",
+  hasSanctionsRelief: "Sanctions Relief",
+  hasHormuzArrangements: "Hormuz Arrangements",
+};
 
 const RATIO_KEYS = new Set([
   "composite", "feasibility", "coherence", "evidenceGrounding",
   "domesticSellability", "regionalStability", "implementability", "durability",
   "newComposite", "prevComposite", "currentBestComposite",
 ]);
-
 const CURRENCY_KEYS = new Set(["totalCost"]);
 const DURATION_KEYS = new Set(["elapsedSeconds"]);
 const TOKEN_KEYS = new Set(["totalTokens", "tokensConsumed", "strategicTokens"]);
 
-function formatMetaValue(value: unknown, key?: string): string {
-  if (value === null || value === undefined) return "—";
+const RICH_DETAIL_KEYS = new Set([
+  "analogies", "provisions", "crossIssueLinkages", "unconventionalApproaches",
+  "innovativeProvisions", "amendments", "tradeoffs", "promptImprovements",
+  "stakeholderDetails", "redTeamFindings", "promptOverrides", "evolvedOverrides",
+  "overrides", "overrideKeys", "rejectingStakeholders", "stakeholderCommitments",
+  "nuclearProtocol", "sanctionsRelief", "hormuzArrangements",
+  "systemPrompt", "probabilities", "countries",
+]);
+
+function formatScalarValue(value: unknown, key?: string): string {
+  if (value === null || value === undefined) return "--";
   if (typeof value === "boolean") return value ? "Yes" : "No";
   if (typeof value === "number") {
     if (key && CURRENCY_KEYS.has(key)) return `$${value.toFixed(4)}`;
@@ -158,25 +171,221 @@ function formatMetaValue(value: unknown, key?: string): string {
     if (Number.isInteger(value)) return value.toLocaleString();
     return value.toFixed(3);
   }
-  if (Array.isArray(value)) {
-    if (value.length === 0) return "none";
-    if (typeof value[0] === "string") return value.join(", ");
-    if (typeof value[0] === "object") {
-      return value.map(v => {
-        const obj = v as Record<string, unknown>;
-        return (obj.title ?? obj.name ?? obj.description ?? obj.dealName ?? obj.idea ?? JSON.stringify(v)) as string;
-      }).join(", ");
-    }
-    return JSON.stringify(value);
-  }
-  if (typeof value === "object") {
-    const entries = Object.entries(value as Record<string, unknown>);
-    return entries.map(([k, v]) => {
-      if (typeof v === "number" && RATIO_KEYS.has(k)) return `${k}: ${(v * 100).toFixed(1)}%`;
-      return `${k}: ${String(v)}`;
-    }).join(", ");
-  }
   return String(value);
+}
+
+function formatMetaLabel(key: string): string {
+  return SCALAR_META_LABELS[key] ?? key.replace(/([A-Z])/g, " $1").replace(/^./, s => s.toUpperCase()).trim();
+}
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
+      className="shrink-0 p-0.5 text-slate-600 hover:text-slate-400 transition-colors"
+      title="Copy to clipboard"
+    >
+      {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+    </button>
+  );
+}
+
+function CollapsibleTextBlock({ label, text, color }: { label: string; text: string; color: "violet" | "emerald" | "blue" | "amber" | "slate" }) {
+  const [expanded, setExpanded] = useState(false);
+  const colorClasses = {
+    violet: { label: "text-violet-400", bg: "bg-violet-500/5 border-violet-500/10" },
+    emerald: { label: "text-emerald-400", bg: "bg-emerald-500/5 border-emerald-500/10" },
+    blue: { label: "text-blue-400", bg: "bg-blue-500/5 border-blue-500/10" },
+    amber: { label: "text-amber-400", bg: "bg-amber-500/5 border-amber-500/10" },
+    slate: { label: "text-slate-400", bg: "bg-white/[0.02] border-white/5" },
+  }[color];
+
+  return (
+    <div className="mt-1">
+      <div className="flex items-center gap-2">
+        <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-1 text-[11px] font-semibold hover:opacity-80">
+          {expanded ? <ChevronDown className="w-3 h-3 text-slate-500" /> : <ChevronRight className="w-3 h-3 text-slate-500" />}
+          <span className={colorClasses.label}>{label}</span>
+          <span className="text-slate-600 font-normal">({text.length.toLocaleString()} chars)</span>
+        </button>
+        <CopyButton text={text} />
+      </div>
+      {expanded && (
+        <pre className={`text-[11px] text-slate-400 whitespace-pre-wrap break-words ${colorClasses.bg} border rounded p-2.5 mt-1 max-h-[600px] overflow-y-auto leading-relaxed`}>
+          {text}
+        </pre>
+      )}
+    </div>
+  );
+}
+
+function RichObjectList({ items, title }: { items: unknown[]; title: string }) {
+  const [expanded, setExpanded] = useState(false);
+  if (!items || items.length === 0) return null;
+
+  return (
+    <div className="mt-1.5">
+      <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-1 text-[11px] font-semibold hover:opacity-80">
+        {expanded ? <ChevronDown className="w-3 h-3 text-slate-500" /> : <ChevronRight className="w-3 h-3 text-slate-500" />}
+        <span className="text-blue-400">{title}</span>
+        <span className="text-slate-600 font-normal">({items.length} items)</span>
+      </button>
+      {expanded && (
+        <div className="mt-1 space-y-1.5 ml-4">
+          {items.map((item, i) => {
+            if (typeof item === "string") {
+              return <div key={i} className="text-[11px] text-slate-400 bg-white/[0.02] border border-white/5 rounded px-2.5 py-1.5">{item}</div>;
+            }
+            if (typeof item === "object" && item !== null) {
+              const obj = item as Record<string, unknown>;
+              const rawTitle = obj.title ?? obj.dealName ?? obj.name ?? obj.idea ?? obj.proposedChange ?? obj.amendment ?? obj.linkage ?? obj.stage;
+              const titleText = typeof rawTitle === "string" || typeof rawTitle === "number" ? String(rawTitle) : null;
+              return (
+                <div key={i} className="text-[11px] bg-white/[0.02] border border-white/5 rounded px-2.5 py-2 space-y-0.5">
+                  {titleText && <div className="text-slate-300 font-medium">{titleText}</div>}
+                  {Object.entries(obj).filter(([k]) => k !== "title" && k !== "dealName" && k !== "name").map(([k, v]) => (
+                    <div key={k} className="flex gap-2">
+                      <span className="text-slate-600 shrink-0">{formatMetaLabel(k)}:</span>
+                      <span className="text-slate-400 break-words">{typeof v === "object" ? JSON.stringify(v) : String(v ?? "")}</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            }
+            return <div key={i} className="text-[11px] text-slate-400">{JSON.stringify(item)}</div>;
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StakeholderDetailsSection({ details }: { details: Record<string, { verdict: string; rationale: string }> }) {
+  const [expanded, setExpanded] = useState(false);
+  const entries = Object.entries(details);
+  if (entries.length === 0) return null;
+
+  const verdictColor = (v: string) => v === "accept" ? "text-emerald-400" : v === "reject" ? "text-red-400" : "text-amber-400";
+
+  return (
+    <div className="mt-1.5">
+      <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-1 text-[11px] font-semibold hover:opacity-80">
+        {expanded ? <ChevronDown className="w-3 h-3 text-slate-500" /> : <ChevronRight className="w-3 h-3 text-slate-500" />}
+        <span className="text-blue-400">Stakeholder Verdicts</span>
+        <span className="text-slate-600 font-normal">({entries.length} stakeholders)</span>
+      </button>
+      {expanded && (
+        <div className="mt-1 space-y-1 ml-4">
+          {entries.map(([id, { verdict, rationale }]) => (
+            <div key={id} className="text-[11px] bg-white/[0.02] border border-white/5 rounded px-2.5 py-1.5">
+              <div className="flex items-center gap-2">
+                <span className="text-slate-300 font-medium">{id}</span>
+                <span className={`font-semibold uppercase text-[10px] ${verdictColor(verdict)}`}>{verdict}</span>
+              </div>
+              {rationale && <div className="text-slate-500 mt-0.5">{rationale}</div>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PromptOverridesSection({ overrides }: { overrides: Record<string, string> }) {
+  const [expanded, setExpanded] = useState(false);
+  const entries = Object.entries(overrides);
+  if (entries.length === 0) return null;
+
+  return (
+    <div className="mt-1.5">
+      <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-1 text-[11px] font-semibold hover:opacity-80">
+        {expanded ? <ChevronDown className="w-3 h-3 text-slate-500" /> : <ChevronRight className="w-3 h-3 text-slate-500" />}
+        <span className="text-amber-400">Prompt Overrides</span>
+        <span className="text-slate-600 font-normal">({entries.length} stages)</span>
+      </button>
+      {expanded && (
+        <div className="mt-1 space-y-1.5 ml-4">
+          {entries.map(([stage, text]) => (
+            <div key={stage}>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-amber-400 font-medium">{stage}</span>
+                <CopyButton text={text} />
+              </div>
+              <pre className="text-[11px] text-slate-400 whitespace-pre-wrap break-words bg-amber-500/5 border border-amber-500/10 rounded p-2 mt-0.5 max-h-[400px] overflow-y-auto leading-relaxed">{text}</pre>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DetailedMetadata({ metadata }: { metadata: Record<string, unknown> }) {
+  const scalarEntries: [string, unknown][] = [];
+  const richEntries: [string, unknown][] = [];
+
+  for (const [key, value] of Object.entries(metadata)) {
+    if (RICH_DETAIL_KEYS.has(key) && value != null && typeof value === "object") {
+      richEntries.push([key, value]);
+    } else if (RICH_DETAIL_KEYS.has(key) && typeof value === "string" && value.length > 200) {
+      richEntries.push([key, value]);
+    } else {
+      scalarEntries.push([key, value]);
+    }
+  }
+
+  return (
+    <div className="space-y-1">
+      {scalarEntries.length > 0 && (
+        <div className="bg-white/[0.02] border border-white/5 rounded p-2 space-y-0.5">
+          {scalarEntries.map(([key, value]) => (
+            <div key={key} className="flex gap-2 text-[11px]">
+              <span className="text-slate-500 font-medium shrink-0 min-w-[130px]">{formatMetaLabel(key)}:</span>
+              <span className="text-slate-400 break-all">
+                {Array.isArray(value) ? (value.length === 0 ? "none" : value.join(", ")) : formatScalarValue(value, key)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {richEntries.map(([key, value]) => {
+        if ((key === "promptOverrides" || key === "evolvedOverrides" || key === "overrides") && typeof value === "object" && !Array.isArray(value)) {
+          return <PromptOverridesSection key={key} overrides={value as Record<string, string>} />;
+        }
+        if (key === "stakeholderDetails" && typeof value === "object" && !Array.isArray(value)) {
+          return <StakeholderDetailsSection key={key} details={value as Record<string, { verdict: string; rationale: string }>} />;
+        }
+        if (key === "stakeholderCommitments" && typeof value === "object" && !Array.isArray(value)) {
+          const entries = Object.entries(value as Record<string, string>);
+          if (entries.length === 0) return null;
+          return <RichObjectList key={key} title="Stakeholder Commitments" items={entries.map(([id, text]) => ({ name: id, commitment: text }))} />;
+        }
+        if (typeof value === "string" && value.length > 200) {
+          const labelMap: Record<string, string> = { nuclearProtocol: "Nuclear Protocol", sanctionsRelief: "Sanctions Relief", hormuzArrangements: "Hormuz Arrangements", systemPrompt: "System Prompt" };
+          return <CollapsibleTextBlock key={key} label={labelMap[key] ?? formatMetaLabel(key)} text={value} color={key === "systemPrompt" ? "violet" : "slate"} />;
+        }
+        if (Array.isArray(value)) {
+          const labelMap: Record<string, string> = {
+            analogies: "Historical Analogies", provisions: "Creative Provisions",
+            crossIssueLinkages: "Cross-Issue Linkages", unconventionalApproaches: "Unconventional Approaches",
+            innovativeProvisions: "Innovative Provisions", amendments: "Proposed Amendments",
+            tradeoffs: "Creative Tradeoffs", promptImprovements: "Prompt Improvements",
+            redTeamFindings: "Red Team Findings",
+          };
+          return <RichObjectList key={key} title={labelMap[key] ?? formatMetaLabel(key)} items={value} />;
+        }
+        if (typeof value === "object" && !Array.isArray(value)) {
+          const entries = Object.entries(value as Record<string, unknown>);
+          return (
+            <RichObjectList key={key} title={formatMetaLabel(key)} items={entries.map(([k, v]) => ({ name: k, value: typeof v === "object" ? JSON.stringify(v) : String(v ?? "") }))} />
+          );
+        }
+        return null;
+      })}
+    </div>
+  );
 }
 
 function levelIcon(level: CycleLogEntry["level"]) {
@@ -208,12 +417,15 @@ function levelColor(level: CycleLogEntry["level"]): string {
 function LogEntry({ entry }: { entry: CycleLogEntry }) {
   const [expanded, setExpanded] = useState(false);
   const hasDetails = entry.metadata || entry.output || entry.prompt;
+  const isLLMCall = entry.level === "llm_start" || entry.level === "llm_complete" || entry.level === "llm_error";
 
   return (
     <div
       className={`group flex items-start gap-2 py-1.5 px-3 font-mono text-xs hover:bg-white/[0.02] ${
         entry.level === "stage" ? "border-t border-white/5 mt-1 pt-2.5" : ""
-      } ${entry.level === "error" ? "bg-red-500/5" : ""}`}
+      } ${entry.level === "error" || entry.level === "llm_error" ? "bg-red-500/5" : ""} ${
+        entry.level === "llm_start" ? "bg-violet-500/[0.03]" : ""
+      }`}
     >
       {levelIcon(entry.level)}
       <span className="text-slate-500 shrink-0 w-[68px]">{formatTimestamp(entry.timestamp)}</span>
@@ -228,34 +440,21 @@ function LogEntry({ entry }: { entry: CycleLogEntry }) {
             </button>
           )}
           <span className={levelColor(entry.level)}>{entry.message}</span>
+          {isLLMCall && entry.provider && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-400 font-medium shrink-0">
+              {entry.provider}/{entry.model}
+            </span>
+          )}
         </div>
         {expanded && hasDetails && (
-          <div className="mt-1.5 ml-5 space-y-1.5 text-[11px]">
-            {entry.metadata && (
-              <div className="bg-white/[0.02] rounded p-2 space-y-1">
-                {Object.entries(entry.metadata).map(([key, value]) => (
-                  <div key={key} className="flex gap-2">
-                    <span className="text-slate-500 font-medium shrink-0 min-w-[120px]">{formatMetaKey(key)}:</span>
-                    <span className="text-slate-400 break-all">{formatMetaValue(value, key)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+          <div className="mt-2 ml-5 space-y-2 text-[11px]">
+            {entry.metadata && <DetailedMetadata metadata={entry.metadata} />}
+
             {entry.prompt && (
-              <div>
-                <span className="text-violet-500 font-semibold">PROMPT:</span>
-                <pre className="text-slate-500 whitespace-pre-wrap break-all bg-violet-500/5 rounded p-1.5 mt-0.5 max-h-40 overflow-y-auto">
-                  {entry.prompt}
-                </pre>
-              </div>
+              <CollapsibleTextBlock label="PROMPT (User Message)" text={entry.prompt} color="violet" />
             )}
             {entry.output && (
-              <div>
-                <span className="text-emerald-500 font-semibold">OUTPUT:</span>
-                <pre className="text-slate-500 whitespace-pre-wrap break-all bg-emerald-500/5 rounded p-1.5 mt-0.5 max-h-40 overflow-y-auto">
-                  {entry.output}
-                </pre>
-              </div>
+              <CollapsibleTextBlock label="OUTPUT (Model Response)" text={entry.output} color="emerald" />
             )}
           </div>
         )}
@@ -270,7 +469,7 @@ function LogEntry({ entry }: { entry: CycleLogEntry }) {
         {entry.tokens != null && (
           <span className="text-slate-500">{entry.tokens.toLocaleString()} tok</span>
         )}
-        {entry.provider && (
+        {!isLLMCall && entry.provider && (
           <span className="text-slate-600">{entry.provider}</span>
         )}
       </div>
@@ -294,6 +493,43 @@ function CountdownTimer({ targetTime }: { targetTime: number }) {
     return () => clearInterval(iv);
   }, [targetTime]);
   return <span>{formatCountdown(remaining)}</span>;
+}
+
+function ActiveLLMCallBanner({ logs }: { logs: CycleLogEntry[] }) {
+  const activeLLMCall = findActiveLLMCall(logs);
+  if (!activeLLMCall) return null;
+
+  return (
+    <div className="flex items-center gap-2 px-3 py-1.5 bg-violet-500/[0.06] border-b border-violet-500/10">
+      <Radio className="w-3.5 h-3.5 text-violet-400 animate-pulse shrink-0" />
+      <span className="text-xs text-violet-300 font-medium">Waiting for LLM response:</span>
+      <span className="text-xs text-violet-200 font-mono">{activeLLMCall.provider}/{activeLLMCall.model}</span>
+      <span className="text-xs text-slate-500">in {STAGE_LABELS[activeLLMCall.stage] ?? activeLLMCall.stage}</span>
+      {activeLLMCall.timestamp && (
+        <span className="text-xs text-slate-600 ml-auto">
+          <ElapsedTimer startedAt={activeLLMCall.timestamp} />
+        </span>
+      )}
+    </div>
+  );
+}
+
+function findActiveLLMCall(logs: CycleLogEntry[]): CycleLogEntry | null {
+  const pendingStarts = new Map<string, CycleLogEntry>();
+  for (const log of logs) {
+    const key = `${log.stage}:${log.provider}:${log.model}`;
+    if (log.level === "llm_start") {
+      pendingStarts.set(key, log);
+    } else if (log.level === "llm_complete" || log.level === "llm_error") {
+      pendingStarts.delete(key);
+    }
+  }
+  if (pendingStarts.size === 0) return null;
+  let latest: CycleLogEntry | null = null;
+  for (const entry of pendingStarts.values()) {
+    if (!latest || entry.timestamp > latest.timestamp) latest = entry;
+  }
+  return latest;
 }
 
 export default function Live() {
@@ -428,6 +664,10 @@ export default function Live() {
   const stageEntries = displayLogs.filter(l => l.level === "stage");
   const errorEntries = displayLogs.filter(l => l.level === "error" || l.level === "llm_error");
   const warnEntries = displayLogs.filter(l => l.level === "warn");
+  const llmCalls = displayLogs.filter(l => l.level === "llm_complete").length;
+
+  const currentStageKey = status?.dealSubStage ? `deal.${status.dealSubStage}` : status?.stage ?? null;
+  const nextStageKey = getNextStage(currentStageKey);
 
   return (
     <div className="h-full flex flex-col">
@@ -458,6 +698,7 @@ export default function Live() {
             {displayLogs.length > 0 && (
               <>
                 <span>{stageEntries.length} stages</span>
+                {llmCalls > 0 && <span>{llmCalls} LLM calls</span>}
                 {totalTokens > 0 && <span>{totalTokens.toLocaleString()} tokens</span>}
                 {errorEntries.length > 0 && <span className="text-red-400">{errorEntries.length} errors</span>}
                 {warnEntries.length > 0 && <span className="text-amber-400">{warnEntries.length} warnings</span>}
@@ -468,22 +709,31 @@ export default function Live() {
         </div>
 
         {status?.isRunning && (
-          <div className="mt-3 flex items-center gap-2">
-            <span className="text-xs font-medium text-slate-300">Current:</span>
-            <span className="text-xs text-blue-300 font-mono">
-              {status.dealSubStage
-                ? STAGE_LABELS[`deal.${status.dealSubStage}`] ?? status.dealSubStage
-                : STAGE_LABELS[status.stage ?? ""] ?? status.stage}
-            </span>
-            {status.stageStartedAt && (
-              <span className="text-xs text-slate-500">
-                (<ElapsedTimer startedAt={status.stageStartedAt} />)
+          <div className="mt-3 space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-slate-300">Current Stage:</span>
+              <span className="text-xs text-blue-300 font-mono font-medium">
+                {currentStageKey ? (STAGE_LABELS[currentStageKey] ?? currentStageKey) : "..."}
               </span>
-            )}
+              {status.stageStartedAt && (
+                <span className="text-xs text-slate-500">
+                  (<ElapsedTimer startedAt={status.stageStartedAt} />)
+                </span>
+              )}
+              {nextStageKey && (
+                <>
+                  <ArrowRight className="w-3 h-3 text-slate-600" />
+                  <span className="text-xs text-slate-500">Next: {STAGE_LABELS[nextStageKey] ?? nextStageKey}</span>
+                </>
+              )}
+            </div>
             {status.stagesCompleted.length > 0 && (
-              <span className="text-xs text-slate-500 ml-2">
-                Completed: {status.stagesCompleted.map(s => STAGE_LABELS[s] ?? s).join(" → ")}
-              </span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] text-slate-600 font-medium">Completed:</span>
+                {status.stagesCompleted.map(s => (
+                  <span key={s} className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500">{STAGE_LABELS[s] ?? s}</span>
+                ))}
+              </div>
             )}
           </div>
         )}
@@ -494,6 +744,8 @@ export default function Live() {
           </div>
         )}
       </div>
+
+      {status?.isRunning && <ActiveLLMCallBanner logs={displayLogs} />}
 
       <div ref={containerRef} className="flex-1 overflow-y-auto bg-[#0a0e1a] min-h-0">
         {displayLogs.length === 0 ? (

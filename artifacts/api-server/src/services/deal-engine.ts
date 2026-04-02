@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { logger } from "../lib/logger";
 import type { DealSubStage } from "../lib/cycle-status";
-import { emitCycleLog, truncateForLog } from "../lib/cycle-log";
+import { emitCycleLog, truncateForLog, setActiveCycleContext } from "../lib/cycle-log";
 import {
   callLLM as sharedCallLLM,
   callLLMForStage as sharedCallLLMForStage,
@@ -1574,26 +1574,27 @@ export async function runFullEvaluation(
 
   currentStage = "brainstorm";
   onSubStage?.("brainstorm");
+  setActiveCycleContext(cid, "deal.brainstorm");
   emitCycleLog({ cycleId: cid, level: "stage", stage: "deal.brainstorm", message: "Stage 0: Innovation Brainstorm — An AI model is searching through historical peace agreements (e.g., Camp David Accords, JCPOA, Good Friday Agreement) for relevant analogies, and generating creative deal provisions that could help bridge gaps between the parties. This stage feeds ideas into the proposal generator." });
   const bs0 = Date.now();
   const { insights: brainstormInsights, tokens: t0 } = await runInnovationBrainstorm(evidenceSummary, previousDiagnosis, architecture, modelConfig, pipelineOverrides, dealMemory);
   totalTokens += t0;
   logger.info({ stage: "brainstorm", analogies: brainstormInsights.historicalAnalogies.length, provisions: brainstormInsights.creativeProvisions.length, tokens: t0 }, "Stage 0 complete");
-  const analogyNames = brainstormInsights.historicalAnalogies.map((a: any) => a.dealName || a.title || a.name || (typeof a === "string" ? a : JSON.stringify(a))).slice(0, 5);
-  const provisionNames = brainstormInsights.creativeProvisions.map((p: any) => p.title || p.idea || p.name || (typeof p === "string" ? p : JSON.stringify(p))).slice(0, 5);
-  stageLog("brainstorm", `Brainstorm complete — found ${brainstormInsights.historicalAnalogies.length} historical analogi${brainstormInsights.historicalAnalogies.length === 1 ? "y" : "es"} (lessons from past treaties) and generated ${brainstormInsights.creativeProvisions.length} creative provision${brainstormInsights.creativeProvisions.length === 1 ? "" : "s"} (novel ideas like economic cooperation zones, technology sharing, or maritime safety corridors).`, { durationMs: Date.now() - bs0, tokens: t0, metadata: { analogies: analogyNames, provisions: provisionNames } });
+  stageLog("brainstorm", `Brainstorm complete — found ${brainstormInsights.historicalAnalogies.length} historical analogi${brainstormInsights.historicalAnalogies.length === 1 ? "y" : "es"} (lessons from past treaties) and generated ${brainstormInsights.creativeProvisions.length} creative provision${brainstormInsights.creativeProvisions.length === 1 ? "" : "s"} (novel ideas like economic cooperation zones, technology sharing, or maritime safety corridors).`, { durationMs: Date.now() - bs0, tokens: t0, metadata: { analogies: brainstormInsights.historicalAnalogies, provisions: brainstormInsights.creativeProvisions, crossIssueLinkages: (brainstormInsights as any).crossIssueLinkages, unconventionalApproaches: (brainstormInsights as any).unconventionalApproaches } });
 
   currentStage = "proposal";
   onSubStage?.("proposal");
+  setActiveCycleContext(cid, "deal.proposal");
   emitCycleLog({ cycleId: cid, level: "stage", stage: "deal.proposal", message: "Stage 1: Proposal Generation — An AI model is now drafting a complete peace deal proposal. This includes specific terms for nuclear protocols, sanctions relief schedules, Strait of Hormuz security arrangements, verification mechanisms, and sequencing of concessions. The brainstorm insights from Stage 0 are used to enrich the proposal with creative provisions." });
   const bs1 = Date.now();
   const { terms, tokens: t1 } = await generateProposal(evidenceSummary, previousDiagnosis, architecture, modelConfig, brainstormInsights, pipelineOverrides, dealMemory);
   totalTokens += t1;
   logger.info({ stage: "proposal", innovativeProvisions: terms.innovativeProvisions?.length ?? 0, tokens: t1 }, "Stage 1 complete");
-  stageLog("proposal", `Proposal generated with ${terms.innovativeProvisions?.length ?? 0} innovative provision${(terms.innovativeProvisions?.length ?? 0) === 1 ? "" : "s"}. The deal includes terms on nuclear safeguards, economic relief, regional security, and implementation timelines. Next: every stakeholder will evaluate this deal.`, { durationMs: Date.now() - bs1, tokens: t1, metadata: { innovativeProvisions: terms.innovativeProvisions?.map((p: any) => p.title).slice(0, 5), hasNuclearProtocol: !!terms.nuclearProtocol, hasSanctionsRelief: !!terms.sanctionsRelief, hasHormuzArrangements: !!terms.hormuzArrangements } });
+  stageLog("proposal", `Proposal generated with ${terms.innovativeProvisions?.length ?? 0} innovative provision${(terms.innovativeProvisions?.length ?? 0) === 1 ? "" : "s"}. The deal includes terms on nuclear safeguards, economic relief, regional security, and implementation timelines. Next: every stakeholder will evaluate this deal.`, { durationMs: Date.now() - bs1, tokens: t1, metadata: { innovativeProvisions: terms.innovativeProvisions, hasNuclearProtocol: !!terms.nuclearProtocol, hasSanctionsRelief: !!terms.sanctionsRelief, hasHormuzArrangements: !!terms.hormuzArrangements, nuclearProtocol: terms.nuclearProtocol ? truncateForLog(terms.nuclearProtocol, 1000) : null, sanctionsRelief: terms.sanctionsRelief ? truncateForLog(terms.sanctionsRelief, 1000) : null, hormuzArrangements: terms.hormuzArrangements ? truncateForLog(terms.hormuzArrangements, 1000) : null, stakeholderCommitments: terms.stakeholderCommitments } });
 
   currentStage = "stakeholders";
   onSubStage?.("stakeholders");
+  setActiveCycleContext(cid, "deal.stakeholders");
   const stakeholderCount = 33;
   emitCycleLog({ cycleId: cid, level: "stage", stage: "deal.stakeholders", message: `Stage 2: Stakeholder Evaluation — The deal is now being evaluated from the perspective of each of the ${stakeholderCount} conflict actors (Iran, US, Israel, Saudi Arabia, UAE, IRGC, Hezbollah, IAEA, EU, China, Russia, and more). For each stakeholder, an AI model assesses whether they would accept, conditionally accept, or reject the deal based on their known interests, red lines, and domestic political constraints.` });
   const bs2 = Date.now();
@@ -1604,10 +1605,12 @@ export async function runFullEvaluation(
   const conditionals = Object.keys(stakeholderEvaluations).length - accepts - rejects;
   logger.info({ stage: "stakeholders", tokens: t2 }, "Stage 2 complete");
   const rejectNames = Object.entries(stakeholderEvaluations).filter(([, e]: [string, any]) => e.verdict === "reject").map(([id]) => id).slice(0, 5);
-  stageLog("stakeholders", `Stakeholder evaluation complete — ${accepts} stakeholder${accepts === 1 ? "" : "s"} would accept the deal, ${conditionals} would conditionally accept (with modifications), and ${rejects} would reject it${rejects > 0 ? ` (${rejectNames.join(", ")})` : ""}. The negotiator stage will try to address rejections.`, { durationMs: Date.now() - bs2, tokens: t2, metadata: { accepts, rejects, conditionals, rejectingStakeholders: rejectNames } });
+  const stakeholderSummary = Object.fromEntries(Object.entries(stakeholderEvaluations).map(([id, e]: [string, any]) => [id, { verdict: e.verdict, rationale: e.rationale }]));
+  stageLog("stakeholders", `Stakeholder evaluation complete — ${accepts} stakeholder${accepts === 1 ? "" : "s"} would accept the deal, ${conditionals} would conditionally accept (with modifications), and ${rejects} would reject it${rejects > 0 ? ` (${rejectNames.join(", ")})` : ""}. The negotiator stage will try to address rejections.`, { durationMs: Date.now() - bs2, tokens: t2, metadata: { accepts, rejects, conditionals, rejectingStakeholders: rejectNames, stakeholderDetails: stakeholderSummary } });
 
   currentStage = "domestic";
   onSubStage?.("domestic");
+  setActiveCycleContext(cid, "deal.domestic");
   emitCycleLog({ cycleId: cid, level: "stage", stage: "deal.domestic", message: "Stage 3: Domestic Sellability — Even a perfect deal fails if leaders can't sell it at home. An AI model is now evaluating how each major country's domestic audience (voters, media, opposition parties, military establishment) would react to this deal. This tests whether the deal is politically viable, not just diplomatically sound." });
   const bs3 = Date.now();
   const { evaluations: domesticEvaluations, tokens: t3 } = await evaluateDomesticAudiences(terms, modelConfig, evidenceSummary);
@@ -1618,6 +1621,7 @@ export async function runFullEvaluation(
 
   currentStage = "framing";
   onSubStage?.("framing");
+  setActiveCycleContext(cid, "deal.framing");
   emitCycleLog({ cycleId: cid, level: "stage", stage: "deal.framing", message: "Stage 3.5: Victory Narrative Generation — For each country, an AI is now crafting a 'victory narrative' — the specific way each government could frame this deal to their domestic audience as a win. For example, how Iran frames nuclear concessions as sovereignty-preserving, or how the US frames sanctions relief as strategic leverage gained." });
   const bs35 = Date.now();
   const { strategies: domesticFramingStrategies, tokens: t35 } = await generateDomesticFramingStrategies(terms, domesticEvaluations, modelConfig, pipelineOverrides);
@@ -1628,16 +1632,18 @@ export async function runFullEvaluation(
 
   currentStage = "redteam";
   onSubStage?.("redteam");
+  setActiveCycleContext(cid, "deal.redteam");
   emitCycleLog({ cycleId: cid, level: "stage", stage: "deal.redteam", message: "Stage 4: Red Team Adversarial Analysis — A separate AI model (acting as an adversary) is now stress-testing the deal for fatal flaws, spoiler scenarios, and unintended consequences. It will try to find ways the deal could collapse, be exploited, or create perverse incentives — things the proposal's author might have overlooked." });
   const bs4 = Date.now();
   const { results: redTeamResults, tokens: t4 } = await runRedTeam(terms, modelConfig, evidenceSummary);
   totalTokens += t4;
   logger.info({ stage: "redteam", tokens: t4 }, "Stage 4 complete");
   const rtFlaws = Array.isArray(redTeamResults) ? redTeamResults.length : (redTeamResults as any)?.fatalFlaws?.length ?? 0;
-  stageLog("redteam", `Red team analysis complete — identified ${rtFlaws} potential vulnerabilit${rtFlaws === 1 ? "y" : "ies"} including spoiler scenarios, enforcement gaps, and escalation risks. These findings will be factored into the negotiator's amendments in the next stage.`, { durationMs: Date.now() - bs4, tokens: t4, metadata: { vulnerabilitiesFound: rtFlaws } });
+  stageLog("redteam", `Red team analysis complete — identified ${rtFlaws} potential vulnerabilit${rtFlaws === 1 ? "y" : "ies"} including spoiler scenarios, enforcement gaps, and escalation risks. These findings will be factored into the negotiator's amendments in the next stage.`, { durationMs: Date.now() - bs4, tokens: t4, metadata: { vulnerabilitiesFound: rtFlaws, redTeamFindings: redTeamResults } });
 
   currentStage = "negotiator";
   onSubStage?.("negotiator");
+  setActiveCycleContext(cid, "deal.negotiator");
   emitCycleLog({ cycleId: cid, level: "stage", stage: "deal.negotiator", message: "Stage 5: AI Negotiator — An AI model is acting as a skilled mediator. It reviews all stakeholder objections, red team vulnerabilities, and domestic framing challenges, then proposes specific amendments to the deal that could flip rejections to acceptances. It looks for Pareto improvements — changes that make at least one party better off without making anyone worse off." });
   const bs5 = Date.now();
   const { result: negotiatorResult, tokens: t5 } = await runNegotiator(terms, stakeholderEvaluations, domesticFramingStrategies, modelConfig, pipelineOverrides);
@@ -1645,9 +1651,7 @@ export async function runFullEvaluation(
   const amendCount = negotiatorResult.proposedAmendments.length;
   const tradeoffCount = negotiatorResult.creativeTradeoffs?.length ?? 0;
   logger.info({ stage: "negotiator", amendments: amendCount, tradeoffs: tradeoffCount, tokens: t5 }, "Stage 5 complete");
-  const amendNames = negotiatorResult.proposedAmendments.map((a: any) => a.title || a.proposedChange || a.description || a.amendment || (typeof a === "string" ? a : JSON.stringify(a))).slice(0, 5);
-  const tradeoffNames = (negotiatorResult.creativeTradeoffs ?? []).map((t: any) => t.title || t.description || t.idea || (typeof t === "string" ? t : JSON.stringify(t))).slice(0, 3);
-  stageLog("negotiator", `Negotiation complete — proposed ${amendCount} amendment${amendCount === 1 ? "" : "s"} to the deal terms and identified ${tradeoffCount} creative tradeoff${tradeoffCount === 1 ? "" : "s"} (ways to exchange concessions between parties so everyone gains). The deal terms are now revised with these improvements incorporated.`, { durationMs: Date.now() - bs5, tokens: t5, metadata: { amendments: amendNames, tradeoffs: tradeoffNames } });
+  stageLog("negotiator", `Negotiation complete — proposed ${amendCount} amendment${amendCount === 1 ? "" : "s"} to the deal terms and identified ${tradeoffCount} creative tradeoff${tradeoffCount === 1 ? "" : "s"} (ways to exchange concessions between parties so everyone gains). The deal terms are now revised with these improvements incorporated.`, { durationMs: Date.now() - bs5, tokens: t5, metadata: { amendments: negotiatorResult.proposedAmendments, tradeoffs: negotiatorResult.creativeTradeoffs } });
 
   const revisedTerms: DealTerms = {
     ...terms,
@@ -1656,6 +1660,7 @@ export async function runFullEvaluation(
 
   currentStage = "judge";
   onSubStage?.("judge");
+  setActiveCycleContext(cid, "deal.judge");
   emitCycleLog({ cycleId: cid, level: "stage", stage: "deal.judge", message: "Stage 6: Judicial Panel Scoring — Three different AI models (Claude, GPT, Gemini) are independently scoring the revised deal on 7 dimensions: feasibility, coherence, evidence grounding, domestic sellability, regional stability, implementability, and durability. Using multiple models reduces single-model bias and produces a more reliable composite score." });
   const bs6 = Date.now();
   const { scores, tokens: t6 } = await judgeAndScore(revisedTerms, stakeholderEvaluations, redTeamResults, domesticEvaluations, modelConfig, evidenceSummary);
@@ -1669,22 +1674,24 @@ export async function runFullEvaluation(
 
   currentStage = "meta_eval";
   onSubStage?.("meta_eval");
+  setActiveCycleContext(cid, "deal.meta_eval");
   emitCycleLog({ cycleId: cid, level: "stage", stage: "deal.meta_eval", message: "Stage 7: Meta-Evaluator — An AI model is now reviewing the entire pipeline's performance on this deal. It evaluates whether the brainstorm was creative enough, whether the negotiator addressed key objections, whether the scoring seems calibrated, and suggests specific prompt improvements for future cycles. This is how the system learns and improves over time." });
   const bs7 = Date.now();
   const { result: metaEvaluatorResult, tokens: t7 } = await runMetaEvaluator(revisedTerms, scores, negotiatorResult, stakeholderEvaluations, brainstormInsights, domesticFramingStrategies, modelConfig, pipelineOverrides);
   totalTokens += t7;
   const promptImpCount = metaEvaluatorResult.promptImprovements?.length ?? 0;
   logger.info({ stage: "meta-evaluator", quality: metaEvaluatorResult.pipelineQuality, promptImprovements: promptImpCount, tokens: t7 }, "Stage 7 complete");
-  stageLog("meta_eval", `Meta-evaluation complete — pipeline quality rated as "${metaEvaluatorResult.pipelineQuality}". ${promptImpCount > 0 ? `Suggested ${promptImpCount} improvement${promptImpCount === 1 ? "" : "s"} to the prompts used in future cycles (the system will automatically evolve its prompts if scores improve).` : "No prompt improvements suggested — the current prompts are performing well."}`, { durationMs: Date.now() - bs7, tokens: t7, metadata: { pipelineQuality: metaEvaluatorResult.pipelineQuality, promptImprovements: metaEvaluatorResult.promptImprovements?.map((p: any) => `${p.stage}: ${p.expectedImpact}`).slice(0, 5) } });
+  stageLog("meta_eval", `Meta-evaluation complete — pipeline quality rated as "${metaEvaluatorResult.pipelineQuality}". ${promptImpCount > 0 ? `Suggested ${promptImpCount} improvement${promptImpCount === 1 ? "" : "s"} to the prompts used in future cycles (the system will automatically evolve its prompts if scores improve).` : "No prompt improvements suggested — the current prompts are performing well."}`, { durationMs: Date.now() - bs7, tokens: t7, metadata: { pipelineQuality: metaEvaluatorResult.pipelineQuality, promptImprovements: metaEvaluatorResult.promptImprovements } });
 
   currentStage = "diagnosis";
   onSubStage?.("diagnosis");
+  setActiveCycleContext(cid, "deal.diagnosis");
   emitCycleLog({ cycleId: cid, level: "stage", stage: "deal.diagnosis", message: "Stage 8: Strategic Diagnosis — An AI model is generating a comprehensive strategic diagnosis that summarizes the deal's strengths and weaknesses, identifies the critical path to agreement, and highlights which issues need the most creative problem-solving. This diagnosis guides the next cycle's brainstorm and proposal generation." });
   const bs8 = Date.now();
   const { diagnosis, tokens: t8 } = await generateDiagnosis(revisedTerms, stakeholderEvaluations, redTeamResults, scores, modelConfig);
   totalTokens += t8;
   logger.info({ stage: "diagnosis", tokens: t8 }, "Stage 8 complete");
-  stageLog("diagnosis", `Strategic diagnosis generated (${diagnosis.length} characters). This analysis will be fed into the next cycle to help the system learn from this deal's strengths and weaknesses.`, { durationMs: Date.now() - bs8, tokens: t8, output: truncateForLog(diagnosis, 500) });
+  stageLog("diagnosis", `Strategic diagnosis generated (${diagnosis.length} characters). This analysis will be fed into the next cycle to help the system learn from this deal's strengths and weaknesses.`, { durationMs: Date.now() - bs8, tokens: t8, output: diagnosis });
 
   totalCost = totalTokens * 0.000003;
   const elapsedSec = ((Date.now() - pipelineStart) / 1000).toFixed(1);

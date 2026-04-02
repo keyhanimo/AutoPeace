@@ -65,3 +65,21 @@ export function truncateForLog(text: string | undefined, maxLen = 500): string {
   if (text.length <= maxLen) return text;
   return text.slice(0, maxLen) + `... [${text.length - maxLen} more chars]`;
 }
+
+let _activeCycleId: string | null = null;
+let _activeCycleStage: string | null = null;
+
+export function setActiveCycleContext(cycleId: string, stage: string): void {
+  _activeCycleId = cycleId;
+  _activeCycleStage = stage;
+}
+
+export function clearActiveCycleContext(): void {
+  _activeCycleId = null;
+  _activeCycleStage = null;
+}
+
+export function getActiveCycleContext(): { cycleId: string; stage: string } | null {
+  if (!_activeCycleId || !_activeCycleStage) return null;
+  return { cycleId: _activeCycleId, stage: _activeCycleStage };
+}

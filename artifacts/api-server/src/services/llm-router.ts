@@ -2,6 +2,7 @@ import { db } from "@workspace/db";
 import { adminConfigTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
 import pino from "pino";
+import { emitCycleLog, getActiveCycleContext, truncateForLog } from "../lib/cycle-log";
 
 const logger = pino({ name: "llm-router" });
 
@@ -259,7 +260,7 @@ async function callAnthropic(
   const anthropic = await getAnthropic();
   const promptChars = prompt.length + systemPrompt.length;
   const startMs = Date.now();
-  logger.info({ model, maxTokens, promptChars, baseURL: (anthropic as Record<string, unknown>).baseURL }, "Anthropic API call starting");
+  logger.info({ model, maxTokens, promptChars }, "Anthropic API call starting");
   try {
     const resp = await anthropic.messages.create({
       model,
@@ -309,6 +310,21 @@ export async function callLLM(
 ): Promise<{ content: string; tokens: number }> {
   const timeoutMs = opts.timeoutMs ?? 300_000;
   let lastErr: unknown;
+  const ctx = getActiveCycleContext();
+  const callStart = Date.now();
+
+  if (ctx) {
+    emitCycleLog({
+      cycleId: ctx.cycleId,
+      level: "llm_start",
+      stage: ctx.stage,
+      message: `Calling ${provider}/${model}...`,
+      provider,
+      model,
+      prompt,
+      metadata: { systemPrompt },
+    });
+  }
 
   for (let attempt = 0; attempt <= MAX_LLM_RETRIES; attempt++) {
     if (attempt > 0) {
@@ -338,6 +354,21 @@ export async function callLLM(
           setTimeout(() => reject(new Error(`LLM call to ${provider}/${model} timed out after ${timeoutMs / 1000}s`)), timeoutMs)
         ),
       ]);
+
+      if (ctx) {
+        emitCycleLog({
+          cycleId: ctx.cycleId,
+          level: "llm_complete",
+          stage: ctx.stage,
+          message: `${provider}/${model} responded — ${result.tokens.toLocaleString()} tokens in ${((Date.now() - callStart) / 1000).toFixed(1)}s`,
+          provider,
+          model,
+          tokens: result.tokens,
+          durationMs: Date.now() - callStart,
+          output: result.content,
+        });
+      }
+
       return result;
     } catch (err) {
       lastErr = err;
@@ -346,6 +377,18 @@ export async function callLLM(
       }
       break;
     }
+  }
+
+  if (ctx) {
+    emitCycleLog({
+      cycleId: ctx.cycleId,
+      level: "llm_error",
+      stage: ctx.stage,
+      message: `${provider}/${model} failed: ${lastErr instanceof Error ? lastErr.message : String(lastErr)}`,
+      provider,
+      model,
+      durationMs: Date.now() - callStart,
+    });
   }
 
   if (lastErr instanceof LLMCallError) throw lastErr;

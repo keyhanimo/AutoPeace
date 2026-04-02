@@ -18,7 +18,7 @@ import {
 import { setDealSubStage, type DealSubStage } from "../lib/cycle-status";
 import { getModelConfig } from "./llm-router";
 import { ingestAllSources } from "./evidence-ingestion";
-import { emitCycleLog } from "../lib/cycle-log";
+import { emitCycleLog, setActiveCycleContext, clearActiveCycleContext } from "../lib/cycle-log";
 
 let dealCycleRunning = false;
 
@@ -527,9 +527,15 @@ async function runDealCycleAsync(cycleId: string): Promise<void> {
       dealMemoryDeals: dealMemory.topDeals.length,
       provisionInsights: dealMemory.provisionInsights.length,
     }, "Using pipeline configuration with deal memory");
-    emitCycleLog({ cycleId, level: "info", stage: "deal_engine", message: `Deal memory loaded: ${dealMemory.topDeals.length} previous top deals and ${dealMemory.provisionInsights.length} provision performance insights available. Pipeline generation: ${pipelineConfig?.generation ?? 0}${Object.keys(pipelineOverrides).length > 0 ? ` with ${Object.keys(pipelineOverrides).length} evolved prompt overrides` : ""}.`, metadata: { topDeals: dealMemory.topDeals.length, provisionInsights: dealMemory.provisionInsights.length, pipelineGeneration: pipelineConfig?.generation ?? 0 } });
+    emitCycleLog({ cycleId, level: "info", stage: "deal_engine", message: `Deal memory loaded: ${dealMemory.topDeals.length} previous top deals and ${dealMemory.provisionInsights.length} provision performance insights available. Pipeline generation: ${pipelineConfig?.generation ?? 0}${Object.keys(pipelineOverrides).length > 0 ? ` with ${Object.keys(pipelineOverrides).length} evolved prompt overrides` : ""}.`, metadata: { topDeals: dealMemory.topDeals.length, provisionInsights: dealMemory.provisionInsights.length, pipelineGeneration: pipelineConfig?.generation ?? 0, promptOverrides: Object.keys(pipelineOverrides).length > 0 ? pipelineOverrides : undefined } });
 
-    const evaluated = await runFullEvaluation(evidenceSummary, previousDiagnosis, chosenArch, modelConfig, pipelineOverrides, setDealSubStage, dealMemory, cycleId);
+    setActiveCycleContext(cycleId, "deal_engine");
+    let evaluated: Awaited<ReturnType<typeof runFullEvaluation>>;
+    try {
+      evaluated = await runFullEvaluation(evidenceSummary, previousDiagnosis, chosenArch, modelConfig, pipelineOverrides, setDealSubStage, dealMemory, cycleId);
+    } finally {
+      clearActiveCycleContext();
+    }
 
     const dealId = randomUUID();
     const newComposite = evaluated.scores.composite ?? 0;
@@ -623,7 +629,7 @@ async function runDealCycleAsync(cycleId: string): Promise<void> {
           newGeneration: (pipelineConfig?.generation ?? 0) + 1,
           overrideKeys: Object.keys(newOverrides),
         }, "Pipeline will use evolved prompts in next cycle");
-        emitCycleLog({ cycleId, level: "info", stage: "deal_engine", message: `Pipeline evolution: the meta-evaluator's suggestions triggered prompt improvements for generation ${(pipelineConfig?.generation ?? 0) + 1}. The next deal cycle will use refined prompts targeting: ${Object.keys(newOverrides).join(", ")}.`, metadata: { newGeneration: (pipelineConfig?.generation ?? 0) + 1, overrideKeys: Object.keys(newOverrides) } });
+        emitCycleLog({ cycleId, level: "info", stage: "deal_engine", message: `Pipeline evolution: the meta-evaluator's suggestions triggered prompt improvements for generation ${(pipelineConfig?.generation ?? 0) + 1}. The next deal cycle will use refined prompts targeting: ${Object.keys(newOverrides).join(", ")}.`, metadata: { newGeneration: (pipelineConfig?.generation ?? 0) + 1, overrideKeys: Object.keys(newOverrides), evolvedOverrides: newOverrides } });
       }
     }
 
