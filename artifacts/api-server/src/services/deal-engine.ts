@@ -1676,8 +1676,9 @@ export async function runFullEvaluation(
     domesticFramingStrategies = framingResult.strategies;
     t35 = framingResult.tokens;
   } catch (framingErr) {
+    const framingErrTokens = (framingErr instanceof LLMParseError) ? 0 : undefined;
     logger.warn({ stage: "framing", error: framingErr instanceof Error ? framingErr.message : String(framingErr) }, "Stage 3.5 failed — continuing pipeline with empty framing strategies");
-    emitCycleLog({ cycleId: cid, level: "warn", stage: "deal.framing", message: `Victory narrative generation failed: ${framingErr instanceof Error ? framingErr.message : String(framingErr)}. Continuing pipeline without framing strategies — the deal will still be evaluated, negotiated, and scored, but without domestic framing insights.`, durationMs: Date.now() - bs35 });
+    emitCycleLog({ cycleId: cid, level: "warn", stage: "deal.framing", message: `Victory narrative generation failed: ${framingErr instanceof Error ? framingErr.message : String(framingErr)}. Continuing pipeline without framing strategies — the deal will still be evaluated, negotiated, and scored, but without domestic framing insights.`, durationMs: Date.now() - bs35, metadata: { framingErrTokens } });
   }
   totalTokens += t35;
   const framingCountries = Object.keys(domesticFramingStrategies);
