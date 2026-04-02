@@ -617,16 +617,16 @@ export async function generateProposal(
 CREATIVE BRAINSTORM INSIGHTS (use these as fuel for your proposal — incorporate the best ideas):
 
 Historical Lessons to Apply:
-${brainstormInsights.historicalAnalogies.map(a => `- ${a.dealName}: ${a.relevantLesson} → ${a.applicability}`).join("\n")}
+${(brainstormInsights.historicalAnalogies ?? []).map(a => `- ${a.dealName}: ${a.relevantLesson} → ${a.applicability}`).join("\n")}
 
 Creative Provisions to Consider Incorporating:
-${brainstormInsights.creativeProvisions.map(p => `- [${p.noveltyLevel}] ${p.idea}: ${p.rationale}`).join("\n")}
+${(brainstormInsights.creativeProvisions ?? []).map(p => `- [${p.noveltyLevel}] ${p.idea}: ${p.rationale}`).join("\n")}
 
 Cross-Issue Linkages to Exploit:
-${brainstormInsights.crossIssueLinkages.map(l => `- ${l.linkage} (helps: ${l.stakeholdersHelped.join(", ")})`).join("\n")}
+${(brainstormInsights.crossIssueLinkages ?? []).map(l => `- ${l.linkage} (helps: ${l.stakeholdersHelped.join(", ")})`).join("\n")}
 
 Unconventional Approaches:
-${brainstormInsights.unconventionalApproaches.map(a => `- ${a}`).join("\n")}
+${(brainstormInsights.unconventionalApproaches ?? []).map(a => `- ${a}`).join("\n")}
 ` : "";
 
   const systemPrompt = `You are an expert peace negotiator and conflict resolution specialist trained in cooperative game theory, with a particular talent for CREATIVE and UNCONVENTIONAL deal design.
@@ -1388,7 +1388,7 @@ Output JSON only.`;
 
 DEAL COMPOSITE SCORE: ${(scores.composite * 100).toFixed(1)}%
 STAKEHOLDER RESULTS: ${acceptCount} accept, ${rejectCount} reject out of ${Object.keys(stakeholderEvaluations).length}
-NEGOTIATOR APPLIED: ${negotiatorResult ? `Yes — proposed ${negotiatorResult.proposedAmendments.length} amendments` : "No"}
+NEGOTIATOR APPLIED: ${negotiatorResult ? `Yes — proposed ${negotiatorResult.proposedAmendments?.length ?? 0} amendments` : "No"}
 INNOVATIVE PROVISIONS: ${innovativeCount} generated
 ${brainstormQuality}
 ${framingQuality}
@@ -1582,8 +1582,10 @@ export async function runFullEvaluation(
   const bs0 = Date.now();
   const { insights: brainstormInsights, tokens: t0 } = await runInnovationBrainstorm(evidenceSummary, previousDiagnosis, architecture, modelConfig, pipelineOverrides, dealMemory);
   totalTokens += t0;
-  logger.info({ stage: "brainstorm", analogies: brainstormInsights.historicalAnalogies.length, provisions: brainstormInsights.creativeProvisions.length, tokens: t0 }, "Stage 0 complete");
-  stageLog("brainstorm", `Brainstorm complete — found ${brainstormInsights.historicalAnalogies.length} historical analogi${brainstormInsights.historicalAnalogies.length === 1 ? "y" : "es"} (lessons from past treaties) and generated ${brainstormInsights.creativeProvisions.length} creative provision${brainstormInsights.creativeProvisions.length === 1 ? "" : "s"} (novel ideas like economic cooperation zones, technology sharing, or maritime safety corridors).`, { durationMs: Date.now() - bs0, tokens: t0, metadata: { analogies: brainstormInsights.historicalAnalogies, provisions: brainstormInsights.creativeProvisions, crossIssueLinkages: (brainstormInsights as any).crossIssueLinkages, unconventionalApproaches: (brainstormInsights as any).unconventionalApproaches } });
+  const analogyCount = brainstormInsights.historicalAnalogies?.length ?? 0;
+  const provisionCount = brainstormInsights.creativeProvisions?.length ?? 0;
+  logger.info({ stage: "brainstorm", analogies: analogyCount, provisions: provisionCount, tokens: t0 }, "Stage 0 complete");
+  stageLog("brainstorm", `Brainstorm complete — found ${analogyCount} historical analogi${analogyCount === 1 ? "y" : "es"} (lessons from past treaties) and generated ${provisionCount} creative provision${provisionCount === 1 ? "" : "s"} (novel ideas like economic cooperation zones, technology sharing, or maritime safety corridors).`, { durationMs: Date.now() - bs0, tokens: t0, metadata: { analogies: brainstormInsights.historicalAnalogies, provisions: brainstormInsights.creativeProvisions, crossIssueLinkages: (brainstormInsights as any).crossIssueLinkages, unconventionalApproaches: (brainstormInsights as any).unconventionalApproaches } });
 
   currentStage = "proposal";
   onSubStage?.("proposal");
@@ -1651,6 +1653,10 @@ export async function runFullEvaluation(
   const bs5 = Date.now();
   const { result: negotiatorResult, tokens: t5 } = await runNegotiator(terms, stakeholderEvaluations, domesticFramingStrategies, modelConfig, pipelineOverrides);
   totalTokens += t5;
+  if (!negotiatorResult.proposedAmendments) {
+    negotiatorResult.proposedAmendments = [];
+    logger.warn({ stage: "negotiator" }, "LLM returned no proposedAmendments field — defaulting to empty array");
+  }
   const amendCount = negotiatorResult.proposedAmendments.length;
   const tradeoffCount = negotiatorResult.creativeTradeoffs?.length ?? 0;
   logger.info({ stage: "negotiator", amendments: amendCount, tradeoffs: tradeoffCount, tokens: t5 }, "Stage 5 complete");
