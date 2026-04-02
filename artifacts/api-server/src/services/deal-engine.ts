@@ -945,8 +945,17 @@ Return JSON object keyed by audience key:
 
   const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 3, "evaluation", modelConfig, { maxTokens: 8192, timeoutMs: 180_000 });
 
-  const parsed = parseLLMJson<Record<string, DomesticFramingStrategy>>(content, "domestic-framing");
-  return { strategies: parsed, tokens };
+  const { provider: repairProvider, model: repairModel } = resolveStageConfig(3, "evaluation", modelConfig);
+  let repairTokens = 0;
+  const repairFn: RepairFn = async (brokenText: string) => {
+    const repairPrompt = `The following text was supposed to be valid JSON but it has syntax errors. Extract or fix the JSON and return ONLY the corrected valid JSON object — no explanation, no markdown, no code fences.\n\nBroken output:\n${brokenText.slice(0, 6000)}`;
+    const result = await callLLM(repairPrompt, "You are a JSON repair tool. Output only valid JSON.", repairProvider, repairModel, { maxTokens: 4096, timeoutMs: 60_000 });
+    repairTokens += result.tokens;
+    return result;
+  };
+
+  const parsed = await parseLLMJson<Record<string, DomesticFramingStrategy>>(content, "domestic-framing", repairFn);
+  return { strategies: parsed, tokens: tokens + repairTokens };
 }
 
 /**
@@ -1660,11 +1669,22 @@ export async function runFullEvaluation(
   setActiveCycleContext(cid, "deal.framing");
   emitCycleLog({ cycleId: cid, level: "stage", stage: "deal.framing", message: "Stage 3.5: Victory Narrative Generation — For each country, an AI is now crafting a 'victory narrative' — the specific way each government could frame this deal to their domestic audience as a win. For example, how Iran frames nuclear concessions as sovereignty-preserving, or how the US frames sanctions relief as strategic leverage gained." });
   const bs35 = Date.now();
-  const { strategies: domesticFramingStrategies, tokens: t35 } = await generateDomesticFramingStrategies(terms, domesticEvaluations, modelConfig, pipelineOverrides);
+  let domesticFramingStrategies: Record<string, DomesticFramingStrategy> = {};
+  let t35 = 0;
+  try {
+    const framingResult = await generateDomesticFramingStrategies(terms, domesticEvaluations, modelConfig, pipelineOverrides);
+    domesticFramingStrategies = framingResult.strategies;
+    t35 = framingResult.tokens;
+  } catch (framingErr) {
+    logger.warn({ stage: "framing", error: framingErr instanceof Error ? framingErr.message : String(framingErr) }, "Stage 3.5 failed — continuing pipeline with empty framing strategies");
+    emitCycleLog({ cycleId: cid, level: "warn", stage: "deal.framing", message: `Victory narrative generation failed: ${framingErr instanceof Error ? framingErr.message : String(framingErr)}. Continuing pipeline without framing strategies — the deal will still be evaluated, negotiated, and scored, but without domestic framing insights.`, durationMs: Date.now() - bs35 });
+  }
   totalTokens += t35;
   const framingCountries = Object.keys(domesticFramingStrategies);
-  logger.info({ stage: "framing", strategiesGenerated: framingCountries.length, tokens: t35 }, "Stage 3.5 complete");
-  stageLog("framing", `Generated ${framingCountries.length} domestic framing strateg${framingCountries.length === 1 ? "y" : "ies"} (${framingCountries.join(", ")}). Each strategy provides specific talking points, media narratives, and opposition counter-arguments that could make the deal politically viable at home.`, { durationMs: Date.now() - bs35, tokens: t35, metadata: { countries: framingCountries } });
+  if (framingCountries.length > 0) {
+    logger.info({ stage: "framing", strategiesGenerated: framingCountries.length, tokens: t35 }, "Stage 3.5 complete");
+    stageLog("framing", `Generated ${framingCountries.length} domestic framing strateg${framingCountries.length === 1 ? "y" : "ies"} (${framingCountries.join(", ")}). Each strategy provides specific talking points, media narratives, and opposition counter-arguments that could make the deal politically viable at home.`, { durationMs: Date.now() - bs35, tokens: t35, metadata: { countries: framingCountries } });
+  }
 
   currentStage = "redteam";
   onSubStage?.("redteam");
