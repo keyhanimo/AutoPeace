@@ -584,19 +584,19 @@ export default function ForecastDashboard() {
                               const item = historyData[payload.index];
                               return (
                                 <g transform={`translate(${x},${y})`}>
-                                  <text x={0} y={0} dy={12} textAnchor="middle" fill="#94a3b8" fontSize={11} fontWeight={600}>
+                                  <text x={0} y={0} dy={10} textAnchor="middle" fill="#94a3b8" fontSize={11} fontWeight={600}>
                                     {payload.value}
                                   </text>
                                   {item?.timestamp && (
-                                    <text x={0} y={0} dy={26} textAnchor="middle" fill="#64748b" fontSize={9}>
+                                    <text x={0} y={0} dy={24} textAnchor="end" fill="#64748b" fontSize={8} transform="rotate(-35, 0, 24)">
                                       {item.timestamp}
                                     </text>
                                   )}
                                 </g>
                               );
                             }}
-                            height={50}
-                            interval={historyData.length > 12 ? Math.floor(historyData.length / 8) : 0}
+                            height={70}
+                            interval={historyData.length > 15 ? Math.floor(historyData.length / 10) : 0}
                           />
                           <YAxis stroke="#475569" tickFormatter={(v: number) => `${v}%`} />
                           <Tooltip
