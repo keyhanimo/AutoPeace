@@ -248,8 +248,8 @@ router.get("/deals/:id/llm.md", async (req, res) => {
       return;
     }
 
-    const baseHost = process.env["PUBLIC_DOMAIN"] || process.env["REPLIT_DEPLOYMENT_URL"] || process.env["REPLIT_DEV_DOMAIN"] || "autopeace.org";
-    const permalinkUrl = `https://${baseHost.replace(/^https?:\/\//, "")}/deals/${deal.id}`;
+    const baseHost = (process.env["PUBLIC_DOMAIN"] || process.env["REPLIT_DEPLOYMENT_URL"] || process.env["REPLIT_DEV_DOMAIN"] || "autopeace.org").replace(/^https?:\/\//, "").replace(/\/+$/, "");
+    const permalinkUrl = `https://${baseHost}/deals/${deal.id}`;
 
     const markdown = dealToMarkdown(deal, permalinkUrl);
     res.setHeader("Content-Type", "text/markdown; charset=utf-8");
@@ -283,8 +283,8 @@ router.post("/deals/:id/share-text", async (req, res) => {
     const accepts = Object.values(stakeholderEvals).filter(e => e.verdict === "accept").length;
     const total = Object.keys(stakeholderEvals).length;
 
-    const baseHost = process.env["PUBLIC_DOMAIN"] || process.env["REPLIT_DEPLOYMENT_URL"] || process.env["REPLIT_DEV_DOMAIN"] || "autopeace.org";
-    const permalinkUrl = `https://${baseHost.replace(/^https?:\/\//, "")}/deals/${deal.id}`;
+    const baseHost = (process.env["PUBLIC_DOMAIN"] || process.env["REPLIT_DEPLOYMENT_URL"] || process.env["REPLIT_DEV_DOMAIN"] || "autopeace.org").replace(/^https?:\/\//, "").replace(/\/+$/, "");
+    const permalinkUrl = `https://${baseHost}/deals/${deal.id}`;
 
     const platformGuidelines: Record<string, string> = {
       twitter: "Max 280 characters total (the URL will be appended separately, so leave ~25 chars for it). Punchy, use 2-3 hashtags like #PeaceDeal #IranDeal. Do NOT include any URL in the text. Engaging and shareable.",
