@@ -426,6 +426,9 @@ export default function AdminPanel() {
                   <option value="every15m">Every 15 Minutes — fastest iteration cycle</option>
                   <option value="every30m">Every 30 Minutes — rapid iteration</option>
                   <option value="hourly">Hourly — ingest news & update forecasts every hour</option>
+                  <option value="every3h">Every 3 Hours — run at 0:00, 3:00, 6:00… UTC</option>
+                  <option value="every6h">Every 6 Hours — run at 0:00, 6:00, 12:00, 18:00 UTC</option>
+                  <option value="every12h">Every 12 Hours — run at 0:00 and 12:00 UTC</option>
                   <option value="daily">Daily — run at 6:00 AM UTC each day</option>
                   <option value="weekly">Weekly — run Mondays at 6:00 AM UTC</option>
                   <option value="manual">Manual Only — no automatic updates</option>

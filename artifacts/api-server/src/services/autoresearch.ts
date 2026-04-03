@@ -73,6 +73,33 @@ export async function getNextRunAt(): Promise<number | null> {
       return next.getTime();
     }
 
+    if (cadence === "every3h") {
+      const next = new Date(now);
+      next.setUTCMinutes(0, 0, 0);
+      const nextSlot = Math.ceil((next.getUTCHours() + 1) / 3) * 3;
+      next.setUTCHours(nextSlot);
+      if (next.getTime() <= now.getTime()) next.setUTCHours(next.getUTCHours() + 3);
+      return next.getTime();
+    }
+
+    if (cadence === "every6h") {
+      const next = new Date(now);
+      next.setUTCMinutes(0, 0, 0);
+      const nextSlot = Math.ceil((next.getUTCHours() + 1) / 6) * 6;
+      next.setUTCHours(nextSlot);
+      if (next.getTime() <= now.getTime()) next.setUTCHours(next.getUTCHours() + 6);
+      return next.getTime();
+    }
+
+    if (cadence === "every12h") {
+      const next = new Date(now);
+      next.setUTCMinutes(0, 0, 0);
+      const nextSlot = Math.ceil((next.getUTCHours() + 1) / 12) * 12;
+      next.setUTCHours(nextSlot);
+      if (next.getTime() <= now.getTime()) next.setUTCHours(next.getUTCHours() + 12);
+      return next.getTime();
+    }
+
     if (cadence === "daily") {
       const next = new Date(now);
       next.setUTCHours(6, 0, 0, 0);
@@ -325,6 +352,12 @@ export async function startScheduler(): Promise<void> {
     } else if (cadence === "every30m" && minute % 30 < 15) {
       await runCycleNow();
     } else if (cadence === "hourly" && minute < 15) {
+      await runCycleNow();
+    } else if (cadence === "every3h" && hour % 3 === 0 && minute < 15) {
+      await runCycleNow();
+    } else if (cadence === "every6h" && hour % 6 === 0 && minute < 15) {
+      await runCycleNow();
+    } else if (cadence === "every12h" && hour % 12 === 0 && minute < 15) {
       await runCycleNow();
     } else if (cadence === "daily" && hour === 6 && minute < 15) {
       await runCycleNow();

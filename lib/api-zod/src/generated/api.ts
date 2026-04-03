@@ -485,6 +485,9 @@ export const GetAdminConfigResponse = zod.object({
     "every15m",
     "every30m",
     "hourly",
+    "every3h",
+    "every6h",
+    "every12h",
     "daily",
     "weekly",
     "manual",
@@ -551,7 +554,17 @@ export const GetAdminConfigResponse = zod.object({
  */
 export const UpdateAdminConfigBody = zod.object({
   cadence: zod
-    .enum(["every15m", "every30m", "hourly", "daily", "weekly", "manual"])
+    .enum([
+      "every15m",
+      "every30m",
+      "hourly",
+      "every3h",
+      "every6h",
+      "every12h",
+      "daily",
+      "weekly",
+      "manual",
+    ])
     .optional(),
   budgetCapUsd: zod.number().optional(),
   isPaused: zod.boolean().optional(),
@@ -615,6 +628,9 @@ export const UpdateAdminConfigResponse = zod.object({
     "every15m",
     "every30m",
     "hourly",
+    "every3h",
+    "every6h",
+    "every12h",
     "daily",
     "weekly",
     "manual",
