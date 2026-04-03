@@ -30,8 +30,8 @@ export async function generateDealNarrative(dealId: string): Promise<string> {
     throw new Error(`Deal ${dealId} not found`);
   }
 
-  const baseHost = process.env["PUBLIC_DOMAIN"] || process.env["REPLIT_DEV_DOMAIN"] || "autopeace.org";
-  const permalinkUrl = `https://${baseHost}/deals/${deal.id}`;
+  const baseHost = process.env["PUBLIC_DOMAIN"] || process.env["REPLIT_DEPLOYMENT_URL"] || process.env["REPLIT_DEV_DOMAIN"] || "autopeace.org";
+  const permalinkUrl = `https://${baseHost.replace(/^https?:\/\//, "")}/deals/${deal.id}`;
   const markdown = dealToMarkdown(deal, permalinkUrl);
 
   const prompt = `Produce a concise narrative summary of this peace deal proposal. Remember: plain prose only, no markdown, no bullet points, no headings.\n\n${markdown}`;

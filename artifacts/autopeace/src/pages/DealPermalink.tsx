@@ -60,10 +60,10 @@ const VERDICT_COLORS: Record<string, string> = {
 };
 
 const PLATFORMS = [
-  { key: "twitter", label: "X / Twitter", icon: "𝕏", shareUrlFn: (text: string, url: string) => `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}` },
-  { key: "facebook", label: "Facebook", icon: "f", shareUrlFn: (_text: string, url: string) => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}` },
-  { key: "linkedin", label: "LinkedIn", icon: "in", shareUrlFn: (text: string, url: string) => `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}&summary=${encodeURIComponent(text)}` },
-  { key: "reddit", label: "Reddit", icon: "r", shareUrlFn: (text: string, url: string) => `https://www.reddit.com/submit?url=${encodeURIComponent(url)}&title=${encodeURIComponent(text.split("\n")[0] || text)}` },
+  { key: "twitter", label: "X / Twitter", icon: "𝕏", copyFirst: false, shareUrlFn: (text: string, url: string) => `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}` },
+  { key: "facebook", label: "Facebook", icon: "f", copyFirst: true, shareUrlFn: (_text: string, url: string) => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}` },
+  { key: "linkedin", label: "LinkedIn", icon: "in", copyFirst: true, shareUrlFn: (_text: string, url: string) => `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}` },
+  { key: "reddit", label: "Reddit", icon: "r", copyFirst: false, shareUrlFn: (text: string, url: string) => `https://www.reddit.com/submit?url=${encodeURIComponent(url)}&title=${encodeURIComponent(text.split("\n")[0] || text)}` },
 ] as const;
 
 function ShareModal({ dealId, permalinkUrl, onClose }: { dealId: string; permalinkUrl: string; onClose: () => void }) {
@@ -94,9 +94,9 @@ function ShareModal({ dealId, permalinkUrl, onClose }: { dealId: string; permali
   const handleShare = async () => {
     const platform = PLATFORMS.find(p => p.key === selectedPlatform);
     if (!platform) return;
-    if (platform.key === "facebook") {
+    if (platform.copyFirst) {
       await navigator.clipboard.writeText(editedText);
-      toast({ title: "Text copied", description: "Share text copied to clipboard. Paste it into your Facebook post." });
+      toast({ title: "Text copied", description: "Share text copied to clipboard. Paste it into your post after the share window opens." });
     }
     const shareUrl = platform.shareUrlFn(editedText, permalinkUrl);
     window.open(shareUrl, "_blank", "noopener,noreferrer,width=600,height=400");
@@ -163,15 +163,15 @@ function ShareModal({ dealId, permalinkUrl, onClose }: { dealId: string; permali
                   )}
                 </div>
 
-                {selectedPlatform === "facebook" && (
-                  <p className="text-xs text-amber-400 bg-amber-950/30 rounded p-2">Facebook doesn't support pre-filled text. Your text will be copied to clipboard — paste it into your Facebook post after the share window opens.</p>
+                {PLATFORMS.find(p => p.key === selectedPlatform)?.copyFirst && (
+                  <p className="text-xs text-amber-400 bg-amber-950/30 rounded p-2">{PLATFORMS.find(p => p.key === selectedPlatform)?.label} doesn't support pre-filled text. Your text will be copied to clipboard — paste it into your post after the share window opens.</p>
                 )}
                 <div className="flex gap-2">
                   <button
                     onClick={handleShare}
                     className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
                   >
-                    <ExternalLink className="w-4 h-4" /> {selectedPlatform === "facebook" ? "Copy Text & Share" : `Share on ${PLATFORMS.find(p => p.key === selectedPlatform)?.label}`}
+                    <ExternalLink className="w-4 h-4" /> {PLATFORMS.find(p => p.key === selectedPlatform)?.copyFirst ? "Copy Text & Share" : `Share on ${PLATFORMS.find(p => p.key === selectedPlatform)?.label}`}
                   </button>
                   <button
                     onClick={() => {

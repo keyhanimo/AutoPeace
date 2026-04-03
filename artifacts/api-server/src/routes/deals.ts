@@ -248,8 +248,8 @@ router.get("/deals/:id/llm.md", async (req, res) => {
       return;
     }
 
-    const baseHost = process.env["PUBLIC_DOMAIN"] || process.env["REPLIT_DEV_DOMAIN"] || "autopeace.org";
-    const permalinkUrl = `https://${baseHost}/deals/${deal.id}`;
+    const baseHost = process.env["PUBLIC_DOMAIN"] || process.env["REPLIT_DEPLOYMENT_URL"] || process.env["REPLIT_DEV_DOMAIN"] || "autopeace.org";
+    const permalinkUrl = `https://${baseHost.replace(/^https?:\/\//, "")}/deals/${deal.id}`;
 
     const markdown = dealToMarkdown(deal, permalinkUrl);
     res.setHeader("Content-Type", "text/markdown; charset=utf-8");
@@ -283,29 +283,27 @@ router.post("/deals/:id/share-text", async (req, res) => {
     const accepts = Object.values(stakeholderEvals).filter(e => e.verdict === "accept").length;
     const total = Object.keys(stakeholderEvals).length;
 
-    const baseHost = process.env["PUBLIC_DOMAIN"] || process.env["REPLIT_DEV_DOMAIN"] || "autopeace.org";
-    const permalinkUrl = `https://${baseHost}/deals/${deal.id}`;
+    const baseHost = process.env["PUBLIC_DOMAIN"] || process.env["REPLIT_DEPLOYMENT_URL"] || process.env["REPLIT_DEV_DOMAIN"] || "autopeace.org";
+    const permalinkUrl = `https://${baseHost.replace(/^https?:\/\//, "")}/deals/${deal.id}`;
 
     const platformGuidelines: Record<string, string> = {
-      twitter: "Max 280 characters. Punchy, use 2-3 hashtags like #PeaceDeal #IranDeal. Include the URL at the end. Engaging and shareable.",
-      facebook: "2-4 sentences. Conversational, thought-provoking. Include the URL. Encourage discussion.",
-      linkedin: "Professional tone. 2-3 paragraphs. Analytical lens — focus on diplomatic/policy implications. Include the URL.",
-      reddit: "Title format first (compelling, informative), then body text (2-3 sentences providing context). Include the URL. Factual, not clickbait.",
+      twitter: "Max 280 characters total (the URL will be appended separately, so leave ~25 chars for it). Punchy, use 2-3 hashtags like #PeaceDeal #IranDeal. Do NOT include any URL in the text. Engaging and shareable.",
+      facebook: "2-4 sentences. Conversational, thought-provoking. Do NOT include any URL in the text — the URL is attached separately. Encourage discussion.",
+      linkedin: "Professional tone. 2-3 paragraphs. Analytical lens — focus on diplomatic/policy implications. Do NOT include any URL in the text — the URL is attached separately.",
+      reddit: "Return ONLY a compelling, informative title (one line, no URL). Factual, not clickbait. Do NOT include any URL.",
     };
 
     const dealSummary = `Architecture: ${deal.architecture}. Composite score: ${composite}. ${accepts}/${total} stakeholders accept. Key terms: nuclear protocol (${terms.nuclearProtocol ? "yes" : "none"}), sanctions relief (${terms.sanctionsRelief ? "yes" : "none"}), maritime security (${terms.hormuzArrangements ? "yes" : "none"}).`;
 
-    const systemPrompt = `You are a communications specialist. Generate social media post text for sharing an AI-generated peace deal proposal for the Iran-US-Israel conflict from AutoPeace.org. Be factual, nuanced, and constructive. Never sensationalize. The tone should convey this is a serious research tool, not a game.`;
+    const systemPrompt = `You are a communications specialist. Generate social media post text for sharing an AI-generated peace deal proposal for the Iran-US-Israel conflict from AutoPeace.org. Be factual, nuanced, and constructive. Never sensationalize. The tone should convey this is a serious research tool, not a game. IMPORTANT: Never include URLs or links in the generated text — the permalink is attached separately by the sharing system.`;
 
     const prompt = `Generate a ${platform} post for sharing this AI-generated peace deal:
 
 ${dealSummary}
 
-Permalink: ${permalinkUrl}
-
 Platform guidelines: ${platformGuidelines[platform]}
 
-Return ONLY the post text, nothing else.`;
+Return ONLY the post text, nothing else. Do NOT include any URLs or links.`;
 
     const config = await getModelConfig();
     const result = await callLLM(prompt, systemPrompt, config.generationProvider, config.generationModel, { maxTokens: 500 });
