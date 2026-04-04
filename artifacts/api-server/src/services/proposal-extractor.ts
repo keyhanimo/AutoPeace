@@ -153,6 +153,83 @@ For each genuine proposal found, return:
 
 Only include proposals with confidence >= 0.6. Return {"proposals": []} if nothing qualifies.`;
 
+const KEY_ACTORS = [
+  "zarif", "khamenei", "rouhani", "pezeshkian", "araghchi", "raisi",
+  "trump", "biden", "blinken", "sullivan",
+  "netanyahu", "gallant", "gantz",
+  "wang yi", "xi jinping",
+  "putin", "lavrov",
+  "macron", "scholz",
+  "china", "pakistan", "russia", "turkey", "saudi",
+  "eu", "iaea", "un", "nato",
+  "brookings", "carnegie", "csis", "crisis group", "rand",
+  "foreign affairs", "foreign policy",
+];
+
+function extractKeyActors(text: string): Set<string> {
+  const lower = text.toLowerCase();
+  return new Set(KEY_ACTORS.filter(actor => lower.includes(actor)));
+}
+
+function significantWords(text: string): Set<string> {
+  const stopWords = new Set(["the", "and", "for", "with", "from", "that", "this", "have", "will", "been", "into", "about", "their", "would", "could", "should", "between", "through", "under", "over", "after", "before", "point", "plan", "deal", "framework", "proposal", "initiative", "peace", "iran", "iranian"]);
+  return new Set(
+    text.toLowerCase().split(/\s+/)
+      .filter(w => w.length > 3 && !stopWords.has(w))
+  );
+}
+
+function checkDuplicate(
+  proposal: ExtractedProposal,
+  nameLower: string,
+  seenNames: Set<string>,
+  existingProposals: { id: string; name: string; source?: string | null; summary?: string | null }[],
+): string | false {
+  for (const existing of seenNames) {
+    const existingWords = significantWords(existing);
+    const newNameWords = significantWords(nameLower);
+    const nameOverlap = [...newNameWords].filter(w => existingWords.has(w));
+    if (nameOverlap.length >= 2) {
+      return `name word overlap (in-batch): ${nameOverlap.join(", ")}`;
+    }
+  }
+
+  const newNameWords = significantWords(nameLower);
+  for (const existing of existingProposals) {
+    const existingNameLower = existing.name.toLowerCase().trim();
+    const existingWords = significantWords(existingNameLower);
+    const nameOverlap = [...newNameWords].filter(w => existingWords.has(w));
+    if (nameOverlap.length >= 2) {
+      return `name word overlap: ${nameOverlap.join(", ")}`;
+    }
+  }
+
+  const newActors = extractKeyActors(proposal.name + " " + proposal.source + " " + proposal.summary);
+  for (const existing of existingProposals) {
+    const existingText = `${existing.name} ${existing.source ?? ""} ${existing.summary ?? ""}`;
+    const existingActors = extractKeyActors(existingText);
+    const actorOverlap = [...newActors].filter(a => existingActors.has(a));
+    if (actorOverlap.length >= 1) {
+      const existingSummaryWords = significantWords(existing.summary ?? "");
+      const newSummaryWords = significantWords(proposal.summary ?? "");
+      const summaryOverlap = [...newSummaryWords].filter(w => existingSummaryWords.has(w));
+      if (summaryOverlap.length >= 5) {
+        return `shared actor (${actorOverlap.join(", ")}) + ${summaryOverlap.length} summary words in common`;
+      }
+    }
+  }
+
+  const newNameSimple = nameLower.replace(/[^a-z0-9\s]/g, "");
+  for (const existing of existingProposals) {
+    const existingSimple = existing.name.toLowerCase().trim().replace(/[^a-z0-9\s]/g, "");
+    if (newNameSimple.includes(existingSimple) || existingSimple.includes(newNameSimple)) {
+      return `name substring match`;
+    }
+  }
+
+  return false;
+}
+
 export async function extractProposalsFromEvidence(cycleId?: string): Promise<number> {
   const pendingEvaluated = await evaluatePendingProposals();
   if (pendingEvaluated > 0) {
@@ -203,7 +280,7 @@ export async function extractProposalsFromEvidence(cycleId?: string): Promise<nu
     logger.info({ cycleId, articlesScanned: recentItems.length, proposalsFound: extracted.length }, "Proposal extraction complete");
   } catch (err) {
     logger.error({ err, cycleId }, "Proposal extraction LLM call failed");
-    return 0;
+    return pendingEvaluated;
   }
 
   if (extracted.length === 0) {
@@ -213,11 +290,11 @@ export async function extractProposalsFromEvidence(cycleId?: string): Promise<nu
       .where(
         sql`${evidenceItemsTable.id} IN (${sql.join(recentItems.map(i => sql`${i.id}`), sql`, `)})`
       );
-    return 0;
+    return pendingEvaluated;
   }
 
   const existingProposals = await db
-    .select({ id: proposalsTable.id, name: proposalsTable.name })
+    .select({ id: proposalsTable.id, name: proposalsTable.name, source: proposalsTable.source, summary: proposalsTable.summary })
     .from(proposalsTable);
   const seenNames = new Set(existingProposals.map(p => p.name.toLowerCase().trim()));
   const seenIds = new Set(existingProposals.map(p => p.id));
@@ -236,15 +313,10 @@ export async function extractProposalsFromEvidence(cycleId?: string): Promise<nu
       continue;
     }
 
-    const isDuplicate = [...seenNames].some(existing => {
-      const words1 = new Set(nameLower.split(/\s+/));
-      const words2 = new Set(existing.split(/\s+/));
-      const intersection = [...words1].filter(w => words2.has(w) && w.length > 3);
-      return intersection.length >= 3;
-    });
+    const isDuplicate = checkDuplicate(proposal, nameLower, seenNames, existingProposals);
 
     if (isDuplicate) {
-      logger.debug({ name: proposal.name }, "Proposal looks like a duplicate — skipping");
+      logger.debug({ name: proposal.name, reason: isDuplicate }, "Proposal looks like a duplicate — skipping");
       continue;
     }
 
@@ -290,6 +362,7 @@ export async function extractProposalsFromEvidence(cycleId?: string): Promise<nu
 
       seenIds.add(proposalId);
       seenNames.add(nameLower);
+      existingProposals.push({ id: proposalId, name: proposal.name, source: proposal.source, summary: proposal.summary });
       created++;
 
       logger.info({ proposalId, name: proposal.name }, "Auto-extracted proposal created");
