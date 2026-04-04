@@ -152,9 +152,12 @@ export async function ingestRSSFeeds(): Promise<number> {
   const sources = await db.select().from(evidenceSourcesTable)
     .where(and(eq(evidenceSourcesTable.type, "rss"), eq(evidenceSourcesTable.isEnabled, true)));
 
+  const MAX_FULLTEXT_FETCHES_PER_SOURCE = 5;
+
   for (const source of sources) {
     try {
       const feed = await parser.parseURL(source.url);
+      let fullTextFetches = 0;
       for (const item of (feed.items ?? []).slice(0, 20)) {
         const title = item.title ?? "";
         const content = item.contentSnippet ?? item.content ?? item.summary ?? "";
@@ -164,15 +167,17 @@ export async function ingestRSSFeeds(): Promise<number> {
 
         const publishedAt = item.pubDate ? new Date(item.pubDate) : new Date();
         const id = stableEvidenceId(source.id, link, publishedAt);
-        const evidenceType = classifyEvidenceType(title, content);
 
         let fullText = content;
-        if (link && content.length < 500) {
+        if (link && fullTextFetches < MAX_FULLTEXT_FETCHES_PER_SOURCE) {
+          fullTextFetches++;
           const fetched = await fetchArticleFullText(link);
           if (fetched && fetched.length > content.length) {
             fullText = fetched;
           }
         }
+
+        const evidenceType = classifyEvidenceType(title, fullText);
 
         try {
           await db.insert(evidenceItemsTable).values({
@@ -348,12 +353,92 @@ export async function ingestAcledEvents(): Promise<number> {
   return ingested;
 }
 
+const WEB_SEARCH_QUERIES = [
+  "Iran peace proposal nuclear deal framework",
+  "Iran diplomatic initiative ceasefire agreement",
+  "Iran nuclear negotiation new proposal",
+  "JCPOA revival deal framework proposal",
+];
+
+export async function ingestWebSearchResults(): Promise<number> {
+  const webSearchSources = await db.select().from(evidenceSourcesTable)
+    .where(and(eq(evidenceSourcesTable.type, "web_search"), eq(evidenceSourcesTable.isEnabled, true)));
+
+  if (webSearchSources.length === 0) {
+    logger.info("No web_search sources enabled, skipping");
+    return 0;
+  }
+
+  let ingested = 0;
+
+  for (const source of webSearchSources) {
+    const queries = source.url ? [source.url] : WEB_SEARCH_QUERIES;
+
+    for (const query of queries) {
+      try {
+        const searchUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`;
+        const feed = await parser.parseURL(searchUrl);
+
+        let fullTextFetches = 0;
+        for (const item of (feed.items ?? []).slice(0, 10)) {
+          const title = item.title ?? "";
+          const content = item.contentSnippet ?? item.content ?? item.summary ?? "";
+          const link = item.link ?? "";
+
+          if (!isIranRelevant(title + " " + content)) continue;
+
+          const publishedAt = item.pubDate ? new Date(item.pubDate) : new Date();
+          const id = stableEvidenceId(source.id, link, publishedAt);
+
+          let fullText = content;
+          if (link && fullTextFetches < 3) {
+            fullTextFetches++;
+            const fetched = await fetchArticleFullText(link);
+            if (fetched && fetched.length > content.length) {
+              fullText = fetched;
+            }
+          }
+
+          const evidenceType = classifyEvidenceType(title, fullText);
+
+          try {
+            await db.insert(evidenceItemsTable).values({
+              id,
+              source: source.id,
+              sourceUrl: link,
+              publishedAt,
+              title,
+              text: fullText.slice(0, 10000),
+              evidenceType,
+              stakeholderRelevance: [],
+              isProcessed: false,
+            }).onConflictDoNothing();
+            ingested++;
+          } catch (_err) {
+            logger.debug({ id }, "Web search item already exists (dedup)");
+          }
+        }
+      } catch (err) {
+        logger.warn({ query, err }, "Web search query failed");
+      }
+    }
+
+    await db.update(evidenceSourcesTable)
+      .set({ lastFetchedAt: new Date() })
+      .where(eq(evidenceSourcesTable.id, source.id));
+  }
+
+  logger.info({ ingested }, "Web search ingestion complete");
+  return ingested;
+}
+
 export async function ingestAllSources(): Promise<number> {
-  const [rssCount, gdeltCount, acledCount] = await Promise.allSettled([
+  const [rssCount, gdeltCount, acledCount, webSearchCount] = await Promise.allSettled([
     ingestRSSFeeds(),
     ingestGdeltEvents(),
     ingestAcledEvents(),
+    ingestWebSearchResults(),
   ]).then(results => results.map(r => r.status === "fulfilled" ? r.value : 0));
 
-  return (rssCount ?? 0) + (gdeltCount ?? 0) + (acledCount ?? 0);
+  return (rssCount ?? 0) + (gdeltCount ?? 0) + (acledCount ?? 0) + (webSearchCount ?? 0);
 }

@@ -139,6 +139,14 @@ const SOURCES = [
     fetchFrequencyMinutes: 120,
   },
   {
+    id: "web_search_iran",
+    name: "Web Search: Iran Peace Proposals",
+    type: "web_search",
+    url: "",
+    isEnabled: true,
+    fetchFrequencyMinutes: 180,
+  },
+  {
     id: "gdelt",
     name: "GDELT Project (Iran Conflict Articles)",
     type: "gdelt",

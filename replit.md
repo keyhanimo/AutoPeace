@@ -116,7 +116,7 @@ All text LLM calls route through `artifacts/api-server/src/services/llm-router.t
 ## Autoresearch Pipeline
 
 Each cycle (triggered manually or by cron):
-1. **Evidence ingestion** — RSS feeds (19 sources incl. policy journals, Google News search feeds) + GDELT (3 query variants) + ACLED, filtered by expanded Iran keywords (40+). Full-text article fetching follows RSS links to extract article content (up to 10KB) when RSS snippets are short (<500 chars)
+1. **Evidence ingestion** — RSS feeds (17 sources incl. policy journals, Google News search feeds) + GDELT (3 query variants) + ACLED + web_search (dedicated source type with configurable queries), filtered by tiered Iran keywords (primary = Iran-specific terms, secondary = requires 2+ hits). Full-text article fetching follows article links for up to 5 articles per source (SSRF-protected, manual redirect handling)
 2. **Forecasting** — generates a single set of probabilities for 5 time horizons (10d, 30d, 90d, 180d, 1y) via admin-configured forecasting provider/model (no experimentation or hill-climbing)
 3. **Changelog** — auto-headline generated from 90d probability leader
 4. **Deal engine** — generates and evaluates peace deal proposals through multi-stage pipeline; hill-climbing/autoresearch applies only here, with composite scoring metric
