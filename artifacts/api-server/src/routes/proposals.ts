@@ -122,6 +122,28 @@ router.post("/admin/proposals/:id/evaluate", adminAuth, async (req, res) => {
   }
 });
 
+router.delete("/admin/proposals/:id", adminAuth, async (req, res) => {
+  try {
+    const proposalId = String(req.params["id"]);
+    const [proposal] = await db.select().from(proposalsTable).where(eq(proposalsTable.id, proposalId));
+
+    if (!proposal) {
+      res.status(404).json({ error: "Proposal not found" });
+      return;
+    }
+
+    if (proposal.submittedBy === "auto-extractor") {
+      res.status(403).json({ error: "Cannot delete auto-extracted proposals. Only human-submitted proposals can be deleted." });
+      return;
+    }
+
+    await db.delete(proposalsTable).where(eq(proposalsTable.id, proposalId));
+    res.json({ message: `Proposal "${proposal.name}" deleted successfully.` });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
 router.post("/proposals", adminAuth, async (req, res) => {
   try {
     const { name, source, summary, terms } = req.body as {

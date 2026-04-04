@@ -14,7 +14,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAdminKey } from "@/hooks/use-admin";
 import { PageHeader, Card, Button, Input, Badge } from "@/components/ui";
 import { useCycleStatus } from "@/components/CycleStatusIndicator";
-import { Lock, Play, Save, LogOut, Loader2, ToggleLeft, ToggleRight, Handshake, GitBranch, Cpu, Zap, CheckCircle2, AlertCircle, Plus, X, Inbox, CheckSquare, XSquare, ShieldAlert, BookOpen, Copy, Check, Activity } from "lucide-react";
+import { Lock, Play, Save, LogOut, Loader2, ToggleLeft, ToggleRight, Handshake, GitBranch, Cpu, Zap, CheckCircle2, AlertCircle, Plus, X, Inbox, CheckSquare, XSquare, ShieldAlert, BookOpen, Copy, Check, Activity, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function AdminPanel() {
@@ -107,6 +107,29 @@ export default function AdminPanel() {
     setEvaluatingProposals(false);
     void refetchProposals();
     toast({ title: "Evaluation complete", description: `Evaluated ${results.length} proposal(s).` });
+  };
+
+  const [deletingProposal, setDeletingProposal] = useState<string | null>(null);
+
+  const handleDeleteProposal = async (id: string, name: string) => {
+    if (!confirm(`Delete proposal "${name}"? This cannot be undone.`)) return;
+    setDeletingProposal(id);
+    try {
+      const res = await fetch(`/api/admin/proposals/${id}`, {
+        method: "DELETE",
+        headers: { "X-Admin-Key": adminKey },
+      });
+      if (!res.ok) {
+        const body = await res.json() as { error?: string };
+        throw new Error(body.error || "Failed to delete proposal.");
+      }
+      toast({ title: "Deleted", description: `"${name}" has been removed.` });
+      void refetchProposals();
+    } catch (err: unknown) {
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Delete failed.", variant: "destructive" });
+    } finally {
+      setDeletingProposal(null);
+    }
   };
 
   const [formData, setFormData] = useState<AdminConfigUpdate>({});
@@ -888,6 +911,16 @@ export default function AdminPanel() {
                   <span className="font-medium truncate flex-1">{p.name}</span>
                   <Badge variant="outline" className="text-[9px] shrink-0">{p.submittedBy}</Badge>
                   {p.scores && <Badge variant="success" className="text-[9px] shrink-0">evaluated</Badge>}
+                  {p.submittedBy !== "auto-extractor" && (
+                    <button
+                      onClick={() => void handleDeleteProposal(p.id, p.name)}
+                      disabled={deletingProposal === p.id}
+                      className="p-1 rounded hover:bg-red-900/40 text-muted-foreground hover:text-red-400 transition-colors disabled:opacity-50"
+                      title="Delete proposal"
+                    >
+                      {deletingProposal === p.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                    </button>
+                  )}
                 </div>
               ))}
               {!proposalsData?.data?.length && <p className="text-sm text-muted-foreground">No proposals loaded.</p>}
