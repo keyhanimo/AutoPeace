@@ -32,7 +32,7 @@ function AIvsHumanChart({ aiDeal, humanProposals }: { aiDeal: { scores: unknown;
 
   const entries: { name: string; score: number; pct: number; color: string; isAI: boolean; label: ReturnType<typeof scoreLabel> }[] = [];
 
-  for (const p of humanProposals.slice(0, 2)) {
+  for (const p of humanProposals) {
     const s = (p.scores as DealScores | null)?.composite ?? 0;
     const pct = Math.round(s * 100);
     entries.push({ name: p.name ?? "Human Proposal", score: s, pct, color: "#f59e0b", isAI: false, label: scoreLabel(s) });
@@ -358,8 +358,7 @@ export default function Home() {
     ? homeProposals.sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime())
     : allProposals
         .filter(p => p.source !== "ai" && p.scores)
-        .sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime())
-        .slice(0, 2);
+        .sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime());
 
   return (
     <div className="space-y-10 animate-fade-in pb-12">
