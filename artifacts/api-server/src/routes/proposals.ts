@@ -132,11 +132,6 @@ router.delete("/admin/proposals/:id", adminAuth, async (req, res) => {
       return;
     }
 
-    if (proposal.submittedBy === "auto-extractor") {
-      res.status(403).json({ error: "Cannot delete auto-extracted proposals. Only human-submitted proposals can be deleted." });
-      return;
-    }
-
     await db.delete(proposalsTable).where(eq(proposalsTable.id, proposalId));
     res.json({ message: `Proposal "${proposal.name}" deleted successfully.` });
   } catch (err) {

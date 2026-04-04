@@ -906,23 +906,39 @@ export default function AdminPanel() {
               </Button>
             </div>
             <div className="space-y-1.5 mb-4">
-              {proposalsData?.data?.map(p => (
-                <div key={p.id} className="flex items-center gap-2 p-2 bg-secondary/30 rounded-lg text-xs">
-                  <span className="font-medium truncate flex-1">{p.name}</span>
-                  <Badge variant="outline" className="text-[9px] shrink-0">{p.submittedBy}</Badge>
-                  {p.scores && <Badge variant="success" className="text-[9px] shrink-0">evaluated</Badge>}
-                  {p.submittedBy !== "auto-extractor" && (
+              {proposalsData?.data?.map(p => {
+                const scores = p.scores as DealScores | null;
+                const compositePct = scores?.composite != null ? Math.round(scores.composite * 100) : null;
+                return (
+                  <div key={p.id} className="flex items-center gap-2 p-2.5 bg-secondary/30 rounded-lg text-xs group">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium truncate">{p.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5 text-[10px] text-muted-foreground">
+                        {p.source && <span className="truncate max-w-[200px]">{p.source}</span>}
+                        {p.source && <span className="text-border">·</span>}
+                        <span>{new Date(p.createdAt ?? 0).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                      </div>
+                    </div>
+                    {compositePct != null && (
+                      <span className={`text-xs font-bold font-mono shrink-0 ${compositePct >= 65 ? "text-emerald-400" : compositePct >= 45 ? "text-amber-400" : "text-red-400"}`}>
+                        {compositePct}%
+                      </span>
+                    )}
+                    <Badge variant="outline" className="text-[9px] shrink-0">{p.submittedBy}</Badge>
+                    {p.scores ? <Badge variant="success" className="text-[9px] shrink-0">scored</Badge> : <Badge variant="outline" className="text-[9px] shrink-0 text-muted-foreground/60">unscored</Badge>}
                     <button
                       onClick={() => void handleDeleteProposal(p.id, p.name)}
                       disabled={deletingProposal === p.id}
-                      className="p-1 rounded hover:bg-red-900/40 text-muted-foreground hover:text-red-400 transition-colors disabled:opacity-50"
+                      className="p-1 rounded hover:bg-red-900/40 text-muted-foreground hover:text-red-400 transition-colors disabled:opacity-50 opacity-50 group-hover:opacity-100"
                       title="Delete proposal"
                     >
                       {deletingProposal === p.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                     </button>
-                  )}
-                </div>
-              ))}
+                  </div>
+                );
+              })}
               {!proposalsData?.data?.length && <p className="text-sm text-muted-foreground">No proposals loaded.</p>}
             </div>
             {showProposalForm && (
