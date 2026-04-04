@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, jsonb, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -50,6 +50,7 @@ export const proposalsTable = pgTable("proposals", {
     feasibility: "low" | "medium" | "high";
   }>>(),
   summary: text("summary").notNull().default(""),
+  showOnHome: boolean("show_on_home").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

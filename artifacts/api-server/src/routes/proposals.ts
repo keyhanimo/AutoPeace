@@ -122,6 +122,27 @@ router.post("/admin/proposals/:id/evaluate", adminAuth, async (req, res) => {
   }
 });
 
+router.patch("/admin/proposals/:id/show-on-home", adminAuth, async (req, res) => {
+  try {
+    const proposalId = String(req.params["id"]);
+    const { showOnHome } = req.body as { showOnHome: boolean };
+
+    const [proposal] = await db.select().from(proposalsTable).where(eq(proposalsTable.id, proposalId));
+    if (!proposal) {
+      res.status(404).json({ error: "Proposal not found" });
+      return;
+    }
+
+    await db.update(proposalsTable)
+      .set({ showOnHome: !!showOnHome, updatedAt: new Date() })
+      .where(eq(proposalsTable.id, proposalId));
+
+    res.json({ message: `Proposal "${proposal.name}" ${showOnHome ? "will" : "will no longer"} show on home page.` });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
 router.delete("/admin/proposals/:id", adminAuth, async (req, res) => {
   try {
     const proposalId = String(req.params["id"]);

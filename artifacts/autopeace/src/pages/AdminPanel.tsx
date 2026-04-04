@@ -14,7 +14,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAdminKey } from "@/hooks/use-admin";
 import { PageHeader, Card, Button, Input, Badge } from "@/components/ui";
 import { useCycleStatus } from "@/components/CycleStatusIndicator";
-import { Lock, Play, Save, LogOut, Loader2, ToggleLeft, ToggleRight, Handshake, GitBranch, Cpu, Zap, CheckCircle2, AlertCircle, Plus, X, Inbox, CheckSquare, XSquare, ShieldAlert, BookOpen, Copy, Check, Activity, Trash2 } from "lucide-react";
+import { Lock, Play, Save, LogOut, Loader2, ToggleLeft, ToggleRight, Handshake, GitBranch, Cpu, Zap, CheckCircle2, AlertCircle, Plus, X, Inbox, CheckSquare, XSquare, ShieldAlert, BookOpen, Copy, Check, Activity, Trash2, Home } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function AdminPanel() {
@@ -129,6 +129,29 @@ export default function AdminPanel() {
       toast({ title: "Error", description: err instanceof Error ? err.message : "Delete failed.", variant: "destructive" });
     } finally {
       setDeletingProposal(null);
+    }
+  };
+
+  const [togglingHome, setTogglingHome] = useState<string | null>(null);
+
+  const handleToggleShowOnHome = async (id: string, name: string, showOnHome: boolean) => {
+    setTogglingHome(id);
+    try {
+      const res = await fetch(`/api/admin/proposals/${id}/show-on-home`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "X-Admin-Key": adminKey },
+        body: JSON.stringify({ showOnHome }),
+      });
+      if (!res.ok) {
+        const body = await res.json() as { error?: string };
+        throw new Error(body.error || "Failed to update.");
+      }
+      toast({ title: showOnHome ? "Added to Home" : "Removed from Home", description: `"${name}" ${showOnHome ? "will now appear" : "removed from"} the home page.` });
+      void refetchProposals();
+    } catch (err: unknown) {
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Toggle failed.", variant: "destructive" });
+    } finally {
+      setTogglingHome(null);
     }
   };
 
@@ -928,6 +951,14 @@ export default function AdminPanel() {
                     )}
                     <Badge variant="outline" className="text-[9px] shrink-0">{p.submittedBy}</Badge>
                     {p.scores ? <Badge variant="success" className="text-[9px] shrink-0">scored</Badge> : <Badge variant="outline" className="text-[9px] shrink-0 text-muted-foreground/60">unscored</Badge>}
+                    <button
+                      onClick={() => void handleToggleShowOnHome(p.id, p.name, !p.showOnHome)}
+                      disabled={togglingHome === p.id}
+                      className={`p-1 rounded transition-colors disabled:opacity-50 ${p.showOnHome ? "text-primary bg-primary/10 hover:bg-primary/20" : "text-muted-foreground/40 hover:text-primary hover:bg-primary/10 opacity-50 group-hover:opacity-100"}`}
+                      title={p.showOnHome ? "Shown on home page — click to hide" : "Show on home page"}
+                    >
+                      {togglingHome === p.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Home className="w-3.5 h-3.5" />}
+                    </button>
                     <button
                       onClick={() => void handleDeleteProposal(p.id, p.name)}
                       disabled={deletingProposal === p.id}

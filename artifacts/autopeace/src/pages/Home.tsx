@@ -353,10 +353,13 @@ export default function Home() {
     : null;
 
   const allProposals = (proposalsRes?.data ?? []) as Proposal[];
-  const humanProposals = allProposals
-    .filter(p => p.source !== "ai" && p.scores)
-    .sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime())
-    .slice(0, 2);
+  const homeProposals = allProposals.filter(p => p.showOnHome && p.scores);
+  const humanProposals = homeProposals.length > 0
+    ? homeProposals.sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime())
+    : allProposals
+        .filter(p => p.source !== "ai" && p.scores)
+        .sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime())
+        .slice(0, 2);
 
   return (
     <div className="space-y-10 animate-fade-in pb-12">

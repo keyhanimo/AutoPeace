@@ -815,6 +815,7 @@ export interface Proposal {
   knownResponses?: ProposalKnownResponses;
   whatWouldItTake?: ProposalWhatWouldItTakeItem[] | null;
   summary: string;
+  showOnHome: boolean;
   createdAt: string;
   updatedAt: string;
 }
