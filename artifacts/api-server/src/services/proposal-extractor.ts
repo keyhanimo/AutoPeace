@@ -272,10 +272,25 @@ export async function extractProposalsFromEvidence(cycleId?: string): Promise<nu
     const text = resp.content;
     const parsed = parseLLMJson(text) as { proposals?: ExtractedProposal[] } | ExtractedProposal[];
     const rawProposals = Array.isArray(parsed) ? parsed : (parsed.proposals ?? []);
-    extracted = rawProposals.filter(p =>
+    const validated = rawProposals.filter(p =>
       p && typeof p.name === "string" && typeof p.source === "string" &&
       p.terms && typeof p.terms === "object" && p.confidence >= 0.6
     );
+
+    const beforeFilter = validated.length;
+    extracted = validated.filter(p => {
+      const hasNuclear = !!(p.terms?.nuclearProtocol && p.terms.nuclearProtocol.trim().length > 0);
+      const hasSanctions = !!(p.terms?.sanctionsRelief && p.terms.sanctionsRelief.trim().length > 0);
+      if (!hasNuclear && !hasSanctions) {
+        logger.debug({ name: p.name }, "Proposal rejected — no nuclear protocol or sanctions relief terms");
+        return false;
+      }
+      return true;
+    });
+
+    if (beforeFilter !== extracted.length) {
+      logger.info({ cycleId, beforeFilter, afterFilter: extracted.length }, "Filtered out proposals lacking nuclear/sanctions terms");
+    }
 
     logger.info({ cycleId, articlesScanned: recentItems.length, proposalsFound: extracted.length }, "Proposal extraction complete");
   } catch (err) {
