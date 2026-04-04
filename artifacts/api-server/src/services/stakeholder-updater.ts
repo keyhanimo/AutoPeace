@@ -154,8 +154,9 @@ Return a JSON array of updates (empty array if no updates needed):
     updated++;
   }
 
-  logger.info({ cycleId, updated, skipped, evidenceCount: cycleEvidence.length, relevantStakeholders: relevanceMap.size }, "Stakeholder profile update complete");
-  return { updated, skipped };
+  const unchanged = stakeholders.length - updated;
+  logger.info({ cycleId, updated, unchanged, skipped, totalStakeholders: stakeholders.length, evidenceCount: cycleEvidence.length, relevantStakeholders: relevanceMap.size }, "Stakeholder profile update complete");
+  return { updated, skipped: unchanged };
 }
 
 export { PIPELINE_STAKEHOLDER_IDS };
