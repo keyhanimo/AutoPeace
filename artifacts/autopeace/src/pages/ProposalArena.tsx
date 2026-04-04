@@ -686,14 +686,9 @@ export default function ProposalArena() {
   const { data: arenaData, isLoading } = useGetProposalArena();
   const [expanded, setExpanded] = useState<string | null>(null);
   const [aiExpanded, setAiExpanded] = useState(false);
-  const [filterSource, setFilterSource] = useState<string>("all");
-
   const proposals = arenaData?.proposals ?? [];
   const aiDeal = arenaData?.currentAiDeal ?? null;
   const aiDealScores = aiDeal ? (aiDeal.scores as DealScores | null) : null;
-
-  const sources = Array.from(new Set(proposals.map(p => p.source)));
-  const filtered = filterSource === "all" ? proposals : proposals.filter(p => p.source === filterSource);
 
   const toggleExpand = (id: string) => setExpanded(prev => prev === id ? null : id);
 
@@ -733,22 +728,9 @@ export default function ProposalArena() {
       )}
 
       <div className="space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <h2 className="text-lg font-bold">{proposals.length} Real-World Proposals</h2>
-          <div className="flex gap-1 bg-secondary/50 p-1 rounded-xl">
-            {["all", ...sources].map(src => (
-              <button
-                key={src}
-                onClick={() => setFilterSource(src)}
-                className={`px-3 py-1 rounded-lg text-xs font-medium capitalize transition-all ${filterSource === src ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}
-              >
-                {src}
-              </button>
-            ))}
-          </div>
-        </div>
+        <h2 className="text-lg font-bold">{proposals.length} Real-World Proposals</h2>
 
-        {filtered.length === 0 ? (
+        {proposals.length === 0 ? (
           <Card className="p-12 text-center">
             <ExternalLink className="w-10 h-10 text-muted-foreground opacity-40 mx-auto mb-3" />
             <h3 className="text-lg font-bold mb-2">No proposals yet</h3>
@@ -758,7 +740,7 @@ export default function ProposalArena() {
           </Card>
         ) : (
           <div className="space-y-3">
-            {filtered.map(p => (
+            {proposals.map(p => (
               <ProposalCard
                 key={p.id}
                 proposal={p}
