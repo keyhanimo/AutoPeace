@@ -1,9 +1,11 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useMemo } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, Trophy, Users, FileText, ExternalLink } from "lucide-react";
-import { useGetLatestForecasts, useGetCurrentDeal, useListProposals, useGetCurrentDealNarrative, type Forecast, type DealScores, type Proposal } from "@workspace/api-client-react";
+import { ArrowRight, Trophy, Users, FileText, ExternalLink, TrendingUp } from "lucide-react";
+import { useGetLatestForecasts, useGetCurrentDeal, useListProposals, useGetCurrentDealNarrative, useListDeals, type Forecast, type DealScores, type Proposal, type Deal } from "@workspace/api-client-react";
 import { Card, Button, Badge } from "@/components/ui";
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from "recharts";
+import { ARCHITECTURE_COLORS } from "@/utils/deal-ui-constants";
 
 const OUTCOME_COLORS: Record<string, string> = {
   continued_conflict: '#ef4444',
@@ -225,6 +227,118 @@ function ChampionDealNarrative() {
   );
 }
 
+function ScoreEvolutionChart() {
+  const { data: historyRes, isLoading } = useListDeals({ limit: 50 });
+  const navigate = useNavigate();
+
+  const historyDeals = useMemo(() => {
+    return (historyRes?.data ?? [])
+      .filter((d): d is Deal & { scores: DealScores } => d.scores !== null)
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  }, [historyRes]);
+
+  const historyBarData = useMemo(() => {
+    return historyDeals.map((d, i) => {
+      const t = new Date(d.createdAt);
+      const ts = !isNaN(t.getTime()) ? `${t.getFullYear().toString().slice(2)}-${String(t.getMonth()+1).padStart(2,"0")}-${String(t.getDate()).padStart(2,"0")} ${t.toLocaleTimeString("en-US",{hour12:false})}` : "";
+      return {
+        name: `#${i + 1} ${ts}`,
+        index: i + 1,
+        composite: Math.round((d.scores.composite ?? 0) * 100),
+        architecture: d.architecture,
+        isCurrent: d.isCurrent,
+        id: d.id,
+      };
+    });
+  }, [historyDeals]);
+
+  const archCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    historyDeals.forEach(d => { counts[d.architecture] = (counts[d.architecture] ?? 0) + 1; });
+    return counts;
+  }, [historyDeals]);
+
+  if (isLoading) {
+    return (
+      <Card className="p-6">
+        <div className="animate-pulse space-y-3">
+          <div className="h-4 bg-secondary/50 rounded w-1/4" />
+          <div className="h-64 bg-secondary/30 rounded" />
+        </div>
+      </Card>
+    );
+  }
+
+  if (historyDeals.length === 0) return null;
+
+  return (
+    <Card className="p-6">
+      <div className="flex items-start justify-between mb-2">
+        <div>
+          <h3 className="text-lg font-bold flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-primary" /> Score Evolution
+          </h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Composite scores for each AI deal iteration. Click a bar to view the full deal.
+          </p>
+        </div>
+        <Link to="/deals/history" className="text-xs text-primary hover:text-primary/80 transition-colors flex items-center gap-1 shrink-0">
+          Full History <ArrowRight className="w-3 h-3" />
+        </Link>
+      </div>
+      <div className="h-72">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={historyBarData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+            <XAxis dataKey="name" tick={(props: any) => { const { x, y, payload } = props; return (<g transform={`translate(${x},${y})`}><text x={0} y={0} dy={12} textAnchor="end" fill="#94a3b8" fontSize={8} transform="rotate(-35)">{payload.value}</text></g>); }} height={80} />
+            <YAxis tick={{ fontSize: 9, fill: "#94a3b8" }} tickFormatter={(v: number) => `${v}%`} domain={[0, 100]} />
+            <Tooltip
+              contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "8px", fontSize: "11px", color: "#e2e8f0" }}
+              labelStyle={{ color: "#94a3b8" }}
+              itemStyle={{ color: "#e2e8f0" }}
+              formatter={(v: number, _: unknown, entry: { payload?: { architecture?: string; isCurrent?: boolean } }) => [
+                `${v}% (${entry.payload?.architecture ?? ""}${entry.payload?.isCurrent ? " — champion" : ""})`,
+                "Composite"
+              ]}
+            />
+            <Bar
+              dataKey="composite"
+              name="Composite Score"
+              radius={[3, 3, 0, 0]}
+              cursor="pointer"
+              onClick={(data: { id?: string }) => {
+                if (data.id) navigate(`/deals/${data.id}`);
+              }}
+            >
+              {historyBarData.map((entry) => (
+                <Cell
+                  key={entry.id}
+                  fill={ARCHITECTURE_COLORS[entry.architecture] ?? "#64748b"}
+                  stroke={entry.isCurrent ? "#fbbf24" : "transparent"}
+                  strokeWidth={entry.isCurrent ? 2.5 : 0}
+                />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3 px-1">
+        {Object.entries(archCounts).map(([arch, count]) => (
+          <span key={arch} className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+            <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: ARCHITECTURE_COLORS[arch] ?? "#64748b" }} />
+            <span className="capitalize">{arch}</span>
+            <span className="text-muted-foreground/50">({count})</span>
+          </span>
+        ))}
+        <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground ml-2 pl-2 border-l border-border/50">
+          <span className="w-2.5 h-2.5 rounded-sm shrink-0 border-2 border-amber-400 bg-transparent" />
+          <span>Current Champion</span>
+        </span>
+      </div>
+    </Card>
+  );
+}
+
 export default function Home() {
   const { data: latestRes, isLoading: forecastLoading } = useGetLatestForecasts();
   const { data: currentDeal } = useGetCurrentDeal();
@@ -348,6 +462,8 @@ export default function Home() {
       </section>
 
       <ChampionDealNarrative />
+
+      <ScoreEvolutionChart />
 
     </div>
   );
