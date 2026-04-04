@@ -193,8 +193,8 @@ export async function seedProposals(): Promise<void> {
   const existingIds = new Set(existing.map(e => e.id));
 
   const proposals = [US_15_POINT_PLAN, IRAN_5_POINT_PLAN, ZARIF_FOREIGN_AFFAIRS_PLAN, CHINA_PAKISTAN_5_POINT_INITIATIVE];
-  const modelConfig = await getModelConfig();
 
+  const newProposals: typeof proposals = [];
   for (const proposal of proposals) {
     if (existingIds.has(proposal.id)) {
       logger.debug({ id: proposal.id }, "Proposal already exists, skipping");
@@ -221,9 +221,16 @@ export async function seedProposals(): Promise<void> {
       whatWouldItTake: [],
     });
 
-    logger.info({ id: proposal.id }, "Seeded real-world proposal — running AI evaluation");
+    logger.info({ id: proposal.id }, "Seeded real-world proposal");
+    newProposals.push(proposal);
+  }
 
+  if (newProposals.length === 0) return;
+
+  const modelConfig = await getModelConfig();
+  for (const proposal of newProposals) {
     try {
+      logger.info({ id: proposal.id }, "Running AI evaluation for seeded proposal");
       const terms = proposal.terms;
       const { evaluations: aiEvals } = await evaluateStakeholders(terms, modelConfig);
       const [{ scores: aiScores }, rawWwit] = await Promise.all([
