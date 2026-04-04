@@ -1,6 +1,6 @@
 import { db } from "@workspace/db";
 import { evidenceItemsTable, proposalsTable } from "@workspace/db/schema";
-import { desc, eq, and, isNull, sql } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { createHash } from "node:crypto";
 import { logger } from "../lib/logger";
 import {
@@ -43,14 +43,16 @@ type ExtractedProposal = {
 };
 
 const EXTRACTION_SYSTEM_PROMPT = `You are a peace-research analyst specializing in Iran-related diplomacy.
-Your task: scan news articles for mentions of NEW peace proposals, diplomatic frameworks, deal offers, or policy plans related to the Iran conflict.
+Your task: scan news articles and policy publications for mentions of NEW peace proposals, diplomatic frameworks, deal offers, or policy plans related to the Iran conflict.
 
 IMPORTANT CRITERIA:
-- Only extract CONCRETE proposals with actual policy substance (specific nuclear terms, sanctions conditions, timelines, etc.)
+- Extract CONCRETE proposals with actual policy substance (specific nuclear terms, sanctions conditions, timelines, etc.)
+- Also extract proposals that are described indirectly — e.g. "Zarif outlined a plan in Foreign Affairs" or "China and Pakistan issued a joint framework" — infer the structured terms from the article's description of the proposal
+- Include proposals from think tanks, former officials, policy journals (Foreign Affairs, Brookings, Carnegie, etc.), and joint government statements — not only currently serving officials
 - Do NOT extract vague diplomatic statements like "we are open to talks" or "peace is important"
-- Do NOT extract analysis pieces or opinion columns — only actual proposals or frameworks from real actors
-- The proposal must be attributable to a specific real-world actor (a government, international body, think tank, etc.)
+- The proposal must be attributable to a specific real-world actor (a government, international body, think tank, former official, etc.)
 - Must contain enough detail to evaluate as a deal framework
+- When an article describes a proposal's terms in narrative form, extract and structure those terms even if they are not presented as a formal list
 
 Return a JSON object with a "proposals" key containing an array. Return {"proposals": []} if no actionable proposals are found.`;
 
@@ -94,13 +96,10 @@ export async function extractProposalsFromEvidence(cycleId?: string): Promise<nu
     .select()
     .from(evidenceItemsTable)
     .where(
-      and(
-        eq(evidenceItemsTable.evidenceType, "diplomatic"),
-        eq(evidenceItemsTable.isProcessed, false),
-      )
+      eq(evidenceItemsTable.isProcessed, false),
     )
     .orderBy(desc(evidenceItemsTable.publishedAt))
-    .limit(30);
+    .limit(50);
 
   if (recentItems.length === 0) {
     logger.info("No unprocessed diplomatic evidence items — skipping proposal extraction");
@@ -108,7 +107,10 @@ export async function extractProposalsFromEvidence(cycleId?: string): Promise<nu
   }
 
   const articleBatch = recentItems
-    .map((item, i) => `--- ARTICLE ${i + 1} ---\nTitle: ${item.title}\nSource: ${item.source}\nDate: ${item.publishedAt.toISOString().slice(0, 10)}\nURL: ${item.sourceUrl}\n${item.text}\n`)
+    .map((item, i) => {
+      const text = (item.text ?? "").slice(0, 8000);
+      return `--- ARTICLE ${i + 1} ---\nTitle: ${item.title}\nSource: ${item.source}\nDate: ${item.publishedAt.toISOString().slice(0, 10)}\nURL: ${item.sourceUrl}\n${text}\n`;
+    })
     .join("\n");
 
   let extracted: ExtractedProposal[] = [];
@@ -120,7 +122,7 @@ export async function extractProposalsFromEvidence(cycleId?: string): Promise<nu
       EXTRACTION_SYSTEM_PROMPT,
       extractionConfig.extractionProvider,
       extractionConfig.extractionModel,
-      { maxTokens: 3000, fallbackProvider: fallback?.provider, fallbackModel: fallback?.model },
+      { maxTokens: 6000, fallbackProvider: fallback?.provider, fallbackModel: fallback?.model },
     );
 
     const text = resp.content;

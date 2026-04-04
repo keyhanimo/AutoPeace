@@ -55,8 +55,8 @@ artifacts-monorepo/
 - **cycles** — autoresearch run records (status, tokens, timestamps). On startup, `recoverStuckCycles()` marks any cycles left in `"running"` status as `"failed"` to prevent ghost locks after server restarts.
 - **forecasts** — probability distributions across 8 outcome states per time horizon (no scoring fields — forecasting generates a single forecast per cycle)
 - **experiments** — deal pipeline experiment log (hill-climbing applies only to deal generation, not forecasting)
-- **evidence_items** — ingested RSS articles classified by evidence type
-- **evidence_sources** — 5 RSS source configurations
+- **evidence_items** — ingested articles classified by evidence type, with full-text content (up to 10KB)
+- **evidence_sources** — 19 RSS/GDELT/ACLED source configurations (including policy journals: Foreign Affairs, Foreign Policy, Brookings, Carnegie, CSIS, Arms Control Association, Crisis Group, Middle East Eye, Arab News, Iran International; plus Google News search feeds)
 - **cost_of_war** — economic/human cost data for Iran, US, Israel
 - **changelog_entries** — auto-generated headlines summarizing each forecast cycle and deal engine cycle (includes `scoreDelta` for deals, `forecastDelta` for forecasts)
 - **admin_config** — key/value config (isPaused, cadence, etc.)
@@ -116,7 +116,7 @@ All text LLM calls route through `artifacts/api-server/src/services/llm-router.t
 ## Autoresearch Pipeline
 
 Each cycle (triggered manually or by cron):
-1. **Evidence ingestion** — RSS feeds (Reuters, AP, Guardian, BBC, Al Jazeera) filtered by Iran keywords
+1. **Evidence ingestion** — RSS feeds (19 sources incl. policy journals, Google News search feeds) + GDELT (3 query variants) + ACLED, filtered by expanded Iran keywords (40+). Full-text article fetching follows RSS links to extract article content (up to 10KB) when RSS snippets are short (<500 chars)
 2. **Forecasting** — generates a single set of probabilities for 5 time horizons (10d, 30d, 90d, 180d, 1y) via admin-configured forecasting provider/model (no experimentation or hill-climbing)
 3. **Changelog** — auto-headline generated from 90d probability leader
 4. **Deal engine** — generates and evaluates peace deal proposals through multi-stage pipeline; hill-climbing/autoresearch applies only here, with composite scoring metric
@@ -214,7 +214,7 @@ Before community proposals enter the admin review queue, an LLM screens them for
 
 Auto-scans ingested diplomatic evidence items for real-world peace proposals using Anthropic Claude. Runs after evidence ingestion in each autoresearch cycle (non-blocking — failures don't stop the cycle).
 
-**Pipeline**: Batch unprocessed diplomatic evidence → LLM extraction → validate + deduplicate → insert proposal → run full 8-stage AI evaluation (stakeholder evaluations, domestic audience assessment, red-team stress testing, negotiator amendments, 3-model judge panel, meta-evaluation, diagnosis + what-would-it-take).
+**Pipeline**: Batch unprocessed evidence (all types, not just diplomatic) → LLM extraction with improved prompt for policy journals and indirect proposal mentions → validate + deduplicate → insert proposal → run full 8-stage AI evaluation (stakeholder evaluations, domestic audience assessment, red-team stress testing, negotiator amendments, 3-model judge panel, meta-evaluation, diagnosis + what-would-it-take).
 
 **Community proposals** also receive the same full 8-stage evaluation upon admin approval, ensuring parity with AI-generated and auto-extracted proposals.
 
@@ -287,7 +287,7 @@ Enhanced multi-agent pipeline (`deal-engine.ts`) with **grand coalition** cooper
 - `artifacts/api-server/src/routes/deals.ts` — deal API endpoints incl. history/robustness/compare/narrative
 - `artifacts/api-server/src/routes/proposals.ts` — proposals + admin evaluate endpoint
 - `artifacts/api-server/src/routes/admin.ts` — admin config + pipeline config with per-role providers
-- `artifacts/api-server/src/seed/proposals.ts` — seeds US 15-pt + Iran 5-pt proposals + AI auto-eval
+- `artifacts/api-server/src/seed/proposals.ts` — seeds 4 real-world proposals (US 15-pt, Iran 5-pt, Zarif Foreign Affairs, China-Pakistan 5-pt) + AI auto-eval
 - `artifacts/autopeace/src/pages/AdminPanel.tsx` — per-role provider dropdowns + proposal management form
 - `artifacts/autopeace/src/App.tsx` — React router + page layout
 - `lib/api-spec/openapi.yaml` — full OpenAPI 3.1 spec (all new endpoints documented)

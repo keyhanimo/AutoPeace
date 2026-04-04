@@ -51,6 +51,101 @@ const US_15_POINT_PLAN = {
   },
 };
 
+const ZARIF_FOREIGN_AFFAIRS_PLAN = {
+  id: "zarif-foreign-affairs-2026",
+  name: "Zarif Foreign Affairs Peace Plan",
+  source: "Javad Zarif / Foreign Affairs, April 2026",
+  submittedBy: "human",
+  summary: "Former Iranian FM Zarif proposes a comprehensive peace framework published in Foreign Affairs: cap enrichment at 3.67%, ratify IAEA Additional Protocol, transfer enriched materials to a regional consortium with China and Russia, reopen the Strait of Hormuz, sign a US-Iran nonaggression pact, and lift all sanctions with full economic reintegration.",
+  terms: {
+    nuclearProtocol: "Iran commits to never pursuing nuclear weapons. Caps uranium enrichment at 3.67% (2015 JCPOA level). Ratifies and fully implements the IAEA Additional Protocol for enhanced inspections. Transfers all enriched uranium stockpiles and centrifuge equipment to a regional enrichment consortium involving China and Russia.",
+    sanctionsRelief: "All US and allied sanctions lifted comprehensively. Iran allowed full reintegration into the global economy. Oil companies, including American firms, invited to facilitate Iranian exports. US commits to financing reconstruction of war damages from 2025-2026 military campaigns, including civilian compensation.",
+    hormuzArrangements: "Iran reopens the Strait of Hormuz fully while retaining sovereign access to the waterway. Normal commercial shipping restored.",
+    humanitarianProvisions: "US commits to financing reconstruction of damages caused by the 2025-2026 wars in Iran, including compensating civilians for their losses. Full humanitarian access restored.",
+    verificationMechanism: "Full IAEA Additional Protocol ratified permanently. Enhanced monitoring of all nuclear facilities. Regional enrichment consortium provides multilateral oversight of enrichment activities.",
+    timelineYears: 5,
+    sequencing: "Simultaneous steps: Iran caps enrichment and begins material transfers while US lifts sanctions. Nonaggression pact signed as framework agreement. Regional consortium established within first year. Diplomatic relations explored via interest sections and consular services.",
+    additionalClauses: [
+      "Permanent mutual nonaggression pact between Iran and the United States",
+      "Regional uranium enrichment consortium involving Iran, China, and Russia",
+      "Exploration of diplomatic normalization: interest sections, consular services, travel restrictions removed",
+      "Energy and advanced technology partnerships between Iran, US, and Gulf states",
+      "Iran declares victory and uses strong position to negotiate comprehensive settlement",
+    ],
+    stakeholderCommitments: {
+      iran: "Caps enrichment at 3.67%, ratifies Additional Protocol, transfers enriched materials to regional consortium, reopens Hormuz",
+      us: "Lifts all sanctions, signs nonaggression pact, finances reconstruction of war damages, commits to no regime change",
+      china: "Participates in regional enrichment consortium",
+      russia: "Participates in regional enrichment consortium",
+    },
+  },
+  knownResponses: {
+    us: "Trump has maintained Iran must have zero enrichment, making the 3.67% cap potentially insufficient. However, rising energy costs from bombardment create political pressure for an off-ramp.",
+    israel: "Likely opposes leaving enrichment infrastructure partially intact. Concerned about regional consortium legitimizing Iranian nuclear capabilities.",
+    saudi_arabia: "Gulf states view bilateral US-Iran pact as inadequate — leaves Iran's relationship with neighbors undefined. Missile and drone constraints not addressed. Gulf states absorbed economic damage from disrupted shipping and want reconstruction costs shared.",
+    eu3: "May support as practical middle ground. Verification provisions stronger than JCPOA. Concerned about lack of ballistic missile provisions.",
+    russia: "Supportive of consortium concept and Iranian sovereignty framework. Benefits from role in regional enrichment facility.",
+    china: "Supportive as Iran's top trade partner. Benefits from consortium role and restored economic access.",
+    iaea: "Welcomes Additional Protocol ratification and enhanced monitoring. Consortium model provides additional oversight layer.",
+  },
+  scores: {
+    feasibility: 0.35,
+    coherence: 0.72,
+    evidenceGrounding: 0.75,
+    domesticSellability: 0.30,
+    regionalStability: 0.40,
+    implementability: 0.32,
+    durability: 0.45,
+    composite: 0.42,
+  },
+};
+
+const CHINA_PAKISTAN_5_POINT_INITIATIVE = {
+  id: "china-pakistan-5-point-initiative",
+  name: "China-Pakistan Five-Point Peace Initiative",
+  source: "China & Pakistan Foreign Ministers (Wang Yi & Ishaq Dar) / March 31, 2026",
+  submittedBy: "human",
+  summary: "A joint five-point initiative by China and Pakistan calling for immediate cessation of hostilities, start of peace talks, protection of civilians and infrastructure, security of Strait of Hormuz shipping lanes, and primacy of the UN Charter for a comprehensive peace framework.",
+  terms: {
+    nuclearProtocol: "Parties must stop attacking peaceful nuclear infrastructure such as nuclear power plants. Nuclear issues to be resolved through comprehensive peace framework under UN auspices.",
+    sanctionsRelief: "Not explicitly addressed in the five points. Implied through call for comprehensive peace framework and full diplomatic resolution.",
+    hormuzArrangements: "The Strait of Hormuz and adjacent waters are recognized as an important global shipping route for goods and energy. Parties called on to protect the security of ships and crew members stranded in the strait and restore normal passage as soon as possible.",
+    humanitarianProvisions: "Humanitarian assistance must be allowed to all war-affected areas. Parties must immediately stop attacks on civilians and nonmilitary targets, fully adhere to International Humanitarian Law, and stop attacking important infrastructure including energy, desalination, and power facilities.",
+    verificationMechanism: "Support for true multilateralism and primacy of the UN. Comprehensive peace framework to be concluded under UN auspices with international monitoring.",
+    timelineYears: 2,
+    sequencing: "Step 1: Immediate cessation of hostilities. Step 2: Humanitarian assistance to war-affected areas. Step 3: Start of peace talks with all parties committed to peaceful resolution and refraining from use or threat of force. Step 4: Comprehensive peace framework under UN auspices.",
+    additionalClauses: [
+      "Dialogue and diplomacy are the only viable option to resolve conflicts",
+      "All parties must refrain from the use or threat of force during peace talks",
+      "Parties must stop attacking energy, desalination, and power facilities",
+      "Joint call to practice true multilateralism and strengthen the primacy of the UN",
+      "Pakistan emerged as unlikely peace partner after chairing meeting with Turkey, Saudi Arabia, and Egypt foreign ministers",
+    ],
+    stakeholderCommitments: {
+      china: "Co-sponsor of initiative, calls for multilateral peace framework under UN",
+      pakistan: "Co-sponsor, chairs broader diplomatic coalition including Turkey, Saudi Arabia, and Egypt",
+    },
+  },
+  knownResponses: {
+    us: "Has not formally responded. Framework notably does not require preconditions from any party, which may conflict with US demands.",
+    iran: "Likely receptive — framework does not demand nuclear concessions as precondition and calls for cessation of hostilities first.",
+    israel: "Skeptical of frameworks that don't address Iranian nuclear program and proxy networks as preconditions.",
+    saudi_arabia: "Participated in broader diplomatic meeting chaired by Pakistan. Supportive of ceasefire and humanitarian provisions.",
+    russia: "Supportive of UN-centered multilateral approach. Aligns with Russian advocacy for multipolarity.",
+    eu3: "Likely supportive of ceasefire-first approach but may want stronger nuclear provisions in comprehensive framework.",
+  },
+  scores: {
+    feasibility: 0.45,
+    coherence: 0.55,
+    evidenceGrounding: 0.70,
+    domesticSellability: 0.40,
+    regionalStability: 0.50,
+    implementability: 0.42,
+    durability: 0.35,
+    composite: 0.44,
+  },
+};
+
 const IRAN_5_POINT_PLAN = {
   id: "iran-5-point-counterproposal",
   name: "Iran 5-Point Counterproposal",
@@ -97,7 +192,7 @@ export async function seedProposals(): Promise<void> {
   const existing = await db.select({ id: proposalsTable.id }).from(proposalsTable);
   const existingIds = new Set(existing.map(e => e.id));
 
-  const proposals = [US_15_POINT_PLAN, IRAN_5_POINT_PLAN];
+  const proposals = [US_15_POINT_PLAN, IRAN_5_POINT_PLAN, ZARIF_FOREIGN_AFFAIRS_PLAN, CHINA_PAKISTAN_5_POINT_INITIATIVE];
   const modelConfig = await getModelConfig();
 
   for (const proposal of proposals) {

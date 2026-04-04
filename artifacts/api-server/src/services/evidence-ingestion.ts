@@ -7,22 +7,39 @@ import { logger } from "../lib/logger";
 
 const parser = new Parser({ timeout: 10000 });
 
-const IRAN_KEYWORDS = [
-  "iran", "tehran", "nuclear", "iaea", "sanctions", "rouhani", "khamenei",
-  "irgc", "hezbollah", "hamas", "houthi", "israel", "mossad", "idf",
-  "strait of hormuz", "persian gulf", "zarif", "enrichment", "centrifuge",
-  "us-iran", "jcpoa", "ceasefire", "deescalation", "middle east conflict"
+const IRAN_PRIMARY_KEYWORDS = [
+  "iran", "tehran", "irgc", "persian gulf", "zarif", "khamenei", "rouhani",
+  "pezeshkian", "araghchi", "raisi", "soleimani",
+  "us-iran", "jcpoa", "strait of hormuz", "hormuz",
+  "iran war", "iran conflict", "iran negotiation", "iran diplomacy",
+  "iran deal", "iran agreement", "iran framework",
+  "iran oil", "oil sanctions",
+  "iran peace", "iran nuclear",
+];
+
+const IRAN_SECONDARY_KEYWORDS = [
+  "nuclear", "iaea", "sanctions", "enrichment", "centrifuge",
+  "hezbollah", "hamas", "houthi", "israel", "mossad", "idf",
+  "ceasefire", "deescalation", "middle east conflict",
+  "peace plan", "peace proposal", "peace deal", "peace framework",
+  "diplomatic framework", "grand bargain", "nuclear deal",
+  "nonaggression pact", "non-aggression",
+  "nonproliferation", "non-proliferation",
+  "middle east war", "middle east peace",
+  "uranium", "plutonium", "nuclear weapon",
 ];
 
 function isIranRelevant(text: string): boolean {
   const lower = text.toLowerCase();
-  return IRAN_KEYWORDS.some(kw => lower.includes(kw));
+  if (IRAN_PRIMARY_KEYWORDS.some(kw => lower.includes(kw))) return true;
+  const secondaryHits = IRAN_SECONDARY_KEYWORDS.filter(kw => lower.includes(kw));
+  return secondaryHits.length >= 2;
 }
 
 function classifyEvidenceType(title: string, text: string): string {
   const combined = (title + " " + text).toLowerCase();
   if (/military|strike|attack|troops|missile|drone|war|conflict|bomb/.test(combined)) return "military";
-  if (/diplomacy|talks|negotiation|deal|agreement|meeting|summit|envoy/.test(combined)) return "diplomatic";
+  if (/diplomacy|talks|negotiation|deal|agreement|meeting|summit|envoy|proposal|framework|peace plan|ceasefire/.test(combined)) return "diplomatic";
   if (/sanctions|oil|economy|trade|export|gdp|financial|bank/.test(combined)) return "economic";
   if (/civilian|humanitarian|refugee|hospital|food|water|aid/.test(combined)) return "humanitarian";
   return "political";
@@ -31,6 +48,103 @@ function classifyEvidenceType(title: string, text: string): string {
 function stableEvidenceId(source: string, sourceUrl: string, publishedAt: Date): string {
   const key = `${source}::${sourceUrl}::${publishedAt.toISOString().slice(0, 19)}`;
   return createHash("sha256").update(key).digest("hex").slice(0, 32);
+}
+
+function stripHtmlTags(html: string): string {
+  return html
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+    .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, "")
+    .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, "")
+    .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, "")
+    .replace(/<aside[^>]*>[\s\S]*?<\/aside>/gi, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isSafeUrl(urlStr: string): boolean {
+  try {
+    const parsed = new URL(urlStr);
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return false;
+    const hostname = parsed.hostname;
+    if (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "0.0.0.0") return false;
+    if (hostname.startsWith("10.") || hostname.startsWith("192.168.")) return false;
+    if (/^172\.(1[6-9]|2\d|3[01])\./.test(hostname)) return false;
+    if (hostname === "169.254.169.254" || hostname.endsWith(".internal") || hostname.endsWith(".local")) return false;
+    if (hostname.includes("[") || hostname.startsWith("::")) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function fetchArticleFullText(url: string): Promise<string | null> {
+  if (!url || url.length < 10) return null;
+  if (!isSafeUrl(url)) {
+    logger.debug({ url }, "Skipping unsafe URL for full-text fetch");
+    return null;
+  }
+
+  try {
+    const resp = await fetch(url, {
+      signal: AbortSignal.timeout(12000),
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; AutoPeace/1.0; +https://autopeace.ai)",
+        "Accept": "text/html,application/xhtml+xml",
+      },
+      redirect: "manual",
+    });
+
+    if (resp.status >= 300 && resp.status < 400) {
+      const location = resp.headers.get("location");
+      if (!location || !isSafeUrl(new URL(location, url).href)) return null;
+      const redirectResp = await fetch(new URL(location, url).href, {
+        signal: AbortSignal.timeout(10000),
+        headers: {
+          "User-Agent": "Mozilla/5.0 (compatible; AutoPeace/1.0; +https://autopeace.ai)",
+          "Accept": "text/html,application/xhtml+xml",
+        },
+        redirect: "manual",
+      });
+      if (!redirectResp.ok) return null;
+      const ct = redirectResp.headers.get("content-type") ?? "";
+      if (!ct.includes("text/html") && !ct.includes("application/xhtml")) return null;
+      const html = await redirectResp.text();
+      return extractTextFromHtml(html);
+    }
+
+    if (!resp.ok) return null;
+
+    const contentType = resp.headers.get("content-type") ?? "";
+    if (!contentType.includes("text/html") && !contentType.includes("application/xhtml")) return null;
+
+    const html = await resp.text();
+    return extractTextFromHtml(html);
+  } catch (err) {
+    logger.debug({ url, err }, "Failed to fetch article full text");
+    return null;
+  }
+}
+
+function extractTextFromHtml(html: string): string | null {
+  const articleMatch = html.match(/<article[^>]*>([\s\S]*?)<\/article>/i);
+  const mainMatch = html.match(/<main[^>]*>([\s\S]*?)<\/main>/i);
+  const contentDiv = html.match(/<div[^>]*class="[^"]*(?:article|content|post|entry|story)[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
+
+  const bestBlock = articleMatch?.[1] ?? mainMatch?.[1] ?? contentDiv?.[1] ?? null;
+  if (!bestBlock) return null;
+
+  const text = stripHtmlTags(bestBlock);
+  if (text.length < 100) return null;
+
+  return text.slice(0, 10000);
 }
 
 export async function ingestRSSFeeds(): Promise<number> {
@@ -52,6 +166,14 @@ export async function ingestRSSFeeds(): Promise<number> {
         const id = stableEvidenceId(source.id, link, publishedAt);
         const evidenceType = classifyEvidenceType(title, content);
 
+        let fullText = content;
+        if (link && content.length < 500) {
+          const fetched = await fetchArticleFullText(link);
+          if (fetched && fetched.length > content.length) {
+            fullText = fetched;
+          }
+        }
+
         try {
           await db.insert(evidenceItemsTable).values({
             id,
@@ -59,7 +181,7 @@ export async function ingestRSSFeeds(): Promise<number> {
             sourceUrl: link,
             publishedAt,
             title,
-            text: content.slice(0, 2000),
+            text: fullText.slice(0, 10000),
             evidenceType,
             stakeholderRelevance: [],
             isProcessed: false,
@@ -93,54 +215,67 @@ export async function ingestGdeltEvents(): Promise<number> {
 
   const today = new Date();
   const dateStr = today.toISOString().slice(0, 10).replace(/-/g, "");
-  const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=Iran+conflict+nuclear&mode=artlist&maxrecords=25&timespan=1d&format=json&startdatetime=${dateStr}000000&enddatetime=${dateStr}235959`;
+  const queries = [
+    `Iran+conflict+nuclear`,
+    `Iran+peace+proposal+deal`,
+    `Iran+diplomatic+framework+negotiation`,
+  ];
 
   let ingested = 0;
-  try {
-    const resp = await fetch(url, { signal: AbortSignal.timeout(15000) });
-    if (!resp.ok) {
-      logger.warn({ status: resp.status }, "GDELT API returned non-200");
-      return 0;
-    }
+  for (const query of queries) {
+    const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${query}&mode=artlist&maxrecords=25&timespan=1d&format=json&startdatetime=${dateStr}000000&enddatetime=${dateStr}235959`;
 
-    const json = await resp.json() as { articles?: Array<{ title?: string; url?: string; seendate?: string; domain?: string }> };
-    const articles = json.articles ?? [];
-
-    for (const article of articles) {
-      const title = article.title ?? "";
-      const link = article.url ?? "";
-      if (!title || !isIranRelevant(title)) continue;
-
-      const publishedAt = article.seendate ? new Date(article.seendate.replace(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z/, "$1-$2-$3T$4:$5:$6Z")) : new Date();
-      const id = stableEvidenceId("gdelt", link, publishedAt);
-
-      try {
-        await db.insert(evidenceItemsTable).values({
-          id,
-          source: "gdelt",
-          sourceUrl: link,
-          publishedAt,
-          title,
-          text: title,
-          evidenceType: classifyEvidenceType(title, ""),
-          stakeholderRelevance: [],
-          isProcessed: false,
-        }).onConflictDoNothing();
-        ingested++;
-      } catch (_err) {
-        logger.debug({ id }, "GDELT item already exists (dedup)");
+    try {
+      const resp = await fetch(url, { signal: AbortSignal.timeout(15000) });
+      if (!resp.ok) {
+        logger.warn({ status: resp.status, query }, "GDELT API returned non-200");
+        continue;
       }
+
+      const json = await resp.json() as { articles?: Array<{ title?: string; url?: string; seendate?: string; domain?: string }> };
+      const articles = json.articles ?? [];
+
+      for (const article of articles) {
+        const title = article.title ?? "";
+        const link = article.url ?? "";
+        if (!title || !isIranRelevant(title)) continue;
+
+        const publishedAt = article.seendate ? new Date(article.seendate.replace(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z/, "$1-$2-$3T$4:$5:$6Z")) : new Date();
+        const id = stableEvidenceId("gdelt", link, publishedAt);
+
+        let articleText = title;
+        const fetched = await fetchArticleFullText(link);
+        if (fetched) {
+          articleText = fetched;
+        }
+
+        try {
+          await db.insert(evidenceItemsTable).values({
+            id,
+            source: "gdelt",
+            sourceUrl: link,
+            publishedAt,
+            title,
+            text: articleText.slice(0, 10000),
+            evidenceType: classifyEvidenceType(title, articleText),
+            stakeholderRelevance: [],
+            isProcessed: false,
+          }).onConflictDoNothing();
+          ingested++;
+        } catch (_err) {
+          logger.debug({ id }, "GDELT item already exists (dedup)");
+        }
+      }
+    } catch (err) {
+      logger.warn({ err, query }, "GDELT ingestion failed for query");
     }
-
-    await db.update(evidenceSourcesTable)
-      .set({ lastFetchedAt: new Date() })
-      .where(eq(evidenceSourcesTable.id, "gdelt"));
-
-    logger.info({ ingested }, "GDELT ingestion complete");
-  } catch (err) {
-    logger.warn({ err }, "GDELT ingestion failed");
   }
 
+  await db.update(evidenceSourcesTable)
+    .set({ lastFetchedAt: new Date() })
+    .where(eq(evidenceSourcesTable.id, "gdelt"));
+
+  logger.info({ ingested }, "GDELT ingestion complete");
   return ingested;
 }
 
@@ -190,7 +325,7 @@ export async function ingestAcledEvents(): Promise<number> {
           sourceUrl,
           publishedAt,
           title,
-          text: text.slice(0, 2000),
+          text: text.slice(0, 10000),
           evidenceType: classifyEvidenceType(title, text),
           stakeholderRelevance: [],
           isProcessed: false,
