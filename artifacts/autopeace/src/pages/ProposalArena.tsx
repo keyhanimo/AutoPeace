@@ -619,7 +619,7 @@ function GapAnalysis({ proposals, aiDeal }: { proposals: Proposal[]; aiDeal: Dea
   const allItems: { name: string; scores: DealScores }[] = [];
   if (aiDeal?.scores) allItems.push({ name: "AI Champion", scores: aiDeal.scores as DealScores });
   for (const p of scoredProposals.slice(0, 6)) {
-    allItems.push({ name: p.name.slice(0, 22), scores: p.scores as DealScores });
+    allItems.push({ name: p.name, scores: p.scores as DealScores });
   }
 
   const dims = SCORE_DIMENSIONS;
@@ -637,7 +637,7 @@ function GapAnalysis({ proposals, aiDeal }: { proposals: Proposal[]; aiDeal: Dea
         <table className="w-full text-xs">
           <thead>
             <tr>
-              <th className="text-left py-2 pr-3 text-muted-foreground font-medium min-w-[100px]">Proposal</th>
+              <th className="text-left py-2 pr-3 text-muted-foreground font-medium">Proposal</th>
               {dims.map(d => (
                 <th key={d.key} className="text-center py-2 px-1 text-muted-foreground font-medium min-w-[48px]">
                   {d.label}
@@ -650,7 +650,7 @@ function GapAnalysis({ proposals, aiDeal }: { proposals: Proposal[]; aiDeal: Dea
           <tbody>
             {allItems.map((item, i) => (
               <tr key={i} className="border-t border-border/30">
-                <td className="py-1.5 pr-3 text-foreground font-medium truncate max-w-[120px]">{item.name}</td>
+                <td className="py-1.5 pr-3 text-foreground font-medium whitespace-nowrap">{item.name}</td>
                 {dims.map(d => {
                   const val = item.scores[d.key] as number | undefined ?? 0;
                   const gap = 1 - val;
