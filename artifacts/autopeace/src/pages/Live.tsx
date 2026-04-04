@@ -658,7 +658,8 @@ export default function Live() {
     return () => clearInterval(iv);
   }, [status?.isRunning]);
 
-  const isShowingPrevious = viewingPrevious || (logs.length === 0 && !status?.isRunning);
+  const autoShowPrevious = logs.length === 0 && !status?.isRunning && previousLogs.length > 0;
+  const isShowingPrevious = viewingPrevious || autoShowPrevious;
   const displayLogs = isShowingPrevious ? previousLogs : logs;
 
   const totalTokens = displayLogs.reduce((sum, l) => sum + (l.tokens ?? 0), 0);
@@ -763,7 +764,7 @@ export default function Live() {
                 Back to current cycle
               </button>
             )}
-            {!isShowingPrevious && previousLogs.length > 0 && (
+            {!viewingPrevious && !autoShowPrevious && previousLogs.length > 0 && (
               <button
                 onClick={() => setViewingPrevious(true)}
                 className="text-xs px-3 py-1.5 rounded bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 hover:text-blue-200 border border-blue-500/20 transition-colors"
@@ -785,6 +786,15 @@ export default function Live() {
                 <p className="text-sm text-blue-400 mt-1 font-mono">
                   Next cycle in <CountdownTimer targetTime={nextRunAt} />
                 </p>
+                {previousLogs.length > 0 && (
+                  <button
+                    onClick={() => setViewingPrevious(true)}
+                    className="mt-4 text-sm px-4 py-2 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 hover:text-blue-200 border border-blue-500/20 transition-colors flex items-center gap-2"
+                  >
+                    <Clock className="w-4 h-4" />
+                    View previous cycle logs
+                  </button>
+                )}
               </>
             ) : (
               <>
@@ -792,6 +802,15 @@ export default function Live() {
                 <p className="text-sm">
                   {status?.isRunning ? "Waiting for cycle events..." : "No cycle running. Logs will appear here when a cycle starts."}
                 </p>
+                {!status?.isRunning && previousLogs.length > 0 && (
+                  <button
+                    onClick={() => setViewingPrevious(true)}
+                    className="mt-4 text-sm px-4 py-2 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 hover:text-blue-200 border border-blue-500/20 transition-colors flex items-center gap-2"
+                  >
+                    <Clock className="w-4 h-4" />
+                    View previous cycle logs
+                  </button>
+                )}
               </>
             )}
           </div>

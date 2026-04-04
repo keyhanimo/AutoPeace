@@ -1,11 +1,13 @@
 import { Router } from "express";
-import { cycleLogEvents, getCurrentCycleLogs, getPreviousCycleLogs, getCurrentLogCycleId, type CycleLogEntry } from "../lib/cycle-log";
+import { cycleLogEvents, getCurrentCycleLogs, getPreviousCycleLogs, getCurrentLogCycleId, waitForLogsLoaded, type CycleLogEntry } from "../lib/cycle-log";
 import { getCycleStatus, cycleEvents } from "../lib/cycle-status";
 import { getNextRunAt } from "../services/autoresearch";
 
 const router = Router();
 
-router.get("/live/stream", (req, res) => {
+router.get("/live/stream", async (req, res) => {
+  await waitForLogsLoaded();
+
   res.writeHead(200, {
     "Content-Type": "text/event-stream",
     "Cache-Control": "no-cache",

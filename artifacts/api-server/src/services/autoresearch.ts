@@ -21,7 +21,7 @@ import {
   type CycleStage,
   type DealSubStage,
 } from "../lib/cycle-status";
-import { emitCycleLog } from "../lib/cycle-log";
+import { emitCycleLog, markCurrentCycleComplete } from "../lib/cycle-log";
 import { generateForecasts } from "./forecasting";
 import { ingestAllSources } from "./evidence-ingestion";
 import { extractProposalsFromEvidence } from "./proposal-extractor";
@@ -295,6 +295,7 @@ async function runCycleAsync(cycleId: string): Promise<void> {
       errorMessage: String(err),
     }).where(eq(cyclesTable.id, cycleId));
   } finally {
+    markCurrentCycleComplete();
     setRunningCycleId(null);
     cycleEvents.emit("change", getCycleStatus());
   }
