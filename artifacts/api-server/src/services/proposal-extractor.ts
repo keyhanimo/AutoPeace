@@ -102,7 +102,7 @@ export async function extractProposalsFromEvidence(cycleId?: string): Promise<nu
     .limit(50);
 
   if (recentItems.length === 0) {
-    logger.info("No unprocessed diplomatic evidence items — skipping proposal extraction");
+    logger.info("No unprocessed evidence items — skipping proposal extraction");
     return 0;
   }
 

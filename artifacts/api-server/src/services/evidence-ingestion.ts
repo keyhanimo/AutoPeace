@@ -147,6 +147,12 @@ function extractTextFromHtml(html: string): string | null {
   return text.slice(0, 10000);
 }
 
+function isSourceDueForFetch(source: { lastFetchedAt: Date | null; fetchFrequencyMinutes: number }): boolean {
+  if (!source.lastFetchedAt) return true;
+  const elapsedMs = Date.now() - source.lastFetchedAt.getTime();
+  return elapsedMs >= source.fetchFrequencyMinutes * 60 * 1000;
+}
+
 export async function ingestRSSFeeds(): Promise<number> {
   let ingested = 0;
   const sources = await db.select().from(evidenceSourcesTable)
@@ -155,6 +161,7 @@ export async function ingestRSSFeeds(): Promise<number> {
   const MAX_FULLTEXT_FETCHES_PER_SOURCE = 5;
 
   for (const source of sources) {
+    if (!isSourceDueForFetch(source)) continue;
     try {
       const feed = await parser.parseURL(source.url);
       let fullTextFetches = 0;
@@ -217,6 +224,8 @@ export async function ingestGdeltEvents(): Promise<number> {
     logger.info("GDELT source disabled or not found, skipping");
     return 0;
   }
+
+  if (!isSourceDueForFetch(gdeltSource[0]!)) return 0;
 
   const today = new Date();
   const dateStr = today.toISOString().slice(0, 10).replace(/-/g, "");
@@ -293,6 +302,8 @@ export async function ingestAcledEvents(): Promise<number> {
     logger.info("ACLED source disabled or not found, skipping");
     return 0;
   }
+
+  if (!isSourceDueForFetch(acledSource[0]!)) return 0;
 
   const acledApiKey = process.env["ACLED_API_KEY"];
   const acledEmail = process.env["ACLED_EMAIL"];
@@ -372,6 +383,7 @@ export async function ingestWebSearchResults(): Promise<number> {
   let ingested = 0;
 
   for (const source of webSearchSources) {
+    if (!isSourceDueForFetch(source)) continue;
     const queries = source.url ? [source.url] : WEB_SEARCH_QUERIES;
 
     for (const query of queries) {
