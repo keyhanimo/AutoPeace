@@ -1,6 +1,6 @@
 import { db } from "@workspace/db";
 import { evidenceItemsTable, proposalsTable } from "@workspace/db/schema";
-import { desc, eq, sql } from "drizzle-orm";
+import { desc, eq, sql, isNull, and } from "drizzle-orm";
 import { createHash } from "node:crypto";
 import { logger } from "../lib/logger";
 import {
@@ -17,6 +17,68 @@ import {
 } from "./deal-engine";
 import { callLLM, getModelConfig, resolveFallbackConfig, type ModelConfig } from "./llm-router";
 import { parseLLMJson } from "./scoring";
+
+async function evaluatePendingProposals(): Promise<number> {
+  const pending = await db.select()
+    .from(proposalsTable)
+    .where(and(isNull(proposalsTable.scores), eq(proposalsTable.submittedBy, "auto-extractor")))
+    .limit(1);
+
+  if (pending.length === 0) return 0;
+
+  const modelConfig = await getModelConfig();
+  let evaluated = 0;
+
+  for (const proposal of pending) {
+    const terms = proposal.terms as DealTerms;
+    if (!terms) continue;
+
+    logger.info({ proposalId: proposal.id, name: proposal.name }, "Evaluating previously unevaluated proposal");
+
+    try {
+      const evidenceSummary = await getRecentEvidenceSummary();
+      const { evaluations: aiEvals } = await evaluateStakeholders(terms, modelConfig, evidenceSummary);
+      const { evaluations: domesticEvals } = await evaluateDomesticAudiences(terms, modelConfig, evidenceSummary);
+      const { results: redTeamResults } = await runRedTeam(terms, modelConfig, evidenceSummary);
+      const { result: negotiatorResult } = await runNegotiator(terms, aiEvals, {}, modelConfig);
+
+      const revisedTerms: DealTerms = {
+        ...terms,
+        ...(negotiatorResult.revisedTermsPartial as Partial<DealTerms>),
+      };
+
+      const { scores: aiScores } = await judgeAndScore(revisedTerms, aiEvals, redTeamResults, domesticEvals, modelConfig, evidenceSummary);
+
+      await runMetaEvaluator(terms, aiScores, negotiatorResult, aiEvals, null, {}, modelConfig);
+      await generateDiagnosis(terms, aiEvals, redTeamResults, aiScores, modelConfig);
+
+      const rawWwit = await computeWhatWouldItTake(terms, aiEvals, modelConfig);
+
+      const whatWouldItTake = rawWwit.map(item => ({
+        dimension: item.stakeholder,
+        currentGap: "Stakeholder rejects or conditionally accepts current terms",
+        requiredChange: item.requirement,
+        feasibility: item.feasibility,
+      }));
+
+      await db.update(proposalsTable)
+        .set({
+          stakeholderEvaluations: aiEvals,
+          scores: aiScores,
+          whatWouldItTake,
+          updatedAt: new Date(),
+        })
+        .where(eq(proposalsTable.id, proposal.id));
+
+      logger.info({ proposalId: proposal.id, composite: aiScores.composite }, "Pending proposal evaluated successfully");
+      evaluated++;
+    } catch (evalErr) {
+      logger.warn({ proposalId: proposal.id, err: evalErr }, "AI evaluation failed for pending proposal");
+    }
+  }
+
+  return evaluated;
+}
 
 function proposalStableId(name: string, source: string): string {
   const key = `proposal::${name.toLowerCase().trim()}::${source.toLowerCase().trim()}`;
@@ -92,6 +154,11 @@ For each genuine proposal found, return:
 Only include proposals with confidence >= 0.6. Return {"proposals": []} if nothing qualifies.`;
 
 export async function extractProposalsFromEvidence(cycleId?: string): Promise<number> {
+  const pendingEvaluated = await evaluatePendingProposals();
+  if (pendingEvaluated > 0) {
+    logger.info({ pendingEvaluated }, "Evaluated pending proposals from previous cycles");
+  }
+
   const recentItems = await db
     .select()
     .from(evidenceItemsTable)
@@ -103,7 +170,7 @@ export async function extractProposalsFromEvidence(cycleId?: string): Promise<nu
 
   if (recentItems.length === 0) {
     logger.info("No unprocessed evidence items — skipping proposal extraction");
-    return 0;
+    return pendingEvaluated;
   }
 
   const articleBatch = recentItems
@@ -157,6 +224,8 @@ export async function extractProposalsFromEvidence(cycleId?: string): Promise<nu
 
   const modelConfig = await getModelConfig();
   let created = 0;
+  const MAX_EVALUATIONS_PER_CYCLE = 1;
+  let evaluated = 0;
 
   for (const proposal of extracted) {
     const proposalId = proposalStableId(proposal.name, proposal.source);
@@ -223,7 +292,15 @@ export async function extractProposalsFromEvidence(cycleId?: string): Promise<nu
       seenNames.add(nameLower);
       created++;
 
-      logger.info({ proposalId, name: proposal.name }, "Auto-extracted proposal created — running AI evaluation");
+      logger.info({ proposalId, name: proposal.name }, "Auto-extracted proposal created");
+
+      if (evaluated >= MAX_EVALUATIONS_PER_CYCLE) {
+        logger.info({ proposalId, name: proposal.name }, "Skipping AI evaluation this cycle (limit reached) — will be evaluated in a future cycle");
+        continue;
+      }
+
+      logger.info({ proposalId, name: proposal.name }, "Running full AI evaluation pipeline");
+      evaluated++;
 
       try {
         const evidenceSummary = await getRecentEvidenceSummary();
@@ -276,6 +353,6 @@ export async function extractProposalsFromEvidence(cycleId?: string): Promise<nu
       sql`${evidenceItemsTable.id} IN (${sql.join(recentItems.map(i => sql`${i.id}`), sql`, `)})`
     );
 
-  logger.info({ cycleId, extracted: extracted.length, created }, "Proposal extraction pipeline complete");
-  return created;
+  logger.info({ cycleId, extracted: extracted.length, created, pendingEvaluated }, "Proposal extraction pipeline complete");
+  return created + pendingEvaluated;
 }
