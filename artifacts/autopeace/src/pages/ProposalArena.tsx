@@ -554,30 +554,36 @@ function AiDealCard({
   );
 }
 
-const PROPOSAL_COLORS = ["#f59e0b", "#ec4899", "#8b5cf6", "#06b6d4", "#f97316"];
-const AI_DEAL_COLOR = "#0284c7";
+const DIMENSION_COLORS: Record<string, string> = {
+  Feasibility: "#10b981",
+  Coherence: "#0284c7",
+  Evidence: "#f59e0b",
+  Domestic: "#8b5cf6",
+  Regional: "#06b6d4",
+  "Implement.": "#f97316",
+  Durability: "#ec4899",
+};
 
 function ArenaCompareChart({ proposals, aiDeal }: { proposals: Proposal[]; aiDeal: Deal | null }) {
   const scoredProposals = proposals.filter(p => p.scores !== null);
   if (scoredProposals.length === 0 && !aiDeal?.scores) return null;
 
-  const data = SCORE_DIMENSIONS.map(d => {
-    const row: Record<string, unknown> = { dimension: d.label };
-    for (const p of scoredProposals) {
-      const s = p.scores as DealScores;
-      row[p.name] = Math.round((s[d.key] ?? 0) * 100);
-    }
-    if (aiDeal?.scores) {
-      const s = aiDeal.scores as DealScores;
-      row["AI Champion"] = Math.round((s[d.key] ?? 0) * 100);
+  const items: { name: string; scores: DealScores }[] = [];
+  if (aiDeal?.scores) items.push({ name: "AI Champion", scores: aiDeal.scores as DealScores });
+  for (const p of scoredProposals) {
+    items.push({ name: p.name, scores: p.scores as DealScores });
+  }
+
+  const data = items.map(item => {
+    const row: Record<string, unknown> = { name: item.name };
+    for (const d of SCORE_DIMENSIONS) {
+      row[d.label] = Math.round(((item.scores[d.key] ?? 0) as number) * 100);
     }
     return row;
   });
 
-  const keys = [
-    ...scoredProposals.map(p => p.name),
-    ...(aiDeal?.scores ? ["AI Champion"] : []),
-  ];
+  const dimKeys = SCORE_DIMENSIONS.map(d => d.label);
+  const chartHeight = Math.max(300, items.length * 70 + 60);
 
   return (
     <Card className="p-6">
@@ -587,22 +593,29 @@ function ArenaCompareChart({ proposals, aiDeal }: { proposals: Proposal[]; aiDea
       <p className="text-xs text-muted-foreground mb-4">
         All scored proposals vs. current AI champion across 7 dimensions (0-100%). Each dimension is scored independently by 3 LLM judges and averaged.
       </p>
-      <div className="h-72">
+      <div style={{ height: chartHeight }}>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 30 }}>
-            <XAxis dataKey="dimension" tick={{ fontSize: 9, fill: "#94a3b8" }} angle={-25} textAnchor="end" />
-            <YAxis tick={{ fontSize: 9, fill: "#94a3b8" }} tickFormatter={(v: number) => `${v}%`} domain={[0, 100]} />
-            <Tooltip
-              contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "8px", fontSize: "11px" }}
-              formatter={(v: number) => [`${v}%`]}
+          <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+            <XAxis type="number" tick={{ fontSize: 9, fill: "#94a3b8" }} tickFormatter={(v: number) => `${v}%`} domain={[0, 100]} />
+            <YAxis
+              type="category"
+              dataKey="name"
+              width={220}
+              tick={{ fontSize: 10, fill: "#e2e8f0" }}
             />
-            <Legend wrapperStyle={{ fontSize: "10px" }} />
-            {keys.map((key, i) => (
+            <Tooltip
+              contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "8px", fontSize: "11px", color: "#e2e8f0" }}
+              formatter={(v: number) => [`${v}%`]}
+              cursor={{ fill: "rgba(255,255,255,0.03)" }}
+            />
+            <Legend wrapperStyle={{ fontSize: "10px", paddingTop: "8px" }} />
+            {dimKeys.map(key => (
               <Bar
                 key={key}
                 dataKey={key}
-                fill={key === "AI Champion" ? AI_DEAL_COLOR : PROPOSAL_COLORS[i % PROPOSAL_COLORS.length]}
-                radius={[2, 2, 0, 0]}
+                fill={DIMENSION_COLORS[key] ?? "#64748b"}
+                radius={[0, 2, 2, 0]}
+                barSize={6}
               />
             ))}
           </BarChart>
