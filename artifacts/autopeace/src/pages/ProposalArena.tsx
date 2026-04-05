@@ -579,11 +579,12 @@ function ArenaCompareChart({ proposals, aiDeal }: { proposals: Proposal[]; aiDea
     for (const d of SCORE_DIMENSIONS) {
       row[d.label] = Math.round(((item.scores[d.key] ?? 0) as number) * 100);
     }
+    row["Composite"] = Math.round(((item.scores.composite ?? 0) as number) * 100);
     return row;
   });
 
   const dimKeys = SCORE_DIMENSIONS.map(d => d.label);
-  const chartHeight = Math.max(350, items.length * 100 + 80);
+  const chartHeight = Math.max(350, items.length * 110 + 80);
 
   return (
     <Card className="p-6">
@@ -615,10 +616,20 @@ function ArenaCompareChart({ proposals, aiDeal }: { proposals: Proposal[]; aiDea
                 key={key}
                 dataKey={key}
                 fill={DIMENSION_COLORS[key] ?? "#64748b"}
+                fillOpacity={0.45}
                 radius={[0, 2, 2, 0]}
                 barSize={6}
               />
             ))}
+            <Bar
+              dataKey="Composite"
+              fill="#fbbf24"
+              fillOpacity={1}
+              radius={[0, 3, 3, 0]}
+              barSize={8}
+              stroke="#f59e0b"
+              strokeWidth={1}
+            />
           </BarChart>
         </ResponsiveContainer>
       </div>
