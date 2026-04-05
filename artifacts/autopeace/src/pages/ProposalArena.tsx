@@ -573,6 +573,7 @@ function ArenaCompareChart({ proposals, aiDeal }: { proposals: Proposal[]; aiDea
   for (const p of scoredProposals) {
     items.push({ name: p.name, scores: p.scores as DealScores });
   }
+  items.sort((a, b) => ((b.scores.composite ?? 0) as number) - ((a.scores.composite ?? 0) as number));
 
   const data = items.map(item => {
     const row: Record<string, unknown> = { name: item.name };
@@ -646,6 +647,7 @@ function GapAnalysis({ proposals, aiDeal }: { proposals: Proposal[]; aiDeal: Dea
   for (const p of scoredProposals) {
     allItems.push({ name: p.name, scores: p.scores as DealScores });
   }
+  allItems.sort((a, b) => ((b.scores.composite ?? 0) as number) - ((a.scores.composite ?? 0) as number));
 
   const dims = SCORE_DIMENSIONS;
 
@@ -711,7 +713,11 @@ export default function ProposalArena() {
   const { data: arenaData, isLoading } = useGetProposalArena();
   const [expanded, setExpanded] = useState<string | null>(null);
   const [aiExpanded, setAiExpanded] = useState(false);
-  const proposals = arenaData?.proposals ?? [];
+  const proposals = [...(arenaData?.proposals ?? [])].sort((a, b) => {
+    const aComp = (a.scores as DealScores | null)?.composite ?? 0;
+    const bComp = (b.scores as DealScores | null)?.composite ?? 0;
+    return (bComp as number) - (aComp as number);
+  });
   const aiDeal = arenaData?.currentAiDeal ?? null;
   const aiDealScores = aiDeal ? (aiDeal.scores as DealScores | null) : null;
 
