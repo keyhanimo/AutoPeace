@@ -583,7 +583,7 @@ function ArenaCompareChart({ proposals, aiDeal }: { proposals: Proposal[]; aiDea
   });
 
   const dimKeys = SCORE_DIMENSIONS.map(d => d.label);
-  const chartHeight = Math.max(300, items.length * 70 + 60);
+  const chartHeight = Math.max(350, items.length * 100 + 80);
 
   return (
     <Card className="p-6">
@@ -595,13 +595,14 @@ function ArenaCompareChart({ proposals, aiDeal }: { proposals: Proposal[]; aiDea
       </p>
       <div style={{ height: chartHeight }}>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+          <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }} barCategoryGap="30%">
             <XAxis type="number" tick={{ fontSize: 9, fill: "#94a3b8" }} tickFormatter={(v: number) => `${v}%`} domain={[0, 100]} />
             <YAxis
               type="category"
               dataKey="name"
-              width={220}
-              tick={{ fontSize: 10, fill: "#e2e8f0" }}
+              width={300}
+              tick={{ fontSize: 11, fill: "#e2e8f0" }}
+              interval={0}
             />
             <Tooltip
               contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "8px", fontSize: "11px", color: "#e2e8f0" }}
