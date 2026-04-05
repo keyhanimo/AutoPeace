@@ -118,12 +118,17 @@ IMPORTANT CRITERIA:
 
 Return a JSON object with a "proposals" key containing an array. Return {"proposals": []} if no actionable proposals are found.`;
 
-const EXTRACTION_USER_PROMPT = (articles: string) => `Scan these recent news articles about the Iran conflict. Extract any NEW peace proposals, diplomatic frameworks, or deal offers.
+const EXTRACTION_USER_PROMPT = (articles: string, existingNames: string[]) => {
+  const existingList = existingNames.length > 0
+    ? `\nALREADY KNOWN PROPOSALS (do NOT re-extract these or variations of them):\n${existingNames.map((n, i) => `${i + 1}. ${n}`).join("\n")}\n`
+    : "";
 
+  return `Scan these recent news articles about the Iran conflict. Extract any NEW peace proposals, diplomatic frameworks, or deal offers that are NOT already in our database.
+${existingList}
 ARTICLES:
 ${articles}
 
-For each genuine proposal found, return:
+For each genuine NEW proposal found, return:
 {
   "proposals": [
     {
@@ -152,6 +157,7 @@ For each genuine proposal found, return:
 }
 
 Only include proposals with confidence >= 0.6. Return {"proposals": []} if nothing qualifies.`;
+};
 
 const KEY_ACTORS = [
   "zarif", "khamenei", "rouhani", "pezeshkian", "araghchi", "raisi",
@@ -179,11 +185,26 @@ function significantWords(text: string): Set<string> {
   );
 }
 
+function termsText(terms: Record<string, unknown>): string {
+  return ["nuclearProtocol", "sanctionsRelief", "hormuzArrangements", "verificationMechanism", "sequencing"]
+    .map(k => String(terms[k] ?? ""))
+    .join(" ");
+}
+
+function jaccardSimilarity(a: Set<string>, b: Set<string>): number {
+  if (a.size === 0 && b.size === 0) return 0;
+  const intersection = [...a].filter(w => b.has(w)).length;
+  const union = new Set([...a, ...b]).size;
+  return union > 0 ? intersection / union : 0;
+}
+
+type ExistingProposal = { id: string; name: string; source?: string | null; summary?: string | null; terms?: unknown };
+
 function checkDuplicate(
   proposal: ExtractedProposal,
   nameLower: string,
   seenNames: Set<string>,
-  existingProposals: { id: string; name: string; source?: string | null; summary?: string | null }[],
+  existingProposals: ExistingProposal[],
 ): string | false {
   for (const existing of seenNames) {
     const existingWords = significantWords(existing);
@@ -227,6 +248,18 @@ function checkDuplicate(
     }
   }
 
+  const newTermsWords = significantWords(termsText(proposal.terms as Record<string, unknown>));
+  if (newTermsWords.size > 0) {
+    for (const existing of existingProposals) {
+      if (!existing.terms || typeof existing.terms !== "object") continue;
+      const existingTermsWords = significantWords(termsText(existing.terms as Record<string, unknown>));
+      const sim = jaccardSimilarity(newTermsWords, existingTermsWords);
+      if (sim >= 0.35) {
+        return `terms similarity ${(sim * 100).toFixed(0)}%`;
+      }
+    }
+  }
+
   return false;
 }
 
@@ -250,6 +283,11 @@ export async function extractProposalsFromEvidence(cycleId?: string): Promise<nu
     return pendingEvaluated;
   }
 
+  const existingProposals: ExistingProposal[] = await db
+    .select({ id: proposalsTable.id, name: proposalsTable.name, source: proposalsTable.source, summary: proposalsTable.summary, terms: proposalsTable.terms })
+    .from(proposalsTable);
+  const existingNames = existingProposals.map(p => p.name);
+
   const articleBatch = recentItems
     .map((item, i) => {
       const text = (item.text ?? "").slice(0, 8000);
@@ -262,7 +300,7 @@ export async function extractProposalsFromEvidence(cycleId?: string): Promise<nu
     const extractionConfig = await getModelConfig();
     const fallback = resolveFallbackConfig("extraction", extractionConfig);
     const resp = await callLLM(
-      EXTRACTION_USER_PROMPT(articleBatch),
+      EXTRACTION_USER_PROMPT(articleBatch, existingNames),
       EXTRACTION_SYSTEM_PROMPT,
       extractionConfig.extractionProvider,
       extractionConfig.extractionModel,
@@ -277,19 +315,36 @@ export async function extractProposalsFromEvidence(cycleId?: string): Promise<nu
       p.terms && typeof p.terms === "object" && p.confidence >= 0.6
     );
 
+    const MIN_TERM_LENGTH = 20;
+    const MIN_FILLED_TERMS = 3;
+
     const beforeFilter = validated.length;
     extracted = validated.filter(p => {
-      const hasNuclear = !!(p.terms?.nuclearProtocol && p.terms.nuclearProtocol.trim().length > 0);
-      const hasSanctions = !!(p.terms?.sanctionsRelief && p.terms.sanctionsRelief.trim().length > 0);
+      const termFields = [
+        p.terms?.nuclearProtocol,
+        p.terms?.sanctionsRelief,
+        p.terms?.hormuzArrangements,
+        p.terms?.humanitarianProvisions,
+        p.terms?.verificationMechanism,
+        p.terms?.sequencing,
+      ];
+      const filledTerms = termFields.filter(t => typeof t === "string" && t.trim().length >= MIN_TERM_LENGTH);
+
+      const hasNuclear = typeof p.terms?.nuclearProtocol === "string" && p.terms.nuclearProtocol.trim().length >= MIN_TERM_LENGTH;
+      const hasSanctions = typeof p.terms?.sanctionsRelief === "string" && p.terms.sanctionsRelief.trim().length >= MIN_TERM_LENGTH;
       if (!hasNuclear && !hasSanctions) {
-        logger.debug({ name: p.name }, "Proposal rejected — no nuclear protocol or sanctions relief terms");
+        logger.debug({ name: p.name }, "Proposal rejected — no substantive nuclear protocol or sanctions relief terms");
+        return false;
+      }
+      if (filledTerms.length < MIN_FILLED_TERMS) {
+        logger.debug({ name: p.name, filledTerms: filledTerms.length }, "Proposal rejected — too few substantive term fields (need at least 3)");
         return false;
       }
       return true;
     });
 
     if (beforeFilter !== extracted.length) {
-      logger.info({ cycleId, beforeFilter, afterFilter: extracted.length }, "Filtered out proposals lacking nuclear/sanctions terms");
+      logger.info({ cycleId, beforeFilter, afterFilter: extracted.length }, "Filtered out proposals lacking substantive detail");
     }
 
     logger.info({ cycleId, articlesScanned: recentItems.length, proposalsFound: extracted.length }, "Proposal extraction complete");
@@ -308,9 +363,6 @@ export async function extractProposalsFromEvidence(cycleId?: string): Promise<nu
     return pendingEvaluated;
   }
 
-  const existingProposals = await db
-    .select({ id: proposalsTable.id, name: proposalsTable.name, source: proposalsTable.source, summary: proposalsTable.summary })
-    .from(proposalsTable);
   const seenNames = new Set(existingProposals.map(p => p.name.toLowerCase().trim()));
   const seenIds = new Set(existingProposals.map(p => p.id));
 
