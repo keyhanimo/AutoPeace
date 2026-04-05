@@ -618,7 +618,7 @@ function GapAnalysis({ proposals, aiDeal }: { proposals: Proposal[]; aiDeal: Dea
 
   const allItems: { name: string; scores: DealScores }[] = [];
   if (aiDeal?.scores) allItems.push({ name: "AI Champion", scores: aiDeal.scores as DealScores });
-  for (const p of scoredProposals.slice(0, 6)) {
+  for (const p of scoredProposals) {
     allItems.push({ name: p.name, scores: p.scores as DealScores });
   }
 
