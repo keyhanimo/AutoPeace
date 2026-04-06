@@ -597,14 +597,49 @@ function ArenaCompareChart({ proposals, aiDeal }: { proposals: Proposal[]; aiDea
       </p>
       <div style={{ height: chartHeight }}>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }} barCategoryGap="30%">
+          <BarChart data={data} layout="vertical" margin={{ top: 15, right: 20, left: 10, bottom: 5 }} barCategoryGap="30%">
             <XAxis type="number" tick={{ fontSize: 9, fill: "#94a3b8" }} tickFormatter={(v: number) => `${v}%`} domain={[0, 100]} />
             <YAxis
               type="category"
               dataKey="name"
-              width={300}
-              tick={{ fontSize: 11, fill: "#e2e8f0" }}
+              width={260}
               interval={0}
+              tick={(props: { x: number; y: number; payload: { value: string } }) => {
+                const { x, y, payload } = props;
+                const maxChars = 30;
+                const label = payload.value;
+                const words = label.split(" ");
+                const lines: string[] = [];
+                let current = "";
+                for (const word of words) {
+                  if (current && (current + " " + word).length > maxChars) {
+                    lines.push(current);
+                    current = word;
+                  } else {
+                    current = current ? current + " " + word : word;
+                  }
+                }
+                if (current) lines.push(current);
+                const lineHeight = 13;
+                const totalHeight = (lines.length - 1) * lineHeight;
+                return (
+                  <g>
+                    {lines.map((line, i) => (
+                      <text
+                        key={i}
+                        x={x - 8}
+                        y={y - totalHeight / 2 + i * lineHeight}
+                        textAnchor="end"
+                        fill="#e2e8f0"
+                        fontSize={10}
+                        dominantBaseline="central"
+                      >
+                        {line}
+                      </text>
+                    ))}
+                  </g>
+                );
+              }}
             />
             <Tooltip
               contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "8px", fontSize: "11px", color: "#e2e8f0" }}
