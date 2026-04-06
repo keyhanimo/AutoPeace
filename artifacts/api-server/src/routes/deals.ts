@@ -11,7 +11,7 @@ const router = Router();
 
 router.get("/deals", async (req, res) => {
   try {
-    const limit = Math.min(Number(req.query["limit"]) || 20, 100);
+    const limit = Math.min(Number(req.query["limit"]) || 20, 500);
     const offset = Number(req.query["offset"]) || 0;
     const architecture = req.query["architecture"] as string | undefined;
 
@@ -73,7 +73,7 @@ router.get("/deals/tree", async (_req, res) => {
 
 router.get("/deals/history", async (req, res) => {
   try {
-    const limit = Math.min(Number(req.query["limit"]) || 50, 200);
+    const limit = Math.min(Number(req.query["limit"]) || 50, 500);
     const offset = Number(req.query["offset"]) || 0;
 
     const data = await db.select({

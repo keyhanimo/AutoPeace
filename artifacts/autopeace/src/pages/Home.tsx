@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, Trophy, Users, FileText, ExternalLink, TrendingUp } from "lucide-react";
@@ -227,15 +227,53 @@ function ChampionDealNarrative() {
   );
 }
 
-function ScoreEvolutionChart() {
-  const { data: historyRes, isLoading } = useListDeals({ limit: 50 });
-  const navigate = useNavigate();
+type TimeRange = "24h" | "week" | "month" | "all";
+const TIME_RANGE_OPTIONS: { value: TimeRange; label: string }[] = [
+  { value: "24h", label: "24h" },
+  { value: "week", label: "Week" },
+  { value: "month", label: "Month" },
+  { value: "all", label: "All Time" },
+];
 
-  const historyDeals = useMemo(() => {
+function filterByTimeRange<T extends { createdAt: string }>(items: T[], range: TimeRange): T[] {
+  if (range === "all") return items;
+  const now = Date.now();
+  const cutoff = range === "24h" ? now - 86400000 : range === "week" ? now - 604800000 : now - 2592000000;
+  return items.filter(d => new Date(d.createdAt).getTime() >= cutoff);
+}
+
+function TimeRangeFilter({ value, onChange }: { value: TimeRange; onChange: (v: TimeRange) => void }) {
+  return (
+    <div className="flex rounded-lg border border-border/50 overflow-hidden">
+      {TIME_RANGE_OPTIONS.map(opt => (
+        <button
+          key={opt.value}
+          onClick={() => onChange(opt.value)}
+          className={`px-3 py-1 text-xs font-medium transition-colors ${
+            value === opt.value
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ScoreEvolutionChart() {
+  const { data: historyRes, isLoading } = useListDeals({ limit: 500 });
+  const navigate = useNavigate();
+  const [timeRange, setTimeRange] = useState<TimeRange>("all");
+
+  const allDeals = useMemo(() => {
     return (historyRes?.data ?? [])
       .filter((d): d is Deal & { scores: DealScores } => d.scores !== null)
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   }, [historyRes]);
+
+  const historyDeals = useMemo(() => filterByTimeRange(allDeals, timeRange), [allDeals, timeRange]);
 
   const historyBarData = useMemo(() => {
     return historyDeals.map((d, i) => {
@@ -273,18 +311,21 @@ function ScoreEvolutionChart() {
 
   return (
     <Card className="p-6">
-      <div className="flex items-start justify-between mb-2">
+      <div className="flex items-start justify-between mb-2 flex-wrap gap-2">
         <div>
           <h3 className="text-lg font-bold flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-primary" /> Score Evolution
           </h3>
           <p className="text-xs text-muted-foreground mt-1">
-            Composite scores for each AI deal iteration. Click a bar to view the full deal.
+            Composite scores for each AI deal iteration ({historyDeals.length} of {allDeals.length} deals). Click a bar to view the full deal.
           </p>
         </div>
-        <Link to="/deals/history" className="text-xs text-primary hover:text-primary/80 transition-colors flex items-center gap-1 shrink-0">
-          Full History <ArrowRight className="w-3 h-3" />
-        </Link>
+        <div className="flex items-center gap-3 shrink-0">
+          <TimeRangeFilter value={timeRange} onChange={setTimeRange} />
+          <Link to="/deals/history" className="text-xs text-primary hover:text-primary/80 transition-colors flex items-center gap-1">
+            Full History <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
       </div>
       <div className="h-72">
         <ResponsiveContainer width="100%" height="100%">

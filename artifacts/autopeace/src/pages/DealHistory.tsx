@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useListDeals, type Deal, type DealScores } from "@workspace/api-client-react";
 import { Card, PageHeader, Badge } from "@/components/ui";
@@ -9,15 +9,53 @@ import { AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { ARCHITECTURE_COLORS, scoreColor } from "@/utils/deal-ui-constants";
 
-export default function DealHistory() {
-  const { data: historyRes, isLoading } = useListDeals({ limit: 50 });
-  const navigate = useNavigate();
+type TimeRange = "24h" | "week" | "month" | "all";
+const TIME_RANGE_OPTIONS: { value: TimeRange; label: string }[] = [
+  { value: "24h", label: "24h" },
+  { value: "week", label: "Week" },
+  { value: "month", label: "Month" },
+  { value: "all", label: "All Time" },
+];
 
-  const historyDeals = useMemo(() => {
+function filterByTimeRange<T extends { createdAt: string }>(items: T[], range: TimeRange): T[] {
+  if (range === "all") return items;
+  const now = Date.now();
+  const cutoff = range === "24h" ? now - 86400000 : range === "week" ? now - 604800000 : now - 2592000000;
+  return items.filter(d => new Date(d.createdAt).getTime() >= cutoff);
+}
+
+function TimeRangeFilter({ value, onChange }: { value: TimeRange; onChange: (v: TimeRange) => void }) {
+  return (
+    <div className="flex rounded-lg border border-border/50 overflow-hidden">
+      {TIME_RANGE_OPTIONS.map(opt => (
+        <button
+          key={opt.value}
+          onClick={() => onChange(opt.value)}
+          className={`px-3 py-1 text-xs font-medium transition-colors ${
+            value === opt.value
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export default function DealHistory() {
+  const { data: historyRes, isLoading } = useListDeals({ limit: 500 });
+  const navigate = useNavigate();
+  const [timeRange, setTimeRange] = useState<TimeRange>("all");
+
+  const allDeals = useMemo(() => {
     return (historyRes?.data ?? [])
       .filter((d): d is Deal & { scores: DealScores } => d.scores !== null)
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   }, [historyRes]);
+
+  const historyDeals = useMemo(() => filterByTimeRange(allDeals, timeRange), [allDeals, timeRange]);
 
   const historyBarData = useMemo(() => {
     return historyDeals.map((d, i) => {
@@ -97,10 +135,15 @@ export default function DealHistory() {
       ) : (
         <>
           <Card className="p-6">
-            <h3 className="text-lg font-bold mb-2">Score Evolution</h3>
-            <p className="text-xs text-muted-foreground mb-4">
-              Composite scores for each AI deal iteration. Click a bar to view the full deal.
-            </p>
+            <div className="flex items-start justify-between mb-4 flex-wrap gap-2">
+              <div>
+                <h3 className="text-lg font-bold">Score Evolution</h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Composite scores for each AI deal iteration ({historyDeals.length} of {allDeals.length} deals). Click a bar to view the full deal.
+                </p>
+              </div>
+              <TimeRangeFilter value={timeRange} onChange={setTimeRange} />
+            </div>
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={historyBarData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
