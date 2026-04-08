@@ -362,36 +362,59 @@ class LLMParseError extends Error {
 
 type RepairFn = (brokenText: string) => Promise<{ content: string; tokens: number }>;
 
+function repairJsonString(raw: string): string {
+  raw = raw.replace(/,\s*([}\]])/g, "$1");
+  raw = raw.replace(/[\x00-\x1f\x7f]/g, (c) => c === "\n" || c === "\r" || c === "\t" ? c : "");
+  return raw;
+}
+
+function aggressiveJsonRepair(raw: string): string {
+  raw = repairJsonString(raw);
+
+  raw = raw.replace(/:\s*'([^']*)'/g, ': "$1"');
+
+  raw = raw.replace(/\bundefined\b/g, "null");
+  raw = raw.replace(/\bNaN\b/g, "null");
+
+  const lastClose = Math.max(raw.lastIndexOf("}"), raw.lastIndexOf("]"));
+  if (lastClose > 0) raw = raw.slice(0, lastClose + 1);
+
+  return raw;
+}
+
 function tryParseJsonStrategies<T>(text: string): T | null {
-  const strategies = [
+  const extractors: Array<() => string | null> = [
     () => {
       const match = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-      if (!match) return null;
-      return match[1];
+      return match ? match[1] : null;
     },
     () => {
       const match = text.match(/(\{[\s\S]*\})/);
-      if (!match) return null;
-      return match[1];
+      return match ? match[1] : null;
     },
     () => {
       const match = text.match(/(\[[\s\S]*\])/);
-      if (!match) return null;
-      return match[1];
+      return match ? match[1] : null;
     },
     () => text,
   ];
 
-  for (const strategy of strategies) {
-    try {
-      let raw = strategy();
-      if (!raw) continue;
-      raw = raw.replace(/,\s*([}\]])/g, "$1");
-      raw = raw.replace(/[\x00-\x1f\x7f]/g, (c) => c === "\n" || c === "\r" || c === "\t" ? c : "");
-      const parsed = JSON.parse(raw) as T;
-      if (parsed !== null && parsed !== undefined) return parsed;
-    } catch {
-      continue;
+  const repairPasses: Array<(s: string) => string> = [
+    repairJsonString,
+    aggressiveJsonRepair,
+  ];
+
+  for (const extractor of extractors) {
+    const raw = extractor();
+    if (!raw) continue;
+    for (const repair of repairPasses) {
+      try {
+        const cleaned = repair(raw);
+        const parsed = JSON.parse(cleaned) as T;
+        if (parsed !== null && parsed !== undefined) return parsed;
+      } catch {
+        continue;
+      }
     }
   }
   return null;
@@ -426,6 +449,18 @@ async function parseLLMJson<T>(text: string, label: string, repairFn?: RepairFn)
 
   logger.error({ label, textSnippet: text.slice(0, 500) }, "parseLLMJson FAILED — all parse strategies exhausted, no fallback");
   throw new LLMParseError(label, text.slice(0, 500));
+}
+
+function makeRepairFn(stageIndex: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8, role: "generation" | "evaluation" | "adversarial", modelConfig: ModelConfig): { repairFn: RepairFn; getRepairTokens: () => number } {
+  const { provider, model } = resolveStageConfig(stageIndex, role, modelConfig);
+  let repairTokens = 0;
+  const repairFn: RepairFn = async (brokenText: string) => {
+    const repairPrompt = `The following text was supposed to be valid JSON but it has syntax errors. Extract or fix the JSON and return ONLY the corrected valid JSON object — no explanation, no markdown, no code fences.\n\nBroken output:\n${brokenText.slice(0, 6000)}`;
+    const result = await callLLM(repairPrompt, "You are a JSON repair tool. Output only valid JSON.", provider, model, { maxTokens: 4096, timeoutMs: 60_000 });
+    repairTokens += result.tokens;
+    return result;
+  };
+  return { repairFn, getRepairTokens: () => repairTokens };
 }
 
 type AcceptanceTier = "required" | "critical" | "influential" | "contextual";
@@ -621,8 +656,9 @@ Generate at least 4 historical analogies, 5 creative provisions (at least 2 at '
   ];
   const selectedAnalogies = fisherYatesShuffle(ANALOGY_POOL).slice(0, 3 + Math.floor(Math.random() * 2));
 
-  const insights = parseLLMJsonSync<BrainstormInsights>(content, "brainstorm");
-  return { insights, tokens };
+  const { repairFn, getRepairTokens } = makeRepairFn(1, "generation", modelConfig);
+  const insights = await parseLLMJson<BrainstormInsights>(content, "brainstorm", repairFn);
+  return { insights, tokens: tokens + getRepairTokens() };
 }
 
 /**
@@ -769,13 +805,14 @@ IMPORTANT: Iran and US are REQUIRED parties. Israel is CRITICAL. Every stakehold
 REMINDER: Write every field as a STANDALONE statement. Do NOT say "revised," "updated," "key changes," "modified from," or reference any prior deal. The reader sees only THIS deal.`;
 
   const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 1, "generation", modelConfig, { maxTokens: 16384, timeoutMs: 300_000 });
-  const terms = parseLLMJsonSync<DealTerms>(content, "proposal");
+  const { repairFn, getRepairTokens } = makeRepairFn(1, "generation", modelConfig);
+  const terms = await parseLLMJson<DealTerms>(content, "proposal", repairFn);
 
   if (!terms.innovativeProvisions || terms.innovativeProvisions.length === 0) {
     logger.error({ architecture }, "LLM proposal missing innovativeProvisions — deal will be stored without them");
   }
 
-  return { terms, tokens };
+  return { terms, tokens: tokens + getRepairTokens() };
 }
 
 /**
@@ -850,9 +887,10 @@ For each stakeholder, consider: (1) Does what they receive justify what they mus
 
 Return JSON with ALL stakeholder IDs: { "iran": { verdict, rationale, redLineViolations, conditions }, "us": {...}, "uae": {...}, ... }`;
 
-  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 2, "evaluation", modelConfig, { maxTokens: 8192, timeoutMs: 300_000 });
-
-  const parsed = parseLLMJsonSync<Record<string, StakeholderVerdict>>(content, "stakeholder-evaluation");
+  const { content, tokens: rawTokens } = await callLLMForStage(prompt, systemPrompt, 2, "evaluation", modelConfig, { maxTokens: 8192, timeoutMs: 300_000 });
+  const { repairFn, getRepairTokens } = makeRepairFn(2, "evaluation", modelConfig);
+  const parsed = await parseLLMJson<Record<string, StakeholderVerdict>>(content, "stakeholder-evaluation", repairFn);
+  const tokens = rawTokens + getRepairTokens();
 
   const normalized: Record<string, StakeholderVerdict> = { ...parsed };
   const REQUIRED_IDS = ["iran", "us"];
@@ -943,19 +981,10 @@ Return JSON object keyed by audience key:
   }
 }`;
 
-  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 3, "evaluation", modelConfig, { maxTokens: 8192, timeoutMs: 180_000 });
-
-  const { provider: repairProvider, model: repairModel } = resolveStageConfig(3, "evaluation", modelConfig);
-  let repairTokens = 0;
-  const repairFn: RepairFn = async (brokenText: string) => {
-    const repairPrompt = `The following text was supposed to be valid JSON but it has syntax errors. Extract or fix the JSON and return ONLY the corrected valid JSON object — no explanation, no markdown, no code fences.\n\nBroken output:\n${brokenText.slice(0, 6000)}`;
-    const result = await callLLM(repairPrompt, "You are a JSON repair tool. Output only valid JSON.", repairProvider, repairModel, { maxTokens: 4096, timeoutMs: 60_000 });
-    repairTokens += result.tokens;
-    return result;
-  };
-
+  const { content, tokens: rawTokens } = await callLLMForStage(prompt, systemPrompt, 3, "evaluation", modelConfig, { maxTokens: 8192, timeoutMs: 180_000 });
+  const { repairFn, getRepairTokens } = makeRepairFn(3, "evaluation", modelConfig);
   const parsed = await parseLLMJson<Record<string, DomesticFramingStrategy>>(content, "domestic-framing", repairFn);
-  return { strategies: parsed, tokens: tokens + repairTokens };
+  return { strategies: parsed, tokens: rawTokens + getRepairTokens() };
 }
 
 /**
@@ -1059,8 +1088,9 @@ Return JSON:
 CREATIVE MANDATE: Include at least 2 creative tradeoffs even if no stakeholders reject. These should be novel cross-issue deals that create new value. Think about asymmetric valuations — what is cheap for one party but precious for another?`;
 
   const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 5, "generation", modelConfig, { maxTokens: 8192, timeoutMs: 300_000 });
-  const result = parseLLMJsonSync<NegotiatorResult & { creativeTradeoffs?: CreativeTradeoff[] }>(content, "negotiator");
-  return { result, tokens };
+  const { repairFn, getRepairTokens } = makeRepairFn(5, "generation", modelConfig);
+  const result = await parseLLMJson<NegotiatorResult & { creativeTradeoffs?: CreativeTradeoff[] }>(content, "negotiator", repairFn);
+  return { result, tokens: tokens + getRepairTokens() };
 }
 
 /**
@@ -1103,10 +1133,10 @@ ${audienceList.map(a => `- ${a.key}: ${a.label}`).join("\n")}
 
 Return JSON where each key maps to { "audience": "label", "verdict": "sellable|difficult|unsellable", "rationale": "brief" }.`;
 
-  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 3, "evaluation", modelConfig, { maxTokens: 4096, timeoutMs: 180_000 });
-
-  const parsed = parseLLMJsonSync<Record<string, DomesticVerdict>>(content, "domestic-audiences");
-  return { evaluations: parsed, tokens };
+  const { content, tokens: rawTokens } = await callLLMForStage(prompt, systemPrompt, 3, "evaluation", modelConfig, { maxTokens: 4096, timeoutMs: 180_000 });
+  const { repairFn, getRepairTokens } = makeRepairFn(3, "evaluation", modelConfig);
+  const parsed = await parseLLMJson<Record<string, DomesticVerdict>>(content, "domestic-audiences", repairFn);
+  return { evaluations: parsed, tokens: rawTokens + getRepairTokens() };
 }
 
 /**
@@ -1139,10 +1169,10 @@ Sequencing: ${terms.sequencing}${innovativeContext}
 
 Return JSON array: [{ "attack": "description", "severity": "low|medium|high|critical", "response": "how proponents respond", "survived": true|false }, ...]`;
 
-  const { content, tokens } = await callLLMForStage(prompt, "You are an adversarial analyst. Output JSON.", 4, "adversarial", modelConfig, { maxTokens: 4096, timeoutMs: 180_000 });
-
-  const parsed = parseLLMJsonSync<RedTeamResult[]>(content, "red-team");
-  return { results: parsed, tokens };
+  const { content, tokens: rawTokens } = await callLLMForStage(prompt, "You are an adversarial analyst. Output JSON.", 4, "adversarial", modelConfig, { maxTokens: 4096, timeoutMs: 180_000 });
+  const { repairFn, getRepairTokens } = makeRepairFn(4, "adversarial", modelConfig);
+  const parsed = await parseLLMJson<RedTeamResult[]>(content, "red-team", repairFn);
+  return { results: parsed, tokens: rawTokens + getRepairTokens() };
 }
 
 const SCORE_KEYS = ["feasibility", "coherence", "evidenceGrounding", "domesticSellability", "regionalStability", "implementability", "durability"] as const;
@@ -1276,7 +1306,8 @@ Return JSON with scores and rationale for each dimension:
       const resp = await callLLM(prompt, systemPrompt, provider, model, { timeoutMs: 300_000 });
       const { content, tokens } = resp;
 
-      const parsed = parseLLMJsonSync<Record<string, unknown>>(content, `judge-panel-${provider}`);
+      const { repairFn: judgeRepairFn, getRepairTokens: getJudgeRepairTokens } = makeRepairFn(6, "evaluation", modelConfig);
+      const parsed = await parseLLMJson<Record<string, unknown>>(content, `judge-panel-${provider}`, judgeRepairFn);
 
       let validDimensions = 0;
       const scores: Record<string, number> = {};
@@ -1297,7 +1328,7 @@ Return JSON with scores and rationale for each dimension:
         throw new Error(`${provider} returned only ${validDimensions}/${SCORE_KEYS.length} valid dimensions (need ${MIN_VALID_DIMENSIONS})`);
       }
 
-      return { provider, model, scores, rationale, tokens };
+      return { provider, model, scores, rationale, tokens: tokens + getJudgeRepairTokens() };
     })
   );
 
@@ -1461,9 +1492,10 @@ IMPORTANT: The promptImprovements field is how this pipeline evolves over time. 
 
 CONSTRAINT ON PROMPT IMPROVEMENTS: Every stage's output must be SELF-CONTAINED — fully understandable without reference to any prior deal or cycle. Your suggested prompt changes must NEVER encourage the model to say "revised," "amended," "updated," or refer to "existing provisions," "key changes from previous version," or any language implying the output modifies a prior document. Each deal must read as the first and only deal the reader will ever see.`;
 
-  const { content, tokens } = await callLLMForStage(prompt, systemPrompt, 7, "evaluation", modelConfig, { maxTokens: 8192, timeoutMs: 300_000 });
-  const result = parseLLMJsonSync<MetaEvaluatorResult>(content, "meta-evaluator");
-  return { result, tokens };
+  const { content, tokens: rawTokens } = await callLLMForStage(prompt, systemPrompt, 7, "evaluation", modelConfig, { maxTokens: 8192, timeoutMs: 300_000 });
+  const { repairFn, getRepairTokens } = makeRepairFn(7, "evaluation", modelConfig);
+  const result = await parseLLMJson<MetaEvaluatorResult>(content, "meta-evaluator", repairFn);
+  return { result, tokens: rawTokens + getRepairTokens() };
 }
 
 /**
@@ -1547,8 +1579,8 @@ Limit to 6 items total.`;
   const { provider, model } = resolveStageConfig(6, "evaluation", modelConfig);
   const fallback = resolveFallbackConfig("evaluation", modelConfig);
   const { content } = await callLLM(prompt, systemPrompt, provider, model, { fallbackProvider: fallback?.provider, fallbackModel: fallback?.model });
-
-  return parseLLMJsonSync<Array<{ stakeholder: string; requirement: string; feasibility: "low" | "medium" | "high" }>>(content, "what-would-it-take");
+  const { repairFn } = makeRepairFn(6, "evaluation", modelConfig);
+  return parseLLMJson<Array<{ stakeholder: string; requirement: string; feasibility: "low" | "medium" | "high" }>>(content, "what-would-it-take", repairFn);
 }
 
 /**
